@@ -88,4 +88,4 @@ approved infrastructure, and a data-protection review before launch. Start perso
 graduate to shared once the policy is in place.
 -e 
 ---
-> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026
+> **Last verified against:** Claude Code `2.1.219` — July 2026

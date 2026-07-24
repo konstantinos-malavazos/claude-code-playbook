@@ -123,4 +123,4 @@ fighting the pipeline, you're probably in one of these buckets. Trust the
 heuristic, not the hype.
 -e 
 ---
-> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026
+> **Last verified against:** Claude Code `2.1.219` — July 2026

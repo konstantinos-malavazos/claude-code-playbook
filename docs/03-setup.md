@@ -75,4 +75,4 @@ CLAUDE.md layers already change how every session feels. Add flows and hooks whe
 manual repetition starts to hurt.
 -e 
 ---
-> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026
+> **Last verified against:** Claude Code `2.1.219` — July 2026

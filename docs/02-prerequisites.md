@@ -51,4 +51,4 @@ CLAUDE.md and one specialist agent per layer. See
 [12-adapting-to-your-stack.md](12-adapting-to-your-stack.md).
 -e 
 ---
-> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026
+> **Last verified against:** Claude Code `2.1.219` — July 2026

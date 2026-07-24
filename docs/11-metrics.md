@@ -53,7 +53,7 @@ still return the right answers, and flags regressions vs last month. A memory th
 silently degrades is worse than no memory — so track it like you track the pipeline.
 -e 
 ---
-> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026
+> **Last verified against:** Claude Code `2.1.219` — July 2026
 
 ---
 

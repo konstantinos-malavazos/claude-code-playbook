@@ -97,4 +97,4 @@ consolidates them into the **final verdict**.
 - **Human owns push/MR** so the irreversible outward step always has a person on it.
 -e 
 ---
-> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026
+> **Last verified against:** Claude Code `2.1.219` — July 2026

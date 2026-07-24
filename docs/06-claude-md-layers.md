@@ -116,4 +116,4 @@ Template: [`../templates/claude-md/repo.CLAUDE.md`](../templates/claude-md/repo.
    the others reference it by name.
 -e 
 ---
-> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026
+> **Last verified against:** Claude Code `2.1.219` — July 2026

@@ -75,4 +75,4 @@ independent units). If the parts are tightly coupled, the sequential chain is si
 safer — don't decompose for its own sake.
 -e 
 ---
-> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026
+> **Last verified against:** Claude Code `2.1.219` — July 2026
