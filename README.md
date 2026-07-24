@@ -1,5 +1,8 @@
 # Claude Code Playbook — a way of working for agile teams
 
+> **License:** MIT — see [LICENSE](LICENSE).
+
+
 A **generic, adaptable blueprint** for running Claude Code as a serious engineering
 teammate on a Jira + agile workflow — for any engineer, any stack, any company.
 
