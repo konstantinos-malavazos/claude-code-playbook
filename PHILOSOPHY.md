@@ -130,3 +130,7 @@ scores whether the canonical questions still retrieve the right answers.
 > Give the agent **eyes** and a **memory**, wrap the work in **scoped flows** with
 > **file handoffs** and **hook guardrails**, keep **durable knowledge separate from
 > in-flight noise**, and **measure** whether it's compounding.
+-e 
+---
+
+> **When this mindset doesn't apply** — see [docs/13-when-not-to-use.md](docs/13-when-not-to-use.md) for the boundaries of this pattern.
