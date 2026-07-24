@@ -77,6 +77,8 @@ Config snippet: [`../templates/mcp/global.claude.json.snippet`](../templates/mcp
 
 ## A note on sharing it across a team
 
+See [14-team-adoption.md](14-team-adoption.md) for the team-wide governance discussion.
+
 Per-developer memory compounds for one person. The obvious next step is **one shared
 memory** the whole team contributes to and queries — a bug root-caused once becomes
 queryable by everyone, forever. That's feasible (Forgetful is built as a shared
