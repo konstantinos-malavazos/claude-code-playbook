@@ -121,3 +121,6 @@ This playbook is a tool, not a religion. Every doc describes what the pattern
 *can* do; this one describes where it shouldn't be applied. If you find yourself
 fighting the pipeline, you're probably in one of these buckets. Trust the
 heuristic, not the hype.
+-e 
+---
+> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026

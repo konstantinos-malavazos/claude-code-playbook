@@ -51,3 +51,6 @@ Retrieval quality is also a number: the `/garden-memory` golden-query eval
 ([10-memory-hygiene.md](10-memory-hygiene.md)) scores whether the canonical questions
 still return the right answers, and flags regressions vs last month. A memory that
 silently degrades is worse than no memory — so track it like you track the pipeline.
+-e 
+---
+> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026

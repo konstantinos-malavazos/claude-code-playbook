@@ -73,3 +73,6 @@ references (`ticket-analyzer`, `context-gatherer`, `planner`, your layer special
 If you want the smallest useful thing first: **Steps 1–4 only.** Serena + Forgetful + the
 CLAUDE.md layers already change how every session feels. Add flows and hooks when the
 manual repetition starts to hurt.
+-e 
+---
+> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026

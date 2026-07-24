@@ -120,3 +120,6 @@ question, note who owns the answer and how expensive it is to reverse later, the
 around it with a sensible default or a placeholder so dependent work isn't blocked. The
 open questions are written into the durable ticket state so `/resume-ticket` can pick
 them up days later when the answer lands. See [08-ticket-pipeline.md](08-ticket-pipeline.md).
+-e 
+---
+> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026

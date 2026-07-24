@@ -114,3 +114,6 @@ Template: [`../templates/claude-md/repo.CLAUDE.md`](../templates/claude-md/repo.
 5. **Canonical mappings live once.** If you have a lookup table everything depends on
    (environments, service codes, an id↔name map), put it in exactly one layer and have
    the others reference it by name.
+-e 
+---
+> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026

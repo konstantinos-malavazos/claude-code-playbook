@@ -110,3 +110,6 @@ added ↔ the property the service maps ↔ the member the consumer reads.) This
 - [ ] Each specialist loads only its own standards skill.
 - [ ] The workspace CLAUDE.md documents the chain and the new-branch workflow.
 - [ ] `/start-ticket` dispatches the specialists in order.
+-e 
+---
+> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026

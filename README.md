@@ -107,6 +107,23 @@ else is additive.
 
 ---
 
+
+## Keeping this playbook fresh
+
+Claude Code ships frequently. Templates and docs encoding current behaviour can
+rot silently. Each file in this repo carries a "Last verified against" line at
+the end — when you upgrade Claude Code, run:
+
+```bash
+claude --version   # check what you now have
+grep -r "Last verified" docs/ PHILOSOPHY.md
+# Then update each file's marker and audit for behavioural drift
+```
+
+**Things most likely to drift:** MCP server configuration format, hook API,
+`settings.json` schema, and the directory layout under `~/.claude/`. Pay close
+attention to those files in templates/.
+
 ## ⚠️ Before you commit any of this to a real repo
 
 This playbook is documentation + templates — **no secrets by design**. When you

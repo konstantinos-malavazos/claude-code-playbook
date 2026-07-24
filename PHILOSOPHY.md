@@ -134,3 +134,6 @@ scores whether the canonical questions still retrieve the right answers.
 ---
 
 > **When this mindset doesn't apply** — see [docs/13-when-not-to-use.md](docs/13-when-not-to-use.md) for the boundaries of this pattern.
+-e 
+---
+> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026

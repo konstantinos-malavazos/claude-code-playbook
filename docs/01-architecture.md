@@ -100,3 +100,6 @@ This chain is the single thing you **must** adapt to your own stack. See
 Only the distilled conclusion of a ticket becomes a durable memory. Everything in-flight
 lives on disk and evaporates. See [05-forgetful.md](05-forgetful.md) and
 [10-memory-hygiene.md](10-memory-hygiene.md).
+-e 
+---
+> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026

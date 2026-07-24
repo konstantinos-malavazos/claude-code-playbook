@@ -49,3 +49,6 @@ That ordered list (e.g. `schema → service → client`, or `migration → API �
 the backbone of the whole pipeline. Write it down now; you'll encode it in the workspace
 CLAUDE.md and one specialist agent per layer. See
 [12-adapting-to-your-stack.md](12-adapting-to-your-stack.md).
+-e 
+---
+> **Last verified against:** Claude Code `[run \`claude --version\` and insert here]` — July 2026
