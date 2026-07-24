@@ -1,0 +1,25 @@
+---
+description: Fix a QA bounce-back on an existing ticket — diagnose root cause, fix, amend in place.
+argument-hint: <TICKET-ID>
+---
+
+A previously-shipped ticket (`$ARGUMENTS`) came back from QA. Fix it **in place** so it
+stays one ticket / one commit per repo / one metrics row.
+
+## Sequence
+1. **Load context** — read the consolidated memory for `$ARGUMENTS` and the merged code.
+   Re-fetch the ticket + QA comments (read-only) for the reported failure.
+2. **@fixer-planner** (or the planner in fix mode) — using the `diagnose` skill,
+   reproduce and root-cause the bug. **If it can't be reproduced/explained, STOP and ask
+   the user for more info — do not guess.** Write a fix plan with track allocation.
+3. **Fix** — dispatch the responsible layer specialist(s). Write a **failing test that
+   reproduces the bug first** (`tdd` skill), then make it pass.
+4. **Amend, don't add** — the fix amends the existing branch commit (amend-as-you-go).
+   No `fix: address QA` follow-up commits.
+5. **Review** — @reviewer → @senior-reviewer, same as /start-ticket.
+6. **Land** — update the ticket's durable memory with the root cause + fix (append, don't
+   duplicate). User pushes.
+
+## Guardrails
+Same as /start-ticket: never push, tracker read-only, one commit per repo, no AI-infra
+files committed.

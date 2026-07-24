@@ -1,0 +1,36 @@
+// Merge into the "hooks" object of ~/.claude/settings.json.
+// Matchers are regex on the tool name. Adjust MCP prefixes to the servers you run.
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/block-dangerous-git.sh" },
+          { "type": "command", "command": "~/.claude/hooks/block-infra-staging.sh" }
+        ]
+      },
+      {
+        "matcher": "mcp__jira__.*|mcp__gitlab__.*|mcp__github__.*",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/block-mcp-writes.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/format-on-edit.sh" }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/cleanup-handoffs.sh" }
+        ]
+      }
+    ]
+  }
+}

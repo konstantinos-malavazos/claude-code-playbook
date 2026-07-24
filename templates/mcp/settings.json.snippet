@@ -1,0 +1,47 @@
+// Snippet for ~/.claude/settings.json — model/effort/theme + env + the hooks wiring.
+// The "hooks" block below is the same content as hooks/settings-hooks.snippet.json;
+// merge whichever hooks you actually installed.
+{
+  "model": "<your-model-id>",
+  "effortLevel": "high",
+  "theme": "dark",
+
+  // Env vars available to MCP config (${VAR}) and hooks. Never inline secrets.
+  "env": {
+    "WORKSPACE_HANDOFFS_ROOT": "<workspace>/.claude/handoffs"
+    // Tokens should come from your real environment, not be written here.
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/block-dangerous-git.sh" },
+          { "type": "command", "command": "~/.claude/hooks/block-infra-staging.sh" }
+        ]
+      },
+      {
+        "matcher": "mcp__jira__.*|mcp__gitlab__.*|mcp__github__.*",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/block-mcp-writes.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/format-on-edit.sh" }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/cleanup-handoffs.sh" }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+// Snippet for <workspace>/.mcp.json — PROJECT-scoped MCP servers.
+// These are tied to THIS working copy. Enable them in
+// <workspace>/.claude/settings.local.json via "enabledMcpjsonServers" (or
+// "enableAllProjectMcpServers": true).
+{
+  "mcpServers": {
+    "serena": {
+      "type": "http",
+      "url": "http://localhost:9121/mcp"
+    },
+
+    // Pick ONE git host (or keep both if your org uses both).
+    "gitlab": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@zereight/mcp-gitlab"],
+      "env": {
+        "GITLAB_PERSONAL_ACCESS_TOKEN": "${GITLAB_TOKEN}",
+        "GITLAB_API_URL": "<YOUR-GITLAB-API-URL>"
+      }
+    }
+
+    // "github": {
+    //   "type": "stdio",
+    //   "command": "npx",
+    //   "args": ["-y", "@modelcontextprotocol/server-github"],
+    //   "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}" }
+    // }
+  }
+}

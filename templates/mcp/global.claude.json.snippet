@@ -1,0 +1,29 @@
+// Snippet for ~/.claude.json — GLOBAL MCP servers (available in every project).
+// Merge the "mcpServers" entries into your existing file; keep secrets in env vars.
+//
+// Global scope = servers that aren't tied to one working copy:
+//   - forgetful (memory) is global — your knowledge spans projects.
+//   - the tracker MCP is global — same tracker across projects.
+// Serena is PROJECT scope instead (see project.mcp.json.snippet) because it indexes a
+// working copy.
+{
+  "mcpServers": {
+    "forgetful": {
+      "type": "http",
+      "url": "http://localhost:8020/mcp"
+    },
+
+    "jira": {
+      "type": "stdio",
+      "command": "<your-tracker-mcp-binary-or-npx-package>",
+      "args": [],
+      "env": {
+        "JIRA_URL": "<YOUR-TRACKER-URL>",
+        "JIRA_TOKEN": "${JIRA_TOKEN}"
+      }
+    }
+
+    // Optional: a read-only staging DB MCP for data sampling.
+    // "db": { "type": "stdio", "command": "...", "env": { "CONN": "${STG_DB_CONN}" } }
+  }
+}

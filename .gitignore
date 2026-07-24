@@ -1,0 +1,21 @@
+# This repo is documentation + templates only — no secrets, no build output.
+# Never let local AI-infra or credentials leak in.
+
+# Local AI-infra / MCP state
+.claude/
+.serena/
+.forgetful/
+CLAUDE.md
+MEMORY.md
+
+# Secrets / env
+.env
+*.local
+*token*
+*secret*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
