@@ -60,6 +60,12 @@ A **worktree** gives each slice its own checkout of the same repo on its own bra
 slices run truly in parallel.
 The `@integrator` tears the worktrees down after collapsing to one commit per repo.
 
+This isolation is enforced by Claude Code, not just convention, and it's been hardened
+recently: subagents redirecting git into the shared checkout via `git -C`, `--git-dir`,
+or `GIT_DIR`/`GIT_WORK_TREE` was fixed in v2.1.216, with related escapes fixed in
+v2.1.203 and v2.1.210. Treat v2.1.216 as the version floor for relying on worktree
+isolation — it hasn't always held.
+
 Worktrees are the right tool *only* when agents mutate files in parallel — they cost
 setup time and disk, so the single-slice path never uses them.
 

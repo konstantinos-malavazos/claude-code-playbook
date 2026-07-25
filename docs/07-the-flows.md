@@ -150,21 +150,24 @@ plan, so the shape can differ run to run.
   "Dynamic workflows" row in `/config`. On by default for Max, Team, and Enterprise; an
   org can disable it via managed settings.
 - Trigger with the keyword `ultracode` in your prompt, or plain phrasing like "use a
-  workflow." (Before v2.1.160, the literal word "workflow" was the only trigger.)
+  workflow" / "run a workflow." (Before v2.1.160, the literal word "workflow" was the
+  only trigger.)
 - `/effort ultracode` makes Claude choose a workflow for every substantive task in the
   session.
 - Runtime caps: 16 concurrent agents (fewer on low-core machines), 1000 agents total per
-  run.
+  run. These are hard caps.
+- As of v2.1.219, the "Dynamic workflow size" guideline defaults to medium (aim for
+  fewer than 15 agents). It's advisory, not a cap — a prompt calling for a different
+  scale overrides it. Set it from any settings file with the `workflowSizeGuideline`
+  key, the form worth templating; the `/config` row hides once one is set.
 - No mid-run user input — the script coordinates agents but has no direct filesystem or
   shell access itself.
 - Monitor a run with `/workflows`; press `s` on a finished run to save its script as a
   command, to `.claude/workflows/` (project, shared) or `~/.claude/workflows/` (personal).
 - Resume only works within the same session — exiting Claude Code restarts the workflow
   next session.
-- The "Dynamic workflow size" setting in `/config` (small/medium/large) biases Claude
-  toward smaller scripts; the runtime caps above still apply regardless.
 - `/deep-research` is the bundled workflow — the cheapest way to see the machinery before
-  writing your own.
+  writing your own; since v2.1.218 it only runs when you invoke it.
 
 ### Where the guardrails stop
 
@@ -177,6 +180,8 @@ What actually remains under your control:
 - **Scope the run narrowly** — a broad goal is a broad blast radius, since nothing checks
   each step as it happens.
 - **Set the tool allowlist before starting** — it's inherited, not renegotiated per agent.
+- **Pin `workflowSizeGuideline` in settings** — a stable, reviewable default beats
+  relying on whatever the model infers per prompt.
 - **Read the plan at the approval prompt** — that's the one checkpoint before the script
   runs unattended.
 -e 
