@@ -47,8 +47,17 @@ Vertical slices can be built and validated in parallel and integrated incrementa
 
 ## Why git worktrees
 
-Parallel agents editing the same working copy collide. A **worktree** gives each slice
-its own checkout of the same repo on its own branch, so slices run truly in parallel.
+Parallel agents editing the same working copy collide.
+
+Two agents writing the same file at once **race**: the second write silently clobbers the
+first, and neither agent sees an error. Shared git state — one index, one `HEAD`, one set
+of staged changes — makes it worse, since a `git add` or `git checkout` from one agent can
+shift what another agent is looking at mid-edit. The fix is **structural isolation**, not
+better prompting: no instruction telling an agent "don't touch files another agent owns"
+prevents a race the filesystem itself allows.
+
+A **worktree** gives each slice its own checkout of the same repo on its own branch, so
+slices run truly in parallel.
 The `@integrator` tears the worktrees down after collapsing to one commit per repo.
 
 Worktrees are the right tool *only* when agents mutate files in parallel — they cost

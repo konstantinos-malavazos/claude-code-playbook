@@ -1,5 +1,9 @@
 # Claude Code Playbook — a way of working for agile teams
 
+*A stack-agnostic blueprint for running Claude Code as an engineering teammate on a
+Jira/agile workflow — semantic code navigation, durable memory, and multi-agent flows
+behind slash commands.*
+
 > **License:** MIT — see [LICENSE](LICENSE).
 
 

@@ -120,6 +120,47 @@ question, note who owns the answer and how expensive it is to reverse later, the
 around it with a sensible default or a placeholder so dependent work isn't blocked. The
 open questions are written into the durable ticket state so `/resume-ticket` can pick
 them up days later when the answer lands. See [08-ticket-pipeline.md](08-ticket-pipeline.md).
+
+---
+
+## Hand-built flows vs dynamic workflows
+
+Claude Code has a separate built-in feature called a **dynamic workflow**: include the
+word "workflow" in a prompt and Claude writes a JavaScript orchestration script that fans
+the task across parallel subagents, runs an adversarial verification pass, and returns one
+answer. Intermediate results live in the script's variables, not the session context.
+
+The flows in this playbook are **hand-drawn topology** — you choose the agents, the
+order, and the handoffs, and every hook in `templates/hooks/` fires at each step. A
+dynamic workflow is **generated topology** — you describe the goal and Claude writes the
+plan, so the shape can differ run to run.
+
+**Decide between them like this:**
+
+- **Hand-built flow** — the shape of the work is known and repeats, and you want the
+  guardrail hooks enforced at each step. The ticket pipeline is the canonical case.
+- **Dynamic workflow** — the shape depends on what's actually in the repo and the width
+  isn't known up front: "audit every file under `<PATH>`," "port every module in `<DIR>`."
+- **Neither** — the task is one change in one file. See
+  [13-when-not-to-use.md](13-when-not-to-use.md).
+
+**Verified constraints:**
+
+- Requires Claude Code v2.1.154+.
+- Max 16 agents concurrent, 1000 total per run — runtime-enforced.
+- Availability: Pro (off by default, enable in `/config`) · Max/Team (on by default) ·
+  Enterprise (off by default, an admin must enable it).
+- Monitor a run with `/workflows`.
+- No mid-run input: the orchestration script coordinates agents but cannot touch the
+  filesystem or shell itself.
+- Cost scales with agent count — a workflow costs meaningfully more than a normal
+  session.
+
+**Caveat:** the guardrail hooks in `templates/hooks/` (PHILOSOPHY.md §5) work because you
+control every step a hand-built flow runs. A dynamic workflow's plan is generated at run
+time and you cannot intervene mid-run, so those hooks are not a substitute for scoping the
+workflow correctly before you launch it — narrow the goal the same way you'd scope a
+ticket before running `/start-ticket`.
 -e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026
