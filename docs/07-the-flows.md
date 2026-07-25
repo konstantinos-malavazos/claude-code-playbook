@@ -125,10 +125,10 @@ them up days later when the answer lands. See [08-ticket-pipeline.md](08-ticket-
 
 ## Hand-built flows vs dynamic workflows
 
-Claude Code has a separate built-in feature called a **dynamic workflow**: include the
-word "workflow" in a prompt and Claude writes a JavaScript orchestration script that fans
-the task across parallel subagents, runs an adversarial verification pass, and returns one
-answer. Intermediate results live in the script's variables, not the session context.
+A **dynamic workflow** is a different built-in mechanism: a JavaScript script Claude
+writes for the task you describe, which a runtime executes in the background — fanning
+work across subagents while your session stays responsive. Intermediate results live in
+the script's variables, not the model's context.
 
 The flows in this playbook are **hand-drawn topology** — you choose the agents, the
 order, and the handoffs, and every hook in `templates/hooks/` fires at each step. A
@@ -144,23 +144,41 @@ plan, so the shape can differ run to run.
 - **Neither** — the task is one change in one file. See
   [13-when-not-to-use.md](13-when-not-to-use.md).
 
-**Verified constraints:**
+**Verified constraints** (see the [workflows docs](https://code.claude.com/docs/en/workflows)):
 
-- Requires Claude Code v2.1.154+.
-- Max 16 agents concurrent, 1000 total per run — runtime-enforced.
-- Availability: Pro (off by default, enable in `/config`) · Max/Team (on by default) ·
-  Enterprise (off by default, an admin must enable it).
-- Monitor a run with `/workflows`.
-- No mid-run input: the orchestration script coordinates agents but cannot touch the
-  filesystem or shell itself.
-- Cost scales with agent count — a workflow costs meaningfully more than a normal
+- Requires Claude Code v2.1.154+; available on all paid plans. On Pro, enable it via the
+  "Dynamic workflows" row in `/config`. On by default for Max, Team, and Enterprise; an
+  org can disable it via managed settings.
+- Trigger with the keyword `ultracode` in your prompt, or plain phrasing like "use a
+  workflow." (Before v2.1.160, the literal word "workflow" was the only trigger.)
+- `/effort ultracode` makes Claude choose a workflow for every substantive task in the
   session.
+- Runtime caps: 16 concurrent agents (fewer on low-core machines), 1000 agents total per
+  run.
+- No mid-run user input — the script coordinates agents but has no direct filesystem or
+  shell access itself.
+- Monitor a run with `/workflows`; press `s` on a finished run to save its script as a
+  command, to `.claude/workflows/` (project, shared) or `~/.claude/workflows/` (personal).
+- Resume only works within the same session — exiting Claude Code restarts the workflow
+  next session.
+- The "Dynamic workflow size" setting in `/config` (small/medium/large) biases Claude
+  toward smaller scripts; the runtime caps above still apply regardless.
+- `/deep-research` is the bundled workflow — the cheapest way to see the machinery before
+  writing your own.
 
-**Caveat:** the guardrail hooks in `templates/hooks/` (PHILOSOPHY.md §5) work because you
-control every step a hand-built flow runs. A dynamic workflow's plan is generated at run
-time and you cannot intervene mid-run, so those hooks are not a substitute for scoping the
-workflow correctly before you launch it — narrow the goal the same way you'd scope a
-ticket before running `/start-ticket`.
+### Where the guardrails stop
+
+Agents spawned inside a workflow always run in `acceptEdits` mode and inherit the
+session's tool allowlist regardless of the session's own permission mode — file edits are
+auto-approved. The hooks in `templates/hooks/` are **not** a step-level gate inside a
+workflow, and there is no mid-run intervention once it starts.
+
+What actually remains under your control:
+- **Scope the run narrowly** — a broad goal is a broad blast radius, since nothing checks
+  each step as it happens.
+- **Set the tool allowlist before starting** — it's inherited, not renegotiated per agent.
+- **Read the plan at the approval prompt** — that's the one checkpoint before the script
+  runs unattended.
 -e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026
