@@ -42,8 +42,8 @@ what it must NEVER do, and where it reads/writes handoff files.>
 | `context-gatherer.md` | heavy memory + code-nav sweep in a throwaway context |
 | `planner.md` | design + track allocation + branch (no memory writes, no code) |
 | `layer-specialist.md` | **copy once per layer of your chain** — the implementer |
-| `reviewer.md` | first-level in-repo review (comments only) |
-| `senior-reviewer.md` | cross-repo blast-radius review (comments only) |
+| `repo-reviewer.md` | first-level in-repo review (comments only) |
+| `release-reviewer.md` | cross-repo blast-radius review (comments only) |
 
 Decompose-path agents (`aligner`, `integrator`, `integration-tester`, `slice-*`) follow
 the same anatomy; add them only if you use the decompose path (docs/09).

@@ -55,9 +55,9 @@ Reads both briefs, does a pinpoint read of `formatFeedTime`, writes `planner.md`
   binding all agree. ✅
 
 ### 5–6. Review
-- `@reviewer`: all ACs met, tests pass, branch is **1 commit**, convention OK. Drafts the
+- `@repo-reviewer`: all ACs met, tests pass, branch is **1 commit**, convention OK. Drafts the
   PR description. Provisional: APPROVE.
-- `@senior-reviewer`: checks consumers of `formatFeedTime` across repos — the change is
+- `@release-reviewer`: checks consumers of `formatFeedTime` across repos — the change is
   backward-compatible (tz optional). No downstream break. Appends: APPROVE.
 - Final verdict: **APPROVE**.
 

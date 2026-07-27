@@ -82,7 +82,7 @@ claude-code-playbook/
 │   └── 12-adapting-to-your-stack.md  How to map the abstract layer-chain to YOUR layers
 └── templates/
     ├── claude-md/     global · workspace · per-repo CLAUDE.md skeletons
-    ├── agents/        ticket-analyzer · context-gatherer · planner · layer-specialist · reviewer · …
+    ├── agents/        ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · …
     ├── skills/        commit-conventions · engineering-standards · tdd · diagnose · grilling
     ├── commands/      start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory
     ├── hooks/         block-dangerous-git · block-mcp-writes · block-infra-staging · cleanup-handoffs

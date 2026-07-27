@@ -63,7 +63,7 @@ confirm it's blocked).
 
 Copy `templates/commands/start-ticket.md` → `~/.claude/commands/`, plus the agents it
 references (`ticket-analyzer`, `context-gatherer`, `planner`, your layer specialists,
-`reviewer`, `senior-reviewer`). Run it on a small real ticket. Once that's smooth, add
+`repo-reviewer`, `release-reviewer`). Run it on a small real ticket. Once that's smooth, add
 `/fix-ticket`, `/test-ticket`, `/end-of-day`, `/garden-memory` as the need arises.
 
 ---

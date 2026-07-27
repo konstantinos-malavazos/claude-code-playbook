@@ -27,7 +27,7 @@ route, gate, and consolidate.
    - `slice-count > 1` → run `/to-spec` then `/to-tickets`, get the user's approval of the
      slice board, dispatch the slices in parallel worktrees, then @aligner → @integrator
      → @integration-tester (see docs/09).
-6. **@reviewer** → **@senior-reviewer** → consolidate into the FINAL verdict.
+6. **@repo-reviewer** → **@release-reviewer** → consolidate into the FINAL verdict.
    - `REQUEST CHANGES` → back to the responsible specialist (amend, don't add commits);
      re-review.
    - `APPROVE` → continue.

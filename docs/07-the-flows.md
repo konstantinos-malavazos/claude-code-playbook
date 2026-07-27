@@ -18,8 +18,8 @@ re-driving the same ten steps by hand.
 - **Handoffs are files, not chat.** Agents pass context through
   `<workspace>/.claude/handoffs/<TICKET>/<agent>.md`, which **auto-delete at session
   end**. In-flight noise never pollutes durable memory.
-- **Two-tier review.** A first reviewer works in-repo (diff, acceptance criteria, tests);
-  a senior reviewer checks cross-repo blast radius (contract/payload coupling,
+- **Two-tier review.** `@repo-reviewer` works in-repo (diff, acceptance criteria, tests);
+  `@release-reviewer` checks cross-repo blast radius (contract/payload coupling,
   downstream consumers, schema collisions).
 - **One commit per branch per repo.** Amend-as-you-go; the reviewer asserts it.
 - **Guardrails are hooks, not trust.** Push is hard-blocked; the tracker is read-only;
@@ -50,9 +50,9 @@ Turns a ticket id into a reviewed, single-commit branch.
               → parallel slices in git worktrees → @aligner → @integrator
               → @integration-tester
         │
-@reviewer             in-repo: diff, acceptance criteria, tests, commit convention
+@repo-reviewer        in-repo: diff, acceptance criteria, tests, commit convention
         │
-@senior-reviewer      cross-repo blast radius
+@release-reviewer     cross-repo blast radius
         │
    verdict ── REQUEST CHANGES ──► back to the specialists
         └──── APPROVE ──► consolidate the ticket into ONE durable memory

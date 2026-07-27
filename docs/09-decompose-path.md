@@ -31,7 +31,7 @@ by setting **slice-count > 1**; you confirm it.
 @integration-tester   tests the COMBINED behaviour no single slice proves alone;
         │              folds its tests into each repo's one commit
         │
-        └──► rejoin the normal path at @reviewer → @senior-reviewer
+        └──► rejoin the normal path at @repo-reviewer → @release-reviewer
 ```
 
 ---
