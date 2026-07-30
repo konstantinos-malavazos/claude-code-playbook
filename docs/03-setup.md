@@ -13,12 +13,44 @@ confirm it starts. Pick your model and effort level in `~/.claude/settings.json`
 
 ## Step 2 — Stand up Serena (eyes)
 
-1. Install/run the Serena MCP server (follow its README; it typically runs as a local
-   HTTP server after indexing a project).
-2. Register it as a **project-scoped** server in `<workspace>/.mcp.json`
-   ([`../templates/mcp/project.mcp.json.snippet`](../templates/mcp/project.mcp.json.snippet)).
-3. Verify: ask Claude "give me a symbols overview of `<some file>`" and confirm it
-   returns symbols, not a file dump.
+Serena is **mandatory** in this playbook, for reading code *and* for editing it
+([04-serena.md](04-serena.md#mandatory-not-preferred)) — so get this step right before
+anything else. Two install routes; pick one.
+
+**Route A — plugin (simplest, recommended).** Install the `serena` plugin from the
+official marketplace (`/plugin`). It runs Serena via `uvx` straight from upstream, so
+there's no server to babysit and it updates with the plugin. Requires `uv` on PATH.
+
+**Route B — project-scoped MCP server.** Run Serena yourself (follow its README; typically
+a local HTTP server after indexing) and register it in `<workspace>/.mcp.json`
+([`../templates/mcp/project.mcp.json.snippet`](../templates/mcp/project.mcp.json.snippet)).
+Use this if you want to pin a version or point at a shared instance.
+
+### Then: find your tool prefix — this bites
+
+The route decides the tool namespace, and the agent templates name Serena's tools
+explicitly, so the prefix must match:
+
+| Route | Prefix | Example |
+|---|---|---|
+| A (plugin) | `mcp__plugin_serena_serena__` | `mcp__plugin_serena_serena__find_symbol` |
+| B (`.mcp.json` key `serena`) | `mcp__serena__` | `mcp__serena__find_symbol` |
+
+The templates ship with **`mcp__serena__`**. On Route A, search-and-replace
+`mcp__serena__` → `mcp__plugin_serena_serena__` across `~/.claude/agents/`.
+
+> **A wrong prefix fails silently.** An unresolvable name in a `tools:` list doesn't
+> error — the agent simply has *no* code tools and quietly reads whole files instead,
+> which is the exact behaviour the mandate exists to prevent. Confirm the real names with
+> `/mcp` before trusting a copied agent.
+
+### Verify
+1. Ask Claude for "a symbols overview of `<some file>`" — confirm you get symbols, not a
+   file dump.
+2. Confirm the **write** tools are present too (`replace_symbol_body`, `rename_symbol`,
+   `safe_delete_symbol`); a read-only Serena can't satisfy the mandate.
+3. Serena is **per-project** — each solution/repo is its own Serena project. Activate the
+   right one (`activate_project`) before working in it.
 
 ## Step 3 — Stand up Forgetful (memory)
 

@@ -37,26 +37,46 @@ the guess-the-name round trip — Serena tells you the symbol is *actually* call
 
 ---
 
-## When Serena, when grep, when read
+## Mandatory, not preferred
 
-- **Serena** — any *code-structure* question in a language it indexes: locating a
-  symbol, its references/implementations/declaration, what it does, or reading before a
-  surgical edit.
-- **grep** — text that isn't a symbol (config strings, log messages, TODO markers) or
-  files in a language Serena doesn't index.
-- **whole-file read** — small files, non-code files, or when you genuinely need the full
-  context of a short file.
+In this playbook Serena is **not** a "reach for it first" nicety. The rule is:
 
-Encode this as a rule in your global CLAUDE.md and (optionally) a `check-code` skill so
-the agent reaches for Serena *before* grep by default.
+> **Serena is the only sanctioned way to read code, and the only sanctioned way to change
+> it.**
+
+Both directions matter. Reading by symbol is what makes the agent accurate; *writing* by
+symbol (`replace_symbol_body`, `insert_after_symbol`, `rename_symbol`,
+`safe_delete_symbol`) is what stops the classic failure modes — an `Edit` applied to a
+stale line range, a find/replace rename that misses a call site or hits a comment, a
+deletion whose references nobody checked. `get_diagnostics_for_file` then closes the loop
+before the build runs.
+
+### The only escapes
+1. The language/file isn't indexed by Serena.
+2. The target is a non-symbol string (config keys, log messages, TODO markers) — try
+   `search_for_pattern` first, grep only if it can't reach it.
+3. Serena errors on the path.
+
+An agent taking an escape must **say which one**. For a write, an unusable Serena means
+**stop and surface it** — never a silent downgrade to `Edit`. And sparse Serena results
+are a finding about your index, not permission to go back to file spelunking.
+
+`Read`/`Grep`/`Glob` stay in every agent's tool list — agents must read handoffs, docs and
+config. They just aren't a code path.
+
+Where this is encoded: the **Serena is MANDATORY** section of
+[`../templates/claude-md/global.CLAUDE.md`](../templates/claude-md/global.CLAUDE.md), and
+a *Code access protocol (MANDATORY)* block in every code-touching agent under
+[`../templates/agents/`](../templates/agents/README.md).
 
 ---
 
 ## How it plugs into the flow
 
 Serena is **project-scoped** (`<workspace>/.mcp.json`) because it indexes a working
-copy. Every agent that reads code — the gatherer, the planner, the specialists, the
-reviewers — uses Serena first. Combined with Forgetful (which recalls *what/why* and
+copy. Every agent that touches code — the gatherer, the planner, the specialists, the
+reviewers — names Serena's tools outright in its frontmatter and carries the mandatory
+protocol block; the specialists' *edits* go through it too. Combined with Forgetful (which recalls *what/why* and
 often *which symbols matter*), the loop is: memory says "look at `ToBetFeesModel`" →
 Serena jumps straight to it → surgical edit. No file spelunking.
 

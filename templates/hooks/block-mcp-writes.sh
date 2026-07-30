@@ -9,6 +9,10 @@ payload="$(cat)"
 tool="$(printf '%s' "$payload" | jq -r '.tool_name // ""')"
 
 # Only police the MCP servers that must stay read-only. Adjust the prefixes to yours.
+# NEVER add Serena's prefix here: Serena's write tools (replace_symbol_body,
+# insert_*_symbol, rename_symbol, safe_delete_symbol, create_text_file) are the MANDATORY
+# path for editing code (docs/04-serena.md). Blocking them forces agents back onto
+# line-based Edit — exactly the failure mode the rule exists to prevent.
 case "$tool" in
     mcp__jira__*|mcp__gitlab__*|mcp__github__*) : ;;   # policed below
     *) exit 0 ;;                                        # everything else: not our business

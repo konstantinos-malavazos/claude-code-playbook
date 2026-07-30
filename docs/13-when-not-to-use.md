@@ -58,7 +58,8 @@ hidden coupling, undocumented invariants, or tribal knowledge.
 
 Signs you're here:
 - The planner frequently writes "I'm assuming X" about things you know are wrong.
-- The code-nav sweep returns sparse results (Serena has few symbols indexed).
+- The Serena sweep returns sparse results (few symbols indexed). Fix the index — this is
+  never a reason to fall back to grep, it's a reason to stop.
 - Review comments correctly flag things but miss the *important* things.
 - You can't tell whether a good plan is actually good, or just well-written.
 
@@ -76,7 +77,8 @@ read-first rule on prod) — those are safety invariants. But the multi-agent fl
 (analyzer → gatherer → planner → specialists → two-tier review) is too slow.
 
 **Use instead:** a `/hotfix` pattern:
-- One agent with code-nav + edit access in the affected repo.
+- One agent with Serena read + edit access in the affected repo. Speed does not relax the
+  Serena rule — symbol edits are *faster* than hunting line ranges under pressure.
 - No gatherer step (skip the memory sweep if you know what's broken).
 - No planner gate (you already know the fix).
 - One reviewer pass, not two.

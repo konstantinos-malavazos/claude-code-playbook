@@ -4,6 +4,15 @@
 // "enableAllProjectMcpServers": true).
 {
   "mcpServers": {
+    // Serena — ONLY needed if you did NOT install the `serena` plugin (see docs/03 step 2).
+    // The plugin route is simpler and is the recommended default; if you use it, DELETE
+    // this entry (two registrations = two tool namespaces = confusion).
+    //
+    // TOOL PREFIX — this must match what your agents' `tools:` lists say:
+    //   this .mcp.json entry (key "serena") → mcp__serena__find_symbol
+    //   the plugin install                  → mcp__plugin_serena_serena__find_symbol
+    // A prefix that doesn't resolve fails SILENTLY: the agent gets no code tools and
+    // falls back to reading whole files. Verify with /mcp.
     "serena": {
       "type": "http",
       "url": "http://localhost:9121/mcp"

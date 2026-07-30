@@ -25,7 +25,10 @@ clean, structured brief the rest of the pipeline can rely on.
 4. Write the brief to `<workspace>/.claude/handoffs/<TICKET-ID>/ticket-analyzer.md`.
 
 ## You must NOT
-- Query memory or navigate code — that is the context-gatherer's scope.
+- Query memory or navigate code — that is the context-gatherer's scope. You are granted
+  **no** Serena tools by design: the workspace rule is that all code access goes through
+  Serena, and your scope has no code access at all. If the ticket makes you want to look
+  at code, that's the gatherer's job — put it in the topic terms.
 - Propose an implementation.
 - Write to the tracker (read-only).
 

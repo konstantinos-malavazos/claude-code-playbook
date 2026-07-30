@@ -10,15 +10,20 @@ specialists for the implementer steps, and your git host for "MR/PR".
 | Step | Agent | Scope (tools) | Output |
 |---|---|---|---|
 | 1 | `ticket-analyzer` | tracker read only | `ticket-analyzer.md` — structured brief |
-| 2 | `context-gatherer` | memory + code-nav, read only | `context-gatherer.md` — distilled brief + blast-radius flags |
-| 3 | `planner` | code-nav read + branch creation; **no memory writes** | `planner.md` — plan, track allocation, final commit message, branch |
+| 2 | `context-gatherer` | memory + Serena, read only | `context-gatherer.md` — distilled brief + blast-radius flags |
+| 3 | `planner` | Serena read + branch creation; **no memory writes** | `planner.md` — plan, track allocation, final commit message, branch |
 | 3b | grilling gate | (human) | answers or **deferred** open questions |
-| 4 | layer specialists (in chain order) | edit + build/test in their repo | code + `<layer>.md` handoff |
-| 5 | `repo-reviewer` | code-nav read, run tests; **comments only** | `repo-reviewer.md` — provisional verdict + MR description |
-| 6 | `release-reviewer` | cross-repo read; **comments only** | appended findings → final verdict |
+| 4 | layer specialists (in chain order) | **Serena edit** + build/test in their repo | code + `<layer>.md` handoff |
+| 5 | `repo-reviewer` | Serena read, run tests; **comments only** | `repo-reviewer.md` — provisional verdict + MR description |
+| 6 | `release-reviewer` | cross-repo Serena read; **comments only** | appended findings → final verdict |
 | 7 | orchestrator + human | — | consolidated memory; human pushes & opens the MR/PR |
 
 Handoffs live in `<workspace>/.claude/handoffs/<TICKET>/` and evaporate at session end.
+
+Every step from 2 onward is bound by the same rule: **Serena is the only sanctioned way
+to read code, and the only sanctioned way to change it** (see
+[04](04-serena.md#mandatory-not-preferred)). Steps 2, 3, 5 and 6 read through it; step 4
+*writes* through it.
 
 ---
 
@@ -31,14 +36,15 @@ to the terms this brief surfaces. Keeping analysis separate keeps each context f
 ## Step 2 — Gather context (`@context-gatherer`)
 
 The expensive step, done in a **throwaway context**. Query memory for everything related
-to the topic/component; use code-nav to map the blast radius (who consumes the thing
-you're about to change). First-pass detection of coupling and stale wiring. Distil it
+to the topic/component; use Serena (`find_symbol`, `find_referencing_symbols`) to map the
+blast radius (who consumes the thing you're about to change) — semantically, not by grep.
+First-pass detection of coupling and stale wiring. Distil it
 all into `context-gatherer.md` — the planner reads only this, not the raw sweep.
 
 ## Step 3 — Plan (`@planner`)
 
-Consume both briefs. Do pinpoint code-nav reads to finalize the design. Produce a
-step-by-step plan with **file/symbol targets** and a **risk assessment**, allocate work
+Consume both briefs. Do pinpoint Serena reads to finalize the design. Produce a
+step-by-step plan with **Serena-verified file/symbol targets** and a **risk assessment**, allocate work
 to layer specialists in chain order, decide **slice-count** (1 = sequential;
 >1 = decompose — see [09](09-decompose-path.md)), write the **final commit message**, and
 create the feature branch (following the workspace new-branch workflow). The planner
@@ -64,6 +70,13 @@ the local build/tests, and commits with **amend-as-you-go** so the branch stays 
 commit per repo**. It writes its own handoff (e.g. the contract the next layer must
 honour). If two or more layers were touched, an **alignment gate** checks they agree
 (column names ↔ field names ↔ payload members) before review.
+
+Implementation is **Serena-only**: read the target symbol with `find_symbol` and its
+callers with `find_referencing_symbols`, change it with `replace_symbol_body` /
+`insert_after_symbol` / `rename_symbol` / `safe_delete_symbol`, then clear
+`get_diagnostics_for_file` on every file touched *before* the build. `Edit`/`Write` on
+code are reserved for languages Serena doesn't index — and if Serena can't act on an
+assigned file, the specialist **stops and surfaces it** rather than downgrading.
 
 ## Step 5 — Review (`@repo-reviewer`)
 

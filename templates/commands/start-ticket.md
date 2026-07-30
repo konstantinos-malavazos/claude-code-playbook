@@ -14,7 +14,7 @@ route, gate, and consolidate.
 
 ## Sequence
 1. **@ticket-analyzer** — tracker → `ticket-analyzer.md`.
-2. **@context-gatherer** — heavy memory + code-nav sweep → `context-gatherer.md`.
+2. **@context-gatherer** — heavy memory + Serena sweep → `context-gatherer.md`.
 3. **@planner** — design + track allocation + slice-count + final commit message; creates
    the branch → `planner.md`.
 4. **Grilling gate** — load the `grilling` skill; present ONLY the planner's open

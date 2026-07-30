@@ -39,9 +39,12 @@ This is your personal operating manual. It's the same whether you're in a work m
 or a weekend side project. Put here the things that are about **you and your process**,
 not about any particular codebase:
 
-- **Tooling policy** — which MCP servers are always-on, and how to opt out per-turn.
+- **Tooling policy** — which MCP servers are always-on, which are **mandatory with no
+  opt-out** (Serena for all code reads *and* edits), and how to opt out of the rest
+  per-turn.
 - **First-action rules** — e.g. "before touching code, recall prior context from memory;
-  navigate by symbol before reading whole files."
+  all code access goes through Serena, by symbol — never grep or whole-file reads for a
+  code-structure question, never `Edit` where `replace_symbol_body` applies."
 - **Ticket / branch / commit conventions** — the format you always use.
 - **Ticket-tracker policy** — e.g. "Jira is read-only unless I explicitly approve a
   write."

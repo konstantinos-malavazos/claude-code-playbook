@@ -8,23 +8,46 @@
 
 # <YOUR NAME> — global workspace rules
 
-## MCP tools — always on by default
+## Serena is MANDATORY for all code access
 
-**Serena** (code navigation) and **Forgetful** (semantic memory) are **on by default**
-for every non-trivial conversation. I should not have to ask for them.
+**Serena is the only sanctioned way to read code and the only sanctioned way to change
+it.** Not a preference, not a default, not a token optimisation — the rule. It applies to
+me and to every agent I dispatch.
 
-### Opt-out (per turn, case-insensitive)
-- `no serena` / `skip serena` → fall back to grep / file reads this turn
-- `no forgetful` / `skip forgetful` → skip memory this turn
-- `no mcp` / `skip mcp` → both off this turn
+### Reading code
+Any code-structure question — where is X, who calls Y, what does Z do, what implements
+this, read-before-edit — goes through `find_symbol`, `find_referencing_symbols`,
+`find_implementations`, `find_declaration`, `get_symbols_overview`. **Never** grep or
+whole-file reads for these. `Read`/`Grep`/`Glob` are for non-code artifacts: docs,
+handoffs, config/data, build manifests.
 
-### Mandatory FIRST actions of any non-trivial conversation
-1. If the message mentions code, a symbol, a ticket id, a service/component, an
-   investigation, or anything beyond trivial chat → **first action is a memory query**
-   for related prior context.
-2. For ANY code-structure question (where is X, who calls Y, what does Z do, read before
-   edit) → use Serena `find_symbol` / `find_referencing_symbols` / `get_symbols_overview`
-   **before** grep or whole-file reads.
+### Writing code
+Edits go in by symbol: `replace_symbol_body`, `insert_after_symbol` /
+`insert_before_symbol`, `rename_symbol` (never a find/replace sweep), `safe_delete_symbol`,
+`create_text_file` for new files, `replace_content` for non-symbol text inside a code
+file. Then `get_diagnostics_for_file` on everything touched, **before** the build.
+
+`Edit`/`Write` on a code file are permitted only under an escape below.
+
+### The only escapes — name which one you used
+1. The language/file isn't indexed by Serena.
+2. The target is a non-symbol string (log text, config key, TODO) — try
+   `search_for_pattern` first.
+3. Serena errors on the path.
+
+For a **write**, an unusable Serena means **STOP and tell me** — never a silent downgrade
+to `Edit`. Sparse Serena results are a finding to report, not permission to grep.
+Evidence discipline: cite the symbol + `file:line` from the Serena result. "Grep found
+nothing" is not evidence of absence.
+
+## Forgetful (semantic memory) — on by default
+
+On for every non-trivial conversation; I should not have to ask. If the message mentions
+code, a symbol, a ticket id, a service/component, an investigation, or anything beyond
+trivial chat → **first action is a memory query** for related prior context.
+
+Opt-out (per turn, case-insensitive): `no forgetful` / `skip forgetful`. There is no
+Serena opt-out.
 
 ## Ticket / branch / commit conventions
 
