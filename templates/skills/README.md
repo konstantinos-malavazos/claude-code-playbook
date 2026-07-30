@@ -33,6 +33,7 @@ description: >-
 | `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
+| `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
 
 The **solo** / **team** columns say which entrance needs each template. Everything here is
 shared today; the columns exist so path-specific templates can declare themselves as they
