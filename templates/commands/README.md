@@ -20,13 +20,17 @@ and moves to the next.
 
 ## The set
 
-| Command | Orchestrates |
-|---|---|
-| `start-ticket` | the full pipeline (analyzer → gatherer → planner → grilling → specialists → review) |
-| `fix-ticket` | QA bounce-back → diagnose → fix → amend in place |
-| `test-ticket` | E2E staging test + bank/reuse a test recipe |
-| `resume-ticket` | reopen an in-flight ticket across sessions (delta mode) |
-| `end-of-day` | daily memory nomination |
-| `garden-memory` | periodic memory hygiene |
+| Command | Orchestrates | solo | team |
+|---|---|---|---|
+| `start-ticket` | the full pipeline (analyzer → gatherer → planner → grilling → specialists → review) | ✓ | ✓ |
+| `fix-ticket` | QA bounce-back → diagnose → fix → amend in place | ✓ | ✓ |
+| `test-ticket` | E2E staging test + bank/reuse a test recipe | ✓ | ✓ |
+| `resume-ticket` | reopen an in-flight ticket across sessions (delta mode) | ✓ | ✓ |
+| `end-of-day` | daily memory nomination | ✓ | ✓ |
+| `garden-memory` | periodic memory hygiene | ✓ | ✓ |
+
+The **solo** / **team** columns say which entrance needs each template. Everything here is
+shared today; the columns exist so path-specific templates can declare themselves as they
+arrive.
 
 Add `/close-ticket` and `/confirm-deployment` from the same pattern when you need them.

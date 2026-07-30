@@ -9,7 +9,7 @@ agents in order, each reading/writing handoff files under
 route, gate, and consolidate.
 
 ## Preconditions
-- Register the ticket for metrics if you use the ledger (docs/11).
+- Register the ticket for metrics if you use the ledger (docs/team/01).
 - Create the handoffs dir for `$ARGUMENTS`.
 
 ## Sequence
@@ -26,7 +26,7 @@ route, gate, and consolidate.
      is written. If ≥2 layers touched, run the **alignment** check before review.
    - `slice-count > 1` → run `/to-spec` then `/to-tickets`, get the user's approval of the
      slice board, dispatch the slices in parallel worktrees, then @aligner → @integrator
-     → @integration-tester (see docs/09).
+     → @integration-tester (see docs/shared/09).
 6. **@repo-reviewer** → **@release-reviewer** → consolidate into the FINAL verdict.
    - `REQUEST CHANGES` → back to the responsible specialist (amend, don't add commits);
      re-review.

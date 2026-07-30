@@ -65,9 +65,9 @@ are a finding about your index, not permission to go back to file spelunking.
 config. They just aren't a code path.
 
 Where this is encoded: the **Serena is MANDATORY** section of
-[`../templates/claude-md/global.CLAUDE.md`](../templates/claude-md/global.CLAUDE.md), and
+[`../../templates/claude-md/global.CLAUDE.md`](../../templates/claude-md/global.CLAUDE.md), and
 a *Code access protocol (MANDATORY)* block in every code-touching agent under
-[`../templates/agents/`](../templates/agents/README.md).
+[`../../templates/agents/`](../../templates/agents/README.md).
 
 ---
 
@@ -80,7 +80,7 @@ protocol block; the specialists' *edits* go through it too. Combined with Forget
 often *which symbols matter*), the loop is: memory says "look at `ToBetFeesModel`" →
 Serena jumps straight to it → surgical edit. No file spelunking.
 
-Config snippet: [`../templates/mcp/project.mcp.json.snippet`](../templates/mcp/project.mcp.json.snippet).
+Config snippet: [`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet).
 -e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

@@ -3,7 +3,7 @@
   Copy to ~/.claude/CLAUDE.md and fill in every <PLACEHOLDER>.
   This is LAYER 1 — how YOU work, on every project. It must NOT contain facts about
   any specific codebase (those go in the workspace / per-repo layers).
-  See docs/06-claude-md-layers.md.
+  See docs/shared/06-claude-md-layers.md.
 -->
 
 # <YOUR NAME> — global workspace rules

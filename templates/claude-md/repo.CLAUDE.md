@@ -4,7 +4,7 @@
   This is LAYER 3 — facts true ONLY inside this repo. Loaded only when working here.
   Keep it LEAN: the 20 facts that stop a wrong turn, not a re-description of the repo.
   Point, don't paste — let Serena find the code details.
-  See docs/06-claude-md-layers.md.
+  See docs/shared/06-claude-md-layers.md.
 -->
 
 # <REPO NAME>

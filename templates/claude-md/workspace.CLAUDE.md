@@ -4,7 +4,7 @@
   This is LAYER 2 — the map of THIS workspace: which repos exist, which branch ships,
   how a change moves through the stack. Auto-loaded for any repo under the workspace.
   If you have a single repo today, keep this file anyway with a one-row repo map.
-  See docs/06-claude-md-layers.md and docs/12-adapting-to-your-stack.md.
+  See docs/shared/06-claude-md-layers.md and docs/shared/11-adapting-to-your-stack.md.
 -->
 
 # <WORKSPACE NAME> — workspace atlas

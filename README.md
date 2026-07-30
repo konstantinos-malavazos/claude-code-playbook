@@ -19,8 +19,8 @@ you the *scaffolding* to drop into your own `~/.claude`:
   your stack.
 
 > If you have 5 minutes: read [PHILOSOPHY.md](PHILOSOPHY.md).
-> If you want to build it: [docs/02-prerequisites.md](docs/02-prerequisites.md) →
-> [docs/03-setup.md](docs/03-setup.md).
+> If you want to build it: [docs/shared/02-prerequisites.md](docs/shared/02-prerequisites.md) →
+> [docs/shared/03-setup.md](docs/shared/03-setup.md).
 
 ---
 
@@ -56,8 +56,8 @@ The three **compound**: remember → locate → edit → remember.
                  capabilities               in structure + guardrails
 ```
 
-See [docs/04-serena.md](docs/04-serena.md), [docs/05-forgetful.md](docs/05-forgetful.md),
-and [docs/07-the-flows.md](docs/07-the-flows.md).
+See [docs/shared/04-serena.md](docs/shared/04-serena.md), [docs/shared/05-forgetful.md](docs/shared/05-forgetful.md),
+and [docs/shared/07-the-flows.md](docs/shared/07-the-flows.md).
 
 ---
 
@@ -94,14 +94,14 @@ claude-code-playbook/
 ## How to use this playbook
 
 1. **Understand the mindset** — [PHILOSOPHY.md](PHILOSOPHY.md) +
-   [docs/01-architecture.md](docs/01-architecture.md).
+   [docs/shared/01-architecture.md](docs/shared/01-architecture.md).
 2. **Stand up the two capabilities** — Serena + Forgetful
-   ([docs/02-prerequisites.md](docs/02-prerequisites.md) →
-   [docs/03-setup.md](docs/03-setup.md)).
+   ([docs/shared/02-prerequisites.md](docs/shared/02-prerequisites.md) →
+   [docs/shared/03-setup.md](docs/shared/03-setup.md)).
 3. **Lay down the CLAUDE.md layers** — copy `templates/claude-md/*` and fill in your
-   repos/conventions ([docs/06-claude-md-layers.md](docs/06-claude-md-layers.md)).
+   repos/conventions ([docs/shared/06-claude-md-layers.md](docs/shared/06-claude-md-layers.md)).
 4. **Adapt the layer-chain to your stack** — the single most important adaptation
-   ([docs/12-adapting-to-your-stack.md](docs/12-adapting-to-your-stack.md)).
+   ([docs/shared/11-adapting-to-your-stack.md](docs/shared/11-adapting-to-your-stack.md)).
 5. **Copy the agents/skills/commands/hooks you want**, fill in the placeholders, and
    add the flows one at a time — start with `/start-ticket`.
 

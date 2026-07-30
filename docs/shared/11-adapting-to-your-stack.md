@@ -63,11 +63,11 @@ single specialist. The pipeline still works; it just skips the empty tracks.
 
 Add a "sequential implementation chain (mandatory order)" section naming your layers and
 their order, plus which repo/agent owns each. Template:
-[`../templates/claude-md/workspace.CLAUDE.md`](../templates/claude-md/workspace.CLAUDE.md).
+[`../../templates/claude-md/workspace.CLAUDE.md`](../../templates/claude-md/workspace.CLAUDE.md).
 
 ### 2. Create one specialist agent per layer
 
-Copy [`../templates/agents/layer-specialist.md`](../templates/agents/layer-specialist.md)
+Copy [`../../templates/agents/layer-specialist.md`](../../templates/agents/layer-specialist.md)
 once per layer and fill in:
 
 - the **layer name** and the **repo(s)/paths** it owns,
@@ -80,14 +80,14 @@ once per layer and fill in:
 
 Split your engineering standards **by language/layer** so each specialist loads only what
 it needs (a schema specialist shouldn't carry frontend rules). Copy
-[`../templates/skills/engineering-standards/SKILL.md`](../templates/skills/engineering-standards/SKILL.md)
+[`../../templates/skills/engineering-standards/SKILL.md`](../../templates/skills/engineering-standards/SKILL.md)
 per layer.
 
 ### 4. Wire the order into `/start-ticket`
 
 The planner allocates tracks and the orchestrator dispatches the specialists **in chain
 order**. The template command already does this generically —
-[`../templates/commands/start-ticket.md`](../templates/commands/start-ticket.md) — you
+[`../../templates/commands/start-ticket.md`](../../templates/commands/start-ticket.md) — you
 just list your layers.
 
 ---

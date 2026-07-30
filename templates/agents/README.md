@@ -70,14 +70,18 @@ back to reading files — verify one agent before you trust the set.
 
 ## The set
 
-| File | Role |
-|---|---|
-| `ticket-analyzer.md` | tracker → structured brief (read-only) |
-| `context-gatherer.md` | heavy memory + Serena sweep in a throwaway context |
-| `planner.md` | design + track allocation + branch (no memory writes, no code) |
-| `layer-specialist.md` | **copy once per layer of your chain** — the implementer (Serena-only edits) |
-| `repo-reviewer.md` | first-level in-repo review (comments only) |
-| `release-reviewer.md` | cross-repo blast-radius review (comments only) |
+| File | Role | solo | team |
+|---|---|---|---|
+| `ticket-analyzer.md` | tracker → structured brief (read-only) | ✓ | ✓ |
+| `context-gatherer.md` | heavy memory + Serena sweep in a throwaway context | ✓ | ✓ |
+| `planner.md` | design + track allocation + branch (no memory writes, no code) | ✓ | ✓ |
+| `layer-specialist.md` | **copy once per layer of your chain** — the implementer (Serena-only edits) | ✓ | ✓ |
+| `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
+| `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
+
+The **solo** / **team** columns say which entrance needs each template. Everything here is
+shared today; the columns exist so path-specific templates can declare themselves as they
+arrive.
 
 Decompose-path agents (`aligner`, `integrator`, `integration-tester`, `slice-*`) follow
-the same anatomy; add them only if you use the decompose path (docs/09).
+the same anatomy; add them only if you use the decompose path (docs/shared/09).

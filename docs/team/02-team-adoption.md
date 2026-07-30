@@ -23,7 +23,7 @@ without assuming they share your editor, your shell config, or your patience.
    *your* process. Templates become a conversation starter, not a mandate.
 3. **MCP servers are per-person** — each engineer stands up their own Serena
    and Forgetful. A shared memory server is possible (see
-   [05-forgetful.md](05-forgetful.md) for the governance caveats) but start
+   [05-forgetful.md](../shared/05-forgetful.md) for the governance caveats) but start
    independent.
 4. **The hook set is standardised.** Hooks are deterministic guardrails — they
    must fire the same way for everyone. Put the hook scripts in a shared
@@ -135,7 +135,7 @@ into a visible warning that the team can fix.
 ## Shared memory governance
 
 If the team graduates to a shared Forgetful instance (see
-[05-forgetful.md](05-forgetful.md)), three rules prevent chaos:
+[05-forgetful.md](../shared/05-forgetful.md)), three rules prevent chaos:
 
 1. **No secrets, no PII** — enforced by a hook on the write path, not by
    policy alone.

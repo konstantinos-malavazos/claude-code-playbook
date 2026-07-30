@@ -6,7 +6,7 @@ is that it comes in **layers** that stack via a parent-directory walk: when you 
 that folder. Each layer answers a different question.
 
 > This playbook gives you the **idea and structure** of each layer as templates in
-> [`../templates/claude-md/`](../templates/claude-md/) — not one team's content. Fill in
+> [`../../templates/claude-md/`](../../templates/claude-md/) — not one team's content. Fill in
 > your own facts.
 
 ---
@@ -52,7 +52,7 @@ not about any particular codebase:
 - **Communication style** — terse vs verbose, when to expand.
 - **Coding-behaviour defaults** — think-before-coding, simplicity, surgical changes.
 
-Template: [`../templates/claude-md/global.CLAUDE.md`](../templates/claude-md/global.CLAUDE.md)
+Template: [`../../templates/claude-md/global.CLAUDE.md`](../../templates/claude-md/global.CLAUDE.md)
 
 ---
 
@@ -77,7 +77,7 @@ parent-directory walk, so it's the natural home for cross-repo facts:
 Even if you have a **single** repo today, this layer is still useful as the "workspace
 policy" file; it just has a one-row repo map.
 
-Template: [`../templates/claude-md/workspace.CLAUDE.md`](../templates/claude-md/workspace.CLAUDE.md)
+Template: [`../../templates/claude-md/workspace.CLAUDE.md`](../../templates/claude-md/workspace.CLAUDE.md)
 
 ---
 
@@ -97,7 +97,7 @@ anywhere else:
 Keep it **lean**. A per-repo CLAUDE.md that restates the whole architecture is a
 maintenance liability; it should be the 20 facts that save the agent a wrong turn.
 
-Template: [`../templates/claude-md/repo.CLAUDE.md`](../templates/claude-md/repo.CLAUDE.md)
+Template: [`../../templates/claude-md/repo.CLAUDE.md`](../../templates/claude-md/repo.CLAUDE.md)
 
 ---
 
@@ -113,7 +113,7 @@ Template: [`../templates/claude-md/repo.CLAUDE.md`](../templates/claude-md/repo.
 4. **Never commit personal AI-infra CLAUDE.md into a shared product repo** unless the
    team has agreed it's shared guidance. Your personal global file certainly doesn't
    belong there. (A guardrail hook enforces this — see
-   [`../templates/hooks/block-infra-staging.sh`](../templates/hooks/block-infra-staging.sh).)
+   [`../../templates/hooks/block-infra-staging.sh`](../../templates/hooks/block-infra-staging.sh).)
 5. **Canonical mappings live once.** If you have a lookup table everything depends on
    (environments, service codes, an id↔name map), put it in exactly one layer and have
    the others reference it by name.

@@ -56,7 +56,7 @@ Keep memories **atomic and tagged**:
 
 Your memory server will have its own exact call shape and field limits — capture those
 in a `memory-schema` skill so the agent uses the right shape and stops inventing fields.
-See [`../templates/skills/`](../templates/skills/).
+See [`../../templates/skills/`](../../templates/skills/).
 
 ---
 
@@ -71,13 +71,13 @@ See [`../templates/skills/`](../templates/skills/).
 - **`/end-of-day`** harvests any other durable conclusions from the day.
 - **`/garden-memory`** periodically evaluates retrieval quality and prunes cruft.
 
-Config snippet: [`../templates/mcp/global.claude.json.snippet`](../templates/mcp/global.claude.json.snippet).
+Config snippet: [`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet).
 
 ---
 
 ## A note on sharing it across a team
 
-See [14-team-adoption.md](14-team-adoption.md) for the team-wide governance discussion.
+See [02-team-adoption.md](../team/02-team-adoption.md) for the team-wide governance discussion.
 
 Per-developer memory compounds for one person. The obvious next step is **one shared
 memory** the whole team contributes to and queries — a bug root-caused once becomes

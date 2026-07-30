@@ -20,13 +20,17 @@ wire them in `~/.claude/settings.json` (see `settings-hooks.snippet.json`).
 
 ## The set
 
-| Hook | Event | Job |
-|---|---|---|
-| `block-dangerous-git.sh` | PreToolUse · Bash | block push / reset --hard / force / --no-verify / branch -D / clean -fd |
-| `block-mcp-writes.sh` | PreToolUse · mcp (tracker, git-host) | read-only veto — only get/list/search pass |
-| `block-infra-staging.sh` | PreToolUse · Bash | block staging/committing `.claude/`, `CLAUDE.md`, MCP state |
-| `cleanup-handoffs.sh` | SessionEnd | delete the ephemeral handoff dirs |
-| `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited |
+| Hook | Event | Job | solo | team |
+|---|---|---|---|---|
+| `block-dangerous-git.sh` | PreToolUse · Bash | block push / reset --hard / force / --no-verify / branch -D / clean -fd | ✓ | ✓ |
+| `block-mcp-writes.sh` | PreToolUse · mcp (tracker, git-host) | read-only veto — only get/list/search pass | ✓ | ✓ |
+| `block-infra-staging.sh` | PreToolUse · Bash | block staging/committing `.claude/`, `CLAUDE.md`, MCP state | ✓ | ✓ |
+| `cleanup-handoffs.sh` | SessionEnd | delete the ephemeral handoff dirs | ✓ | ✓ |
+| `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited | ✓ | ✓ |
+
+The **solo** / **team** columns say which entrance needs each template. Everything here is
+shared today; the columns exist so path-specific templates can declare themselves as they
+arrive.
 
 Why a hook and not a CLAUDE.md line? A CLAUDE.md line is a *request* the model may
 forget under load. A hook is a *guarantee* enforced by the harness. Anything you must

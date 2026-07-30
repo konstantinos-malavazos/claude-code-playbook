@@ -133,7 +133,7 @@ scores whether the canonical questions still retrieve the right answers.
 -e 
 ---
 
-> **When this mindset doesn't apply** — see [docs/13-when-not-to-use.md](docs/13-when-not-to-use.md) for the boundaries of this pattern.
+> **When this mindset doesn't apply** — see [docs/shared/12-when-not-to-use.md](docs/shared/12-when-not-to-use.md) for the boundaries of this pattern.
 -e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

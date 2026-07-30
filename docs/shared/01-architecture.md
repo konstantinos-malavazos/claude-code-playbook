@@ -84,13 +84,13 @@ might be `API → backend → frontend`. Whatever yours is, name it once — the
 pipeline is built around executing that chain in order, one specialist per layer.
 
 This chain is the single thing you **must** adapt to your own stack. See
-[12-adapting-to-your-stack.md](12-adapting-to-your-stack.md).
+[11-adapting-to-your-stack.md](11-adapting-to-your-stack.md).
 
 ---
 
 ## Two kinds of memory, deliberately separated
 
-(Repeated from [PHILOSOPHY.md](../PHILOSOPHY.md) because it drives the whole design.)
+(Repeated from [PHILOSOPHY.md](../../PHILOSOPHY.md) because it drives the whole design.)
 
 | Kind | Mechanism | Lifetime |
 |---|---|---|

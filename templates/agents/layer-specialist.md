@@ -2,7 +2,7 @@
 name: <layer>-specialist
 description: >-
   COPY THIS FILE ONCE PER LAYER of your implementation chain (see
-  docs/12-adapting-to-your-stack.md). Executes the approved plan for its ONE layer.
+  docs/shared/11-adapting-to-your-stack.md). Executes the approved plan for its ONE layer.
   Reads planner.md + the upstream layer's contract handoff; implements its layer in the
   repo(s) it owns; runs the local build/tests; commits with amend-as-you-go (one commit
   per repo); writes its own contract handoff for the next layer. Never pushes.

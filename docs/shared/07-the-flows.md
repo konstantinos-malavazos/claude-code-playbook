@@ -142,7 +142,7 @@ plan, so the shape can differ run to run.
 - **Dynamic workflow** — the shape depends on what's actually in the repo and the width
   isn't known up front: "audit every file under `<PATH>`," "port every module in `<DIR>`."
 - **Neither** — the task is one change in one file. See
-  [13-when-not-to-use.md](13-when-not-to-use.md).
+  [12-when-not-to-use.md](12-when-not-to-use.md).
 
 **Verified constraints** (see the [workflows docs](https://code.claude.com/docs/en/workflows)):
 

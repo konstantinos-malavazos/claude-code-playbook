@@ -9,7 +9,7 @@ after step 4; steps 5–7 are additive.
 
 Install the CLI (or desktop/IDE), authenticate, and run it once in a scratch folder to
 confirm it starts. Pick your model and effort level in `~/.claude/settings.json` (see
-[`../templates/mcp/settings.json.snippet`](../templates/mcp/settings.json.snippet)).
+[`../../templates/mcp/settings.json.snippet`](../../templates/mcp/settings.json.snippet)).
 
 ## Step 2 — Stand up Serena (eyes)
 
@@ -23,7 +23,7 @@ there's no server to babysit and it updates with the plugin. Requires `uv` on PA
 
 **Route B — project-scoped MCP server.** Run Serena yourself (follow its README; typically
 a local HTTP server after indexing) and register it in `<workspace>/.mcp.json`
-([`../templates/mcp/project.mcp.json.snippet`](../templates/mcp/project.mcp.json.snippet)).
+([`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet)).
 Use this if you want to pin a version or point at a shared instance.
 
 ### Then: find your tool prefix — this bites
@@ -57,7 +57,7 @@ The templates ship with **`mcp__serena__`**. On Route A, search-and-replace
 1. Bring up the memory server and its PostgreSQL + pgvector backend (Docker is the easy
    path; use local embeddings so content stays on the host).
 2. Register it as a **global** server in `~/.claude.json`
-   ([`../templates/mcp/global.claude.json.snippet`](../templates/mcp/global.claude.json.snippet)).
+   ([`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet)).
 3. Verify: create one test memory, then query it by meaning and confirm it comes back.
 
 ## Step 4 — Lay down the CLAUDE.md layers
@@ -74,9 +74,9 @@ Claude reads by symbol, remembers across sessions, and knows your conventions.
 ## Step 5 — Adapt the implementation chain
 
 Define your `layer-1 → layer-2 → …` chain and create one specialist agent per layer from
-[`../templates/agents/layer-specialist.md`](../templates/agents/layer-specialist.md).
+[`../../templates/agents/layer-specialist.md`](../../templates/agents/layer-specialist.md).
 This is the single most important adaptation — see
-[12-adapting-to-your-stack.md](12-adapting-to-your-stack.md).
+[11-adapting-to-your-stack.md](11-adapting-to-your-stack.md).
 
 ## Step 6 — Add the guardrail hooks
 

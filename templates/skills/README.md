@@ -25,11 +25,15 @@ description: >-
 
 ## The set
 
-| Skill | Loads on / used for |
-|---|---|
-| `commit-conventions` | about to commit / branch naming / MR-PR template |
-| `engineering-standards` | **copy per layer** — the review/coding standard for that language |
-| `tdd` | test-first feature/bug work (red-green-refactor) |
-| `diagnose` | hard bugs / performance regressions |
-| `grilling` | stress-testing a plan; the deferred-decision gate |
-| `memory-schema` | before any memory WRITE — enforces your memory server's call shape |
+| Skill | Loads on / used for | solo | team |
+|---|---|---|---|
+| `commit-conventions` | about to commit / branch naming / MR-PR template | ✓ | ✓ |
+| `engineering-standards` | **copy per layer** — the review/coding standard for that language | ✓ | ✓ |
+| `tdd` | test-first feature/bug work (red-green-refactor) | ✓ | ✓ |
+| `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
+| `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
+| `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
+
+The **solo** / **team** columns say which entrance needs each template. Everything here is
+shared today; the columns exist so path-specific templates can declare themselves as they
+arrive.
