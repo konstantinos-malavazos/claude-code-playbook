@@ -19,3 +19,4 @@ MEMORY.md
 Thumbs.db
 .idea/
 .vscode/
+*.stackdump
