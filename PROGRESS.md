@@ -6,7 +6,8 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 2 August 2026, after resolving
-> [#27 pitch-judge cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27).
+> [#27 pitch-judge cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27)
+> and, off-map, [#28 the template frontmatter audit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28).
 > Regenerate rather than trust — the one-call frontier query is:
 > ```
 > gh api repos/konstantinos-malavazos/claude-code-playbook/issues/1/sub_issues --paginate \
@@ -37,9 +38,9 @@ Done when a reader with an idea and no repo can follow the path end to end.
 | Tickets open | 10 |
 | On the frontier (takeable now) | 9 |
 | Blocked | 1 — only the capstone, on 6 open edges (14 wired, 8 now closed) |
-| Repo files changed since the effort began | 50 + this file |
+| Repo files changed since the effort began | 50 by the map's own tickets, + 12 by #28 off-map |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | clean — #27 wrote no repo files; its edits land via #28 |
+| Working tree | clean — #27 wrote no repo files; #28 applied its edits and closed |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
@@ -51,12 +52,14 @@ decided nothing — but verifying one of #26's claims turned up a real problem, 
 #27, which is now resolved. That is the decide-or-make rule working in the direction it is
 usually quiet about: a make found a decision and stopped instead of quietly deciding it.
 
-**A template on disk is still knowingly wrong — but the fix is now decided, not open.**
-`templates/agents/pitch-judge.md` says `tools: []`; #27 settled that it becomes
-**`tools: TodoWrite` plus `maxTurns: 1`**, and the edit lands in
-[#28](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28), which has
-the transcription list in a comment. Nothing about it is undecided; it is waiting on a pen,
-not on a conversation.
+**Nothing on disk is knowingly wrong any more.** `pitch-judge.md` now says
+`tools: TodoWrite` + `maxTurns: 1`, applied by #28 along with the rest of the audit.
+
+**#28 found four silent failures, and two were guardrails that were not guarding.**
+`repo-reviewer` promised to dispatch `@release-reviewer` and had no `Agent` tool, so the
+pipeline's cross-repo review could never run. The git hooks matched only `Bash`, so
+**`PowerShell` walked straight past them** — on Windows, which is where this repo is
+driven. Both are fixed. See the gotchas below; both generalise well beyond this repo.
 
 **Both stage pairs are now fully wired.** Charting — #11 the skill, #22 the doc, #13 the
 path they pointed at. The kill gate — #25 the doc, #26 the skill and the judge. The two
@@ -129,7 +132,7 @@ entrances are visible at once.
 | [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | **The gate is `/pitch` — a skill plus a doc.** Six questions, ~1 hour, three hard kills whose teeth depend on a **question zero** that classifies what the idea's value rests on. Sycophancy beaten structurally, not by instructing harshness. A fourth agent, **`pitch-judge`**, reads an **anonymised case file** and can fire a hard kill but never un-fire one. See the section below. |
 | [#25 Write the kill gate stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25) | **Done — `docs/solo/02-the-kill-gate.md` is written.** A make that decided nothing; every claim traces to #9. The `12-when-not-to-use.md` cross-reference is **live in both directions**, and the **spike clash is named as a hole and then closed** rather than left to be found. |
 | [#26 Write the `/pitch` skill + `pitch-judge` agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26) | **Done — `templates/skills/pitch/SKILL.md` and `templates/agents/pitch-judge.md` are written**, with the flow catalogue entry and both README rows. A make that decided nothing. Made explicit three mechanics #9 only implied: the **case file rides in the dispatch prompt** (no tools means no `Read`), the hard kills need an **arming table transposed by class**, and verdict resolution needs an **explicit precedence order**. |
-| [#27 `pitch-judge` cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27) | **`tools: TodoWrite` plus `maxTurns: 1`.** Zero tools is impossible **by design** — the harness refuses to spawn an agent that would hold none — so `tools: []` never launches. Two guarantees on different axes: the allowlist means it holds nothing that finds, the single turn means it cannot act on a result. The agents README gains a **least privilege has a floor** convention and a **complete sixteen-field anatomy block**. **"No tools" is retired as vocabulary** in favour of **"gathers no evidence"**. Decides only — #28 holds the pen. |
+| [#27 `pitch-judge` cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27) | **`tools: TodoWrite` plus `maxTurns: 1`.** Zero tools is impossible **by design** — the harness refuses to spawn an agent that would hold none — so `tools: []` never launches. Two guarantees on different axes: the allowlist means it holds nothing that finds, the single turn means it cannot act on a result. The agents README gains a **least privilege has a floor** convention and a **complete sixteen-field anatomy block**. **"No tools" is retired as vocabulary** in favour of **"gathers no evidence"**. Decided only; **#28 applied it**. |
 
 ### The layout #2 decided — now live
 
@@ -243,7 +246,7 @@ Nine tickets. Nothing gates anything but the capstone.
                     │
                     └──► spun #27 — the judge's `tools: []` is not a thing
                          the harness supports. A make catching itself.
-        ── #27 tools: TodoWrite + maxTurns: 1 ──► the edit lands in #28
+        ── #27 tools: TodoWrite + maxTurns: 1 ──► applied by #28 (off-map), closed
 
    #11 left three placeholders. One is left:
         <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
@@ -272,9 +275,8 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
 2. **The easy sessions are over.** Everything left is a grilling except #23's make. There
    is no ticket whose decisions are already banked, so expect a real conversation rather
    than a writing job.
-3. **#28 is not on this map but it is the cheapest thing you can do next.** #27 left it a
-   transcription list, so it is a pure make with nothing to decide — and until it runs,
-   `templates/agents/pitch-judge.md` sits on `master` knowingly broken.
+3. ~~#28, the template audit.~~ **Done, off-map.** It also closed the last thing on
+   `master` that was knowingly broken.
 4. `/wayfinder 1 21` — **stack choice.** It is the only open ticket
    that another open ticket is waiting on: **#10 cannot settle the tail wrinkle** and #21
    owns it. Taking #21 first means #10 gets a clean answer instead of inheriting an
@@ -332,6 +334,36 @@ Name the ticket.
   name a tool that exists, is spelled correctly, and still is not there at runtime. Also
   worth knowing for the *inherit* case: an agent with `tools` omitted holds every MCP server
   you have configured, which is usually far more reach than the author pictured.
+- **An agent that dispatches another agent needs `Agent` in its `tools` list, and nothing
+  warns you.** `repo-reviewer` said *dispatch `@release-reviewer`* in its description and in
+  its steps, and could not: nesting is on by default, but **an explicit allowlist still
+  wins**. The first-level review would have finished and reported a verdict with the
+  cross-repo half silently absent. **Check every agent whose body names another agent.**
+- **`PowerShell` is a separate tool from `Bash`, and a `"matcher": "Bash"` hook does not
+  see it.** It is enabled automatically on Windows without Git Bash, rolling out
+  progressively on Windows *with* Git Bash, and opt-in elsewhere. So the git guardrails were
+  wide open on the platform this repo is actually driven from. Use `Bash|PowerShell`.
+  **Second instance of the same failure shape #13 found** — a guardrail that stops matching
+  keeps reporting success. Worth a standing suspicion: whenever a matcher names one way of
+  doing a thing, ask what the other ways are.
+- **Only `exit 2` blocks a hook. Every other non-zero code is non-blocking** — the
+  transcript shows an error notice and the tool call proceeds anyway. The shipped scripts
+  were right; the README taught *"non-zero (2)"*, which is the natural thing to get wrong,
+  and `exit 1` in a guardrail guards nothing while looking like it does.
+- **A skill's directory name is what you type; `name` is only a display label.** It defaults
+  to the directory name and changing it does not change the command. Bites
+  `engineering-standards`, which is copied per layer — rename the *directory*, not just the
+  placeholder, or three skills answer to `/engineering-standards`.
+- **Custom commands have been merged into skills**, and where they collide **the skill
+  wins**. `templates/commands/` is still supported, not deprecated — but the whole skill
+  frontmatter set works there too, and the skill shape is the one that grows.
+- **No template carries a `Last verified against` footer, and that is now deliberate.** #28
+  assumed the footers were over-claiming for templates; in fact templates never claimed
+  anything. Adding one per file would have been worse — a template is copied and edited, so
+  a stale footer is indistinguishable from the reader's own edits. **The check lives in
+  `templates/README.md` instead**, as eight named checks against the doc pages that settle
+  them. Checks 3, 4 and 6 are the ones that fail silently; three of #28's four findings came
+  from them.
 - **This playbook writes frontmatter the harness has to accept, and nobody was checking.**
   `tools: []` was written because it was the obvious YAML for "no tools". Every file in
   `templates/` is a **claim about what the harness will do**, and claims need verifying
@@ -342,12 +374,12 @@ Name the ticket.
   **Now ticketed as [#28 Audit every template's frontmatter and harness claims against the
   official docs](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28)**,
   standalone rather than a child of #1 — it covers all templates, most of them agile-path,
-  so it sits outside this map's destination. Same shape as #17. **#27 is done and #28 now
-  carries its edits** as a transcription list in a comment, plus two scope changes: the
-  agents anatomy block is **pre-answered** (all sixteen fields, do not re-derive), and the
-  background-subset check above is a **new suspect for every `tools:` list** in the
-  directory. **An incomplete anatomy block does not just omit options; it makes real
-  solutions invisible** — `maxTurns` was not rejected by #26, it was never seen.
+  so it sat outside this map's destination. Same shape as #17. **Both #27 and #28 are now
+  closed.** #28 applied #27's edits and swept the rest: four silent failures found, both
+  anatomy blocks widened to every documented field, and `templates/README.md` created to
+  hold the re-verification check. **An incomplete anatomy block does not just omit options;
+  it makes real solutions invisible** — `maxTurns` was not rejected by #26, it was never
+  seen.
 - **You cannot dry-run a new agent in the session that wrote it.** Agent definitions load
   at session start, so a file written to `.claude/agents/` mid-session is not registered and
   `Agent` rejects it as an unknown type. Probing a new agent template needs a fresh session.
@@ -379,11 +411,13 @@ Name the ticket.
   `team/02-team-adoption.md` says `# 14` — exactly the four #19 renumbered, since #19
   deliberately left prose alone. The other ten match. **Found by #9 and handed to #17**, whose
   list did not cover it. The check is comparing `head -1` to the filename across `docs/**`.
-- **There are now two open housekeeping tickets outside this map**, and they split cleanly:
-  **#17 owns prose-level rot in `docs/`**, **[#28](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28)
-  owns machine-readable correctness in `templates/`**. They meet only at the footer — #17
-  fixes stale footer *values*, #28 addresses what `Last verified against` is asserting for a
-  template, which today is nothing anybody checked. Neither is a child of #1.
+- **One open housekeeping ticket outside this map, down from two.**
+  [#28](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28) owned
+  machine-readable correctness in `templates/` and is **closed**; **#17 still owns
+  prose-level rot in `docs/`**. The footer question that connected them is settled in
+  #28's direction: templates carry no footer and get a single re-verification check
+  instead, so #17's remaining footer work is purely the stale `2.1.219` *values* in `docs/`.
+  Neither was ever a child of #1.
   [#17 Docs housekeeping](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/17)
   is **not** a child of #1 — it is pre-existing rot in the agile path. It owns the stray
   `-e ` lines (14 left; #11's commit took the 15th), the stale `2.1.219` footers, and
@@ -460,6 +494,27 @@ Name the ticket.
 
 ---
 
+## What #28 handed forward (off-map)
+
+- **`templates/README.md` exists** and is the directory's contract: what a template asserts,
+  and the **eight-check re-verification list** with the doc page that settles each one. Run
+  it when a footer version is bumped or after a release touching agents, skills, hooks or
+  tools. Anything wanting to explain how templates are held to the harness should **link
+  there, not restate it.**
+- **Two guardrails were not guarding, and both are worth a standing suspicion.** Whenever a
+  matcher names one way of doing a thing, ask what the other ways are (`Bash` →
+  `PowerShell`). Whenever an agent's prose names another agent, check `Agent` is in its
+  tools. Neither failure produces an error.
+- **The clean results are recorded too**, in the resolution comment — every agent/skill/
+  command frontmatter key, every tool name, the MCP config shape, the Serena prefix warning.
+  "We checked" is only useful if it says what was checked.
+- **`README.md`'s repo-layout block is now stale in three ways**: pre-reorg flat docs, no
+  `templates/trackers/`, no `templates/README.md`. Still **#16's**, deliberately untouched.
+- **#17's footer work narrowed.** The templates-vs-docs footer question is settled in #28's
+  direction, so what is left for #17 is purely the stale `2.1.219` *values* in `docs/`.
+- **No memory written.** #5's one-per-map rule does not strictly bind an off-map ticket, but
+  the map is open and nothing here is worth banking separately.
+
 ## What #27 handed forward
 
 - **The mechanism is `tools: TodoWrite` + `maxTurns: 1`**, and it is **two guarantees on
@@ -483,14 +538,14 @@ Name the ticket.
 - **#9 carries a correction comment.** Its resolution comment is what Decisions-so-far
   regenerates from, so an uncorrected one would reprint the error on every rebuild. The
   intent is untouched and was never reopened; only the phrase changed.
-- **#28's scope moved in both directions.** It **gains** the transcription list and a new
-  suspect (the background built-in subset, above). It **loses** the agents anatomy block,
-  which #27 already decided — all sixteen fields, do not re-derive. Its item 3 is now half
-  done before it starts.
+- ~~**#28's scope moved in both directions.**~~ **#28 is closed** — it applied the
+  transcription list, took the new background-subset suspect seriously enough to make it
+  check 3, and inherited the agents anatomy block rather than re-deriving it.
 - **Nothing is verified live.** Agent files load at session start, so the mechanism is
-  correct-by-reading, not correct-by-running. **The first fresh session after #28's edit
-  should spawn `pitch-judge` on a two-line case file** and confirm it launches and returns a
-  verdict. Two minutes, and it is the only step that tests the harness rather than the docs.
+  correct-by-reading, not correct-by-running. **The next fresh session should spawn
+  `pitch-judge` on a two-line case file** and confirm it launches and returns a verdict.
+  Two minutes, and it is the only step that tests the harness rather than the docs. **This
+  is the one open item left from both tickets.**
 - **No memory written**, per #5's one-per-map rule. The map is still open.
 
 ## What #26 handed forward
@@ -499,9 +554,9 @@ Name the ticket.
   rows. Nothing about the gate is outstanding.
 - ~~**`tools: []` is wrong, and the branch it takes is undetermined.**~~ **Settled by #27** —
   it is the **refuse-to-launch** branch, stated outright on the errors page: subagents
-  require at least one tool. The file on disk is still broken until #28 applies
-  `tools: TodoWrite` + `maxTurns: 1`, but nothing about it is open. #26 was right that both
-  branches were unacceptable and right to withdraw the *fails safe* claim.
+  require at least one tool. **#28 applied `tools: TodoWrite` + `maxTurns: 1`**, so the file
+  on disk is correct. #26 was right that both branches were unacceptable and right to
+  withdraw the *fails safe* claim.
 - **`<IDEAS-FILE-PATH>` is a placeholder that never resolves**, unlike
   `<TRACKER-ADAPTER-PATH>`. It is *supposed* to vary — #9's point was that the reader picks
   somewhere private they already back up. Nobody should ticket it.
