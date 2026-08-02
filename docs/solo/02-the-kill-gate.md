@@ -13,10 +13,8 @@ Three names, kept distinct — otherwise you can never say which one you mean.
 
 You run it with **`/pitch`**, from
 [`templates/skills/pitch/SKILL.md`](../../templates/skills/pitch/SKILL.md). That template
-owns the mechanics and this doc does not repeat them.
-
-> The `/pitch` template and its `pitch-judge` agent are still being written. The design
-> below is settled; the two template files are what is outstanding.
+owns the mechanics and this doc does not repeat them. The
+[`pitch-judge` agent](../../templates/agents/pitch-judge.md) ships alongside it.
 
 > **A doc alone could not be this stage.** The failure mode the gate exists to prevent is
 > talking yourself through your own checklist — reading each line, nodding, proceeding.

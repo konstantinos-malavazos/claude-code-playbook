@@ -35,7 +35,11 @@ description: >-
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
 | `charting` | an effort too big for one session and too foggy to plan — maps it into decision tickets on the tracker | ✓ | |
+| `pitch` | a raw idea with no repo — the one-hour kill gate that ends in build, kill or park | ✓ | |
 
-The **solo** / **team** columns say which entrance needs each template. `charting` is the
-first one to claim a single column: the skill itself is general, but only the solo path has
-a charting stage. Everything above it is shared by both.
+The **solo** / **team** columns say which entrance needs each template. `charting` was the
+first to claim a single column, and `pitch` is the second: both are stages of the solo
+front-end, which the agile path does not have. Everything above them is shared by both.
+
+`pitch` ships one agent alongside it — `pitch-judge`, in
+[`templates/agents/`](../agents/README.md). The skill is not complete without it.

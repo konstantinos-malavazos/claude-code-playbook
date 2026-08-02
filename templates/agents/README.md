@@ -78,10 +78,16 @@ back to reading files — verify one agent before you trust the set.
 | `layer-specialist.md` | **copy once per layer of your chain** — the implementer (Serena-only edits) | ✓ | ✓ |
 | `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
 | `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
+| `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**no tools**) | ✓ | |
 
-The **solo** / **team** columns say which entrance needs each template. Everything here is
-shared today; the columns exist so path-specific templates can declare themselves as they
-arrive.
+The **solo** / **team** columns say which entrance needs each template. `pitch-judge` is the
+first to claim a single column — it belongs to the solo path's kill gate, which the agile
+path does not have.
+
+**`pitch-judge` is the one agent here that reads no handoff file and touches no code.** It
+is granted **no tools at all**: its entire input arrives in its prompt, and giving it search
+tools would turn it into a third search pass. It is dispatched by the
+[`pitch` skill](../skills/README.md) and is meaningless without it.
 
 Decompose-path agents (`aligner`, `integrator`, `integration-tester`, `slice-*`) follow
 the same anatomy; add them only if you use the decompose path (docs/shared/09).
