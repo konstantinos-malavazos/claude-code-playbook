@@ -10,8 +10,11 @@ set -euo pipefail
 payload="$(cat)"
 cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // .tool_input.script // ""')"
 
-# Normalize whitespace for matching.
-norm="$(printf '%s' "$cmd" | tr '\n' ' ' | tr -s ' ')"
+# Normalize for matching. Newlines become ';' because a separate LINE is a separate
+# command: collapsing it to a space hides `git push` on every line after the first, since
+# the patterns below anchor on a start-of-string or a [;&|] separator. \r is mapped too so
+# a CRLF payload behaves the same.
+norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
 
 block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
 

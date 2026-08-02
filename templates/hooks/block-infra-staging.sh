@@ -7,7 +7,9 @@ set -euo pipefail
 
 payload="$(cat)"
 cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // .tool_input.script // ""')"
-norm="$(printf '%s' "$cmd" | tr '\n' ' ' | tr -s ' ')"
+# Newlines become ';' — see block-dangerous-git.sh. A separate line is a separate command,
+# and `git add .` on any line but the first would otherwise slip past the pattern below.
+norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
 
 block() { echo "BLOCKED by block-infra-staging: $1" >&2; exit 2; }
 

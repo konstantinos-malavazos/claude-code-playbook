@@ -30,6 +30,40 @@ suffix; the bare server prefix matches nothing.
 > JSON parsing to your environment; `jq` is assumed. Test each hook in a scratch repo
 > before trusting it.
 
+## Run the suite
+
+```bash
+bash templates/hooks/test-hooks.sh
+```
+
+29 cases across both blocking hooks: what must be blocked, what must be allowed, `Bash` and
+`PowerShell` payloads, and multi-line commands. Exit 0 means every case behaved; exit 1
+means a guardrail is not guarding. It shims the JSON parse if `jq` is missing, and says so
+rather than skipping quietly.
+
+**Run it after editing any hook.** These scripts cannot be verified by reading them — the
+multi-line gap below survived a full audit that checked every claim against the official
+docs, because the docs were not the thing that was wrong.
+
+### The multi-line gap, and why it is worth knowing
+
+Both blocking hooks flatten the command before matching. They used to turn newlines into
+**spaces**, and the patterns anchor on start-of-string or a `[;&|]` separator — so in
+
+```
+git add -p
+git commit -m x
+git push origin main
+```
+
+the `git push` was preceded by a space, matched nothing, and **sailed through**. `cd /tmp &&
+git push` was caught; the far more common multi-line form was not. Newlines now become `;`,
+because a separate line is a separate command. `\r` maps too, so a CRLF payload behaves the
+same.
+
+The general shape: **when you flatten input before matching, you erase the very boundaries
+the pattern depends on.** Worth checking in any guardrail that normalises before it greps.
+
 ## The set
 
 | Hook | Event | Job | solo | team |
@@ -39,6 +73,7 @@ suffix; the bare server prefix matches nothing.
 | `block-infra-staging.sh` | PreToolUse · Bash\|PowerShell | block staging/committing `.claude/`, `CLAUDE.md`, MCP state | ✓ | ✓ |
 | `cleanup-handoffs.sh` | SessionEnd | delete the ephemeral handoff dirs | ✓ | ✓ |
 | `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited | ✓ | ✓ |
+| `test-hooks.sh` | — | regression suite for the two blocking hooks; run it, don't read it | ✓ | ✓ |
 
 The **solo** / **team** columns say which entrance needs each template. Everything here is
 shared today; the columns exist so path-specific templates can declare themselves as they

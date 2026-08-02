@@ -47,11 +47,20 @@ actually gets run.
 | 4 | Any agent whose body says it **dispatches** another still has `Agent` in its `tools` list | [nesting](https://code.claude.com/docs/en/sub-agents#let-subagents-spawn-their-own-subagents) |
 | 5 | Hook **event names** are still real, and every blocking hook exits **exactly 2** | [hooks](https://code.claude.com/docs/en/hooks) |
 | 6 | Hook **matchers** cover every tool that can do the thing being blocked — shell guardrails need `Bash\|PowerShell`, MCP matchers need the `.*` suffix | [hooks](https://code.claude.com/docs/en/hooks) |
+| 6b | **`bash hooks/test-hooks.sh` passes.** Run it — do not read it | the suite itself |
 | 7 | The **anatomy blocks** in `agents/README.md` and `skills/README.md` still list every documented field | both field tables |
 | 8 | The `mcp__serena__` **prefix** still matches your install (`/mcp`) — a plugin install is `mcp__plugin_serena_serena__` | your machine |
 
 Checks 3, 4 and 6 are the ones that fail silently and matter most. Check 8 is per-machine
 rather than per-version and is worth doing on every fresh install.
+
+**Check 6b is the only one that executes anything, and it is there because reading was not
+enough.** The first pass through this list verified every hook claim against the docs and
+passed. Then the hooks were actually run, and both git guardrails turned out to ignore
+`git push` on any line but the first — a multi-line command is the most common shape an
+agent writes, and the most common shape a human writes by hand. Nothing in the docs was
+wrong; the scripts simply did not do what they said. **Where a claim can be executed,
+execute it.**
 
 **A note on scope.** These are claims about the *harness*. Claims about the *prose* — stale
 footer values, dead links, drift between a doc and what it describes — are a different sweep
