@@ -39,7 +39,7 @@ Done when a reader with an idea and no repo can follow the path end to end.
 | Blocked | 1 — only the capstone |
 | Repo files changed since the effort began | 32 + this file |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | **dirty — #22's two files are uncommitted, for review** |
+| Working tree | clean — #22's two files are committed and pushed |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
