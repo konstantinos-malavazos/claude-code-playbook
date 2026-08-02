@@ -78,7 +78,7 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 | Flow | What it does | Why it exists |
 |---|---|---|
 | **`/start-ticket`** | ticket id → reviewed single-commit branch (the flagship) | the default path for ~95% of tickets |
-| **`/charting`** | foggy effort → a **map** of decision tickets on the tracker, resolved one per session until nothing is left to decide | upstream of everything here: work too big for one session and too foggy to plan. Hands off to `/start-ticket` once the route is clear |
+| **`/charting`** | foggy effort → a **map** of decision tickets on the tracker, resolved one per session until nothing is left to decide | upstream of everything here: work too big for one session and too foggy to plan. Hands off to `/start-ticket` once the route is clear. [solo 03](../solo/03-charting.md) |
 | **decompose path** | large ticket → independent **parallel slices** in git worktrees → one commit per repo | when a ticket is too big for one sequential pass. [09](09-decompose-path.md) |
 | **`/fix-ticket`** | QA bounce-back → diagnose root cause → fix → **amend in place** | a returned ticket stays one ticket / one commit |
 | **`/test-ticket`** | E2E **staging integration test** — produce the real event, reconcile the resulting row/state, **and bank/reuse a per-scenario test recipe in memory** | proves it works on staging *and* learns how to produce each scenario's events once, then reuses it |
