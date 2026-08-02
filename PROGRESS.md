@@ -6,7 +6,7 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 2 August 2026, after resolving
-> [#25 Write the kill gate stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25).
+> [#26 Write the /pitch skill template and the pitch-judge agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26).
 > Regenerate rather than trust — the one-call frontier query is:
 > ```
 > gh api repos/konstantinos-malavazos/claude-code-playbook/issues/1/sub_issues --paginate \
@@ -33,37 +33,45 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 13 of 24 |
+| Tickets closed | 14 of 25 |
 | Tickets open | 11 |
 | On the frontier (takeable now) | 10 |
-| Blocked | 1 — only the capstone, on 7 open edges (14 wired, 7 now closed) |
-| Repo files changed since the effort began | 46 + this file |
+| Blocked | 1 — only the capstone, on 6 open edges (14 wired, 8 now closed) |
+| Repo files changed since the effort began | 50 + this file |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | clean — #25's two files are committed and pushed |
+| Working tree | clean — #26's six files are committed and pushed |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
 Nothing waits on anything except
 [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16).
 
-**The map stopped growing.** #25 was a pure make: it wrote its file, decided nothing, and
-spun nothing. That is the shape the last third of a map is supposed to have — the fog is
-gone and what is left is writing and the conversations that were always going to happen.
+**The map grew again, and this time it was a make catching its own defect.** #25 and #26
+both wrote their files and decided nothing — but verifying one of #26's claims turned up a
+real problem, so it spun
+[#27 pitch-judge cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27).
+That is the decide-or-make rule working in the direction it is usually quiet about: a make
+found a decision and stopped instead of quietly deciding it.
 
-**The charting pair is fully wired.** #11 wrote the skill, #22 the stage doc, and #13
-resolved the `<TRACKER-ADAPTER-PATH>` both pointed at. The path is **`~/.claude/tracker.md`**.
+**A template on disk is knowingly wrong.** `templates/agents/pitch-judge.md` says
+`tools: []`, which the harness does not support. See the gotcha below — it is the first
+time this effort has shipped something it knows to be broken, and #27 owns the fix.
 
-**The kill gate pair is half wired.** #25 wrote the stage doc; #26 still owes the `/pitch`
-skill and the `pitch-judge` agent. Note the order is the **reverse** of the charting pair —
-there, the template landed first, so the doc could link to a file that existed. Here the doc
-links forward to two files that do not exist yet and carries a marker saying so.
+**Both stage pairs are now fully wired.** Charting — #11 the skill, #22 the doc, #13 the
+path they pointed at. The kill gate — #25 the doc, #26 the skill and the judge. The two
+pairs were built in **opposite orders**, and it made a visible difference: charting's
+template landed first, so its doc never shipped a dead link, while `02-the-kill-gate.md`
+carried a *still being written* marker for one commit. #26 deleted it.
 
-**Three makes are queued and none of them decides anything.** #26, #23 and #24's outcome all
-have their decisions banked already. The remaining grillings are the four stage and
-cross-cutting conversations plus #8.
+**The remaining makes are #23 and #24's outcome.** Everything else open is a grilling — the
+four stage and cross-cutting conversations plus #8.
 
 **`docs/solo/` is 3 of 5.** `01` the spine, `02` the kill gate, `03` charting. `04` and `05`
 still ride on their design tickets — #10 and #12.
+
+**Templates now carry three solo-only entries** — the `charting` and `pitch` skills, and the
+`pitch-judge` agent. The solo/team columns #2 added are doing real work rather than sitting
+all-✓.
 
 ---
 
@@ -118,7 +126,8 @@ entrances are visible at once.
 | [#22 Write the charting stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/22) | **Done — `docs/solo/03-charting.md` is written.** States the solo destination and the trap beside it (that is where the *path* ends, not where *charting* ends). Authored two things nothing had settled: the **cleared-vs-abandoned test**, and that **charting cannot reopen the kill gate**. Found a wrinkle in #3's tail — see below. |
 | [#13 Tracker adapter templates + the Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13) | **Done — `templates/trackers/` exists and the playbook no longer assumes Atlassian.** The fixed path is **`~/.claude/tracker.md`**. The MCP key becomes **`tracker`, not `jira`** — a breaking change for an existing install. §5 becomes the audience rule. Setup gained **step 5**. README deliberately excluded — see below. |
 | [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | **The gate is `/pitch` — a skill plus a doc.** Six questions, ~1 hour, three hard kills whose teeth depend on a **question zero** that classifies what the idea's value rests on. Sycophancy beaten structurally, not by instructing harshness. A fourth agent, **`pitch-judge`**, reads an **anonymised case file** and can fire a hard kill but never un-fire one. See the section below. |
-| [#25 Write the kill gate stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25) | **Done — `docs/solo/02-the-kill-gate.md` is written.** A make that decided nothing; every claim traces to #9. The `12-when-not-to-use.md` cross-reference is **live in both directions**, and the **spike clash is named as a hole and then closed** rather than left to be found. Three forward links are dead by design — see below. |
+| [#25 Write the kill gate stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25) | **Done — `docs/solo/02-the-kill-gate.md` is written.** A make that decided nothing; every claim traces to #9. The `12-when-not-to-use.md` cross-reference is **live in both directions**, and the **spike clash is named as a hole and then closed** rather than left to be found. |
+| [#26 Write the `/pitch` skill + `pitch-judge` agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26) | **Done — `templates/skills/pitch/SKILL.md` and `templates/agents/pitch-judge.md` are written**, with the flow catalogue entry and both README rows. A make that decided nothing. Made explicit three mechanics #9 only implied: the **case file rides in the dispatch prompt** (no tools means no `Read`), the hard kills need an **arming table transposed by class**, and verdict resolution needs an **explicit precedence order**. |
 
 ### The layout #2 decided — now live
 
@@ -198,10 +207,14 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 Ten tickets. Nothing gates anything but the capstone.
 
+**Nothing is queued that has its decisions already banked.** Every remaining ticket is a
+real conversation — which is a different kind of session from the last two, and worth
+knowing before you open one expecting a writing job.
+
 | Ticket | Type | Note |
 |---|---|---|
-| [#26 Write the `/pitch` skill + `pitch-judge` agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26) | make | `templates/skills/pitch/SKILL.md` and `templates/agents/pitch-judge.md`. **The natural next one** — nothing left to decide, and `02-the-kill-gate.md` already links to both files. **It must delete the doc's *still being written* blockquote** when they land. |
-| [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04`. Consumes #21's answer on the tail wrinkle; does not settle it. **#13 pre-answered seam item 5** — see below. |
+| [#27 `pitch-judge` cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27) | grilling | **the only one fixing a live defect.** Small and well-bounded — the evidence is gathered and `maxTurns: 1` is the leading candidate. Also asks whether the agents README should say you cannot scope to zero. |
+| [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04`. Consumes #21's answer on the tail wrinkle; does not settle it. **#13 pre-answered seam item 5** — see below. **It also owns the last dead link** in `02-the-kill-gate.md` and `03-charting.md`. |
 | [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | — |
 | [#15 Tech stack into working agents and skills](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15) | grilling | starts from a stack already chosen |
@@ -215,7 +228,7 @@ Ten tickets. Nothing gates anything but the capstone.
 
 | Ticket | Waiting on |
 |---|---|
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 7 open blockers — the capstone; #25 closing took one off. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. |
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 6 open blockers — the capstone; #25 and #26 took two off. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — three templates now claim the solo column only, and that will keep growing. |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -225,18 +238,23 @@ Ten tickets. Nothing gates anything but the capstone.
         ── #22 the charting stage doc       ┘ skill FIRST, then the doc
         ── #13 the tracker adapters + retrofit  ── wires the pair to a real path
         ── #9  the kill gate design    ──► spun #25 (doc) + #26 (skill + judge)
-        ── #25 the kill gate stage doc ──┐ the kill gate pair —
-                                          │ doc FIRST this time, so it links
-              #26 skill + judge  ─────────┘ forward to two files not yet written
+        ── #25 the kill gate stage doc  ┐ the kill gate pair —
+        ── #26 the /pitch skill + judge ┘ doc FIRST this time, template second
+                    │
+                    └──► spun #27 — the judge's `tools: []` is not a thing
+                         the harness supports. A make catching itself.
 
    #11 left three placeholders. One is left:
         <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
         <PROTOTYPE-SKILL-OR-NONE>    ──► #23   (the last one open)
         <LABEL-PREFIX>               ──► never, reader's own convention
 
+   #26 added one that is meant to stay open:
+        <IDEAS-FILE-PATH>            ──► never, reader picks. Private + backed up.
+
    docs/solo/  01 ✓ spine   02 ✓ kill gate   03 ✓ charting   04 #10   05 #12
 
-   11 open tickets ── 7 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
+   11 open tickets ── 6 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
 ```
 
 ---
@@ -248,19 +266,28 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
 1. ~~#19 reorg · #7 tracker primitives · #3 stages and seam · #4 tracker contract ·
    #20 overview doc · #5 charting contract · #11 the charting template ·
    #22 the charting stage doc · #13 the adapters and the retrofit ·
-   #9 the kill gate design · #25 the kill gate stage doc~~ **Done.**
-2. `/wayfinder 1 26` — **the `/pitch` skill and the `pitch-judge` agent. Take this next.**
-   It is a make with nothing left to decide, and it is now the closest thing to urgent on
-   the map: `02-the-kill-gate.md` is on disk linking to two files that do not exist. It also
-   owns the flow-catalogue entry and both README rows.
-3. Then the rest of the stage conversations — #10 bootstrap, #12 backlog, #14 guardrails,
-   #15 stack→agents, #18 progress, #21 stack choice — in any order. Each writes its own
-   `docs/solo/` doc at the number reserved above. **#10 and #21 should both read
-   `03-charting.md` first** — the tail is written reader-facing there, and both inherit the
-   wrinkle below.
-4. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
+   #9 the kill gate design · #25 the kill gate stage doc ·
+   #26 the /pitch skill and the judge~~ **Done.**
+2. **The easy sessions are over.** Everything left is a grilling except #23 and #24's
+   make. There is no ticket whose decisions are already banked, so expect a real
+   conversation rather than a writing job.
+3. `/wayfinder 1 27` — **the `pitch-judge` zero-tools defect. I would take this first.**
+   It is the only open ticket fixing something that is live and wrong, the evidence is
+   already gathered in the ticket body, and it is the smallest session on the map. Doing it
+   early stops a broken template sitting on `master` behind five long conversations.
+4. `/wayfinder 1 21` — **stack choice.** It is the only open ticket
+   that another open ticket is waiting on: **#10 cannot settle the tail wrinkle** and #21
+   owns it. Taking #21 first means #10 gets a clean answer instead of inheriting an
+   ambiguity. **Read `03-charting.md` first** — the tail is already written reader-facing
+   there, and #21 extends it rather than re-deriving it.
+5. `/wayfinder 1 10` — the bootstrap, after #21. Writes `docs/solo/04` and clears the last
+   dead link in two stage docs. **#13 pre-answered seam item 5** — state it, do not
+   re-derive it.
+6. Then the rest — #12 backlog, #14 guardrails, #15 stack→agents, #18 progress — in any
+   order. Each writes its own `docs/solo/` doc at the number reserved above.
+7. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
    and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
-5. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
+8. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
 
 Plain `/wayfinder 1` takes the first frontier ticket in map order — currently
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
@@ -280,13 +307,32 @@ Name the ticket.
   in prose. **#21 owns settling it** — the question is *what the stack ticket decides*,
   which is #21's subject; **#10 only consumes the answer.** Assigned deliberately, because
   a question two tickets each assume the other will answer is a question nobody answers.
-- **A stage doc can land before its template, and then it ships dead links.** The charting
-  pair went template-first (#11 then #22), so `03-charting.md` linked to a file that existed.
-  The kill gate pair went the other way — #25 before #26 — so `02-the-kill-gate.md` has
-  **three dead forward links** (`templates/skills/pitch/SKILL.md` and
-  `templates/agents/pitch-judge.md` from #26, `04-the-bootstrap.md` from #10) and carries a
-  one-line marker saying the templates are still being written. **#26 must delete that
-  marker.** Worth knowing for #10 and #12, which face the same choice.
+- **A stage doc that lands before its template ships dead links, and it cost a marker.**
+  The charting pair went template-first (#11 then #22), so `03-charting.md` never had the
+  problem. The kill gate pair went the other way — #25 before #26 — so `02-the-kill-gate.md`
+  shipped with two dead template links and a *still being written* blockquote, which #26
+  then deleted. It worked, but it cost an extra edit and a commit that published a doc
+  pointing at nothing. **Template-first is the better order** where a pair has a free
+  choice. #10 and #12 both face it.
+- **This playbook writes frontmatter the harness has to accept, and nobody was checking.**
+  `tools: []` was written because it was the obvious YAML for "no tools" — and it is not a
+  thing Claude Code supports. Every template in `templates/agents/` and
+  `templates/skills/` is a **claim about what the harness will do**, and claims need
+  verifying against the docs, not against what looks reasonable. The `2.1.220` footer
+  implies exactly this checking has happened. **Check the field table in the subagent docs
+  before inventing a frontmatter value**, especially for anything expressing an absence —
+  absences are where "unset" and "empty" get conflated.
+- **You cannot dry-run a new agent in the session that wrote it.** Agent definitions load
+  at session start, so a file written to `.claude/agents/` mid-session is not registered and
+  `Agent` rejects it as an unknown type. Probing a new agent template needs a fresh session.
+  Worth knowing before planning any verification that depends on spawning one.
+- **A design ticket cannot settle mechanics it never has to execute.** #9 designed the gate
+  completely and still left three things that only became questions when someone wrote the
+  skill: the case file's *location* (no tools means no `Read`, so it must ride in the
+  prompt), the hard-kill table's *direction* (the skill asks "given this class, which kills
+  are live?", the reverse of how #9 listed them), and the *precedence* between rules that
+  can fire at once. None was a new decision — each was forced. Expect the same from #10 and
+  #12: the design ticket is not wrong, it just never had to run the thing.
 - **Four docs have H1 headings that no longer match their filenames.** `shared/11-adapting-to-your-stack.md`
   says `# 12`, `shared/12-when-not-to-use.md` says `# 13`, `team/01-metrics.md` says `# 11`,
   `team/02-team-adoption.md` says `# 14` — exactly the four #19 renumbered, since #19
@@ -298,15 +344,19 @@ Name the ticket.
   `-e ` lines (14 left; #11's commit took the 15th), the stale `2.1.219` footers, and
   suspected factual drift in `07-the-flows.md`. **Check it before editing any shared doc**,
   or you will duplicate its work. Its own file list is pre-reorg and has been corrected in a
-  comment. **#25 edited `docs/shared/12-when-not-to-use.md`** — one added paragraph, the
-  reverse half of a required cross-reference — and deliberately left that file's `-e ` stray,
-  its `# 13` H1 and its `2.1.219` footer alone. All three are still #17's.
+  comment. **Two shared docs have been edited around it since.** #25 added one paragraph to
+  `12-when-not-to-use.md` (the reverse half of a required cross-reference) and #26 added one
+  row to `07-the-flows.md`. Both deliberately left the strays, the mismatched H1s and the
+  stale footers alone. All of those are still #17's.
 - **The flow catalogue's own definition no longer matches its contents.**
   `docs/shared/07-the-flows.md` opens by defining a flow as *"a slash command that
   orchestrates a chain of scoped specialist agents."* `/charting` is a user-invoked skill,
   not an agent chain — and `ad-hoc: investigation` was already in the table without being a
   command at all. So the drift predates #11; #11 just made it visible. **Handed to #17**,
-  which already owns that file. A one-line widening of the definition fixes it.
+  which already owns that file. A one-line widening of the definition fixes it. **#26 added
+  `/pitch` to the same table and left the definition alone** — `/pitch` genuinely does
+  orchestrate three subagents, so it fits the narrow definition better than `/charting`
+  does. Nothing worsened, nothing fixed.
 - **The leading-gist rule is not retroactive.** #5 requires every resolution comment to open
   with a one-line gist so Decisions-so-far can be regenerated mechanically. The **seven
   comments closed before #5 have no gist**, so a full regeneration today still means
@@ -364,6 +414,33 @@ Name the ticket.
   `[text](target)` against the filesystem.
 
 ---
+
+## What #26 handed forward
+
+- **The kill gate is complete** — stage doc, skill, agent, catalogue entry, both README
+  rows. Nothing about the gate is outstanding.
+- **`tools: []` is wrong, and `templates/agents/pitch-judge.md` on disk is knowingly broken
+  until #27 settles it.** Checked against the official subagent docs rather than left for
+  first install. `tools` **inherits every tool if omitted**, and *if no entry in the list
+  resolves to a tool, the subagent usually fails to launch* — the error is
+  `would be spawned with zero tools — refusing`. So an empty list either **refuses to
+  launch** (the judge silently never runs) or is normalised to unset and **inherits
+  everything** (the third search pass #9 warned against). **Both branches are unacceptable**,
+  and the earlier claim that it *fails safe* was wrong — on the refuse-to-launch branch
+  there is no agent to read the prose prohibition. Which branch it actually takes is
+  undetermined: agent files load at session start, so a probe written mid-session cannot be
+  spawned.
+- **`<IDEAS-FILE-PATH>` is a placeholder that never resolves**, unlike
+  `<TRACKER-ADAPTER-PATH>`. It is *supposed* to vary — #9's point was that the reader picks
+  somewhere private they already back up. Nobody should ticket it.
+- **#16 should expect the solo-only column to keep growing.** Three templates now claim it —
+  the `charting` and `pitch` skills, and the `pitch-judge` agent. That is the pattern, not an
+  exception.
+- **It spun [#27](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27)
+  after closing**, when its own *verify this later* note was verified immediately and turned
+  out to be a defect. The decide-or-make rule held: the make stopped rather than deciding
+  the fix. **`maxTurns: 1` is the leading candidate and is deliberately not decided.**
+- **No memory written**, per #5's one-per-map rule. The map is still open.
 
 ## What #25 handed forward
 
