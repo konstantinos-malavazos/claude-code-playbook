@@ -6,7 +6,7 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 2 August 2026, after resolving
-> [#26 Write the /pitch skill template and the pitch-judge agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26).
+> [#27 pitch-judge cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27).
 > Regenerate rather than trust — the one-call frontier query is:
 > ```
 > gh api repos/konstantinos-malavazos/claude-code-playbook/issues/1/sub_issues --paginate \
@@ -33,29 +33,30 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 14 of 25 |
-| Tickets open | 11 |
-| On the frontier (takeable now) | 10 |
+| Tickets closed | 15 of 25 |
+| Tickets open | 10 |
+| On the frontier (takeable now) | 9 |
 | Blocked | 1 — only the capstone, on 6 open edges (14 wired, 8 now closed) |
 | Repo files changed since the effort began | 50 + this file |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | clean — #26's six files are committed and pushed |
+| Working tree | clean — #27 wrote no repo files; its edits land via #28 |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
 Nothing waits on anything except
 [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16).
 
-**The map grew again, and this time it was a make catching its own defect.** #25 and #26
-both wrote their files and decided nothing — but verifying one of #26's claims turned up a
-real problem, so it spun
-[#27 pitch-judge cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27).
-That is the decide-or-make rule working in the direction it is usually quiet about: a make
-found a decision and stopped instead of quietly deciding it.
+**The map grew, then closed the hole it grew for.** #25 and #26 both wrote their files and
+decided nothing — but verifying one of #26's claims turned up a real problem, so it spun
+#27, which is now resolved. That is the decide-or-make rule working in the direction it is
+usually quiet about: a make found a decision and stopped instead of quietly deciding it.
 
-**A template on disk is knowingly wrong.** `templates/agents/pitch-judge.md` says
-`tools: []`, which the harness does not support. See the gotcha below — it is the first
-time this effort has shipped something it knows to be broken, and #27 owns the fix.
+**A template on disk is still knowingly wrong — but the fix is now decided, not open.**
+`templates/agents/pitch-judge.md` says `tools: []`; #27 settled that it becomes
+**`tools: TodoWrite` plus `maxTurns: 1`**, and the edit lands in
+[#28](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28), which has
+the transcription list in a comment. Nothing about it is undecided; it is waiting on a pen,
+not on a conversation.
 
 **Both stage pairs are now fully wired.** Charting — #11 the skill, #22 the doc, #13 the
 path they pointed at. The kill gate — #25 the doc, #26 the skill and the judge. The two
@@ -128,6 +129,7 @@ entrances are visible at once.
 | [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | **The gate is `/pitch` — a skill plus a doc.** Six questions, ~1 hour, three hard kills whose teeth depend on a **question zero** that classifies what the idea's value rests on. Sycophancy beaten structurally, not by instructing harshness. A fourth agent, **`pitch-judge`**, reads an **anonymised case file** and can fire a hard kill but never un-fire one. See the section below. |
 | [#25 Write the kill gate stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25) | **Done — `docs/solo/02-the-kill-gate.md` is written.** A make that decided nothing; every claim traces to #9. The `12-when-not-to-use.md` cross-reference is **live in both directions**, and the **spike clash is named as a hole and then closed** rather than left to be found. |
 | [#26 Write the `/pitch` skill + `pitch-judge` agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26) | **Done — `templates/skills/pitch/SKILL.md` and `templates/agents/pitch-judge.md` are written**, with the flow catalogue entry and both README rows. A make that decided nothing. Made explicit three mechanics #9 only implied: the **case file rides in the dispatch prompt** (no tools means no `Read`), the hard kills need an **arming table transposed by class**, and verdict resolution needs an **explicit precedence order**. |
+| [#27 `pitch-judge` cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27) | **`tools: TodoWrite` plus `maxTurns: 1`.** Zero tools is impossible **by design** — the harness refuses to spawn an agent that would hold none — so `tools: []` never launches. Two guarantees on different axes: the allowlist means it holds nothing that finds, the single turn means it cannot act on a result. The agents README gains a **least privilege has a floor** convention and a **complete sixteen-field anatomy block**. **"No tools" is retired as vocabulary** in favour of **"gathers no evidence"**. Decides only — #28 holds the pen. |
 
 ### The layout #2 decided — now live
 
@@ -205,15 +207,13 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Ten tickets. Nothing gates anything but the capstone.
+Nine tickets. Nothing gates anything but the capstone.
 
-**Nothing is queued that has its decisions already banked.** Every remaining ticket is a
-real conversation — which is a different kind of session from the last two, and worth
-knowing before you open one expecting a writing job.
+**Nothing is queued that has its decisions already banked.** Every remaining ticket except
+#23 is a real conversation — worth knowing before you open one expecting a writing job.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#27 `pitch-judge` cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27) | grilling | **the only one addressing a live defect.** Small and well-bounded — the evidence is gathered and `maxTurns: 1` is the leading candidate. Also asks whether the agents README should say you cannot scope to zero. **Decides only; spawns no make** — #28 applies the edit. See below. |
 | [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04`. Consumes #21's answer on the tail wrinkle; does not settle it. **#13 pre-answered seam item 5** — see below. **It also owns the last dead link** in `02-the-kill-gate.md` and `03-charting.md`. |
 | [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | — |
@@ -243,6 +243,7 @@ knowing before you open one expecting a writing job.
                     │
                     └──► spun #27 — the judge's `tools: []` is not a thing
                          the harness supports. A make catching itself.
+        ── #27 tools: TodoWrite + maxTurns: 1 ──► the edit lands in #28
 
    #11 left three placeholders. One is left:
         <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
@@ -254,7 +255,7 @@ knowing before you open one expecting a writing job.
 
    docs/solo/  01 ✓ spine   02 ✓ kill gate   03 ✓ charting   04 #10   05 #12
 
-   11 open tickets ── 6 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
+   10 open tickets ── 6 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
 ```
 
 ---
@@ -267,14 +268,13 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
    #20 overview doc · #5 charting contract · #11 the charting template ·
    #22 the charting stage doc · #13 the adapters and the retrofit ·
    #9 the kill gate design · #25 the kill gate stage doc ·
-   #26 the /pitch skill and the judge~~ **Done.**
-2. **The easy sessions are over.** Everything left is a grilling except #23 and #24's
-   make. There is no ticket whose decisions are already banked, so expect a real
-   conversation rather than a writing job.
-3. `/wayfinder 1 27` — **the `pitch-judge` zero-tools defect. I would take this first.**
-   It is the only open ticket fixing something that is live and wrong, the evidence is
-   already gathered in the ticket body, and it is the smallest session on the map. Doing it
-   early stops a broken template sitting on `master` behind five long conversations.
+   #26 the /pitch skill and the judge · #27 the judge's zero-tools defect~~ **Done.**
+2. **The easy sessions are over.** Everything left is a grilling except #23's make. There
+   is no ticket whose decisions are already banked, so expect a real conversation rather
+   than a writing job.
+3. **#28 is not on this map but it is the cheapest thing you can do next.** #27 left it a
+   transcription list, so it is a pure make with nothing to decide — and until it runs,
+   `templates/agents/pitch-judge.md` sits on `master` knowingly broken.
 4. `/wayfinder 1 21` — **stack choice.** It is the only open ticket
    that another open ticket is waiting on: **#10 cannot settle the tail wrinkle** and #21
    owns it. Taking #21 first means #10 gets a clean answer instead of inheriting an
@@ -289,7 +289,7 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
    and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
 8. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
 
-Plain `/wayfinder 1` takes the first frontier ticket in map order — currently
+Plain `/wayfinder 1` takes the first frontier ticket in map order — still
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
 Name the ticket.
 
@@ -314,26 +314,45 @@ Name the ticket.
   then deleted. It worked, but it cost an extra edit and a commit that published a doc
   pointing at nothing. **Template-first is the better order** where a pair has a free
   choice. #10 and #12 both face it.
+- **A subagent cannot have zero tools, and this is deliberate.** The errors page is
+  explicit: *"Subagents require at least one tool to function, so Claude Code refuses to
+  spawn an agent that would have no tools available."* So `tools: []` **refuses to launch** —
+  that is the branch #26 could not determine. There is a version boundary: **before
+  v2.1.208 the same YAML launched the agent toolless** and it "could return an empty or
+  confusing result", so one file fails two different ways depending on the reader's install.
+  **`TodoWrite` is the inert floor** — it is on the background-safe built-in list and cannot
+  read, fetch or run anything. #27 settled `tools: TodoWrite` + `maxTurns: 1`.
+- **Subagents run in the background by default, and that silently changes their tools.**
+  Since v2.1.198 background is the default, and a background subagent keeps **every MCP
+  tool** but only a fixed subset of built-ins: `Read`, `Grep`, `Glob`, `Bash`, `PowerShell`,
+  `Edit`, `Write`, `NotebookEdit`, `WebFetch`, `WebSearch`, `TodoWrite`, `Skill`,
+  `ToolSearch`, `EnterWorktree`, `ExitWorktree`, `Monitor`, `TaskStop`, `SendMessage`,
+  `Artifact`. **Anything else in a `tools:` list is stripped with no error** — unless
+  stripping empties the list, at which point the agent refuses to launch. So a template can
+  name a tool that exists, is spelled correctly, and still is not there at runtime. Also
+  worth knowing for the *inherit* case: an agent with `tools` omitted holds every MCP server
+  you have configured, which is usually far more reach than the author pictured.
 - **This playbook writes frontmatter the harness has to accept, and nobody was checking.**
-  `tools: []` was written because it was the obvious YAML for "no tools" — and it is not a
-  thing Claude Code supports. Every file in `templates/` is a **claim about what the harness
-  will do**, and claims need verifying against the docs, not against what looks reasonable.
-  The `2.1.220` footer implies exactly this checking has happened. **Check the field table
-  in the subagent docs before inventing a frontmatter value**, especially for anything
-  expressing an absence — absences are where "unset" and "empty" get conflated.
+  `tools: []` was written because it was the obvious YAML for "no tools". Every file in
+  `templates/` is a **claim about what the harness will do**, and claims need verifying
+  against the docs, not against what looks reasonable. The `2.1.220` footer implies exactly
+  this checking has happened. **Check the field table in the subagent docs before inventing
+  a frontmatter value**, especially for anything expressing an absence — absences are where
+  "unset" and "empty" get conflated.
   **Now ticketed as [#28 Audit every template's frontmatter and harness claims against the
   official docs](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28)**,
   standalone rather than a child of #1 — it covers all templates, most of them agile-path,
-  so it sits outside this map's destination. Same shape as #17. **Do #27 first**: it settles
-  the one construct already known broken and probably sets the pattern for flagging others.
-  A second finding is recorded there — the agents README's anatomy block shows only four
-  frontmatter fields, which is how `maxTurns` stayed invisible. **An incomplete anatomy
-  block does not just omit options; it makes real solutions invisible.**
+  so it sits outside this map's destination. Same shape as #17. **#27 is done and #28 now
+  carries its edits** as a transcription list in a comment, plus two scope changes: the
+  agents anatomy block is **pre-answered** (all sixteen fields, do not re-derive), and the
+  background-subset check above is a **new suspect for every `tools:` list** in the
+  directory. **An incomplete anatomy block does not just omit options; it makes real
+  solutions invisible** — `maxTurns` was not rejected by #26, it was never seen.
 - **You cannot dry-run a new agent in the session that wrote it.** Agent definitions load
   at session start, so a file written to `.claude/agents/` mid-session is not registered and
   `Agent` rejects it as an unknown type. Probing a new agent template needs a fresh session.
   Worth knowing before planning any verification that depends on spawning one.
-- **Decide-or-make is 14 for 14, and #27 is the first real pressure on it.** Every closed
+- **Decide-or-make is 15 for 15, and #27 was the first real pressure on it.** Every closed
   ticket so far is either a grilling/research that wrote no files or a `wayfinder:task` that
   wrote them — never both. #27 is the first decision whose entire output is a **two-line
   frontmatter edit**, which the rule's own justification does not cover: #5 justifies the
@@ -344,7 +363,10 @@ Name the ticket.
   that #9 looked like one grilling and produced two makes. **#27 decides and #28 applies**,
   since #28 has those files open regardless. No exception, and no extra session either.
   Worth remembering the next time a decision has a trivial tail: look for a make already
-  passing through the same files before carving an exception into the rule.
+  passing through the same files before carving an exception into the rule. **The rule paid
+  for itself immediately**: #27 was supposed to be a two-line frontmatter change and it
+  turned into a sixteen-field README rewrite, a retired vocabulary word, a correction on a
+  closed ticket and two new gotchas. "Small enough to just do" would have been wrong.
 - **A design ticket cannot settle mechanics it never has to execute.** #9 designed the gate
   completely and still left three things that only became questions when someone wrote the
   skill: the case file's *location* (no tools means no `Read`, so it must ride in the
@@ -438,21 +460,48 @@ Name the ticket.
 
 ---
 
+## What #27 handed forward
+
+- **The mechanism is `tools: TodoWrite` + `maxTurns: 1`**, and it is **two guarantees on
+  different axes** rather than one with a backup. The allowlist means the judge holds
+  nothing that can find; the turn budget means it cannot act on a result whatever it holds.
+  Neither depends on the other, which is the property `tools: []` was reaching for.
+- **`disallowedTools` was considered and rejected here, not overlooked.** It is applied
+  *first*, then `tools` resolves against what remains — so an allowlist of one already
+  excludes everything and a denylist beside it narrows the same axis twice. It stays correct
+  for the opposite shape: inherit broadly, subtract a few.
+- **The residual risk is named.** A turn is one assistant message, so if the judge spends
+  its single turn calling `TodoWrite` it returns no verdict. Unlikely — the prose forbids it
+  and the one tool is not tempting — but **if it is ever seen, the fix is `maxTurns: 2`, not
+  removing the field.** Two turns still cannot become a search pass, because the allowlist
+  is doing that half.
+- **"No tools" is retired from the playbook's vocabulary.** It appears in #9, in the agents
+  README twice and in the template itself, and it was never what #9 meant. The replacement is
+  **"gathers no evidence"** / **"weighs only"**. The rule underneath: **describe an agent by
+  what it must not accomplish, not by the frontmatter you think expresses it** — a capability
+  description survives a harness change, a mechanism description rots into a lie.
+- **#9 carries a correction comment.** Its resolution comment is what Decisions-so-far
+  regenerates from, so an uncorrected one would reprint the error on every rebuild. The
+  intent is untouched and was never reopened; only the phrase changed.
+- **#28's scope moved in both directions.** It **gains** the transcription list and a new
+  suspect (the background built-in subset, above). It **loses** the agents anatomy block,
+  which #27 already decided — all sixteen fields, do not re-derive. Its item 3 is now half
+  done before it starts.
+- **Nothing is verified live.** Agent files load at session start, so the mechanism is
+  correct-by-reading, not correct-by-running. **The first fresh session after #28's edit
+  should spawn `pitch-judge` on a two-line case file** and confirm it launches and returns a
+  verdict. Two minutes, and it is the only step that tests the harness rather than the docs.
+- **No memory written**, per #5's one-per-map rule. The map is still open.
+
 ## What #26 handed forward
 
 - **The kill gate is complete** — stage doc, skill, agent, catalogue entry, both README
   rows. Nothing about the gate is outstanding.
-- **`tools: []` is wrong, and `templates/agents/pitch-judge.md` on disk is knowingly broken
-  until #27 settles it.** Checked against the official subagent docs rather than left for
-  first install. `tools` **inherits every tool if omitted**, and *if no entry in the list
-  resolves to a tool, the subagent usually fails to launch* — the error is
-  `would be spawned with zero tools — refusing`. So an empty list either **refuses to
-  launch** (the judge silently never runs) or is normalised to unset and **inherits
-  everything** (the third search pass #9 warned against). **Both branches are unacceptable**,
-  and the earlier claim that it *fails safe* was wrong — on the refuse-to-launch branch
-  there is no agent to read the prose prohibition. Which branch it actually takes is
-  undetermined: agent files load at session start, so a probe written mid-session cannot be
-  spawned.
+- ~~**`tools: []` is wrong, and the branch it takes is undetermined.**~~ **Settled by #27** —
+  it is the **refuse-to-launch** branch, stated outright on the errors page: subagents
+  require at least one tool. The file on disk is still broken until #28 applies
+  `tools: TodoWrite` + `maxTurns: 1`, but nothing about it is open. #26 was right that both
+  branches were unacceptable and right to withdraw the *fails safe* claim.
 - **`<IDEAS-FILE-PATH>` is a placeholder that never resolves**, unlike
   `<TRACKER-ADAPTER-PATH>`. It is *supposed* to vary — #9's point was that the reader picks
   somewhere private they already back up. Nobody should ticket it.
@@ -462,7 +511,8 @@ Name the ticket.
 - **It spun [#27](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27)
   after closing**, when its own *verify this later* note was verified immediately and turned
   out to be a defect. The decide-or-make rule held: the make stopped rather than deciding
-  the fix. **`maxTurns: 1` is the leading candidate and is deliberately not decided.**
+  the fix. `maxTurns: 1` was the leading candidate and **#27 kept it, but not alone** — the
+  allowlist half was the part #26 could not have guessed.
 - **No memory written**, per #5's one-per-map rule. The map is still open.
 
 ## What #25 handed forward
