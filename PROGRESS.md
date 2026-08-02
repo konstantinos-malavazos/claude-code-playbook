@@ -38,7 +38,7 @@ Done when a reader with an idea and no repo can follow the path end to end.
 | Tickets open | 10 |
 | On the frontier (takeable now) | 9 |
 | Blocked | 1 — only the capstone, on 6 open edges (14 wired, 8 now closed) |
-| Repo files changed since the effort began | 50 by the map's own tickets, + 12 by #28 off-map |
+| Repo files changed since the effort began | 50 by the map’s own tickets, + 15 by #28 off-map |
 | Branches | none — findings live in ticket comments, not in the repo |
 | Working tree | clean — #27 wrote no repo files; #28 applied its edits and closed |
 
@@ -60,6 +60,14 @@ usually quiet about: a make found a decision and stopped instead of quietly deci
 pipeline's cross-repo review could never run. The git hooks matched only `Bash`, so
 **`PowerShell` walked straight past them** — on Windows, which is where this repo is
 driven. Both are fixed. See the gotchas below; both generalise well beyond this repo.
+
+**Then the hooks were actually run, and a fifth failure appeared that reading could not
+have found.** Both git guardrails ignored `git push` on any line but the first, because
+they flattened newlines to spaces and their patterns anchor on a separator. `cd /tmp &&
+git push` was caught; the ordinary multi-line form was not. **The audit's method was the
+limit, not its diligence** — every documentation claim it checked was correct. The repo now
+has its first executable test, `templates/hooks/test-hooks.sh`, and a standing rule: **where
+a claim can be executed, execute it.**
 
 **Both stage pairs are now fully wired.** Charting — #11 the skill, #22 the doc, #13 the
 path they pointed at. The kill gate — #25 the doc, #26 the skill and the judge. The two
@@ -339,6 +347,22 @@ Name the ticket.
   its steps, and could not: nesting is on by default, but **an explicit allowlist still
   wins**. The first-level review would have finished and reported a verdict with the
   cross-repo half silently absent. **Check every agent whose body names another agent.**
+- **Flattening input before matching erases the boundaries the pattern depends on.** Both
+  git guardrails turned newlines into **spaces**, then matched `git push` anchored on
+  start-of-string or `[;&|]`. So in an ordinary multi-line command every line after the
+  first was invisible to them — `cd /tmp && git push` blocked, the three-line version did
+  not. Newlines are now `;`. **Suspect this in any guardrail that normalises before it
+  greps**: the normalisation looks like tidying and is load-bearing.
+- **Auditing claims against documentation verifies the claims, not the code.** #28 checked
+  every hook claim against the official docs and passed, because nothing in the docs was
+  wrong — the playbook's own regex was. Configuration defects (a missing `Agent` tool, a
+  matcher naming one shell) *do* fall out of reading. Behavioural ones do not.
+  **`templates/hooks/test-hooks.sh` is the repo's first executable test** — 29 cases, and
+  it was mutation-tested by reverting the fix and confirming it fails on exactly the four
+  multi-line cases. A suite never seen to fail is not evidence.
+- **A guardrail that stops guarding reports success — three instances now, one week.**
+  #13's MCP key rename, #28's `Bash`-only matcher, and this. **Anything whose failure mode
+  is silence needs a test, not a review.**
 - **`PowerShell` is a separate tool from `Bash`, and a `"matcher": "Bash"` hook does not
   see it.** It is enabled automatically on Windows without Git Bash, rolling out
   progressively on Windows *with* Git Bash, and opt-in elsewhere. So the git guardrails were
@@ -497,10 +521,13 @@ Name the ticket.
 ## What #28 handed forward (off-map)
 
 - **`templates/README.md` exists** and is the directory's contract: what a template asserts,
-  and the **eight-check re-verification list** with the doc page that settles each one. Run
+  and the **nine-check re-verification list** with the doc page that settles each one. Run
   it when a footer version is bumped or after a release touching agents, skills, hooks or
   tools. Anything wanting to explain how templates are held to the harness should **link
   there, not restate it.**
+- **Check 6b is the only one that executes anything**, and it exists because the other eight
+  all passed while both git guardrails were open. `bash templates/hooks/test-hooks.sh` —
+  run it, do not read it.
 - **Two guardrails were not guarding, and both are worth a standing suspicion.** Whenever a
   matcher names one way of doing a thing, ask what the other ways are (`Bash` →
   `PowerShell`). Whenever an agent's prose names another agent, check `Agent` is in its
