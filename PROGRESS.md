@@ -1,15 +1,15 @@
 # Progress — the solo builder's path
 
 Local tracking file for the wayfinder effort on
-[#1 MAP: the solo builder's path](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/1).
+[#1 MAP: the solo builder's path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/1).
 **Committed and pushed**, so the effort can be resumed from any machine. The tracker is
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 2 August 2026, after resolving
-> [#11 Write the charting skill template](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/11).
+> [#11 Write the charting skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/11).
 > Regenerate rather than trust — the one-call frontier query is:
 > ```
-> gh api repos/ZhiKaanZhi/claude-code-playbook/issues/1/sub_issues --paginate \
+> gh api repos/konstantinos-malavazos/claude-code-playbook/issues/1/sub_issues --paginate \
 >   --jq '.[] | select(.state=="open") | select(.assignees|length==0)
 >             | select(.issue_dependencies_summary.blocked_by==0) | "#\(.number)\t\(.title)"'
 > ```
@@ -39,12 +39,12 @@ Done when a reader with an idea and no repo can follow the path end to end.
 | Blocked | 1 — only the capstone |
 | Repo files changed since the effort began | 30 + this file |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | **3 uncommitted** — `templates/skills/charting/SKILL.md` (new), `docs/shared/07-the-flows.md`, `templates/skills/README.md` |
+| Working tree | clean — #11's three files are committed and pushed |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
 Nothing waits on anything except
-[#16 Two-entrance front door](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/16),
+[#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16),
 which waits on everything.
 
 **The first deliverable of the charting effort is on disk.** #11 was the hardest artifact on
@@ -92,15 +92,15 @@ entrances are visible at once.
 
 | Ticket | Decision |
 |---|---|
-| [#6 What Claude Code already does natively](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/6) | Lean on the harness for `/init`, plan mode, the task list, background sessions, worktrees, `/goal`. The playbook must supply its own durable map artifact, its own backlog, and every judgement stage of the front-end. `/effort ultracode` is the *worst* default for a solo builder. |
-| [#2 Where the solo path lives](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/2) | `docs/` splits three ways (below). Templates stay flat with a path column in their READMEs. Moved docs keep their `2.1.219` footer. |
-| [#19 Reorg docs into shared/ team/ solo/](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/19) | **Done — the layout below now exists.** 14 docs moved as git renames, 54 relative links resolve and 0 dead. |
-| [#7 Tracker primitives](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/7) | **The floor is narrower than charting assumed.** Native blocking is not universal; the claim **cannot be a mutex**; nothing has optimistic concurrency, so the map body should be regenerable. Handed four judgement calls to #4. |
-| [#3 The stages and the seam](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/3) | **Four stages: kill gate → charting → bootstrap → backlog.** The repo is the gate's output, so bootstrap *scaffolds* and never *creates*. Bootstrap runs **before** the backlog. Stack choice is a **ticket on the map**, in a two-ticket tail not takeable while anything else is open. Charting can end in **abandon**. One backwards step allowed. Seam = the seven checks above. |
-| [#4 The tracker-adapter contract](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/4) | **A skill never names a tracker.** Ten decisions — see the table below. |
-| [#20 Write the solo path overview doc](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/20) | **Done — `docs/solo/01-the-solo-path.md` is on master.** An index, not a summary. **Sets the `docs/solo/` numbering** (below). |
-| [#5 The charting skill's contract](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/5) | **The skill is `charting`, and it is general.** Eight decisions — see the section below. |
-| [#11 Write the charting skill template](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/11) | **Done — `templates/skills/charting/SKILL.md` is written.** All eight of #5's decisions carried; nothing reopened. Three `<PLACEHOLDER>`s, two of which are waiting on other tickets. |
+| [#6 What Claude Code already does natively](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/6) | Lean on the harness for `/init`, plan mode, the task list, background sessions, worktrees, `/goal`. The playbook must supply its own durable map artifact, its own backlog, and every judgement stage of the front-end. `/effort ultracode` is the *worst* default for a solo builder. |
+| [#2 Where the solo path lives](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/2) | `docs/` splits three ways (below). Templates stay flat with a path column in their READMEs. Moved docs keep their `2.1.219` footer. |
+| [#19 Reorg docs into shared/ team/ solo/](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/19) | **Done — the layout below now exists.** 14 docs moved as git renames, 54 relative links resolve and 0 dead. |
+| [#7 Tracker primitives](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/7) | **The floor is narrower than charting assumed.** Native blocking is not universal; the claim **cannot be a mutex**; nothing has optimistic concurrency, so the map body should be regenerable. Handed four judgement calls to #4. |
+| [#3 The stages and the seam](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/3) | **Four stages: kill gate → charting → bootstrap → backlog.** The repo is the gate's output, so bootstrap *scaffolds* and never *creates*. Bootstrap runs **before** the backlog. Stack choice is a **ticket on the map**, in a two-ticket tail not takeable while anything else is open. Charting can end in **abandon**. One backwards step allowed. Seam = the seven checks above. |
+| [#4 The tracker-adapter contract](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/4) | **A skill never names a tracker.** Ten decisions — see the table below. |
+| [#20 Write the solo path overview doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/20) | **Done — `docs/solo/01-the-solo-path.md` is on master.** An index, not a summary. **Sets the `docs/solo/` numbering** (below). |
+| [#5 The charting skill's contract](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/5) | **The skill is `charting`, and it is general.** Eight decisions — see the section below. |
+| [#11 Write the charting skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/11) | **Done — `templates/skills/charting/SKILL.md` is written.** All eight of #5's decisions carried; nothing reopened. Three `<PLACEHOLDER>`s, two of which are waiting on other tickets. |
 
 ### The layout #2 decided — now live
 
@@ -182,24 +182,24 @@ Twelve tickets. Nothing gates anything but the capstone.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#22 Write the charting stage doc](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/22) | make | **Take this next.** The skill it documents was written one session ago. |
-| [#13 Tracker adapter templates + the Jira retrofit](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/13) | make | Fully settled — execution, not judgement. Owns `<TRACKER-ADAPTER-PATH>`. |
-| [#9 The kill gate](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/9) | grilling | writes `docs/solo/02` |
-| [#10 The bootstrap](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04` |
-| [#12 Cleared map to backlog of work units](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
-| [#14 Which guardrails hold when you are solo](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/14) | grilling | — |
-| [#15 Tech stack into working agents and skills](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/15) | grilling | starts from a stack already chosen |
-| [#18 How progress is measured on the solo path](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/18) | grilling | — |
-| [#8 Resuming an effort across dozens of sessions](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/8) | grilling | **must check #5's §8 boundary first** |
-| [#21 How the tech stack actually gets chosen](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/21) | grilling | freed by #5 |
-| [#23 Write the prototype skill template](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/23) | make | side quest — but it now owns a live `<PLACEHOLDER>` in the charting template |
-| [#24 The playbook's own domain-modeling skill](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/24) | grilling | side quest, blocks nothing |
+| [#22 Write the charting stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/22) | make | **Take this next.** The skill it documents was written one session ago. |
+| [#13 Tracker adapter templates + the Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13) | make | Fully settled — execution, not judgement. Owns `<TRACKER-ADAPTER-PATH>`. |
+| [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | grilling | writes `docs/solo/02` |
+| [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04` |
+| [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
+| [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | — |
+| [#15 Tech stack into working agents and skills](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15) | grilling | starts from a stack already chosen |
+| [#18 How progress is measured on the solo path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18) | grilling | — |
+| [#8 Resuming an effort across dozens of sessions](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8) | grilling | **must check #5's §8 boundary first** |
+| [#21 How the tech stack actually gets chosen](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/21) | grilling | freed by #5 |
+| [#23 Write the prototype skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/23) | make | side quest — but it now owns a live `<PLACEHOLDER>` in the charting template |
+| [#24 The playbook's own domain-modeling skill](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/24) | grilling | side quest, blocks nothing |
 
 ## Blocked
 
 | Ticket | Waiting on |
 |---|---|
-| [#16 Two-entrance front door](https://github.com/ZhiKaanZhi/claude-code-playbook/issues/16) | 10 open blockers — the capstone |
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 10 open blockers — the capstone |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -247,12 +247,19 @@ Name the ticket.
 
 ## Gotchas found so far
 
+- **There is an open housekeeping ticket outside this map.**
+  [#17 Docs housekeeping](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/17)
+  is **not** a child of #1 — it is pre-existing rot in the agile path. It owns the stray
+  `-e ` lines (14 left; #11's commit took the 15th), the stale `2.1.219` footers, and
+  suspected factual drift in `07-the-flows.md`. **Check it before editing any shared doc**,
+  or you will duplicate its work. Its own file list is pre-reorg and has been corrected in a
+  comment.
 - **The flow catalogue's own definition no longer matches its contents.**
   `docs/shared/07-the-flows.md` opens by defining a flow as *"a slash command that
   orchestrates a chain of scoped specialist agents."* `/charting` is a user-invoked skill,
   not an agent chain — and `ad-hoc: investigation` was already in the table without being a
-  command at all. So the drift predates #11; #11 just made it visible. A one-line widening
-  of the definition fixes it. Not worth a ticket, but do not read it as an oversight.
+  command at all. So the drift predates #11; #11 just made it visible. **Handed to #17**,
+  which already owns that file. A one-line widening of the definition fixes it.
 - **The leading-gist rule is not retroactive.** #5 requires every resolution comment to open
   with a one-line gist so Decisions-so-far can be regenerated mechanically. The **seven
   comments closed before #5 have no gist**, so a full regeneration today still means
