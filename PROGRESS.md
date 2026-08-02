@@ -7,7 +7,9 @@ still the source of truth; this is a reading convenience that goes stale between
 
 > **Snapshot taken:** 2 August 2026, after resolving
 > [#27 pitch-judge cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27)
-> and, off-map, [#28 the template frontmatter audit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28).
+> and, off-map, [#28 the template frontmatter audit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28)
+> — which opened [#29 install and run every template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/29),
+> still open and deliberately parked.
 > Regenerate rather than trust — the one-call frontier query is:
 > ```
 > gh api repos/konstantinos-malavazos/claude-code-playbook/issues/1/sub_issues --paginate \
@@ -80,6 +82,13 @@ four stage and cross-cutting conversations plus #8.
 
 **`docs/solo/` is 3 of 5.** `01` the spine, `02` the kill gate, `03` charting. `04` and `05`
 still ride on their design tickets — #10 and #12.
+
+**The last three sessions were all off-map, and that is worth noticing.** #27, #28 and #29
+were good work — #28 alone found five real defects — but **the map has not moved since
+#26**, and most of what they verified belongs to the *agile* path, which is not on this
+route at all. The destination is still *a reader with an idea and no repo can follow the
+path end to end*, and the bootstrap and backlog docs do not exist. **The pull toward
+verification is real and it is not the destination.** Next session should be a map ticket.
 
 **Templates now carry three solo-only entries** — the `charting` and `pitch` skills, and the
 `pitch-judge` agent. The solo/team columns #2 added are doing real work rather than sitting
@@ -285,19 +294,31 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
    than a writing job.
 3. ~~#28, the template audit.~~ **Done, off-map.** It also closed the last thing on
    `master` that was knowingly broken.
-4. `/wayfinder 1 21` — **stack choice.** It is the only open ticket
+4. **Steal ten minutes from #29 at the top of any fresh session — do not wait for it.**
+   Copy `templates/agents/pitch-judge.md` into `.claude/agents/`, restart, and spawn it with
+   a two-line case file. Confirm it **launches and returns a verdict**. That is #27's
+   decision and #28's edit, and **nobody has ever run it**. If `maxTurns: 1` cuts the judge
+   off before it answers, the kill gate's fourth mechanism silently does not work and
+   everything written about it is wrong. The recorded fallback is `maxTurns: 2` — not
+   widening `tools`. Two minutes; needs a fresh session because agent files load at startup.
+5. `/wayfinder 1 21` — **stack choice.** It is the only open ticket
    that another open ticket is waiting on: **#10 cannot settle the tail wrinkle** and #21
    owns it. Taking #21 first means #10 gets a clean answer instead of inheriting an
    ambiguity. **Read `03-charting.md` first** — the tail is already written reader-facing
    there, and #21 extends it rather than re-deriving it.
-5. `/wayfinder 1 10` — the bootstrap, after #21. Writes `docs/solo/04` and clears the last
+6. `/wayfinder 1 10` — the bootstrap, after #21. Writes `docs/solo/04` and clears the last
    dead link in two stage docs. **#13 pre-answered seam item 5** — state it, do not
    re-derive it.
-6. Then the rest — #12 backlog, #14 guardrails, #15 stack→agents, #18 progress — in any
+7. Then the rest — #12 backlog, #14 guardrails, #15 stack→agents, #18 progress — in any
    order. Each writes its own `docs/solo/` doc at the number reserved above.
-7. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
+8. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
    and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
-8. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
+9. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
+10. **#29 waits, deliberately.** It is the biggest thing on the board and its payoff is
+    latent — nothing is installed, so nothing is at risk today, and Phase 0 alone is a full
+    sitting before a single template gets verified. **It earns its cost the day you actually
+    want to install this somewhere.** Until then it is infrastructure *around* the playbook
+    rather than the playbook.
 
 Plain `/wayfinder 1` takes the first frontier ticket in map order — still
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
@@ -444,6 +465,15 @@ Name the ticket.
   absent. **Fifth instance of fails-open-silently.** Owned by
   [#29](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/29), and it is
   a real decision — failing closed blocks every matched call until `jq` is installed.
+  **Latent, not live: nothing from `templates/` is installed on this machine.** No
+  `~/.claude/hooks/`, no hook wiring in `settings.json`, no `~/.claude/tracker.md`; the only
+  agents present are the driver's own. So this bites **on first install**, which is the
+  argument for settling it inside #29 rather than hotfixing — and the argument for **not
+  installing the hooks anywhere until it is settled.**
+- **The playbook has never been installed, which is the fact behind every open verification
+  ticket.** Worth stating plainly because it is easy to forget while editing `templates/`
+  all day: this repo is a **blueprint**, and no part of it has ever been run as
+  configuration. #29 exists to change that.
 - **Two open housekeeping tickets outside this map, and they now split three ways.**
   **#17 owns prose-level rot in `docs/`.**
   [#28](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28) owned
