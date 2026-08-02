@@ -316,12 +316,19 @@ Name the ticket.
   choice. #10 and #12 both face it.
 - **This playbook writes frontmatter the harness has to accept, and nobody was checking.**
   `tools: []` was written because it was the obvious YAML for "no tools" — and it is not a
-  thing Claude Code supports. Every template in `templates/agents/` and
-  `templates/skills/` is a **claim about what the harness will do**, and claims need
-  verifying against the docs, not against what looks reasonable. The `2.1.220` footer
-  implies exactly this checking has happened. **Check the field table in the subagent docs
-  before inventing a frontmatter value**, especially for anything expressing an absence —
-  absences are where "unset" and "empty" get conflated.
+  thing Claude Code supports. Every file in `templates/` is a **claim about what the harness
+  will do**, and claims need verifying against the docs, not against what looks reasonable.
+  The `2.1.220` footer implies exactly this checking has happened. **Check the field table
+  in the subagent docs before inventing a frontmatter value**, especially for anything
+  expressing an absence — absences are where "unset" and "empty" get conflated.
+  **Now ticketed as [#28 Audit every template's frontmatter and harness claims against the
+  official docs](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28)**,
+  standalone rather than a child of #1 — it covers all templates, most of them agile-path,
+  so it sits outside this map's destination. Same shape as #17. **Do #27 first**: it settles
+  the one construct already known broken and probably sets the pattern for flagging others.
+  A second finding is recorded there — the agents README's anatomy block shows only four
+  frontmatter fields, which is how `maxTurns` stayed invisible. **An incomplete anatomy
+  block does not just omit options; it makes real solutions invisible.**
 - **You cannot dry-run a new agent in the session that wrote it.** Agent definitions load
   at session start, so a file written to `.claude/agents/` mid-session is not registered and
   `Agent` rejects it as an unknown type. Probing a new agent template needs a fresh session.
@@ -338,7 +345,11 @@ Name the ticket.
   `team/02-team-adoption.md` says `# 14` — exactly the four #19 renumbered, since #19
   deliberately left prose alone. The other ten match. **Found by #9 and handed to #17**, whose
   list did not cover it. The check is comparing `head -1` to the filename across `docs/**`.
-- **There is an open housekeeping ticket outside this map.**
+- **There are now two open housekeeping tickets outside this map**, and they split cleanly:
+  **#17 owns prose-level rot in `docs/`**, **[#28](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28)
+  owns machine-readable correctness in `templates/`**. They meet only at the footer — #17
+  fixes stale footer *values*, #28 addresses what `Last verified against` is asserting for a
+  template, which today is nothing anybody checked. Neither is a child of #1.
   [#17 Docs housekeeping](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/17)
   is **not** a child of #1 — it is pre-existing rot in the agile path. It owns the stray
   `-e ` lines (14 left; #11's commit took the 15th), the stale `2.1.219` footers, and
