@@ -39,7 +39,7 @@ Done when a reader with an idea and no repo can follow the path end to end.
 | Blocked | 1 — only the capstone, on 7 open edges (14 wired, 7 now closed) |
 | Repo files changed since the effort began | 46 + this file |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | **dirty** — `docs/solo/02-the-kill-gate.md` new, `docs/shared/12-when-not-to-use.md` modified. Uncommitted for review, per #20's precedent. |
+| Working tree | clean — #25's two files are committed and pushed |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
