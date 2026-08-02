@@ -234,7 +234,7 @@ Two concrete dangers and one category error:
    the agent writes the CASE FOR KILLING, then commits to ITS verdict
            │                                     (before it hears yours)
            ▼
-   you give yours ──►  CASE FILE  ──►  pitch-judge   no tools, no dialogue,
+   you give yours ──►  CASE FILE  ──►  pitch-judge   weighs only, no dialogue,
                        no transcript                 verdicts labelled 1 and 2
            │                                         in random order
            ▼

@@ -1,5 +1,14 @@
 // Snippet for ~/.claude.json — GLOBAL MCP servers (available in every project).
 // Merge the "mcpServers" entries into your existing file; keep secrets in env vars.
+// These leading // lines are NOT valid JSON — drop them when you merge.
+//
+// "type" is REQUIRED: stdio | http | sse | ws. An entry with a "url" and no "type" is
+// read as a stdio server and skipped with an error naming it.
+//
+// ${VAR} expands from your environment. If the variable is UNSET and has no :-default,
+// the config still loads and the literal "${VAR}" text is used — the server starts with
+// a garbage token and only `claude mcp list` warns. Use ${VAR:-default} where a fallback
+// makes sense, and check `claude mcp list` after first install.
 //
 // Global scope = servers that aren't tied to one working copy:
 //   - forgetful (memory) is global — your knowledge spans projects.

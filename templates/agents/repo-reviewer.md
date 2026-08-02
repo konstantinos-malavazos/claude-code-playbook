@@ -7,7 +7,7 @@ description: >-
   drafts a PROVISIONAL verdict + MR/PR description, then dispatches @release-reviewer for
   cross-repo blast radius and consolidates its findings into the FINAL verdict.
   Comments only — never edits code.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__get_diagnostics_for_file
+tools: Read, Grep, Glob, Write, Edit, Bash, Agent, <memory-read-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__get_diagnostics_for_file
 model: <strong-model-id>
 ---
 

@@ -17,11 +17,43 @@ description: >-
 <the recipe: the steps / rules / templates the model should follow when this loads.>
 ```
 
-- **Auto-loaded** skills fire on intent (e.g. "commit" → `commit-conventions`).
-- **User-invoked** skills run when you type `/skill-name`.
+**Every field is optional; only `description` is recommended.** The harness supports more
+than the two above:
+
+| Field | What it does |
+|---|---|
+| `name` | **Display name only. Defaults to the directory name** — see below |
+| `description` | What it does + when to use it. Truncated at 1,536 chars in the listing |
+| `when_to_use` | Extra trigger phrases, appended to `description` and sharing that cap |
+| `argument-hint` | Autocomplete hint, e.g. `[ticket-id]` |
+| `arguments` | Named positional args for `$name` substitution |
+| `disable-model-invocation` | `true` = only you can invoke it. **This is what makes a skill user-invoked** |
+| `user-invocable` | `false` hides it from the `/` menu. Does *not* block the Skill tool |
+| `allowed-tools` | Pre-approved for the invoking turn only — not a restriction |
+| `disallowed-tools` | Removed from the pool while active |
+| `model` / `effort` | Override for the turn the skill is active |
+| `context: fork` + `agent` + `background` | Run the skill in its own subagent |
+| `hooks` | Hooks scoped to this skill's lifecycle |
+| `paths` | Globs limiting when the skill auto-loads |
+| `shell` | `bash` (default) or `powershell` for inline `` !`cmd` `` blocks |
+
+- **The directory name is what you type**, not the `name` field. `name` only changes the
+  label in listings — so a skill in `foo/` is always `/foo`, however the frontmatter reads.
+  **`engineering-standards` is the one template where this matters**: it is copied per
+  layer, so rename the *directory* to `backend-standards` (or whatever) as well as filling
+  the `<layer>` placeholder, or you will have three skills all answering to
+  `/engineering-standards`.
+- **Auto-loaded** skills fire on intent (e.g. "commit" → `commit-conventions`). This is the
+  default: any skill without `disable-model-invocation: true` can be loaded by Claude.
+- **User-invoked** skills run when you type `/skill-name`. **A description that says "use
+  when the user says…" does not make a skill user-invoked** — it is a hint, not a
+  constraint. Set `disable-model-invocation: true` if it must never fire on its own.
+  Nothing in this set does yet; that is a deliberate default, not an oversight — see below.
 - Keep the front `description` tight and trigger-focused; put the detail in the body.
 - Skills can bundle extra files (templates, checklists) the body points to —
   progressive disclosure keeps the base cost low.
+- **Live reload**: editing a `SKILL.md` takes effect in the current session. Agents do
+  **not** work this way — see the agents README.
 
 ## The set
 
@@ -43,3 +75,16 @@ front-end, which the agile path does not have. Everything above them is shared b
 
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
+
+## On `disable-model-invocation`, and why nothing sets it
+
+Four of these read as user-invoked — `charting`, `pitch`, `grilling`, `diagnose` — and none
+of them sets `disable-model-invocation: true`, so Claude may load any of them on its own.
+That is left as-is on purpose: all four are **conversations**, and a conversation that
+starts a turn early costs you one redirect. The field earns its place on skills with **side
+effects or timing you own** — a deploy, a commit, a send. If you copy this set and add one
+of those, set it.
+
+`pitch` is the closest call, since it dispatches subagents and spends real time. Watch it;
+if it ever fires unasked, that is the signal to set the field rather than reword the
+description.

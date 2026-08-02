@@ -1,10 +1,19 @@
 // Merge into the "hooks" object of ~/.claude/settings.json.
-// Matchers are regex on the tool name. Adjust MCP prefixes to the servers you run.
+// These leading // lines are NOT valid JSON — drop them when you merge.
+//
+// A matcher is an exact string (or a |-separated list of them) unless it contains a
+// character outside [A-Za-z0-9_- ,|], in which case it is an unanchored JS regex.
+// So "Bash|PowerShell" is two exact names; "mcp__tracker__.*" is a regex, and the
+// trailing .* is REQUIRED to match a server's tools.
+//
+// PowerShell is a SEPARATE tool from Bash. A git guardrail matched only on "Bash"
+// silently stops guarding the moment the model uses PowerShell — keep both names.
+// Adjust MCP prefixes to the servers you run.
 {
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           { "type": "command", "command": "~/.claude/hooks/block-dangerous-git.sh" },
           { "type": "command", "command": "~/.claude/hooks/block-infra-staging.sh" }
@@ -19,7 +28,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit",
+        "matcher": "Write|Edit|NotebookEdit",
         "hooks": [
           { "type": "command", "command": "~/.claude/hooks/format-on-edit.sh" }
         ]
