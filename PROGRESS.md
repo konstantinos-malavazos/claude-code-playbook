@@ -6,7 +6,7 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 2 August 2026, after resolving
-> [#9 The kill gate: is this idea worth building at all?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9).
+> [#25 Write the kill gate stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25).
 > Regenerate rather than trust — the one-call frontier query is:
 > ```
 > gh api repos/konstantinos-malavazos/claude-code-playbook/issues/1/sub_issues --paginate \
@@ -33,35 +33,37 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 12 of 24 — **exactly half** |
-| Tickets open | 12 |
-| On the frontier (takeable now) | 11 |
-| Blocked | 1 — only the capstone, on 8 wired edges |
-| Repo files changed since the effort began | 45 + this file |
+| Tickets closed | 13 of 24 |
+| Tickets open | 11 |
+| On the frontier (takeable now) | 10 |
+| Blocked | 1 — only the capstone, on 7 open edges (14 wired, 7 now closed) |
+| Repo files changed since the effort began | 46 + this file |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | clean — #9 wrote no files, by design |
+| Working tree | **dirty** — `docs/solo/02-the-kill-gate.md` new, `docs/shared/12-when-not-to-use.md` modified. Uncommitted for review, per #20's precedent. |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
 Nothing waits on anything except
 [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16).
 
-**The map grew for the first time in a while, and that is the escape valve working.** #9 was
-a grilling that produced a design too big to write in the same session, so it spun
-[#25 the stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25) and
-[#26 the skill + agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26).
-Third time the valve has fired — #3→#20, #20→#22, now #9→#25/#26.
+**The map stopped growing.** #25 was a pure make: it wrote its file, decided nothing, and
+spun nothing. That is the shape the last third of a map is supposed to have — the fog is
+gone and what is left is writing and the conversations that were always going to happen.
 
 **The charting pair is fully wired.** #11 wrote the skill, #22 the stage doc, and #13
 resolved the `<TRACKER-ADAPTER-PATH>` both pointed at. The path is **`~/.claude/tracker.md`**.
 
-**Four makes are now queued and none of them decides anything.** #25, #26, #23 and #24's
-outcome all have their decisions banked already. The remaining grillings are the four stage
-and cross-cutting conversations plus #8.
+**The kill gate pair is half wired.** #25 wrote the stage doc; #26 still owes the `/pitch`
+skill and the `pitch-judge` agent. Note the order is the **reverse** of the charting pair —
+there, the template landed first, so the doc could link to a file that existed. Here the doc
+links forward to two files that do not exist yet and carries a marker saying so.
 
-**`docs/solo/` is still 2 of 5.** `01` the spine and `03` charting. **`02` is now a make**
-(#25) rather than a grilling — its design is settled. `04` and `05` still ride on their
-design tickets.
+**Three makes are queued and none of them decides anything.** #26, #23 and #24's outcome all
+have their decisions banked already. The remaining grillings are the four stage and
+cross-cutting conversations plus #8.
+
+**`docs/solo/` is 3 of 5.** `01` the spine, `02` the kill gate, `03` charting. `04` and `05`
+still ride on their design tickets — #10 and #12.
 
 ---
 
@@ -116,6 +118,7 @@ entrances are visible at once.
 | [#22 Write the charting stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/22) | **Done — `docs/solo/03-charting.md` is written.** States the solo destination and the trap beside it (that is where the *path* ends, not where *charting* ends). Authored two things nothing had settled: the **cleared-vs-abandoned test**, and that **charting cannot reopen the kill gate**. Found a wrinkle in #3's tail — see below. |
 | [#13 Tracker adapter templates + the Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13) | **Done — `templates/trackers/` exists and the playbook no longer assumes Atlassian.** The fixed path is **`~/.claude/tracker.md`**. The MCP key becomes **`tracker`, not `jira`** — a breaking change for an existing install. §5 becomes the audience rule. Setup gained **step 5**. README deliberately excluded — see below. |
 | [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | **The gate is `/pitch` — a skill plus a doc.** Six questions, ~1 hour, three hard kills whose teeth depend on a **question zero** that classifies what the idea's value rests on. Sycophancy beaten structurally, not by instructing harshness. A fourth agent, **`pitch-judge`**, reads an **anonymised case file** and can fire a hard kill but never un-fire one. See the section below. |
+| [#25 Write the kill gate stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25) | **Done — `docs/solo/02-the-kill-gate.md` is written.** A make that decided nothing; every claim traces to #9. The `12-when-not-to-use.md` cross-reference is **live in both directions**, and the **spike clash is named as a hole and then closed** rather than left to be found. Three forward links are dead by design — see below. |
 
 ### The layout #2 decided — now live
 
@@ -133,7 +136,7 @@ Numbering restarts at `01` per directory.
 | Number | Doc | Owner |
 |---|---|---|
 | `01-the-solo-path.md` | the overview — **written** | #20 |
-| `02-the-kill-gate.md` | the kill gate — **designed by #9, unwritten** | #25 |
+| `02-the-kill-gate.md` | the kill gate — **written** | #25 |
 | `03-charting.md` | charting — **written** | #22 |
 | `04-the-bootstrap.md` | the bootstrap | #10 |
 | `05-the-backlog.md` | the backlog | #12 |
@@ -193,12 +196,11 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Eleven tickets. Nothing gates anything but the capstone.
+Ten tickets. Nothing gates anything but the capstone.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#25 Write the kill gate stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25) | make | writes `docs/solo/02`. **The natural next one** — nothing left to decide, and it fills the one hole in the middle of the stage sequence. |
-| [#26 Write the `/pitch` skill + `pitch-judge` agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26) | make | `templates/skills/pitch/SKILL.md` and `templates/agents/pitch-judge.md`. Independent of #25 — either order. |
+| [#26 Write the `/pitch` skill + `pitch-judge` agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26) | make | `templates/skills/pitch/SKILL.md` and `templates/agents/pitch-judge.md`. **The natural next one** — nothing left to decide, and `02-the-kill-gate.md` already links to both files. **It must delete the doc's *still being written* blockquote** when they land. |
 | [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04`. Consumes #21's answer on the tail wrinkle; does not settle it. **#13 pre-answered seam item 5** — see below. |
 | [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | — |
@@ -213,25 +215,28 @@ Eleven tickets. Nothing gates anything but the capstone.
 
 | Ticket | Waiting on |
 |---|---|
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 8 open blockers — the capstone. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. |
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 7 open blockers — the capstone; #25 closing took one off. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
         ── #6 native capabilities · #7 tracker primitives
         ── #19 the reorg · #20 the solo path overview
         ── #11 the charting skill template  ┐ the charting pair —
-        ── #22 the charting stage doc       ┘ skill + the doc pointing at it
+        ── #22 the charting stage doc       ┘ skill FIRST, then the doc
         ── #13 the tracker adapters + retrofit  ── wires the pair to a real path
         ── #9  the kill gate design    ──► spun #25 (doc) + #26 (skill + judge)
+        ── #25 the kill gate stage doc ──┐ the kill gate pair —
+                                          │ doc FIRST this time, so it links
+              #26 skill + judge  ─────────┘ forward to two files not yet written
 
    #11 left three placeholders. One is left:
         <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
         <PROTOTYPE-SKILL-OR-NONE>    ──► #23   (the last one open)
         <LABEL-PREFIX>               ──► never, reader's own convention
 
-   docs/solo/  01 ✓ spine   02 #25   03 ✓ charting   04 #10   05 #12
+   docs/solo/  01 ✓ spine   02 ✓ kill gate   03 ✓ charting   04 #10   05 #12
 
-   12 open tickets ── 8 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
+   11 open tickets ── 7 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
 ```
 
 ---
@@ -243,21 +248,19 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
 1. ~~#19 reorg · #7 tracker primitives · #3 stages and seam · #4 tracker contract ·
    #20 overview doc · #5 charting contract · #11 the charting template ·
    #22 the charting stage doc · #13 the adapters and the retrofit ·
-   #9 the kill gate design~~ **Done.**
-2. `/wayfinder 1 25` — **write the kill gate stage doc. Take this next.** It is a make with
-   nothing left to decide, it fills `docs/solo/02` — the one hole in the middle of the stage
-   sequence — and `01-the-solo-path.md` already links to the filename. A writing session on
-   a fresh context window is exactly what the escape valve spun it out for.
-3. `/wayfinder 1 26` — the `/pitch` skill and the `pitch-judge` agent. Independent of #25,
-   so either order; doing #25 first means the doc it links to exists.
-4. Then the rest of the stage conversations — #10 bootstrap, #12 backlog, #14 guardrails,
+   #9 the kill gate design · #25 the kill gate stage doc~~ **Done.**
+2. `/wayfinder 1 26` — **the `/pitch` skill and the `pitch-judge` agent. Take this next.**
+   It is a make with nothing left to decide, and it is now the closest thing to urgent on
+   the map: `02-the-kill-gate.md` is on disk linking to two files that do not exist. It also
+   owns the flow-catalogue entry and both README rows.
+3. Then the rest of the stage conversations — #10 bootstrap, #12 backlog, #14 guardrails,
    #15 stack→agents, #18 progress, #21 stack choice — in any order. Each writes its own
    `docs/solo/` doc at the number reserved above. **#10 and #21 should both read
    `03-charting.md` first** — the tail is written reader-facing there, and both inherit the
    wrinkle below.
-5. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
+4. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
    and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
-6. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
+5. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
 
 Plain `/wayfinder 1` takes the first frontier ticket in map order — currently
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
@@ -277,6 +280,13 @@ Name the ticket.
   in prose. **#21 owns settling it** — the question is *what the stack ticket decides*,
   which is #21's subject; **#10 only consumes the answer.** Assigned deliberately, because
   a question two tickets each assume the other will answer is a question nobody answers.
+- **A stage doc can land before its template, and then it ships dead links.** The charting
+  pair went template-first (#11 then #22), so `03-charting.md` linked to a file that existed.
+  The kill gate pair went the other way — #25 before #26 — so `02-the-kill-gate.md` has
+  **three dead forward links** (`templates/skills/pitch/SKILL.md` and
+  `templates/agents/pitch-judge.md` from #26, `04-the-bootstrap.md` from #10) and carries a
+  one-line marker saying the templates are still being written. **#26 must delete that
+  marker.** Worth knowing for #10 and #12, which face the same choice.
 - **Four docs have H1 headings that no longer match their filenames.** `shared/11-adapting-to-your-stack.md`
   says `# 12`, `shared/12-when-not-to-use.md` says `# 13`, `team/01-metrics.md` says `# 11`,
   `team/02-team-adoption.md` says `# 14` — exactly the four #19 renumbered, since #19
@@ -288,7 +298,9 @@ Name the ticket.
   `-e ` lines (14 left; #11's commit took the 15th), the stale `2.1.219` footers, and
   suspected factual drift in `07-the-flows.md`. **Check it before editing any shared doc**,
   or you will duplicate its work. Its own file list is pre-reorg and has been corrected in a
-  comment.
+  comment. **#25 edited `docs/shared/12-when-not-to-use.md`** — one added paragraph, the
+  reverse half of a required cross-reference — and deliberately left that file's `-e ` stray,
+  its `# 13` H1 and its `2.1.219` footer alone. All three are still #17's.
 - **The flow catalogue's own definition no longer matches its contents.**
   `docs/shared/07-the-flows.md` opens by defining a flow as *"a slash command that
   orchestrates a chain of scoped specialist agents."* `/charting` is a user-invoked skill,
@@ -352,6 +364,22 @@ Name the ticket.
   `[text](target)` against the filesystem.
 
 ---
+
+## What #25 handed forward
+
+- **`docs/solo/02-the-kill-gate.md` exists.** Anything wanting to explain question zero, the
+  three hard kills, the four anti-sycophancy mechanisms, the park trigger, the ideas file, or
+  the spike clash should **link to it, not restate it.**
+- **#26 has two obligations.** Delete the doc's *still being written* blockquote when the
+  templates land, and do **not** restate the doc — same split as `03-charting.md` and the
+  charting template. Everything #26 needs is in its own body plus #9's comment.
+- **The anti-sycophancy four are now reader-facing in one place.** #9 asked that later
+  tickets designing an honesty mechanism link rather than re-derive. That lands on **#14
+  guardrails** and **#18 progress** in particular — both touch honesty on a path with no
+  reviewer.
+- **The doc decided nothing.** Where #9 left a reader-facing choice open — section order,
+  what earns a table — the doc made the call without adjudicating in prose.
+- **No memory written**, per #5's one-per-map rule. The map is still open.
 
 ## What #9 handed forward
 
