@@ -213,7 +213,7 @@ knowing before you open one expecting a writing job.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#27 `pitch-judge` cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27) | grilling | **the only one fixing a live defect.** Small and well-bounded — the evidence is gathered and `maxTurns: 1` is the leading candidate. Also asks whether the agents README should say you cannot scope to zero. |
+| [#27 `pitch-judge` cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27) | grilling | **the only one addressing a live defect.** Small and well-bounded — the evidence is gathered and `maxTurns: 1` is the leading candidate. Also asks whether the agents README should say you cannot scope to zero. **Decides only; spawns no make** — #28 applies the edit. See below. |
 | [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04`. Consumes #21's answer on the tail wrinkle; does not settle it. **#13 pre-answered seam item 5** — see below. **It also owns the last dead link** in `02-the-kill-gate.md` and `03-charting.md`. |
 | [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | — |
@@ -333,6 +333,18 @@ Name the ticket.
   at session start, so a file written to `.claude/agents/` mid-session is not registered and
   `Agent` rejects it as an unknown type. Probing a new agent template needs a fresh session.
   Worth knowing before planning any verification that depends on spawning one.
+- **Decide-or-make is 14 for 14, and #27 is the first real pressure on it.** Every closed
+  ticket so far is either a grilling/research that wrote no files or a `wayfinder:task` that
+  wrote them — never both. #27 is the first decision whose entire output is a **two-line
+  frontmatter edit**, which the rule's own justification does not cover: #5 justifies the
+  split *only* by context budget (*"the unpredictable half eats the context the predictable
+  half needed"*), and two lines cost no context. **The rule was kept anyway, with no size
+  exception**, on the grounds that it has cost nothing so far, that *"small enough to just
+  do"* is self-assessed at the start of a session — exactly when it is judged worst — and
+  that #9 looked like one grilling and produced two makes. **#27 decides and #28 applies**,
+  since #28 has those files open regardless. No exception, and no extra session either.
+  Worth remembering the next time a decision has a trivial tail: look for a make already
+  passing through the same files before carving an exception into the rule.
 - **A design ticket cannot settle mechanics it never has to execute.** #9 designed the gate
   completely and still left three things that only became questions when someone wrote the
   skill: the case file's *location* (no tools means no `Read`, so it must ride in the
