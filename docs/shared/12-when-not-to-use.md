@@ -47,6 +47,13 @@ When you don't know what the answer looks like, the pipeline's linear chain
 no review gates). Write the findings directly to memory, then decide whether
 the next ticket is pipeline-shaped.
 
+**On the solo path this is already handled upstream.** The
+[kill gate](../solo/02-the-kill-gate.md) ends by naming the idea's hard part, which is
+exactly a spike — but it never reaches `/start-ticket` as one. It becomes a `research`
+ticket on the map and is burned off during [charting](../solo/03-charting.md), before
+the backlog exists. The two docs also ask different questions: this one asks whether the
+pipeline is the wrong *tool*, the gate asks whether it is the wrong *idea*.
+
 ---
 
 ## Unfamiliar codebase
