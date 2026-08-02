@@ -435,13 +435,25 @@ Name the ticket.
   `team/02-team-adoption.md` says `# 14` — exactly the four #19 renumbered, since #19
   deliberately left prose alone. The other ten match. **Found by #9 and handed to #17**, whose
   list did not cover it. The check is comparing `head -1` to the filename across `docs/**`.
-- **One open housekeeping ticket outside this map, down from two.**
+- **The guardrails fail *open* when `jq` is missing, and this machine has no `jq`.** Both
+  blocking hooks parse with `jq` under `set -euo pipefail`, so a missing `jq` exits **127** —
+  and only exit 2 blocks. Everything else is a *non-blocking* error, so the tool call
+  proceeds and the sole signal is a hook-error notice that reads like noise. `git push
+  --force` gets through. The hooks README does say *"`jq` is assumed"*, which makes this
+  worse than undocumented: a documented dependency that silently disables the guard when
+  absent. **Fifth instance of fails-open-silently.** Owned by
+  [#29](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/29), and it is
+  a real decision — failing closed blocks every matched call until `jq` is installed.
+- **Two open housekeeping tickets outside this map, and they now split three ways.**
+  **#17 owns prose-level rot in `docs/`.**
   [#28](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/28) owned
-  machine-readable correctness in `templates/` and is **closed**; **#17 still owns
-  prose-level rot in `docs/`**. The footer question that connected them is settled in
-  #28's direction: templates carry no footer and get a single re-verification check
-  instead, so #17's remaining footer work is purely the stale `2.1.219` *values* in `docs/`.
-  Neither was ever a child of #1.
+  machine-readable correctness in `templates/` **by reading**, and is closed.
+  [#29](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/29) owns the
+  same surface **by running** — install everything into a scratch environment and drive it.
+  The split is the lesson #28 ended on: **reading verifies claims, running verifies code**,
+  and #28 found five defects while still leaving every template unexecuted. The footer
+  question that connected #17 and #28 is settled in #28's direction, so #17's remaining
+  footer work is purely the stale `2.1.219` *values* in `docs/`. None was ever a child of #1.
   [#17 Docs housekeeping](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/17)
   is **not** a child of #1 — it is pre-existing rot in the agile path. It owns the stray
   `-e ` lines (14 left; #11's commit took the 15th), the stale `2.1.219` footers, and
@@ -571,8 +583,9 @@ Name the ticket.
 - **Nothing is verified live.** Agent files load at session start, so the mechanism is
   correct-by-reading, not correct-by-running. **The next fresh session should spawn
   `pitch-judge` on a two-line case file** and confirm it launches and returns a verdict.
-  Two minutes, and it is the only step that tests the harness rather than the docs. **This
-  is the one open item left from both tickets.**
+  Two minutes, and it is the only step that tests the harness rather than the docs. **Now
+  owned by [#29](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/29)**,
+  where it is the single most important untested claim in the repo.
 - **No memory written**, per #5's one-per-map rule. The map is still open.
 
 ## What #26 handed forward
