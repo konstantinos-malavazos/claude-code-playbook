@@ -6,7 +6,7 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 2 August 2026, after resolving
-> [#22 Write the charting stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/22).
+> [#13 Tracker adapter templates and the surgical Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13).
 > Regenerate rather than trust — the one-call frontier query is:
 > ```
 > gh api repos/konstantinos-malavazos/claude-code-playbook/issues/1/sub_issues --paginate \
@@ -33,26 +33,27 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 10 |
-| Tickets open | 12 |
-| On the frontier (takeable now) | 11 |
-| Blocked | 1 — only the capstone |
-| Repo files changed since the effort began | 32 + this file |
+| Tickets closed | 11 of 22 — **exactly half** |
+| Tickets open | 11 |
+| On the frontier (takeable now) | 10 |
+| Blocked | 1 — only the capstone, on 7 wired edges |
+| Repo files changed since the effort began | 45 + this file |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | clean — #22's two files are committed and pushed |
+| Working tree | clean — #13's 19 files are committed and pushed |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
 Nothing waits on anything except
-[#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16),
-which waits on everything.
+[#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16).
 
-**The charting pair is complete.** #11 wrote the skill; #22 wrote the stage doc that points
-at it and supplies the solo destination the skill deliberately does not know. Two makes in
-a row, both ending where a make should — file written, nothing new decided.
+**The charting pair is fully wired.** #11 wrote the skill, #22 the stage doc, and #13
+resolved the `<TRACKER-ADAPTER-PATH>` both pointed at. The path is **`~/.claude/tracker.md`**.
 
-**`docs/solo/` is now 2 of 5.** `01` the spine and `03` charting. The three remaining stage
-docs each ride on their design ticket.
+**Every remaining ticket is a grilling except two.** #13 was the last make with anything
+waiting on it; #23 and #24 are side quests. From here the map is nearly all conversation.
+
+**`docs/solo/` is still 2 of 5.** `01` the spine and `03` charting. The three remaining
+stage docs each ride on their design ticket.
 
 ---
 
@@ -105,6 +106,7 @@ entrances are visible at once.
 | [#5 The charting skill's contract](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/5) | **The skill is `charting`, and it is general.** Eight decisions — see the section below. |
 | [#11 Write the charting skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/11) | **Done — `templates/skills/charting/SKILL.md` is written.** All eight of #5's decisions carried; nothing reopened. Three `<PLACEHOLDER>`s, two of which are waiting on other tickets. |
 | [#22 Write the charting stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/22) | **Done — `docs/solo/03-charting.md` is written.** States the solo destination and the trap beside it (that is where the *path* ends, not where *charting* ends). Authored two things nothing had settled: the **cleared-vs-abandoned test**, and that **charting cannot reopen the kill gate**. Found a wrinkle in #3's tail — see below. |
+| [#13 Tracker adapter templates + the Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13) | **Done — `templates/trackers/` exists and the playbook no longer assumes Atlassian.** The fixed path is **`~/.claude/tracker.md`**. The MCP key becomes **`tracker`, not `jira`** — a breaking change for an existing install. §5 becomes the audience rule. Setup gained **step 5**. README deliberately excluded — see below. |
 
 ### The layout #2 decided — now live
 
@@ -143,7 +145,7 @@ non-stage one.
 | Map body | **A generated view, not a store.** Rebuild from the closed children. |
 | Local ticket files | **Committed** — and the folder is renamed away from `.scratch/`. |
 | Read-only rule | Restated as **"ask before writing anywhere other people can see it"** — audience, not tracker. |
-| Adapter location | `templates/trackers/`, flat. **Exactly one installed at a fixed path.** |
+| Adapter location | `templates/trackers/`, flat. **Exactly one installed at a fixed path** — #13 set it to **`~/.claude/tracker.md`**. |
 | Identity | **A stable id; titles are decoration.** Retitling must never break a link. |
 
 ---
@@ -182,27 +184,26 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Eleven tickets. Nothing gates anything but the capstone.
+Ten tickets. Nothing gates anything but the capstone.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#13 Tracker adapter templates + the Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13) | make | **Take this next.** Fully settled — execution, not judgement. Owns `<TRACKER-ADAPTER-PATH>`, which both charting files now point at. |
-| [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | grilling | writes `docs/solo/02` |
-| [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04`. Consumes #21's answer on the tail wrinkle; does not settle it. |
+| [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | grilling | writes `docs/solo/02`. **The natural next one** — it is the only stage with nothing written and everything downstream assuming it. |
+| [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04`. Consumes #21's answer on the tail wrinkle; does not settle it. **#13 pre-answered seam item 5** — see below. |
 | [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | — |
 | [#15 Tech stack into working agents and skills](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15) | grilling | starts from a stack already chosen |
 | [#18 How progress is measured on the solo path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18) | grilling | — |
 | [#8 Resuming an effort across dozens of sessions](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8) | grilling | **must check #5's §8 boundary first** |
 | [#21 How the tech stack actually gets chosen](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/21) | grilling | freed by #5. The tail is now written reader-facing in `03-charting.md` — **extend it, do not re-derive it**. **Owns the tail wrinkle.** |
-| [#23 Write the prototype skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/23) | make | side quest — but it now owns a live `<PLACEHOLDER>` in the charting template |
+| [#23 Write the prototype skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/23) | make | side quest — but it now owns the **last** live `<PLACEHOLDER>` in the charting template |
 | [#24 The playbook's own domain-modeling skill](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/24) | grilling | side quest, blocks nothing |
 
 ## Blocked
 
 | Ticket | Waiting on |
 |---|---|
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 9 open blockers — the capstone |
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 7 open blockers — the capstone. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -210,15 +211,16 @@ Eleven tickets. Nothing gates anything but the capstone.
         ── #19 the reorg · #20 the solo path overview
         ── #11 the charting skill template  ┐ the charting pair —
         ── #22 the charting stage doc       ┘ skill + the doc pointing at it
+        ── #13 the tracker adapters + retrofit  ── wires the pair to a real path
 
-   #11 left three placeholders, still open:
-        <TRACKER-ADAPTER-PATH>       ──► #13   (#22 deliberately did not name it)
-        <PROTOTYPE-SKILL-OR-NONE>    ──► #23
+   #11 left three placeholders. One is left:
+        <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
+        <PROTOTYPE-SKILL-OR-NONE>    ──► #23   (the last one open)
         <LABEL-PREFIX>               ──► never, reader's own convention
 
    docs/solo/  01 ✓ spine   02 #9   03 ✓ charting   04 #10   05 #12
 
-   all 11 open tickets ──────────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
+   10 open tickets ── 7 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
 ```
 
 ---
@@ -229,13 +231,13 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
 
 1. ~~#19 reorg · #7 tracker primitives · #3 stages and seam · #4 tracker contract ·
    #20 overview doc · #5 charting contract · #11 the charting template ·
-   #22 the charting stage doc~~ **Done.**
-2. `/wayfinder 1 13` — **the adapter templates and the Jira retrofit. Take this next.**
-   Settled content, execution not judgement — good for a session with less attention to
-   spare, and the only make left that nothing else is waiting behind. It resolves
-   `<TRACKER-ADAPTER-PATH>`, which **both** charting files now point at, so it is the last
-   thing keeping the charting pair from being fully wired.
-3. Then the stage conversations — #9 kill gate, #10 bootstrap, #12 backlog, #14 guardrails,
+   #22 the charting stage doc · #13 the adapters and the retrofit~~ **Done.**
+2. `/wayfinder 1 9` — **the kill gate. Take this next.** It is the only stage with nothing
+   written and everything downstream leaning on it: #3 made the gate's "build" verdict the
+   thing that *creates the repo*, so #10 bootstrap, #12 backlog and the whole seam assume a
+   gate that has never been described. It also fills `docs/solo/02`, the one hole in the
+   middle of the stage sequence.
+3. Then the rest of the stage conversations — #10 bootstrap, #12 backlog, #14 guardrails,
    #15 stack→agents, #18 progress, #21 stack choice — in any order. Each writes its own
    `docs/solo/` doc at the number reserved above. **#10 and #21 should both read
    `03-charting.md` first** — the tail is written reader-facing there, and both inherit the
@@ -289,10 +291,19 @@ Name the ticket.
   `gh api repos/<owner>/<repo>/issues/<n> --jq ...`** and do not waste a retry on `view`.
 - **`issue_dependencies_summary.blocked_by` is open blockers only**; `total_blocked_by`
   includes closed ones and never decreases. **Use `blocked_by == 0`.**
-- **The GitHub adapter's frontier query does not work as written.** `gh issue list --json`
-  **cannot see hierarchy at all** — `parent` or `subIssues` error with `Unknown JSON field`.
-  The working form is the single `gh api …/sub_issues` call at the top of this file. Fix is
-  in #13's scope.
+- ~~**The GitHub adapter's frontier query does not work as written.**~~ **Fixed by #13** —
+  `templates/trackers/github.md` now ships the working `gh api …/sub_issues` form, plus the
+  other six traps, in a table. `gh issue list --json` still cannot see hierarchy at all
+  (`parent` / `subIssues` error with `Unknown JSON field`); there is no flag that fixes it.
+- **Renaming the tracker MCP key to `tracker` is a silent breaking change.** #13 moved the
+  server key from `jira` to `tracker` and the hook matchers from `mcp__jira__.*` to
+  `mcp__tracker__.*`. All four files moved together — but **anyone who already installed the
+  old snippets must rename their own server key**, or the read-only veto stops matching and
+  fails open with no error. A guardrail that silently stops guarding is the worst failure
+  shape there is; it is worth checking `/mcp` after upgrading.
+- **The local adapter's ticket folder is `tickets/`.** #4 said *rename it away from
+  `.scratch/`* without naming the replacement; #13 chose `tickets/`, visible and committed,
+  because the files are project records and a dot-prefixed name says throwaway.
 - **`gh issue list --limit` defaults to 30.** Silent truncation. This map now has 22
   children.
 - **`gh` will not auto-create labels.** Create before applying.
@@ -306,8 +317,11 @@ Name the ticket.
   before acting on it.
 - **GitLab's API docs are wrong about blocking.** Blanket Free/Premium/Ultimate badge, but
   `blocks` links actually 403 on Free. This is why GitLab ships as a shape, not an adapter.
-- **The local adapter's `Status:` line is overloaded** between `/triage`'s role strings and
-  wayfinding's `claimed`/`resolved`. Two independent fields are needed.
+- ~~**The local adapter's `Status:` line is overloaded**~~ — **moot, and worth knowing why.**
+  The overload was between `/triage`'s role strings and wayfinding's `claimed`/`resolved`,
+  but **the playbook ships no `/triage`** — that command is prior art from the skill set
+  this repo re-derives. #13's adapter has three clean fields instead: `Type:`, `State:`,
+  `Claim:`. A defect inherited from prior art can vanish rather than need fixing.
 - **The map's licensing premise was wrong.** `mattpocock/skills` *does* ship a LICENSE (MIT,
   © 2026 Matt Pocock). The decision to re-derive stands on the quality ground alone.
 - **README's repo-layout block is stale, doubly so** — it lists `01`–`12`, omits `13`/`14`,
@@ -319,6 +333,30 @@ Name the ticket.
   `[text](target)` against the filesystem.
 
 ---
+
+## What #13 handed forward
+
+- **`templates/trackers/` exists** — a contract README, three working adapters (GitHub,
+  Jira, local markdown) and GitLab as a documented *shape*. Anything needing the verb list,
+  the audience rule, or a tracker's traps should **link there, not restate them.**
+- **The fixed path is `~/.claude/tracker.md`.** `<TRACKER-ADAPTER-PATH>` is resolved and
+  concrete in the charting template; `03-charting.md` gained a link to the adapter README
+  but still speaks only abstract verbs, which was #22's call and still holds.
+- **#16's scope sharpened, and it is now a factual defect.** The README is the only file in
+  the repo still saying the playbook assumes Jira — its tagline and opening sentence both
+  do. #13 left them deliberately (positioning, not a noun swap, and #16 owns the rewrite)
+  and **posted the specific line numbers and the reasoning as a comment on #16.**
+- **#10 gets seam item 5 pre-answered.** *"The tracker adapter is installed"* means **verify
+  this project's tracker matches the installed adapter**, not *go and install one* —
+  installing is global, happens once at setup step 5, and the gate necessarily used a
+  tracker to create the map before bootstrap ever runs. **State it; do not re-derive it.**
+- **#23 now owns the only placeholder left** in the charting template.
+- **The ticket's own file list was wrong twice, both times in the safe direction.**
+  `ticket-analyzer.md` was already tracker-agnostic and `templates/commands/` never
+  mentioned Jira. Worth remembering that a ticket body written weeks earlier describes the
+  repo as it *was* — **re-grep before trusting a file list**, the same way every path in a
+  ticket body needs re-resolving after the reorg.
+- **No memory written**, per #5's one-per-map rule. The map is still open.
 
 ## What #22 handed forward
 
@@ -353,8 +391,9 @@ Name the ticket.
   values for `<TRACKER-ADAPTER-PATH>` and `<LABEL-PREFIX>`.~~ **Done, but only half of it.**
   #22 supplied the destination; it left both placeholders alone. See *What #22 handed
   forward* above for why.
-- **#13** owns `<TRACKER-ADAPTER-PATH>` and every verb name. If a verb is renamed there,
-  the charting template is the file that breaks.
+- ~~**#13** owns `<TRACKER-ADAPTER-PATH>` and every verb name.~~ **Done** — the path is
+  `~/.claude/tracker.md` and no verb was renamed, so the charting template needed only the
+  one placeholder swapped.
 - **#23** owns `<PROTOTYPE-SKILL-OR-NONE>`. When the prototype template ships, the whole
   change is swapping that one cell in the types table.
 - **No memory was written, on purpose.** #5 decided memory is one per map, at close. The
