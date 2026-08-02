@@ -34,7 +34,8 @@ description: >-
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
+| `charting` | an effort too big for one session and too foggy to plan — maps it into decision tickets on the tracker | ✓ | |
 
-The **solo** / **team** columns say which entrance needs each template. Everything here is
-shared today; the columns exist so path-specific templates can declare themselves as they
-arrive.
+The **solo** / **team** columns say which entrance needs each template. `charting` is the
+first one to claim a single column: the skill itself is general, but only the solo path has
+a charting stage. Everything above it is shared by both.
