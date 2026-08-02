@@ -52,7 +52,8 @@ the map only gists it and links to it.
 You never talk to the tracker directly. Charting states an intent — *create*, *close*,
 *claim*, *is this blocked?*, *give me the frontier* — and the one installed tracker adapter
 answers it. Which tracker you are actually on is the adapter's business, not yours and not
-the skill's.
+the skill's. The adapters, and the full verb list, are in
+[`templates/trackers/`](../../templates/trackers/README.md).
 
 The [flow catalogue](../shared/07-the-flows.md) lists `/charting` alongside the pipeline
 flows it eventually hands off to.

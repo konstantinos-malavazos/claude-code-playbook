@@ -1,7 +1,7 @@
 # 03 — Setup from a clean machine
 
 Order matters: capabilities first, then structure, then flows. You have a working setup
-after step 4; steps 5–7 are additive.
+after step 4; steps 5–8 are additive.
 
 ---
 
@@ -71,14 +71,30 @@ Copy the three templates and fill in *your* facts:
 See [06-claude-md-layers.md](06-claude-md-layers.md). **You now have a working setup** —
 Claude reads by symbol, remembers across sessions, and knows your conventions.
 
-## Step 5 — Adapt the implementation chain
+## Step 5 — Install one tracker adapter
+
+Every flow that touches a ticket states its intent in abstract verbs — *the frontier*,
+*is this blocked?* — and **exactly one adapter answers them**. That is what keeps one
+tracker in context instead of four, and what lets the same skill run on Jira at work and
+markdown files at home.
+
+1. Pick one from [`../../templates/trackers/`](../../templates/trackers/) — GitHub, Jira,
+   or local markdown. (GitLab ships as a *shape*, not a working adapter; see its file.)
+2. Copy it to **`~/.claude/tracker.md`** and fill in its placeholders — including the
+   *"is this a shared place?"* answer, which decides whether writes need your approval.
+3. Point your global `CLAUDE.md` at that path so it loads every session.
+
+**One installed at a time, at a fixed path.** Skills reference the path, never the tracker,
+so switching trackers later is a file swap and nothing else changes.
+
+## Step 6 — Adapt the implementation chain
 
 Define your `layer-1 → layer-2 → …` chain and create one specialist agent per layer from
 [`../../templates/agents/layer-specialist.md`](../../templates/agents/layer-specialist.md).
 This is the single most important adaptation — see
 [11-adapting-to-your-stack.md](11-adapting-to-your-stack.md).
 
-## Step 6 — Add the guardrail hooks
+## Step 7 — Add the guardrail hooks
 
 Copy the hooks you want from `templates/hooks/` into `~/.claude/hooks/` and wire them in
 `~/.claude/settings.json`. Start with:
@@ -91,7 +107,7 @@ Copy the hooks you want from `templates/hooks/` into `~/.claude/hooks/` and wire
 **Verify each hook fires** before you trust it (try a `git push` in a scratch repo and
 confirm it's blocked).
 
-## Step 7 — Add the flows, one at a time
+## Step 8 — Add the flows, one at a time
 
 Copy `templates/commands/start-ticket.md` → `~/.claude/commands/`, plus the agents it
 references (`ticket-analyzer`, `context-gatherer`, `planner`, your layer specialists,

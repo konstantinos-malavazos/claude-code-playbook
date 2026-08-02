@@ -20,7 +20,7 @@ What you need before [03-setup.md](03-setup.md).
 
 | Thing | Why |
 |---|---|
-| **Jira/tracker MCP** | let the analyzer read tickets directly (read-only by policy) |
+| **A tracker MCP** | let the analyzer read tickets directly (read-only by policy) |
 | **Git-host MCP** (GitHub or GitLab) | let reviewers read MRs/PRs, diffs, branches (writes vetoed by a hook) |
 | **A DB MCP** (read-only, staging) | let the planner sample real data shapes without leaving the terminal |
 | **A formatter/linter** for your stack | wired into a `format-on-edit` hook |
@@ -29,7 +29,8 @@ What you need before [03-setup.md](03-setup.md).
 
 ## Credentials you'll need (and must NOT commit)
 
-- A **Jira/tracker API token** (read scope is enough).
+- A **tracker API token** (read scope is enough) — unless your tracker is local markdown
+  files, which needs none.
 - A **git-host personal access token** (read scope; you push manually anyway).
 - Any **DB connection string** for a *staging* read-only sample path.
 

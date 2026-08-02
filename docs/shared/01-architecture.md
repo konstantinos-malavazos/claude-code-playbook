@@ -19,7 +19,7 @@
                     ┌───────────────────┴───────────────────┐
                     │              MCP SERVERS               │
                     ├────────────┬───────────┬───────────────┤
-                    │  SERENA    │ FORGETFUL │  jira / git-   │
+                    │  SERENA    │ FORGETFUL │ tracker / git- │
                     │ (code nav) │ (memory)  │  host / db     │
                     └────────────┴───────────┴───────────────┘
                                         │
@@ -33,7 +33,7 @@ There are **four layers** of configuration, each with one clear job:
 
 | Layer | Lives in | Job |
 |---|---|---|
-| **MCP servers** | `~/.claude.json` (global) + `<workspace>/.mcp.json` (project) | Give Claude *capabilities*: navigate code (Serena), remember (Forgetful), talk to Jira / your git host / your DB. |
+| **MCP servers** | `~/.claude.json` (global) + `<workspace>/.mcp.json` (project) | Give Claude *capabilities*: navigate code (Serena), remember (Forgetful), talk to your tracker / your git host / your DB. |
 | **Agents** | `~/.claude/agents/**/*.md` | Delegated sub-contexts with scoped tool access. Each does one job and hands off. |
 | **Skills** | `~/.claude/skills/**/SKILL.md` | Progressive-disclosure recipes. Auto-load on intent (e.g. "commit" → your commit-convention skill). |
 | **Hooks** | `~/.claude/settings.json` + `~/.claude/hooks/*` | Deterministic guardrails (block dangerous git) + metrics + cleanup. The *harness* runs these, not the model. |
@@ -46,7 +46,7 @@ Nothing here is magic — it's a disciplined layout of plain files.
 ## Where each layer earns its keep
 
 - **MCP = capability.** Without Serena, the agent reads whole files. Without Forgetful,
-  it forgets. These two are the foundation; the git-host / Jira / DB servers are
+  it forgets. These two are the foundation; the git-host / tracker / DB servers are
   conveniences on top.
 - **Agents = separation of concerns + cost control.** A scoped agent runs in its own
   context window, so a heavy read sweep doesn't pollute the planner's context. Give each

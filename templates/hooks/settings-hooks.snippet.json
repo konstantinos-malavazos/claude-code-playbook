@@ -11,7 +11,7 @@
         ]
       },
       {
-        "matcher": "mcp__jira__.*|mcp__gitlab__.*|mcp__github__.*",
+        "matcher": "mcp__tracker__.*|mcp__gitlab__.*|mcp__github__.*",
         "hooks": [
           { "type": "command", "command": "~/.claude/hooks/block-mcp-writes.sh" }
         ]

@@ -1,7 +1,9 @@
 # 08 — The `/start-ticket` pipeline, step by step
 
-This is the flagship flow generalized. Substitute your tracker for "Jira", your layer
-specialists for the implementer steps, and your git host for "MR/PR".
+This is the flagship flow generalized. The tracker is never named — the installed adapter
+at `~/.claude/tracker.md` answers for it (see
+[`../../templates/trackers/README.md`](../../templates/trackers/README.md)). Substitute
+your layer specialists for the implementer steps, and your git host for "MR/PR".
 
 ---
 

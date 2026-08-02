@@ -46,8 +46,8 @@ not about any particular codebase:
   all code access goes through Serena, by symbol — never grep or whole-file reads for a
   code-structure question, never `Edit` where `replace_symbol_body` applies."
 - **Ticket / branch / commit conventions** — the format you always use.
-- **Ticket-tracker policy** — e.g. "Jira is read-only unless I explicitly approve a
-  write."
+- **Ticket-tracker policy** — which adapter is installed at `~/.claude/tracker.md`, and
+  the write rule: "ask before writing anywhere other people can see it."
 - **Handoff protocol** — where in-flight agent state lives and that it's ephemeral.
 - **Communication style** — terse vs verbose, when to expand.
 - **Coding-behaviour defaults** — think-before-coding, simplicity, surgical changes.

@@ -52,7 +52,7 @@ can override this in its Notes; absent that, do not carry execution into the map
 ## Talk to the tracker in verbs, never in commands
 
 Charting never names a tracker and never writes a raw CLI call. It states an intent in the
-contract's vocabulary, and the one installed adapter doc at `<TRACKER-ADAPTER-PATH>`
+contract's vocabulary, and the one installed adapter doc at `~/.claude/tracker.md`
 answers it. One tracker in context, never four.
 
 | | Verbs |

@@ -59,11 +59,17 @@ Serena opt-out.
 - **One commit per branch per repo** — amend-as-you-go. (Details in the
   `commit-conventions` skill.)
 
-## Tracker is READ-ONLY by default
+## The tracker
 
-Never write to the tracker (comments, transitions, field edits, assignments) without my
-**explicit** approval, with the exact payload shown first. (Also enforced by the
-`block-mcp-writes` hook.)
+**One adapter is installed, at `~/.claude/tracker.md`.** Never name a tracker or write a
+raw tracker command — state the intent (*read this ticket*, *give me the frontier*, *is
+this blocked?*) and let that file answer it.
+
+**Ask before writing anywhere other people can see it.** The adapter declares whether its
+tracker is a shared place. Where it is, every write (comments, transitions, field edits,
+assignments) needs my **explicit** approval, with the exact payload shown first — also
+enforced by the `block-mcp-writes` hook. Where it is not — a private repo nobody else
+reads — write freely. A **public** personal repo counts as shared.
 
 ## Git rules
 

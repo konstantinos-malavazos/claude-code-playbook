@@ -14,7 +14,7 @@ tool="$(printf '%s' "$payload" | jq -r '.tool_name // ""')"
 # path for editing code (docs/shared/04-serena.md). Blocking them forces agents back onto
 # line-based Edit — exactly the failure mode the rule exists to prevent.
 case "$tool" in
-    mcp__jira__*|mcp__gitlab__*|mcp__github__*) : ;;   # policed below
+    mcp__tracker__*|mcp__gitlab__*|mcp__github__*) : ;;  # policed below
     *) exit 0 ;;                                        # everything else: not our business
 esac
 

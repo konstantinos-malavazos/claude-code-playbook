@@ -13,13 +13,16 @@
       "url": "http://localhost:8020/mcp"
     },
 
-    "jira": {
+    // Name the key "tracker", not after your vendor — the guardrail hooks match on
+    // mcp__tracker__* and the adapter at ~/.claude/tracker.md is what knows the vendor.
+    // Omit this server entirely if your tracker is local markdown files.
+    "tracker": {
       "type": "stdio",
       "command": "<your-tracker-mcp-binary-or-npx-package>",
       "args": [],
       "env": {
-        "JIRA_URL": "<YOUR-TRACKER-URL>",
-        "JIRA_TOKEN": "${JIRA_TOKEN}"
+        "TRACKER_URL": "<YOUR-TRACKER-URL>",
+        "TRACKER_TOKEN": "${TRACKER_TOKEN}"
       }
     }
 

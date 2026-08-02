@@ -32,7 +32,7 @@ re-driving the same ten steps by hand.
 Turns a ticket id into a reviewed, single-commit branch.
 
 ```
-@ticket-analyzer      Jira → structured brief (no code/memory lookups)
+@ticket-analyzer      tracker → structured brief (no code/memory lookups)
         │
 @context-gatherer     heavy memory + Serena sweep in a THROWAWAY context;
         │             writes a distilled brief; read-only

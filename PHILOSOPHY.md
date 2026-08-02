@@ -29,7 +29,7 @@ One giant conversation doing analysis + design + coding + review blows its own c
 mixes concerns, and has no guardrails. Instead:
 
 - **Scoped specialist agents.** Each agent does *one* job with *only* the tools it needs.
-  The analyzer can read Jira but not touch code; the planner can design but can't write
+  The analyzer can read the tracker but not touch code; the planner can design but can't write
   files; reviewers can read code but can't edit it. Scope = cheap + safe.
 - **Retrieval is offloaded.** A throwaway "gatherer" context does the token-heavy memory
   and code sweep, then hands the *distilled brief* to the planner. The expensive context
@@ -79,15 +79,25 @@ Don't rely on the model "remembering" not to do dangerous things. Make them impo
 
 - **Hooks hard-block** dangerous git (`push`, `reset --hard`, `--no-verify`, force,
   branch deletes) at the tool layer — the *harness* runs them, not the model.
-- **The ticket tracker is read-only by default.** Never write to Jira (comments,
-  transitions, field edits) without explicit human approval — enforced by a
-  read-only veto at the MCP layer, not just a policy line.
+- **Ask before writing anywhere other people can see it.** The test is the *audience*, not
+  the tool: tracker comments, transitions and field edits need explicit human approval when
+  they land somewhere others read — enforced by a read-only veto at the MCP layer, not just
+  a policy line. On a private solo repo nobody is watching, so write freely; on a **public**
+  one they are, so ask. Each tracker adapter declares which it is
+  ([`templates/trackers/README.md`](templates/trackers/README.md)).
 - **AI-infra files are never committed** to product repos (`.claude/`, `CLAUDE.md`,
   MCP state).
 - **You push; the agent doesn't.** The human owns the irreversible outward-facing steps
   (push, open the MR/PR, merge).
 
 The rule of thumb: *if it's hard to reverse or leaves your machine, a human confirms it.*
+
+> **These are defaults with a reason, not laws.** They were written out of a workflow where
+> the driver does **not** own the code or the projects, which is why they are so cautious.
+> Every rule above is protecting something specific — usually *"someone else owns this"* or
+> *"other people are watching"*. On a project you own outright, ask what the rule was
+> protecting and re-derive the right answer, rather than either obeying it blindly or
+> deleting it. Note that "nobody is watching" stops being true the moment a repo is public.
 
 ---
 
