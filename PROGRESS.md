@@ -6,11 +6,14 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 2 August 2026, after resolving
-> [#21 How the tech stack actually gets chosen](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/21)
-> — **the map moved again after three off-map sessions.** It spawned
-> [#30 Write the stack-choice doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/30)
-> and [#31 Serena is conditional](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/31),
-> which **blocks #10**. Off-map, a live probe of `pitch-judge` failed and opened
+> [#31 Serena is conditional: what happens to seam item 4?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/31)
+> — **the only gate on the map is open again, and #10 is takeable.** It spawned
+> [#33 Retire the flat Serena gate from every file that states it](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/33),
+> which **blocks #16**. The previous session resolved
+> [#21 How the tech stack actually gets chosen](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/21),
+> which also spawned
+> [#30 Write the stack-choice doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/30).
+> Off-map, a live probe of `pitch-judge` failed and opened
 > [#32 pitch-judge cannot launch](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/32);
 > [#29 install and run every template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/29)
 > is still open and deliberately parked.
@@ -40,30 +43,35 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 16 of 27 |
+| Tickets closed | 17 of 28 |
 | Tickets open | 11 |
-| On the frontier (takeable now) | 9 |
-| Blocked | 2 — the capstone on 5 open edges, **and #10 on #31** |
+| On the frontier (takeable now) | 10 |
+| Blocked | 1 — the capstone, now on **6** open edges |
 | Repo files changed since the effort began | 50 by the map’s own tickets, + 15 by #28 off-map |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | this file only — #21 wrote no repo files, per decide-or-make |
+| Working tree | this file only — #31 wrote no repo files, per decide-or-make |
 
-**A gate closed for the first time since #5.** For eleven tickets the map was a **work
-queue** rather than a dependency graph — nothing waited on anything but the capstone. #21
-changed that: making Serena conditional put
-[#31](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/31) in front of
-[#10](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10), because the
-bootstrap is the stage that *runs* the Serena check and would otherwise write a flat gate
-that #31 then contradicts. **Wired deliberately rather than remembered** — the repo's own
-standing lesson is that things you have to remember get forgotten silently.
+**The gate opened as fast as it closed, and it did its job in between.** #21 put #31 in
+front of #10 so the bootstrap could not write a flat Serena gate that #31 would then
+contradict. #31 is now resolved, #10 is takeable, and the blocked list is back to the
+capstone alone — which has gained a sixth edge, #33. **One ticket of latency bought a
+contradiction that never reached master.**
+
+**Five files stated a flat Serena gate, not two — and the fifth was a template.** #31 was
+opened to fix seam item 4 and one line in `12-when-not-to-use.md`. A re-grep found
+`templates/skills/pitch/SKILL.md:273`, which is **an instruction to an agent** to write
+*"a scaffolded, Serena-indexed repo"* into a reader's map as its Destination — the field
+that then *fixes that effort's scope*. The kill gate runs a full stage before the stack
+exists, so it was hardcoding an answer to a question it has no information about, in the
+one field nothing downstream can argue with.
+
+**Now knowingly wrong on disk, and ticketed:** `pitch-judge.md`'s `tools: TodoWrite`
+(#32), and the flat Serena gate in five places (#33).
 
 **The map grew, then closed the hole it grew for.** #25 and #26 both wrote their files and
 decided nothing — but verifying one of #26's claims turned up a real problem, so it spun
 #27, which is now resolved. That is the decide-or-make rule working in the direction it is
 usually quiet about: a make found a decision and stopped instead of quietly deciding it.
-
-**Nothing on disk is knowingly wrong any more.** `pitch-judge.md` now says
-`tools: TodoWrite` + `maxTurns: 1`, applied by #28 along with the rest of the audit.
 
 **#28 found four silent failures, and two were guardrails that were not guarding.**
 `repo-reviewer` promised to dispatch `@release-reviewer` and had no `Agent` tool, so the
@@ -85,24 +93,31 @@ pairs were built in **opposite orders**, and it made a visible difference: chart
 template landed first, so its doc never shipped a dead link, while `02-the-kill-gate.md`
 carried a *still being written* marker for one commit. #26 deleted it.
 
-**The remaining makes are #30, #23, and #24's outcome.** Everything else open is a grilling
-— the four stage and cross-cutting conversations, plus #8 and #31.
+**The remaining makes are #30, #33, #23, and #24's outcome.** Everything else open is a
+grilling — the four stage and cross-cutting conversations, plus #8.
 
 **`docs/solo/` is 3 of 5.** `01` the spine, `02` the kill gate, `03` charting. `04` and `05`
 still ride on their design tickets — #10 and #12.
 
-**The map moved again, and the off-map pull produced its best result yet on the way.** #21
-was the first map ticket since #26 after three off-map sessions. On the way in, a two-minute
-probe of `pitch-judge` — the thing #29 was parked holding — **failed**, which is #32. So the
-lesson from last snapshot holds in both directions: the map is the destination, *and* ten
-minutes of running something is worth more than a session of reading it. Do the probe, then
-take the map ticket.
+**Two tickets running, two grillings the driver redirected — and both redirects were
+right.** #21's was the bigger one: pushing back on Serena as a universal requirement
+changed the answer and spun #31. #31's came on the last question, where the recommendation
+was *leave the destination phrase alone, the seam three screens down carries the nuance* —
+and the answer was **check again**. Checking found the `/pitch` template. **The questions a
+ticket body lists are not the only ones on the table, and a recommendation is not a
+finding.**
 
-**#21 was also the first ticket a live grilling materially redirected.** The stack-choice
-questions were answered as designed, and then the driver pushed back on Serena being a
-universal requirement — which was correct, changed the answer, and spun #31. Two things were
-kept out of the ticket deliberately: the seam edit (not #21's to make) and the non-code fork
-(a destination redraw, therefore a fresh effort). **Neither was swallowed.**
+**The reason all four copies of the phrase move together is now a standing rule.** Leaving
+the human-facing headline and fixing only the three an agent touches was the tempting call.
+It is wrong because **every doc here is model input**: two files that disagree do not read
+as headline-then-nuance to an agent loading both, they read as a contradiction whose winner
+is arbitrary. In a repo whose entire output is context, an unresolved contradiction between
+two files is a **defect, not a matter of style**.
+
+**The off-map pull produced its best result yet on the way in.** A two-minute probe of
+`pitch-judge` — the thing #29 was parked holding — **failed**, which is #32. The map is the
+destination, *and* ten minutes of running something is worth more than a session of reading
+it. Do the probe, then take the map ticket.
 
 **Templates now carry three solo-only entries** — the `charting` and `pitch` skills, and the
 `pitch-judge` agent. The solo/team columns #2 added are doing real work rather than sitting
@@ -134,7 +149,9 @@ all-✓.
 1. The stack is named and written down.
 2. The stub builds and runs. *(A green test command is optional — the stack ticket decides.)*
 3. The layer chain is declared in `CLAUDE.md`.
-4. Serena is indexed — a symbol search returns real results.
+4. Serena matches the verdict recorded at the tail. *(#31 — **yes**: a symbol search
+   returns real results; **no**: Serena is not required here and `CLAUDE.md` says why.
+   Not yet on master — #33 owns the edit.)*
 5. The tracker adapter is installed.
 6. The backlog exists, ordered, and you approved it.
 7. Two memories exist: what the project is and why; the stack and layer chain and why.
@@ -165,6 +182,7 @@ entrances are visible at once.
 | [#26 Write the `/pitch` skill + `pitch-judge` agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26) | **Done — `templates/skills/pitch/SKILL.md` and `templates/agents/pitch-judge.md` are written**, with the flow catalogue entry and both README rows. A make that decided nothing. Made explicit three mechanics #9 only implied: the **case file rides in the dispatch prompt** (no tools means no `Read`), the hard kills need an **arming table transposed by class**, and verdict resolution needs an **explicit precedence order**. |
 | [#27 `pitch-judge` cannot have zero tools](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/27) | **`tools: TodoWrite` plus `maxTurns: 1`.** Zero tools is impossible **by design** — the harness refuses to spawn an agent that would hold none — so `tools: []` never launches. Two guarantees on different axes: the allowlist means it holds nothing that finds, the single turn means it cannot act on a result. The agents README gains a **least privilege has a floor** convention and a **complete sixteen-field anatomy block**. **"No tools" is retired as vocabulary** in favour of **"gathers no evidence"**. Decided only; **#28 applied it**. **Its mechanism has since been proven wrong by running it — see [#32](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/32).** |
 | [#21 How the tech stack actually gets chosen](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/21) | **Propose-and-kill against a mainstream default, judged at read-level.** Claude writes the code, so the human's bar is *can you tell when it is wrong*, not *could you have written it*. Default: **the most boring stack that does the job** — an already-read boring option ends the session. **Never compare**; name one candidate and try to kill it on three checks. Constraints reach the tail by **re-reading the closed gists**, not push-forward. **Serena becomes a conditional kill check** on *"will you ever need to ask who calls this?"* — which spun #31 and blocked #10. #3's tail ambiguity settled on the first reading: **ticket 1 decides the stack and whether tests gate; ticket 2 writes the commands.** The stack ticket **writes no files**, and **#15 needs no new artifact** — it reads `CLAUDE.md` and memory two. |
+| [#31 Serena is conditional: what happens to seam item 4?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/31) | **Item 4 becomes two branches — decided at the tail, recorded in the repo's `CLAUDE.md`, looked up at the seam.** A conditional *check* is weak; a conditional *answer* is not. **Seam item 2 already worked this way**, so the seam was never seven flat checks. `CLAUDE.md` over memory two because **only `CLAUDE.md` can contradict `CLAUDE.md`** — that is where the *Serena is MANDATORY* block lives. **The destination string drops the word *Serena* in all four places**, because the kill gate writes it a full stage before the stack exists. `12-when-not-to-use.md:68` is **correct in its own context** and gains one clause for the third case nobody had written down: **symbol-poor by nature**. Spawned #33. |
 
 ### The layout #2 decided — now live
 
@@ -242,16 +260,18 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Nine tickets — same count as last snapshot, different membership. #21 closed, #10 left for
-the blocked list, #30 and #31 arrived.
+Ten tickets — the most the frontier has ever held. #31 closed, **#10 came off the blocked
+list**, and #33 arrived.
 
-**Two of the nine now have their decisions banked.** #30 and #23 are makes. Everything else
-is a real conversation — worth knowing before you open one expecting a writing job.
+**Three of the ten now have their decisions banked.** #30, #33 and #23 are makes.
+Everything else is a real conversation — worth knowing before you open one expecting a
+writing job.
 
 | Ticket | Type | Note |
 |---|---|---|
+| [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | **unblocked** — writes `docs/solo/04` and clears the last dead link in two stage docs. **Four things are pre-answered: state them, do not re-derive them** — #13 on seam item 5, #21 on the tail wrinkle, #31 on Serena and where the verdict is recorded. It also inherits one **open** question #21 refused: **who picks the layer chain.** |
+| [#33 Retire the flat Serena gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/33) | make | **all of #31's decisions carried inline** — decide nothing. Six edits, five files, and they **must land together** or master is worse than before. **Blocks #16.** |
 | [#30 Write the stack-choice doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/30) | make | **all ten of #21's decisions carried inline** — decide nothing. Own file, **next free `docs/solo/` number at write time**. Must not restate `03-charting.md`'s tail (that owns placement; this owns method). |
-| [#31 Serena is conditional](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/31) | grilling | **blocks #10.** Seam item 4 and `12-when-not-to-use.md:68` both state Serena flatly and are now wrong. **The map's Destination is explicitly out of scope here** — #21 settled that it stands. |
 | [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | — |
 | [#15 Tech stack into working agents and skills](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15) | grilling | starts from a stack already chosen. **#21 pre-answered its input**: it reads `CLAUDE.md` + memory two, never the map. |
@@ -264,8 +284,7 @@ is a real conversation — worth knowing before you open one expecting a writing
 
 | Ticket | Waiting on |
 |---|---|
-| [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | **#31** — the bootstrap is what *runs* the Serena check, so resolving it first would write a flat gate into `docs/solo/04` that #31 then contradicts. Otherwise ready: writes `docs/solo/04`, **#13 pre-answered seam item 5**, **#21 settled the tail wrinkle** (state it, do not re-derive it), and #21 handed it **who picks the layer chain**. It still owns the last dead link in `02-the-kill-gate.md` and `03-charting.md`. |
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 5 open blockers — the capstone; #21 took one off. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — three templates now claim the solo column only, and that will keep growing. |
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | **6 open blockers** — the capstone, and the only blocked ticket again. #31 added #33 to the list, because #16 would otherwise write the retired *"Serena-indexed repo"* phrase into the front door. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — three templates now claim the solo column only, and that will keep growing. |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -285,9 +304,16 @@ is a real conversation — worth knowing before you open one expecting a writing
                     └──► RUNNING IT proved the mechanism wrong ──► #32
                          TodoWrite is not a tool any more
         ── #21 the stack choice ──► spun #30 (the doc) + #31 (Serena is conditional)
-                    │                                         │
-                    │                                         └──► BLOCKS #10
+                    │
                     └──► the non-code fork ruled OUT OF SCOPE — a fresh effort
+        ── #31 seam item 4 is TWO BRANCHES, verdict recorded in CLAUDE.md
+                    │      the gate that blocked #10 is open — #10 is takeable
+                    │
+                    └──► re-grep found 5 flat statements, not 2 ──► #33
+                         the fifth was templates/skills/pitch/SKILL.md:273 —
+                         an AGENT writing "Serena-indexed" into a reader's map
+                              │
+                              └──► BLOCKS #16
 
    #11 left three placeholders. One is left:
         <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
@@ -300,7 +326,7 @@ is a real conversation — worth knowing before you open one expecting a writing
    docs/solo/  01 ✓ spine   02 ✓ kill gate   03 ✓ charting   04 #10   05 #12
                06+ #30 stack choice, then #14 #15 #18 in write order
 
-   11 open tickets ── 5 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
+   11 open tickets ── 6 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
 ```
 
 ---
@@ -320,26 +346,28 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
    the agent refuses to launch. Now [#32](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/32).
    **The restart caveat was wrong**: the agent registered the moment the file was copied, no
    restart needed. Two minutes of running beat three sessions of reading.
-5. `/wayfinder 1 31` — **Serena is conditional.** Take it next. It is the only open ticket
-   another open ticket is waiting on (**#10 is wired behind it**), and it is small: seam
-   item 4 and one line in `12-when-not-to-use.md`. **Read the "Out of scope here" section of
-   its body first** — the map's Destination is settled and must not be reopened.
-6. `/wayfinder 1 30` — **write the stack-choice doc.** A make with every decision banked, so
-   it is the one session left that is a writing job rather than a conversation. Good for a
-   session with less appetite. Takes the next free `docs/solo/` number.
-7. `/wayfinder 1 10` — the bootstrap, **once #31 is closed**. Writes `docs/solo/04` and
-   clears the last dead link in two stage docs. Three things are pre-answered — **#13 on
-   seam item 5, #21 on the tail wrinkle, #31 on Serena** — state them, do not re-derive
-   them. #21 also handed it **who picks the layer chain**.
-8. Then the rest — #12 backlog, #14 guardrails, #15 stack→agents, #18 progress — in any
+5. ~~#31, Serena is conditional.~~ **Done.** Spun #33, and **unblocked #10**.
+6. `/wayfinder 1 33` — **retire the flat Serena gate.** Take it next, and take it *soon*.
+   Every decision is banked, so it is a pure writing job — but it is the only ticket holding
+   a **known contradiction on master**, and the repo now has a standing rule that docs are
+   model input, so a contradiction is a defect. Six edits, five files, and they must land in
+   one commit.
+7. `/wayfinder 1 10` — **the bootstrap.** Unblocked, and the biggest remaining hole in
+   `docs/solo/`. Writes `04` and clears the last dead link in two stage docs. **Four things
+   are pre-answered — state them, do not re-derive them:** #13 on seam item 5, #21 on the
+   tail wrinkle, #31 on Serena's two branches and on `CLAUDE.md` as the record. #21 also
+   handed it one genuinely **open** question: **who picks the layer chain.**
+8. `/wayfinder 1 30` — **write the stack-choice doc.** A make with every decision banked.
+   Good for a session with less appetite. Takes the next free `docs/solo/` number.
+9. Then the rest — #12 backlog, #14 guardrails, #15 stack→agents, #18 progress — in any
    order. Each writes its own `docs/solo/` doc at the number reserved above.
-9. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
-   and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
-10. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
-11. **#32 is small and off-map.** Pick an inert tool that still exists, then **spawn the
+10. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
+    and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
+11. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
+12. **#32 is small and off-map.** Pick an inert tool that still exists, then **spawn the
     agent and watch it return a verdict** before closing. Correct-by-reading is what got us
     here. Latent — nothing is installed, so no running gate is skipping its judge today.
-12. **#29 still waits, but its argument is now weaker.** It remains the biggest thing on the
+13. **#29 still waits, but its argument is now weaker.** It remains the biggest thing on the
     board and Phase 0 alone is a full sitting. But the claim that its payoff is *latent* just
     took a hit: ten minutes of running one template found a defect that two documentation
     audits missed. **The cheap half of #29 — copy a template in and spawn it — is worth
@@ -347,12 +375,48 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
 
 Plain `/wayfinder 1` takes the first frontier ticket in map order — still
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
-Name the ticket. **Take #31.**
+Name the ticket. **Take #33, then #10.**
 
 ---
 
 ## Gotchas found so far
 
+- **A doc that only a human reads is still model input, and a contradiction between two
+  files has no tiebreak.** #31 nearly left `01-the-solo-path.md:8` stating a flat Serena
+  gate on the grounds that the seam three screens below carries the nuance — which is how a
+  *human* reads a document, top to bottom. An agent loads both files into one context and
+  sees two claims that disagree; nothing in the context says which is the headline and which
+  is the correction. **In a repo whose whole output is context, an unresolved contradiction
+  between two files is a defect, not a matter of style.** Fix every copy, or the fix is not
+  a fix.
+- **A template is not documentation, and grepping prose misses it.** #31's body listed two
+  places stating Serena flatly, both in `docs/`. The one that mattered was
+  `templates/skills/pitch/SKILL.md:273` — **an instruction to an agent** to write
+  *"a scaffolded, Serena-indexed repo"* into a reader's map as its Destination, which
+  `03-charting.md:20` then says *fixes the scope*. Prose that is wrong misleads a reader;
+  a template that is wrong **executes**. **When auditing a claim, grep `templates/` first
+  and `docs/` second** — the blast radius is the other way round from the word count.
+- **The kill gate writes the destination a full stage before the stack exists.** Stage 1
+  seeds issue #1; the stack ticket is charting's tail in stage 2, explicitly not takeable
+  while anything else is open. So anything the gate writes into Destination is written at
+  the point of **maximum ignorance** — and Destination is the one field that fixes scope,
+  so a guess there rules out the tail's honest answer before the tail is asked. **Check the
+  stage ordering before letting any stage state a fact another stage decides.**
+- **The seam was never seven flat checks, and nobody noticed.** #31 opened on the worry that
+  a conditional item 4 is *"a judgement call wearing a checkbox"*. Item 2 has said *"a green
+  test command is optional here; the tail's second ticket decides"* since #20 wrote it. The
+  precedent was one row up the same table. **Read the artifact before arguing from the
+  principle** — the shape you are about to invent may already be in use next door.
+- **A conditional check is weak; a conditional answer is not.** The thing that degrades a
+  gate is asking someone to exercise judgement at the moment they are trying to *verify*.
+  Moving the judgement earlier — to a session with the information — and requiring it **in
+  writing** keeps the gate a lookup. Generalises to any checklist that meets a case it
+  cannot rule on uniformly.
+- **Only `CLAUDE.md` can contradict `CLAUDE.md`.** The Serena verdict went there rather than
+  into memory two, because `global.CLAUDE.md` carries the *Serena is MANDATORY* block and
+  every code-touching agent carries a *Code access protocol (MANDATORY)* section. **A memory
+  is searched; `CLAUDE.md` is loaded.** An override has to sit at the same altitude as the
+  rule it overrides, or it is a fact nobody retrieves at the moment it applies.
 - **#3's tail has an ambiguous sentence, and decide-or-make made it matter.** On whether a
   stack gates on a green test command, #3 says *"the test half is optional, and **the stack
   ticket** decides"* — then immediately *"which is what **the tail's second ticket** is
@@ -596,6 +660,34 @@ Name the ticket. **Take #31.**
 
 ---
 
+## What #31 handed forward
+
+- **#10 is unblocked and inherits a fourth pre-answer.** Seam item 4 is **two branches on a
+  verdict decided at the tail**, and the verdict is recorded in the repo's `CLAUDE.md`
+  alongside the stack name. **State it; do not re-derive it** — the same instruction #13 and
+  #21 already left. #10 is the stage that *runs* the check, so it writes the branch a reader
+  actually executes.
+- **#33 owns every edit and must land them together.** Six edits, five files. Half-landing
+  leaves master contradicting itself, which is the exact defect the ticket exists to remove.
+  It **blocks #16**; it does **not** block #10.
+- **The seam is now the single home of the Serena condition.** Anything wanting to say when
+  Serena applies should **link to seam item 4, not restate it** — that is why the destination
+  string points at the seam instead of naming Serena.
+- **The map's Destination is untouched, and the reason is worth keeping.** The string
+  `/pitch` writes into a *reader's* map and issue #1's own Destination are **two artifacts
+  that happen to share wording.** #21 settled the second; nothing had ever examined the
+  first. Do not let a future ticket collapse them back together.
+- **Three things were checked and deliberately left alone**, so nobody re-checks them:
+  `03-setup.md`'s *Serena is mandatory* (global installation, not a project gate),
+  `04-serena.md`'s escape 1 (*"the language/file isn't indexed"* — the mandate always
+  governed **how you read code**, not whether a symbol graph must exist), and the charting
+  skill's greenfield exception.
+- **A third situation now exists and needs a name wherever sparse indexes come up:**
+  day-one empty (correct), unfamiliar-and-sparse (stop), **symbol-poor by nature** (correct,
+  and permanently so). #14 and #18 both touch judgement on a path with no reviewer and will
+  meet it.
+- **No memory written**, per #5's one-per-map rule. The map is still open.
+
 ## What #21 handed forward
 
 - **The stack-choice method is settled and banked in #30.** Anything wanting to explain
@@ -610,7 +702,9 @@ Name the ticket. **Take #31.**
   on the far side of the seam. **It must never reach back into the map** — the map may be
   closed by the time #15 runs, whereas `CLAUDE.md` is permanent. No new artifact was
   invented at the choosing→generating seam, which was the thing #21 was asked to name.
-- **Serena is conditional, and that is #31's to land.** The test is *will you ever need to
+- ~~**Serena is conditional, and that is #31's to land.**~~ **Landed** — two branches on a
+  verdict recorded in `CLAUDE.md`, and #31 did not drift into a destination redraw. The test
+  is *will you ever need to
   ask "who calls this?"*. It bites **inside** the current destination — bash, Ansible and
   config-heavy repos are code, are in scope, and are symbol-poor. Do not let #31 drift into
   a destination redraw; its body says so explicitly.
