@@ -6,7 +6,7 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 2 August 2026, after resolving
-> [#13 Tracker adapter templates and the surgical Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13).
+> [#9 The kill gate: is this idea worth building at all?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9).
 > Regenerate rather than trust — the one-call frontier query is:
 > ```
 > gh api repos/konstantinos-malavazos/claude-code-playbook/issues/1/sub_issues --paginate \
@@ -33,27 +33,35 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 11 of 22 — **exactly half** |
-| Tickets open | 11 |
-| On the frontier (takeable now) | 10 |
-| Blocked | 1 — only the capstone, on 7 wired edges |
+| Tickets closed | 12 of 24 — **exactly half** |
+| Tickets open | 12 |
+| On the frontier (takeable now) | 11 |
+| Blocked | 1 — only the capstone, on 8 wired edges |
 | Repo files changed since the effort began | 45 + this file |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | clean — #13's 19 files are committed and pushed |
+| Working tree | clean — #9 wrote no files, by design |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
 Nothing waits on anything except
 [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16).
 
+**The map grew for the first time in a while, and that is the escape valve working.** #9 was
+a grilling that produced a design too big to write in the same session, so it spun
+[#25 the stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25) and
+[#26 the skill + agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26).
+Third time the valve has fired — #3→#20, #20→#22, now #9→#25/#26.
+
 **The charting pair is fully wired.** #11 wrote the skill, #22 the stage doc, and #13
 resolved the `<TRACKER-ADAPTER-PATH>` both pointed at. The path is **`~/.claude/tracker.md`**.
 
-**Every remaining ticket is a grilling except two.** #13 was the last make with anything
-waiting on it; #23 and #24 are side quests. From here the map is nearly all conversation.
+**Four makes are now queued and none of them decides anything.** #25, #26, #23 and #24's
+outcome all have their decisions banked already. The remaining grillings are the four stage
+and cross-cutting conversations plus #8.
 
-**`docs/solo/` is still 2 of 5.** `01` the spine and `03` charting. The three remaining
-stage docs each ride on their design ticket.
+**`docs/solo/` is still 2 of 5.** `01` the spine and `03` charting. **`02` is now a make**
+(#25) rather than a grilling — its design is settled. `04` and `05` still ride on their
+design tickets.
 
 ---
 
@@ -107,6 +115,7 @@ entrances are visible at once.
 | [#11 Write the charting skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/11) | **Done — `templates/skills/charting/SKILL.md` is written.** All eight of #5's decisions carried; nothing reopened. Three `<PLACEHOLDER>`s, two of which are waiting on other tickets. |
 | [#22 Write the charting stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/22) | **Done — `docs/solo/03-charting.md` is written.** States the solo destination and the trap beside it (that is where the *path* ends, not where *charting* ends). Authored two things nothing had settled: the **cleared-vs-abandoned test**, and that **charting cannot reopen the kill gate**. Found a wrinkle in #3's tail — see below. |
 | [#13 Tracker adapter templates + the Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13) | **Done — `templates/trackers/` exists and the playbook no longer assumes Atlassian.** The fixed path is **`~/.claude/tracker.md`**. The MCP key becomes **`tracker`, not `jira`** — a breaking change for an existing install. §5 becomes the audience rule. Setup gained **step 5**. README deliberately excluded — see below. |
+| [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | **The gate is `/pitch` — a skill plus a doc.** Six questions, ~1 hour, three hard kills whose teeth depend on a **question zero** that classifies what the idea's value rests on. Sycophancy beaten structurally, not by instructing harshness. A fourth agent, **`pitch-judge`**, reads an **anonymised case file** and can fire a hard kill but never un-fire one. See the section below. |
 
 ### The layout #2 decided — now live
 
@@ -124,7 +133,7 @@ Numbering restarts at `01` per directory.
 | Number | Doc | Owner |
 |---|---|---|
 | `01-the-solo-path.md` | the overview — **written** | #20 |
-| `02-the-kill-gate.md` | the kill gate | #9 |
+| `02-the-kill-gate.md` | the kill gate — **designed by #9, unwritten** | #25 |
 | `03-charting.md` | charting — **written** | #22 |
 | `04-the-bootstrap.md` | the bootstrap | #10 |
 | `05-the-backlog.md` | the backlog | #12 |
@@ -184,11 +193,12 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Ten tickets. Nothing gates anything but the capstone.
+Eleven tickets. Nothing gates anything but the capstone.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | grilling | writes `docs/solo/02`. **The natural next one** — it is the only stage with nothing written and everything downstream assuming it. |
+| [#25 Write the kill gate stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/25) | make | writes `docs/solo/02`. **The natural next one** — nothing left to decide, and it fills the one hole in the middle of the stage sequence. |
+| [#26 Write the `/pitch` skill + `pitch-judge` agent](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/26) | make | `templates/skills/pitch/SKILL.md` and `templates/agents/pitch-judge.md`. Independent of #25 — either order. |
 | [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04`. Consumes #21's answer on the tail wrinkle; does not settle it. **#13 pre-answered seam item 5** — see below. |
 | [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | — |
@@ -203,7 +213,7 @@ Ten tickets. Nothing gates anything but the capstone.
 
 | Ticket | Waiting on |
 |---|---|
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 7 open blockers — the capstone. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. |
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 8 open blockers — the capstone. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -212,15 +222,16 @@ Ten tickets. Nothing gates anything but the capstone.
         ── #11 the charting skill template  ┐ the charting pair —
         ── #22 the charting stage doc       ┘ skill + the doc pointing at it
         ── #13 the tracker adapters + retrofit  ── wires the pair to a real path
+        ── #9  the kill gate design    ──► spun #25 (doc) + #26 (skill + judge)
 
    #11 left three placeholders. One is left:
         <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
         <PROTOTYPE-SKILL-OR-NONE>    ──► #23   (the last one open)
         <LABEL-PREFIX>               ──► never, reader's own convention
 
-   docs/solo/  01 ✓ spine   02 #9   03 ✓ charting   04 #10   05 #12
+   docs/solo/  01 ✓ spine   02 #25   03 ✓ charting   04 #10   05 #12
 
-   10 open tickets ── 7 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
+   12 open tickets ── 8 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
 ```
 
 ---
@@ -231,20 +242,22 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
 
 1. ~~#19 reorg · #7 tracker primitives · #3 stages and seam · #4 tracker contract ·
    #20 overview doc · #5 charting contract · #11 the charting template ·
-   #22 the charting stage doc · #13 the adapters and the retrofit~~ **Done.**
-2. `/wayfinder 1 9` — **the kill gate. Take this next.** It is the only stage with nothing
-   written and everything downstream leaning on it: #3 made the gate's "build" verdict the
-   thing that *creates the repo*, so #10 bootstrap, #12 backlog and the whole seam assume a
-   gate that has never been described. It also fills `docs/solo/02`, the one hole in the
-   middle of the stage sequence.
-3. Then the rest of the stage conversations — #10 bootstrap, #12 backlog, #14 guardrails,
+   #22 the charting stage doc · #13 the adapters and the retrofit ·
+   #9 the kill gate design~~ **Done.**
+2. `/wayfinder 1 25` — **write the kill gate stage doc. Take this next.** It is a make with
+   nothing left to decide, it fills `docs/solo/02` — the one hole in the middle of the stage
+   sequence — and `01-the-solo-path.md` already links to the filename. A writing session on
+   a fresh context window is exactly what the escape valve spun it out for.
+3. `/wayfinder 1 26` — the `/pitch` skill and the `pitch-judge` agent. Independent of #25,
+   so either order; doing #25 first means the doc it links to exists.
+4. Then the rest of the stage conversations — #10 bootstrap, #12 backlog, #14 guardrails,
    #15 stack→agents, #18 progress, #21 stack choice — in any order. Each writes its own
    `docs/solo/` doc at the number reserved above. **#10 and #21 should both read
    `03-charting.md` first** — the tail is written reader-facing there, and both inherit the
    wrinkle below.
-4. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
+5. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
    and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
-5. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
+6. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
 
 Plain `/wayfinder 1` takes the first frontier ticket in map order — currently
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
@@ -264,6 +277,11 @@ Name the ticket.
   in prose. **#21 owns settling it** — the question is *what the stack ticket decides*,
   which is #21's subject; **#10 only consumes the answer.** Assigned deliberately, because
   a question two tickets each assume the other will answer is a question nobody answers.
+- **Four docs have H1 headings that no longer match their filenames.** `shared/11-adapting-to-your-stack.md`
+  says `# 12`, `shared/12-when-not-to-use.md` says `# 13`, `team/01-metrics.md` says `# 11`,
+  `team/02-team-adoption.md` says `# 14` — exactly the four #19 renumbered, since #19
+  deliberately left prose alone. The other ten match. **Found by #9 and handed to #17**, whose
+  list did not cover it. The check is comparing `head -1` to the filename across `docs/**`.
 - **There is an open housekeeping ticket outside this map.**
   [#17 Docs housekeeping](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/17)
   is **not** a child of #1 — it is pre-existing rot in the agile path. It owns the stray
@@ -309,12 +327,13 @@ Name the ticket.
 - **`gh` will not auto-create labels.** Create before applying.
 - **`gh api` breaks on Git Bash for Windows with a leading-slash path.** `/repos/…` gets
   rewritten to `C:/Program Files/Git/repos/…`. Always omit the leading slash.
-- **Ticket bodies carry pre-reorg doc paths.** #9, #10 and #12 still say
+- **Ticket bodies carry pre-reorg doc paths.** #10 and #12 still say
   `docs/07-the-flows.md`, `docs/13-when-not-to-use.md`, `docs/12-adapting-to-your-stack.md`.
   Post-#19 those are `docs/shared/07-the-flows.md`, `docs/shared/12-when-not-to-use.md` and
   `docs/shared/11-adapting-to-your-stack.md` — **two changed number as well as directory**.
-  **#11 has been fixed**; the other three have not. Re-resolve every path in a ticket body
-  before acting on it.
+  **#11 was fixed, and #9 hit this live** — its body said `docs/13-when-not-to-use.md`, which
+  is now `docs/shared/12-…`; #25 and #26 carry corrected paths. #10 and #12 have not been
+  fixed. Re-resolve every path in a ticket body before acting on it.
 - **GitLab's API docs are wrong about blocking.** Blanket Free/Premium/Ultimate badge, but
   `blocks` links actually 403 on Free. This is why GitLab ships as a shape, not an adapter.
 - ~~**The local adapter's `Status:` line is overloaded**~~ — **moot, and worth knowing why.**
@@ -333,6 +352,40 @@ Name the ticket.
   `[text](target)` against the filesystem.
 
 ---
+
+## What #9 handed forward
+
+- **The gate is `/pitch`, and it is a skill plus a doc.** A doc alone cannot stop you nodding
+  at your own checklist, and the gate has real AFK work a reader cannot do quickly. `/idea`
+  was **rejected on principle** — this map ruled idea *generation* out of scope and that name
+  promises exactly the thing the playbook refuses to do.
+- **Question zero is the piece nothing on the map had.** *What does this idea's value rest
+  on* — novelty, execution, or the building itself. It decides which later questions are
+  allowed to kill **and** how the search agents are briefed, and it is asked **first** so you
+  commit before you know which question is loaded. Without it the gate is uniformly harsh,
+  which means it is uniformly ignored.
+- **Sycophancy is beaten structurally.** Instructing a model to be harsh produces performative
+  meanness that readers learn to ignore. What works: cold subagents that never heard your
+  enthusiasm, the agent committing to its verdict **before** you give yours, a mandatory
+  case-for-killing, and `pitch-judge` on an **anonymised case file**. Any later ticket
+  designing an honesty mechanism should **link here, not re-derive it.**
+- **A transcript cannot be anonymised** — one side asks every question and one side says *let
+  me go and search*, so the judge identifies who is who in two lines. Hence a **case file**:
+  no dialogue, verdicts labelled 1 and 2 in random order. Worth remembering for any future
+  blind-review design.
+- **The asymmetry that keeps the teeth:** the judge counts in **both** directions and breaks
+  ties, but a hard kill that has fired **cannot be un-fired by anyone**. It can fire one the
+  other two missed.
+- **#25 and #26 carry every decision inline**, the same way #5 rewrote #11. Neither writing
+  session has to re-derive anything, and neither may decide anything new.
+- **The two cold searches are `/research` subagents**, not new agent templates — #5's
+  points-at-skills rule. Only `pitch-judge` needed inventing.
+- **A patch of fog closed without a ticket.** *Where ideas wait before the gate* is answered by
+  the ideas file: unjudged entries are the inbox. Removed from **Not yet specified**.
+- **#10 inherits nothing new**, but it should know the gate now produces a **seeded** issue #1
+  — Destination, the premise, the smallest version, and the hard part as the first `research`
+  ticket. Bootstrap still scaffolds and never creates.
+- **No memory written**, per #5's one-per-map rule. The map is still open.
 
 ## What #13 handed forward
 
