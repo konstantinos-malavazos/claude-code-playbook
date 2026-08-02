@@ -6,7 +6,7 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 2 August 2026, after resolving
-> [#11 Write the charting skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/11).
+> [#22 Write the charting stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/22).
 > Regenerate rather than trust — the one-call frontier query is:
 > ```
 > gh api repos/konstantinos-malavazos/claude-code-playbook/issues/1/sub_issues --paginate \
@@ -33,13 +33,13 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 9 |
-| Tickets open | 13 |
-| On the frontier (takeable now) | 12 |
+| Tickets closed | 10 |
+| Tickets open | 12 |
+| On the frontier (takeable now) | 11 |
 | Blocked | 1 — only the capstone |
-| Repo files changed since the effort began | 30 + this file |
+| Repo files changed since the effort began | 32 + this file |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | clean — #11's three files are committed and pushed |
+| Working tree | **dirty — #22's two files are uncommitted, for review** |
 
 **Every gate is open** and has been since #5. The map is no longer a dependency graph but a
 **work queue** — session choice is about attention and appetite, not about what is unlocked.
@@ -47,9 +47,12 @@ Nothing waits on anything except
 [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16),
 which waits on everything.
 
-**The first deliverable of the charting effort is on disk.** #11 was the hardest artifact on
-the map and the first ticket resolved under the decide-or-make rule as a *make*. It ended
-exactly where a make should — with the file written and nothing new decided.
+**The charting pair is complete.** #11 wrote the skill; #22 wrote the stage doc that points
+at it and supplies the solo destination the skill deliberately does not know. Two makes in
+a row, both ending where a make should — file written, nothing new decided.
+
+**`docs/solo/` is now 2 of 5.** `01` the spine and `03` charting. The three remaining stage
+docs each ride on their design ticket.
 
 ---
 
@@ -101,6 +104,7 @@ entrances are visible at once.
 | [#20 Write the solo path overview doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/20) | **Done — `docs/solo/01-the-solo-path.md` is on master.** An index, not a summary. **Sets the `docs/solo/` numbering** (below). |
 | [#5 The charting skill's contract](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/5) | **The skill is `charting`, and it is general.** Eight decisions — see the section below. |
 | [#11 Write the charting skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/11) | **Done — `templates/skills/charting/SKILL.md` is written.** All eight of #5's decisions carried; nothing reopened. Three `<PLACEHOLDER>`s, two of which are waiting on other tickets. |
+| [#22 Write the charting stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/22) | **Done — `docs/solo/03-charting.md` is written.** States the solo destination and the trap beside it (that is where the *path* ends, not where *charting* ends). Authored two things nothing had settled: the **cleared-vs-abandoned test**, and that **charting cannot reopen the kill gate**. Found a wrinkle in #3's tail — see below. |
 
 ### The layout #2 decided — now live
 
@@ -119,7 +123,7 @@ Numbering restarts at `01` per directory.
 |---|---|---|
 | `01-the-solo-path.md` | the overview — **written** | #20 |
 | `02-the-kill-gate.md` | the kill gate | #9 |
-| `03-charting.md` | charting | #22 |
+| `03-charting.md` | charting — **written** | #22 |
 | `04-the-bootstrap.md` | the bootstrap | #10 |
 | `05-the-backlog.md` | the backlog | #12 |
 | `06+` | everything else solo — guardrails, progress, resuming, stack→agents | in the order they are written |
@@ -178,20 +182,19 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Twelve tickets. Nothing gates anything but the capstone.
+Eleven tickets. Nothing gates anything but the capstone.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#22 Write the charting stage doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/22) | make | **Take this next.** The skill it documents was written one session ago. |
-| [#13 Tracker adapter templates + the Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13) | make | Fully settled — execution, not judgement. Owns `<TRACKER-ADAPTER-PATH>`. |
+| [#13 Tracker adapter templates + the Jira retrofit](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/13) | make | **Take this next.** Fully settled — execution, not judgement. Owns `<TRACKER-ADAPTER-PATH>`, which both charting files now point at. |
 | [#9 The kill gate](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/9) | grilling | writes `docs/solo/02` |
-| [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04` |
+| [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | grilling | writes `docs/solo/04`. Consumes #21's answer on the tail wrinkle; does not settle it. |
 | [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05` |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | — |
 | [#15 Tech stack into working agents and skills](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15) | grilling | starts from a stack already chosen |
 | [#18 How progress is measured on the solo path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18) | grilling | — |
 | [#8 Resuming an effort across dozens of sessions](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8) | grilling | **must check #5's §8 boundary first** |
-| [#21 How the tech stack actually gets chosen](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/21) | grilling | freed by #5 |
+| [#21 How the tech stack actually gets chosen](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/21) | grilling | freed by #5. The tail is now written reader-facing in `03-charting.md` — **extend it, do not re-derive it**. **Owns the tail wrinkle.** |
 | [#23 Write the prototype skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/23) | make | side quest — but it now owns a live `<PLACEHOLDER>` in the charting template |
 | [#24 The playbook's own domain-modeling skill](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/24) | grilling | side quest, blocks nothing |
 
@@ -199,20 +202,23 @@ Twelve tickets. Nothing gates anything but the capstone.
 
 | Ticket | Waiting on |
 |---|---|
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 10 open blockers — the capstone |
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | 9 open blockers — the capstone |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
         ── #6 native capabilities · #7 tracker primitives
         ── #19 the reorg · #20 the solo path overview
-        ── #11 the charting skill template   ◄── first make shipped
+        ── #11 the charting skill template  ┐ the charting pair —
+        ── #22 the charting stage doc       ┘ skill + the doc pointing at it
 
-   #11 left three placeholders:
-        <TRACKER-ADAPTER-PATH>       ──► #13
+   #11 left three placeholders, still open:
+        <TRACKER-ADAPTER-PATH>       ──► #13   (#22 deliberately did not name it)
         <PROTOTYPE-SKILL-OR-NONE>    ──► #23
         <LABEL-PREFIX>               ──► never, reader's own convention
 
-   all 12 open tickets ──────────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
+   docs/solo/  01 ✓ spine   02 #9   03 ✓ charting   04 #10   05 #12
+
+   all 11 open tickets ──────────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
 ```
 
 ---
@@ -222,22 +228,21 @@ Twelve tickets. Nothing gates anything but the capstone.
 Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh context window.
 
 1. ~~#19 reorg · #7 tracker primitives · #3 stages and seam · #4 tracker contract ·
-   #20 overview doc · #5 charting contract · #11 the charting template~~ **Done.**
-2. `/wayfinder 1 22` — **write the charting stage doc.** Take this next for the same reason
-   #11 was taken next: the thing it documents was written one session ago, and every session
-   you leave between them is one more re-read of the template from cold. It supplies the
-   solo destination the skill deliberately does not know, and it must **not** restate the
-   seam or re-explain fog / decide-or-make — `01-the-solo-path.md` owns the first, the
-   template owns the rest.
-3. `/wayfinder 1 13` — the adapter templates and the Jira retrofit. Settled content,
-   execution not judgement. Good for a session with less attention to spare. It also
-   resolves `<TRACKER-ADAPTER-PATH>`, which the charting template now points at.
-4. Then the stage conversations — #9 kill gate, #10 bootstrap, #12 backlog, #14 guardrails,
+   #20 overview doc · #5 charting contract · #11 the charting template ·
+   #22 the charting stage doc~~ **Done.**
+2. `/wayfinder 1 13` — **the adapter templates and the Jira retrofit. Take this next.**
+   Settled content, execution not judgement — good for a session with less attention to
+   spare, and the only make left that nothing else is waiting behind. It resolves
+   `<TRACKER-ADAPTER-PATH>`, which **both** charting files now point at, so it is the last
+   thing keeping the charting pair from being fully wired.
+3. Then the stage conversations — #9 kill gate, #10 bootstrap, #12 backlog, #14 guardrails,
    #15 stack→agents, #18 progress, #21 stack choice — in any order. Each writes its own
-   `docs/solo/` doc at the number reserved above.
-5. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
-   and #8 must respect it.
-6. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
+   `docs/solo/` doc at the number reserved above. **#10 and #21 should both read
+   `03-charting.md` first** — the tail is written reader-facing there, and both inherit the
+   wrinkle below.
+4. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
+   and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
+5. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
 
 Plain `/wayfinder 1` takes the first frontier ticket in map order — currently
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
@@ -247,6 +252,16 @@ Name the ticket.
 
 ## Gotchas found so far
 
+- **#3's tail has an ambiguous sentence, and decide-or-make made it matter.** On whether a
+  stack gates on a green test command, #3 says *"the test half is optional, and **the stack
+  ticket** decides"* — then immediately *"which is what **the tail's second ticket** is
+  for."* Those are two different tickets. Under #5's decide-or-make the second reading makes
+  the tail's second ticket both a decision and a make, which is the exact collision the rule
+  forbids. **#22 took the first reading** (ticket 1 decides the stack *and* the test gate;
+  ticket 2 writes the commands down) and wrote `03-charting.md` to it without adjudicating
+  in prose. **#21 owns settling it** — the question is *what the stack ticket decides*,
+  which is #21's subject; **#10 only consumes the answer.** Assigned deliberately, because
+  a question two tickets each assume the other will answer is a question nobody answers.
 - **There is an open housekeeping ticket outside this map.**
   [#17 Docs housekeeping](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/17)
   is **not** a child of #1 — it is pre-existing rot in the agile path. It owns the stray
@@ -305,13 +320,39 @@ Name the ticket.
 
 ---
 
+## What #22 handed forward
+
+- **`docs/solo/03-charting.md` exists.** It is the reader-facing home for the charting
+  stage. Anything wanting to explain the destination-vs-stopping-point distinction, the
+  tail and its escape, the two endings, or what a charting session feels like should
+  **link to it, not restate it.**
+- **Two things were authored there that no ticket had settled.** The **cleared-vs-abandoned
+  test** — *"would this fact have changed the gate's verdict, if you had known it at the
+  gate?"*, explicitly not *"is this hard"* — and that **charting cannot reopen the kill
+  gate**; the way to un-decide *build* is to abandon. Both are reader-facing guidance, not
+  contract, and both are open to being pushed back on.
+- **#10** gets a promise it must keep: the doc tells readers the tail's checks are *what
+  stage 3 runs to prove it is done.*
+- **#21** must extend the tail rather than re-derive it — the rule, the reason product
+  decisions go first, and the offline-question escape are all written out already.
+- **#8** has a hook: the doc says a dying session posts a progress comment and keeps the
+  claim, then defers resuming to "its own doc".
+- **`<TRACKER-ADAPTER-PATH>` was deliberately left unnamed**, against what this file
+  previously said #22 would supply. #13 owns the installed path; the doc speaks only the
+  abstract verbs, so nothing breaks when #13 sets the value. **`<LABEL-PREFIX>` was left out
+  entirely** — reader's own convention, and label naming is skill internals, out of place in
+  a stage doc.
+- **No memory written.** Same as #11 — #5's one-per-map rule, and the map is still open.
+
 ## What #11 handed forward
 
 - **`templates/skills/charting/SKILL.md` exists.** Any later ticket that wants to explain
   fog of war, decide-or-make, the leading-gist rule, the ticket types, or the tracker verbs
   should **link to it, not restate it.** That is now the single source for the mechanics.
-- **#22** supplies the destination (`backlog + scaffolded + indexed`) and the solo-path
-  values for `<TRACKER-ADAPTER-PATH>` and `<LABEL-PREFIX>`. Read the template first.
+- ~~**#22** supplies the destination (`backlog + scaffolded + indexed`) and the solo-path
+  values for `<TRACKER-ADAPTER-PATH>` and `<LABEL-PREFIX>`.~~ **Done, but only half of it.**
+  #22 supplied the destination; it left both placeholders alone. See *What #22 handed
+  forward* above for why.
 - **#13** owns `<TRACKER-ADAPTER-PATH>` and every verb name. If a verb is renamed there,
   the charting template is the file that breaks.
 - **#23** owns `<PROTOTYPE-SKILL-OR-NONE>`. When the prototype template ships, the whole
