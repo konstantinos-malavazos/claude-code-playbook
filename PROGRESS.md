@@ -6,18 +6,20 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 4 August 2026, after resolving
+> [#35 Write the /bootstrap skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/35)
+> — **`templates/skills/bootstrap/SKILL.md` is written and the bootstrap pair is fully
+> wired.** A make that decided nothing. It is the **first template in the set to set
+> `disable-model-invocation: true`**, applying the skills README's own rule rather than a new
+> one. **It also corrected #34 on the way through: the exit report is seven checks, not
+> eight** — seam item 6 is the backlog, which is stage 4's.
+> The capstone [#16](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16)
+> is down to **four** open edges.
+> The session before it resolved
 > [#34 Write the bootstrap stage doc and retire the count seven](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/34)
-> — **`docs/solo/04-the-bootstrap.md` is written, the seam shows all eight checks, and the
-> count *seven* is gone from every file that stated it.** A make that decided nothing: every
-> claim traces to #10. It also added the two `repo.CLAUDE.md` slots #10 found unowned, and
-> its wider re-grep found **no fifth site** — the first clean re-grep in five tickets.
-> `04-the-bootstrap.md` now carries a *still being written* marker for the `/bootstrap`
-> template, which
-> [#35](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/35) must delete
-> when it lands — #35 is **unblocked and is the one to take next**. The capstone
-> [#16](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) is back
-> **down** to five open edges.
-> The previous session resolved
+> — **`docs/solo/04-the-bootstrap.md`, the seam's eighth check, and the count *seven* gone
+> from every file that stated it.** It also added the two `repo.CLAUDE.md` slots #10 found
+> unowned, and its wider re-grep found **no fifth site** — the first clean re-grep in five
+> tickets. Before that,
 > [#10 The bootstrap: make the pipeline's preconditions true on a new repo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10)
 > — which designed stage 3, grew the seam to eight, and spawned #34 and #35. Before it,
 > [#33 Retire the flat Serena gate from every file that states it](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/33)
@@ -66,11 +68,11 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 20 of 30 |
-| Tickets open | 10 |
-| On the frontier (takeable now) | 9 |
-| Blocked | 1 — the capstone, down to **5** open edges |
-| Repo files changed since the effort began | 54 by the map’s own tickets, + 15 by #28 off-map |
+| Tickets closed | 21 of 30 |
+| Tickets open | 9 |
+| On the frontier (takeable now) | 8 |
+| Blocked | 1 — the capstone, down to **4** open edges |
+| Repo files changed since the effort began | 57 by the map’s own tickets, + 15 by #28 off-map |
 | Branches | none — findings live in ticket comments, not in the repo |
 | Working tree | clean |
 
@@ -128,18 +130,26 @@ pairs were built in **opposite orders**, and it made a visible difference: chart
 template landed first, so its doc never shipped a dead link, while `02-the-kill-gate.md`
 carried a *still being written* marker for one commit. #26 deleted it.
 
-**The remaining makes are #35, #30, #23, and #24's outcome.** Everything else open is a
+**The remaining makes are #30, #23, and #24's outcome.** Everything else open is a
 grilling — three stage and cross-cutting conversations, plus #8.
+
+**The exit report is seven checks, not eight — #35 caught #34's error a session later.**
+Seam item 6 is *the backlog exists*, which is stage 4's, so stage 3 cannot speak to it. The
+seam went from seven to eight **inside #34**, so every *seven* in its body read as a stale
+count to be updated; one of them was counting a different set. **When a ticket retires a
+number, not every instance of that number is the number being retired.** No grep of `master`
+could have caught it — it was inside the doc being written.
 
 **`docs/solo/` is 4 of 5.** `01` the spine, `02` the kill gate, `03` charting, `04` the
 bootstrap. Only `05` is missing, and it still rides on its design ticket, #12 — the last
 stage with no doc of its own.
 
-**Both remaining stage pairs are now doc-first, and the third pair is mid-flight.** The
-bootstrap doc shipped before its template, exactly as the kill gate did, so
-`04-the-bootstrap.md` carries a *still being written* marker for the `/bootstrap` skill that
-**#35 must delete when it lands**. Charting remains the only pair built template-first, and
-the only one that never shipped a dead link.
+**All three stage pairs are now fully wired.** Charting — #11 the skill, #22 the doc. The
+kill gate — #25 the doc, #26 the skill and the judge. The bootstrap — #34 the doc, #35 the
+skill. Two of the three were doc-first and both shipped a *still being written* marker for
+exactly one commit, deleted by the template ticket. **Charting remains the only pair built
+template-first, and the only one that never shipped a dead link** — three pairs in, the
+evidence for template-first is now three for three.
 
 **Two tickets running, two grillings the driver redirected — and both redirects were
 right.** #21's was the bigger one: pushing back on Serena as a universal requirement
@@ -163,9 +173,11 @@ which is why it was one ticket and one commit.
 destination, *and* ten minutes of running something is worth more than a session of reading
 it. Do the probe, then take the map ticket.
 
-**Templates now carry three solo-only entries** — the `charting` and `pitch` skills, and the
-`pitch-judge` agent. The solo/team columns #2 added are doing real work rather than sitting
-all-✓.
+**Templates now carry four solo-only entries** — the `charting`, `pitch` and `bootstrap`
+skills, and the `pitch-judge` agent. The solo/team columns #2 added are doing real work
+rather than sitting all-✓. **`bootstrap` is also the first template to set
+`disable-model-invocation: true`**, which is the skills README's stated rule finally meeting
+a skill with side effects rather than a conversation.
 
 ---
 
@@ -315,17 +327,16 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Nine tickets. #34 closed and **#35 came off the blocked list to replace it**, so the count
-held for a second session running.
+Eight tickets. #35 closed and nothing replaced it — **the first time the frontier has
+shrunk since #10**, and it will keep shrinking now: every stage pair is wired.
 
-**Three of the nine have their decisions banked.** #35, #30 and #23 are makes. Everything
+**Two of the eight have their decisions banked.** #30 and #23 are makes. Everything
 else is a real conversation — worth knowing before you open one expecting a writing job.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#35 Write the /bootstrap skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/35) | make | **take this next** — #34 unblocked it and left it a live obligation: `04-the-bootstrap.md` carries a *still being written* marker for this template, and **#35 deletes it**, exactly as #26 did for `02-the-kill-gate.md`. The doc owns *why the seven steps are in this order*; the template owns *how to run them*. |
-| [#30 Write the stack-choice doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/30) | make | **all ten of #21's decisions carried inline** — decide nothing. Own file, **next free `docs/solo/` number at write time**. Must not restate `03-charting.md`'s tail (that owns placement; this owns method). **#10 answered its one open boundary**: ticket 1 names the layer chain too, so decision 8's split now has three items, not two. **#34 left it two unlinked references** — `04-the-bootstrap.md` says the stack-choice method "is being written as its own doc" in two places rather than guessing a filename, because #30 forbids claiming a number in advance. **#30 fills both in when it picks its number.** |
-| [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05`. **Take it template-first if you can** — #10 chose doc-first for stage 3 and #35 inherited the dead-link risk, which is now live on disk. |
+| [#30 Write the stack-choice doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/30) | make | **take this next** — **all ten of #21's decisions carried inline**, decide nothing. Own file, **next free `docs/solo/` number at write time**. Must not restate `03-charting.md`'s tail (that owns placement; this owns method). **#10 answered its one open boundary**: ticket 1 names the layer chain too, so decision 8's split now has three items, not two. **#34 left it two unlinked references** — `04-the-bootstrap.md` says the stack-choice method "is being written as its own doc" in two places rather than guessing a filename, because #30 forbids claiming a number in advance. **#30 fills both in when it picks its number.** |
+| [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | grilling | writes `docs/solo/05`, the **last stage doc**. **Take it template-first if you can** — three pairs in, the only one that never shipped a dead link is the one built template-first. |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | **#10 handed it one and #34 sharpened it into a collision**: `block-infra-staging.sh` blocks staging `CLAUDE.md` and `.claude/`, and step 2 of the bootstrap *writes* a `CLAUDE.md` into the repo. So it is not commit-vs-push as a preference — the stage's own output is unstageable under a hook the playbook ships. |
 | [#15 Tech stack into working agents and skills](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15) | grilling | starts from a stack already chosen. **#21 pre-answered its input** (reads `CLAUDE.md` + memory two, never the map) and **#10 pre-answered its bootstrap boundary** (it owns *how*, stage 3 owns *when*) — and gave its where-do-files-land decision a second consequence: land them in `~/.claude/` and step 4 of the bootstrap must stop for the human. |
 | [#18 How progress is measured on the solo path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18) | grilling | — |
@@ -337,7 +348,7 @@ else is a real conversation — worth knowing before you open one expecting a wr
 
 | Ticket | Waiting on |
 |---|---|
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | **5 open blockers** — #34 came off. #33 **handed it the phrase to use**: *a backlog of work units on a scaffolded repo that passes the seam*, which is what the front door must say instead of *"Serena-indexed repo"*. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — three templates now claim the solo column only, and that will keep growing. |
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | **4 open blockers** — #34 and #35 both came off. #33 **handed it the phrase to use**: *a backlog of work units on a scaffolded repo that passes the seam*, which is what the front door must say instead of *"Serena-indexed repo"*. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — **four** templates now claim the solo column only, and `bootstrap` is the first to set `disable-model-invocation`. |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -383,13 +394,21 @@ else is a real conversation — worth knowing before you open one expecting a wr
                     │    Seven checks green, pipeline with nothing to run.
                     │
                     └──► #16 UP to 6 edges — first increase of the effort
-        ── #34 docs/solo/04 + seam row 8 ┐ the bootstrap pair —
-                    │                     ┘ doc FIRST, template #35 next
+        ── #34 docs/solo/04 + seam row 8   ┐ the bootstrap pair —
+        ── #35 templates/skills/bootstrap/ ┘ doc FIRST, template second
                     │      the count SEVEN is gone from all four sites;
                     │      a wider re-grep found no fifth — the first time
                     │      in five tickets. #10 had already widened the list.
                     │
-                    └──► #16 back DOWN to 5 edges
+                    ├──► #35 CORRECTED #34: the exit report is SEVEN checks.
+                    │    Item 6 is the backlog — stage 4's, not stage 3's.
+                    │    The seam went 7 → 8 inside #34, so every "seven"
+                    │    read as stale. One was counting a different set.
+                    │
+                    ├──► first template to set disable-model-invocation,
+                    │    applying the skills README's own rule
+                    │
+                    └──► #16 DOWN to 4 edges. All three stage pairs wired.
 
    #11 left three placeholders. One is left:
         <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
@@ -403,7 +422,7 @@ else is a real conversation — worth knowing before you open one expecting a wr
                05 #12 the backlog — the last stage with no doc
                06+ #30 stack choice, then #14 #15 #18 in write order
 
-   10 open tickets ── 5 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
+   9 open tickets ── 4 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
 ```
 
 ---
@@ -432,12 +451,11 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
    count *seven* retired from all four sites, two slots added to `repo.CLAUDE.md`. The wider
    re-grep found **no fifth site** — the first time in five tickets, because #10 had already
    widened the list before writing the body.
-9. `/wayfinder 1 35` — **the `/bootstrap` skill template. This is the one to take.**
-   Unblocked by #34, and it carries an obligation: delete the *still being written* marker
-   `04-the-bootstrap.md` now shows for it. The doc owns *why this order*; the template owns
-   *how to run it*. Same shape as #26 after #25.
-10. `/wayfinder 1 30` — **write the stack-choice doc.** A make with every decision banked.
-   Good for a session with less appetite. Takes the next free `docs/solo/` number.
+9. ~~#35, the `/bootstrap` skill template.~~ **Done.** The bootstrap pair is wired, the
+   marker is deleted, and it is the first template to set `disable-model-invocation: true`.
+   It also **corrected #34**: the exit report is seven checks, not eight.
+10. `/wayfinder 1 30` — **write the stack-choice doc. This is the one to take.** A make with
+   every decision banked. Takes the next free `docs/solo/` number.
    **Its layer-chain boundary is answered** — ticket 1 names the chain as well as the stack.
    **It also owes two link fixes**: `04-the-bootstrap.md` twice says the stack-choice method
    "is being written as its own doc" rather than naming a file it could not know.
@@ -460,12 +478,22 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
 
 Plain `/wayfinder 1` takes the first frontier ticket in map order — still
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
-Name the ticket. **Take #35.**
+Name the ticket. **Take #30.**
 
 ---
 
 ## Gotchas found so far
 
+- **When a ticket retires a number, not every instance of that number is the number being
+  retired.** #34 changed the seam from seven checks to eight and swept the count out of four
+  files — correctly. Writing the same doc, it also turned *"one red among seven"* into
+  *"among eight"*, because in a session whose whole job is replacing *seven* with *eight*,
+  every *seven* looks stale. That one was counting a **different set**: the checks stage 3
+  can actually make true, which is seven of the eight because item 6 is the backlog and
+  belongs to stage 4. **No grep of `master` could have caught it** — the error was inside the
+  new file, introduced by the same edit that was fixing the real instances. What catches it
+  is asking *what is this number counting?* on every hit, which is slower than sweeping and
+  is the price of a sweep that changes a number's meaning. Found by #35, one session later.
 - **A guardrail that blocks a path can block a flow that *generates* files on that path.**
   `templates/hooks/block-infra-staging.sh` refuses to stage anything matching `CLAUDE.md` or
   `.claude/`, which is exactly right while those files are hand-written config the agent
@@ -806,11 +834,38 @@ Name the ticket. **Take #35.**
 
 ---
 
+## What #35 handed forward
+
+- **The bootstrap pair is closed and nothing is owed back.** The marker is deleted, the
+  catalogue row and README entry are in, and `04-the-bootstrap.md`'s only remaining dead link
+  is `05-the-backlog.md` — #12's, and one `01` has always carried.
+- **#12 should go template-first.** Three pairs are now built and the pattern is unambiguous:
+  the only one that never shipped a dead link is charting, the only template-first one. The
+  cost of doc-first is one commit of a knowingly false marker, twice honoured — but honoured
+  because the tracking file said so, not because anything enforces it.
+- **A convention got its first application, and the README now shows it working.**
+  `disable-model-invocation: true` had a stated rule and zero users, which is how a rule
+  quietly becomes decoration. `bootstrap` is the first skill in the set with side effects
+  rather than a conversation. **When a convention has no instances, the next thing that
+  matches it is worth applying it to loudly** — the README section was retitled, not just
+  extended.
+- **A skill's `allowed-tools` is not a fence, and this nearly mattered.** The instinct was to
+  express the bootstrap's line as a tools restriction. For a *skill*, `allowed-tools` is
+  pre-approval for the invoking turn, **not** a restriction — so that would have been a
+  guardrail that guards nothing, the same class of error #28 found twice. The line is written
+  as a rule in the body instead, which is #27's lesson landing on a skill rather than an
+  agent: **describe what must not be accomplished, not the frontmatter you think expresses
+  it.**
+- **#29's cheap half has a new candidate.** The one claim here worth ten minutes of running:
+  does `disable-model-invocation: true` keep the skill out of Claude's reach while leaving
+  `/bootstrap` typeable? Nothing on this map has verified it.
+
+---
+
 ## What #34 handed forward
 
-- **#35 owes a deletion, not just a file.** `04-the-bootstrap.md` opens with a *still being
-  written* marker for the `/bootstrap` skill template. #26 had the same obligation from #25
-  and honoured it; **#35 must too**, or the doc ships a permanent lie about its own pair.
+- ~~**#35 owes a deletion, not just a file.**~~ **Done** — the marker is gone, one commit
+  after it appeared, exactly as #26 did for #25's.
 - **#30 owes two link fixes.** #34 could not link the stack-choice doc, because #30 forbids
   claiming a `docs/solo/` number in advance and **a doc must not guess a filename**. So
   `04-the-bootstrap.md` says the method "is being written as its own doc" in two places and
@@ -843,8 +898,8 @@ Name the ticket. **Take #35.**
   is on the seam table, the count *seven* is retired from all four sites, and
   `01-the-solo-path.md` and `03-charting.md` are safe to quote as current again.
 - **#34 and #35 carry every decision inline**, the same way #30 carries #21's. Neither
-  writing session re-derives anything and neither may decide anything new. **#34 is done and
-  decided nothing**; #35 is now takeable.
+  writing session re-derives anything and neither may decide anything new. **both are done and both
+  decided nothing** — though #35 did have to correct one of #34's numbers.
 - **#15's boundary is settled and it is a three-way split**: #15 owns *how* the specialists
   are generated, stage 3 owns *when*, the seam owns *whether*. Its *how is the layer chain
   elicited* bullet has a floor on the solo path — **read it from `CLAUDE.md`** — while
@@ -858,9 +913,10 @@ Name the ticket. **Take #35.**
 - **#14 inherits a named question:** whether stage 3 ends with a commit, and whether the
   agent may make it. `PHILOSOPHY.md` §5 governs *push*; commit-vs-push on a repo you own has
   never been settled, and stage 3 is the first stage that produces something worth committing.
-- **#12 should go template-first if it can.** #10 chose doc-first for stage 3, so #34 will
-  ship `04-the-bootstrap.md` with a dead link to #35's template for one commit — the same
-  cost the kill gate pair paid. It was the right call here (the doc carries the decisions and
+- **#12 should go template-first if it can.** #10 chose doc-first for stage 3, and
+  `04-the-bootstrap.md` duly shipped with a dead reference to #35's template for one commit
+  — the same cost the kill gate pair paid, honoured because this file said so rather than
+  because anything enforces it. It was the right call here (the doc carries the decisions and
   the template reads from it) but it is a cost, and #12 has a free choice.
 - **The two-memory rule now has an explicit shape, not just a count.** Memory one is *what
   this project is and why*, written by charting when the map closes. Memory two is **only the
