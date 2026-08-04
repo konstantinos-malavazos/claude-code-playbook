@@ -68,23 +68,30 @@ than the two above:
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
 | `charting` | an effort too big for one session and too foggy to plan — maps it into decision tickets on the tracker | ✓ | |
 | `pitch` | a raw idea with no repo — the one-hour kill gate that ends in build, kill or park | ✓ | |
+| `bootstrap` | a decided-but-empty repo — scaffolds it and reports on the pipeline's preconditions. **Runs once per project** | ✓ | |
 
 The **solo** / **team** columns say which entrance needs each template. `charting` was the
-first to claim a single column, and `pitch` is the second: both are stages of the solo
-front-end, which the agile path does not have. Everything above them is shared by both.
+first to claim a single column, and `pitch` and `bootstrap` followed: all three are stages
+of the solo front-end, which the agile path does not have. Everything above them is shared
+by both.
 
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
 
-## On `disable-model-invocation`, and why nothing sets it
+## On `disable-model-invocation` — one skill sets it, and the rule says why
 
 Four of these read as user-invoked — `charting`, `pitch`, `grilling`, `diagnose` — and none
 of them sets `disable-model-invocation: true`, so Claude may load any of them on its own.
 That is left as-is on purpose: all four are **conversations**, and a conversation that
-starts a turn early costs you one redirect. The field earns its place on skills with **side
-effects or timing you own** — a deploy, a commit, a send. If you copy this set and add one
-of those, set it.
+starts a turn early costs you one redirect.
 
-`pitch` is the closest call, since it dispatches subagents and spends real time. Watch it;
-if it ever fires unasked, that is the signal to set the field rather than reword the
-description.
+The field earns its place on skills with **side effects or timing you own** — a deploy, a
+commit, a send. **`bootstrap` is the first template here that meets that test, and it sets
+the field.** It is not a conversation: it scaffolds a repo, writes a `CLAUDE.md`, indexes a
+language server, generates agent files and writes memory. A conversation firing a turn early
+costs a redirect; that firing early costs a tree of files nobody asked for. Same rule,
+applied — not a new one.
+
+`pitch` is the closest remaining call, since it dispatches subagents and spends real time.
+Watch it; if it ever fires unasked, that is the signal to set the field rather than reword
+the description.

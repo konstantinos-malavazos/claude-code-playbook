@@ -12,11 +12,10 @@ The stage answers **make the repo real.** It ends with **one pass/fail report** 
 The stage is **the bootstrap**. The output is a **report**. Two names, kept distinct —
 the stage can finish while the report is red.
 
-> The `/bootstrap` skill template is still being written. This doc owns *why the steps are
-> in this order*; the template will own *how to run them*, the same split
-> [`03-charting.md`](03-charting.md) and
-> [`templates/skills/charting/SKILL.md`](../../templates/skills/charting/SKILL.md) already
-> have.
+You run it with **`/bootstrap`**, from
+[`templates/skills/bootstrap/SKILL.md`](../../templates/skills/bootstrap/SKILL.md). That
+template owns the mechanics and this doc does not repeat them. This doc owns *why the steps
+are in this order*; the template owns *how to run them*.
 
 ---
 
@@ -161,6 +160,10 @@ own question, deliberately left open here.
 
 The last step runs **every** check the tail wrote, produces **one** report, and stops.
 
+**It reports on seven of the seam's eight items, not all eight.** Items 1–5, 7 and 8 are
+stage 3's to make true. Item 6 — *the backlog exists* — belongs to stage 4 and is the one
+thing the report cannot speak to.
+
 ```
    ┌─ THE REPO FOLDER ─ Claude works alone in here ────────────┐
    │                                                           │
@@ -190,10 +193,12 @@ The last step runs **every** check the tail wrote, produces **one** report, and 
                                   │      ─ ─ ►  crosses the line: you see it first
                     ┌─────────────┴─────────────┐
                     ▼                           ▼
-              all eight hold              something is red
-                    │                           │
-                    ▼                     YOU classify it:
-             4. THE BACKLOG               a typo, or a wrong stack
+           all seven hold                something is red
+        (items 1-5, 7, 8 —                     │
+         item 6 is stage 4's)            YOU classify it:
+                    │                    a typo, or a wrong stack
+                    ▼
+             4. THE BACKLOG
 ```
 
 **Some checks will fail, and that is expected** — the tail wrote them blind, against an
@@ -206,7 +211,7 @@ Two failures look identical on the line and are completely different in kind:
 | **The check is wrong** | A typo, a renamed flag, a command that was right in the docs and wrong in this version | Fix it in place and re-run. Not a backwards step. |
 | **The decision is wrong** | The stack cannot actually do this | [The backwards step](03-charting.md#one-backwards-step). Reopen the map. |
 
-**The full list is what tells them apart.** One red among eight reads as a typo. Four reds
+**The full list is what tells them apart.** One red among seven reads as a typo. Four reds
 read as a wrong stack. Stopping at the first failure hides which one you are in, at
 precisely the moment of this stage's most expensive judgement.
 
@@ -243,7 +248,7 @@ proposed and killed — is being written as its own doc.
 | **A `CLAUDE.md`** | Stack, commands, layer chain, Serena verdict. The permanent home for all four. |
 | **Layer specialists on disk** | Which is what makes [`/start-ticket`](../shared/08-ticket-pipeline.md) able to dispatch at all. |
 | **Two memories** | The seam's arithmetic comes out at exactly two, with no special-casing. |
-| **One report** | Eight checks. Stage 4 runs against a repo that is real, so its tickets can name paths that exist. |
+| **One report** | Seven of the seam's eight items. Stage 4 makes the eighth — the backlog — true, against a repo that is real, so its tickets can name paths that exist. |
 
 ---
 
@@ -261,7 +266,7 @@ Neither answers the questions a reader has while standing **in** the stage:
 - **The repo folder is a blast-radius boundary**, which is a different rule from the
   audience rule the rest of the playbook uses, and it is the one that is right here.
 - **A red check is not automatically a failure of the stack**, and the whole point of
-  reporting all eight at once is to let you tell which kind you are looking at.
+  reporting all seven at once is to let you tell which kind you are looking at.
 
 Read this before your first bootstrap. Read [01-the-solo-path.md](01-the-solo-path.md) for
 the seam it is proving, and [03-charting.md](03-charting.md) for where the stack, the chain
