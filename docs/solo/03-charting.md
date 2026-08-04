@@ -27,7 +27,7 @@ On the solo path the destination is always the same:
 
 > **A backlog of work units on a scaffolded repo that passes the seam.**
 
-The seam is the seven checks in
+The seam is the eight checks in
 [the spine doc](01-the-solo-path.md#the-seam--where-the-solo-path-stops); it owns them in
 full and this doc does not restate them.
 

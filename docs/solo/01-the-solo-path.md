@@ -21,7 +21,7 @@ repeat them.
 |---|---|---|---|---|
 | 1 | **The kill gate** | Is this worth building at all? | A verdict is recorded — **build**, **kill**, or **park**. On *build*: a **private repo exists** and the map is its issue #1. | [02-the-kill-gate.md](02-the-kill-gate.md) |
 | 2 | **Charting** | What are we building, and on what? | Every ticket on the map closed, **the tail resolved last** — or the map is **abandoned**. | [03-charting.md](03-charting.md) |
-| 3 | **The bootstrap** | Make the repo real. | The stack-specific checks written by the tail pass (items 1–5 and 7 of the seam). | [04-the-bootstrap.md](04-the-bootstrap.md) |
+| 3 | **The bootstrap** | Make the repo real. | The stack-specific checks written by the tail pass (items 1–5, 7 and 8 of the seam). | [04-the-bootstrap.md](04-the-bootstrap.md) |
 | 4 | **The backlog** | Cut the decisions into units the pipeline can run. | Work units exist in the tracker, ordered, and **you approved them**. | [05-the-backlog.md](05-the-backlog.md) |
 
 The stage is **charting**; the artifact it produces is **the map**. They never share a
@@ -40,7 +40,7 @@ name — otherwise you can never say which one you mean.
       build / kill        or ABANDONED     never creates        you approved                    │
       / park                   │                │               them                            │
            │                   │                │                    │                          │
-      on BUILD the        the TAIL, last:  its exit test is     runs AFTER              seven checks,
+      on BUILD the        the TAIL, last:  its exit test is     runs AFTER              eight checks,
       agent creates a     1. name the      the tail's           bootstrap, against      all must hold
       PRIVATE repo;          stack         stack-specific       a real indexed repo
       the map is its      2. write the     checks
@@ -70,7 +70,7 @@ Abandoning is a normal ending, not a failure.
 ## The seam — where the solo path stops
 
 The seam is the one thing this doc states **in full**, because it is the only place
-where both entrances are visible at once. When all seven hold, the front-end is done and
+where both entrances are visible at once. When all eight hold, the front-end is done and
 `/start-ticket` works.
 
 | # | Check | How you know it holds |
@@ -82,6 +82,13 @@ where both entrances are visible at once. When all seven hold, the front-end is 
 | 5 | **The tracker adapter is installed** | Exactly one adapter, at the fixed path the global `CLAUDE.md` points at. |
 | 6 | **The backlog exists** | Units are in the tracker, ordered, and **you approved them**. |
 | 7 | **Two memories exist** | Exactly two: *what this project is and who it is for* (the one-paragraph version), and *the stack and the layer chain, and why*. |
+| 8 | **The layer specialists exist** | One agent file per layer of the chain, **on disk**. Item 3 says the chain is declared; this says something can act on it. See [11-adapting-to-your-stack.md](../shared/11-adapting-to-your-stack.md). |
+
+**On item 8 — declared is not the same as built.** Step 4 of
+[`/start-ticket`](../shared/08-ticket-pipeline.md) dispatches the implement step to layer
+specialists. Without item 8 every other check can hold and the pipeline still has nothing
+to dispatch to — the one gap that made this seam eight checks rather than seven. The
+[bootstrap](04-the-bootstrap.md) generates them.
 
 **On item 7 — two named memories, not "some memories".** "Memories were seeded" is not
 testable, and most day-zero facts are noise. But with none at all, `@context-gatherer`

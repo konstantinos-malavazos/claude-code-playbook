@@ -3,7 +3,7 @@
   Copy to <workspace>/<repo>/CLAUDE.md and fill in every <PLACEHOLDER>.
   This is LAYER 3 — facts true ONLY inside this repo. Loaded only when working here.
   Keep it LEAN: the 20 facts that stop a wrong turn, not a re-description of the repo.
-  Point, don't paste — let Serena find the code details.
+  Point, don't paste — where Serena applies, let it find the code details.
   See docs/shared/06-claude-md-layers.md.
 -->
 
@@ -20,6 +20,12 @@
 # run local: <command>
 ```
 
+## Serena
+- Verdict: **<yes / no>** — <if no, one line of why: e.g. "shell + YAML; there is no
+  symbol graph to ask *who calls this?* of">.
+- This line is the project's answer, and it overrides the global default. Nothing else
+  restates it — see `docs/shared/04-serena.md`.
+
 ## Entry points / where things live
 - <Startup / composition root>: `<path>`
 - <The area this repo is usually changed in>: `<path>` (use Serena for the details)
@@ -33,7 +39,14 @@
   `Y` — check before editing.">
 - <e.g. "config key `Z` is duplicated across two files; keep them in sync.">
 
-## This repo's place in the chain
+## The layer chain
+<Keep ONE of the two shapes below and delete the other.>
+
+**A. This repo IS the whole chain** (one repo, every layer — the usual solo shape):
+- Chain: **<layer 1>** ──► **<layer 2>** ──► **<layer 3>**, one specialist agent per layer.
+- Where each lives: `<path>` / `<path>` / `<path>`.
+
+**B. This repo is ONE layer among sibling repos:**
 - Layer: **<LAYER N>** — owned by `@<specialist-N>`.
 - Reads the contract from: `<upstream layer / handoff>`.
 - Writes the contract for: `<downstream layer / handoff>`.
