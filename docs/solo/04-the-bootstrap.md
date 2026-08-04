@@ -25,7 +25,7 @@ are in this order*; the template owns *how to run them*.
 |---|---|
 | **A private repo, empty** | The gate created it. Stage 3 **scaffolds and never creates** — see the spine's *repo is the gate's output* rule. |
 | **A cleared map** | Every decision closed, each one recoverable from its own ticket. |
-| **The stack, and the layer chain** | Named **together**, by the tail's first ticket in [charting](03-charting.md#the-tail). |
+| **The stack, and the layer chain** | Named **together**, by the tail's first ticket in [charting](03-charting.md#the-tail) — by the method in [06-choosing-the-stack.md](06-choosing-the-stack.md). |
 | **The Serena verdict** | Decided with the stack, on the test *will you ever need to ask who calls this?* |
 | **The bootstrap checks** | The tail's second ticket wrote them, against the stack. Stage 3 is the first place they can run. |
 | **One memory** | *What this project is and why*, written when the map closed. Stage 3 writes the second. |
@@ -236,7 +236,8 @@ settled before you got here, for two reasons:
 
 The tail's placement and its ordering rule are in
 [03-charting.md](03-charting.md#the-tail); the *method* — how one candidate stack gets
-proposed and killed — is being written as its own doc.
+proposed and killed, and why the chain is one of the three things ticket 1 decides — is in
+[06-choosing-the-stack.md](06-choosing-the-stack.md).
 
 ---
 

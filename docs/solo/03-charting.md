@@ -155,6 +155,11 @@ Together they are **the tail**, and **neither is takeable while any other ticket
 is open.** Product decisions shape the stack far more than the stack shapes the product, so
 every one of them goes first.
 
+**How the stack actually gets chosen is its own doc** —
+[06-choosing-the-stack.md](06-choosing-the-stack.md). This section owns *placement and
+ordering*; that one owns *method*: read-level rather than write-level, mainstream-first,
+propose-and-kill rather than comparison, and the three things ticket 1 decides.
+
 This is a **rule you follow, not blocker wiring you maintain.** Marking the tail blocked by
 every other ticket would be correct and would also demand a new edge every time you create
 a ticket — the kind of bookkeeping that gets forgotten once and then silently lies to you.
