@@ -25,7 +25,11 @@ session orients to it before choosing a ticket.
 
 On the solo path the destination is always the same:
 
-> **A backlog of work units, on a scaffolded, Serena-indexed repo.**
+> **A backlog of work units on a scaffolded repo that passes the seam.**
+
+The seam is the seven checks in
+[the spine doc](01-the-solo-path.md#the-seam--where-the-solo-path-stops); it owns them in
+full and this doc does not restate them.
 
 That is where the *solo path* ends. It is **not** where *charting* ends, and confusing the
 two is the single easiest way to lose this stage.
@@ -145,7 +149,7 @@ tickets, in this order:
 | | Ticket | Kind |
 |---|---|---|
 | 1 | **Name the stack** | decision |
-| 2 | **Write the bootstrap checks** — the exact build command, the test command if this stack gates on one, the Serena index check | make |
+| 2 | **Write the bootstrap checks** — the exact build command, the test command if this stack gates on one, the Serena index check if the verdict calls for one | make |
 
 Together they are **the tail**, and **neither is takeable while any other ticket on the map
 is open.** Product decisions shape the stack far more than the stack shapes the product, so
@@ -258,7 +262,8 @@ conversation is still the cheapest way to have discovered it.
 
 Serena is **not** indexed yet, and that is correct rather than broken — the repo is a day
 old and empty. Stage 3 is what makes [seam check 4](01-the-solo-path.md#the-seam--where-the-solo-path-stops)
-true. See [04-serena.md](../shared/04-serena.md).
+hold, on whichever branch the tail's verdict put it. See
+[04-serena.md](../shared/04-serena.md).
 
 ---
 

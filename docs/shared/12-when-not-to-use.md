@@ -66,7 +66,11 @@ hidden coupling, undocumented invariants, or tribal knowledge.
 Signs you're here:
 - The planner frequently writes "I'm assuming X" about things you know are wrong.
 - The Serena sweep returns sparse results (few symbols indexed). Fix the index — this is
-  never a reason to fall back to grep, it's a reason to stop.
+  never a reason to fall back to grep, it's a reason to stop. *Unless the project is
+  symbol-poor by nature* (bash, Ansible, config-heavy): there sparse is the correct reading
+  of a real index, and
+  [seam check 4](../solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) has
+  already recorded that verdict.
 - Review comments correctly flag things but miss the *important* things.
 - You can't tell whether a good plan is actually good, or just well-written.
 

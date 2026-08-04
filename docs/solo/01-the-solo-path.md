@@ -5,9 +5,9 @@ wrote and somebody else prioritised. The **solo path** starts a long way upstrea
 that: a raw idea, no repo, nobody to hand you a spec.
 
 It ends at the same place the agile path starts — a **backlog of work units on a
-scaffolded, Serena-indexed repo** — and hands over to
-[`/start-ticket`](../shared/08-ticket-pipeline.md). Everything downstream of that seam
-is already written and is shared by both entrances.
+scaffolded repo that passes [the seam](#the-seam--where-the-solo-path-stops)** — and hands
+over to [`/start-ticket`](../shared/08-ticket-pipeline.md). Everything downstream of that
+seam is already written and is shared by both entrances.
 
 This doc is the **spine**: the four stages, the question each one answers, and the exit
 condition that says you are done with it. Each stage has its own doc; this one does not
@@ -78,7 +78,7 @@ where both entrances are visible at once. When all seven hold, the front-end is 
 | 1 | **The stack is named** | Written down, not in your head. |
 | 2 | **The stub builds and runs** | Not the app — there is no app. The framework's skeleton compiles and starts. *A green test command is optional here; the tail's second ticket decides whether this stack gates on one.* |
 | 3 | **The layer chain is declared** | It is in the repo's `CLAUDE.md`. See [06-claude-md-layers.md](../shared/06-claude-md-layers.md). |
-| 4 | **Serena is indexed** | A symbol search returns **real results**, not empty. See [04-serena.md](../shared/04-serena.md) — and note that [12-when-not-to-use.md](../shared/12-when-not-to-use.md) already says a sparse index means *stop*. This is where that gets caught. |
+| 4 | **Serena matches the verdict** | You look this up; you do not decide it here. The tail decided it and the repo's `CLAUDE.md` records it. *Verdict **yes**: Serena is indexed — a symbol search returns **real results**, not empty. Verdict **no**: Serena is not required here, and `CLAUDE.md` says why.* See [04-serena.md](../shared/04-serena.md), and [12-when-not-to-use.md](../shared/12-when-not-to-use.md#unfamiliar-codebase) for the one case where a sparse index is not a *stop*. |
 | 5 | **The tracker adapter is installed** | Exactly one adapter, at the fixed path the global `CLAUDE.md` points at. |
 | 6 | **The backlog exists** | Units are in the tracker, ordered, and **you approved them**. |
 | 7 | **Two memories exist** | Exactly two: *what this project is and who it is for* (the one-paragraph version), and *the stack and the layer chain, and why*. |

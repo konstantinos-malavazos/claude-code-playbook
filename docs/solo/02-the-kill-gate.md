@@ -272,7 +272,7 @@ project is, an hour after you told the gate.
 
 | Part of the map | What the gate writes into it |
 |---|---|
-| **Destination** | Already known. On this path it is always *a backlog of work units on a scaffolded, Serena-indexed repo* — see [03-charting.md](03-charting.md#the-destination-you-hand-it). Charting never asks. |
+| **Destination** | Already known. On this path it is always *a backlog of work units on a scaffolded repo that passes the seam* — see [03-charting.md](03-charting.md#the-destination-you-hand-it). Charting never asks. |
 | **Notes** | The premise: what it is, who it is for, which of the three classes it is, and **the smallest version**. That last one then sits in front of you every session — the cheapest available brake on charting sprawling into a product nobody asked for. |
 | **First ticket** | **The hard part**, as a `research` ticket. The gate already found it and phrased it sharply, so charting's fog rule makes it a ticket rather than fog — and `research` runs unattended, so charting has work in flight from its first session. Too vague to phrase means it goes into *Not yet specified* instead. |
 

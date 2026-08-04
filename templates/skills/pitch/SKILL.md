@@ -270,7 +270,7 @@ convenient now.
 
 | Section | What you write |
 |---|---|
-| **Destination** | Fixed on this path: *a backlog of work units, on a scaffolded, Serena-indexed repo.* Charting never asks. |
+| **Destination** | Fixed on this path: *a backlog of work units on a scaffolded repo that passes the seam.* Charting never asks. |
 | **Notes** | The premise — what it is, who it is for, the class, and **the smallest version**. That last line then sits in front of the user every session. |
 | **Decisions so far** | Empty. |
 | **Not yet specified** | The hard part, **only if too vague to phrase as a question**. |
