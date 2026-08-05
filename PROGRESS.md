@@ -6,6 +6,39 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 5 August 2026, after resolving
+> [#36 The dependency viewer: one HTML picture for the map and the backlog](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/36)
+> — **the viewer is a shipped HTML page with a data slot, generated on demand into
+> `.claude/`, serving the map and the backlog both.** The adapter fetches, the page draws.
+> Decided only; spawned **#39 the contract fixes** and **#40 the viewer template**, with #40
+> taking #36's place as the real blocker on **#38**.
+> **This file is now load-bearing, and #36 is why.** It decided `PROGRESS.md` and the viewer
+> both stay, split by **who reads them** — this file is prose for the next session and is
+> committed; the viewer is a picture for you and is never committed. That is also the answer
+> to *where does the generated file go*: `.claude/`, where `block-infra-staging.sh` refusing
+> to stage it is the **enforcement, not the obstacle** — the same hook #34 found *wrong* for
+> the bootstrap, because the real difference is **provenance**, which is exactly what #34
+> said the hook expresses badly by talking about paths.
+> **The ticket's own premise was false and cost it the right answer for a whole session.**
+> The map's Notes said *"nothing here ships code"*; `templates/hooks/` has held **seven
+> working bash scripts** since long before this map opened, so "we cannot ship a generator"
+> was never a real constraint. The Notes are corrected. **A constraint nobody checks is
+> indistinguishable from a real one** — and this one was read out of a Note rather than out
+> of the tree.
+> **Two pre-existing defects in the tracker contract surfaced, neither invented by the
+> viewer** (both are #39's): **`read` never included comments**, so on GitHub *"read ticket
+> #12"* hands back **2,224 chars of question and 0 of answer** while the resolution comment
+> holds **14,193** — and charting's own *zoom a closed ticket* instruction has rested on that
+> since #5 made the resolution comment the most load-bearing line in the contract. And the
+> contract needs **a second composed verb, *the whole graph***, which breaks its own boast of
+> *"twelve small verbs and exactly one composed verb"* and should, because it earns its place
+> on the **identical test the frontier already passed**: the cheapest answer differs per
+> tracker and every caller wants the same thing.
+> Verified live, so do not re-derive: `…/issues/1/sub_issues --paginate` returns all 33
+> children **with bodies**, and `…/issues/comments --paginate` returns all 52 comments
+> **repo-wide in one paginated call** — so a self-contained page costs **two** requests, not
+> 66. Nothing else here is verified: the open risk is whether a ~420 KB page with 33 boxes
+> still reads clearly, which is #40's to check.
+> The session before it resolved
 > [#37 Write the cutting stage doc and rename the stage](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/37)
 > — **`docs/solo/05-cutting.md` is written, the stage rename is landed, and `docs/solo/` is
 > six of six.** All four stage docs now exist, end to end, which is what the capstone #16 was
