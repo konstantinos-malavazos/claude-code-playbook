@@ -1,0 +1,547 @@
+<!--
+  ═══════════════════════════════════════════════════════════════════════════════
+  DEPENDENCY GRAPH — a shipped page with a data slot.
+
+  The adapter fetches. This page draws. The skill only moves data between them.
+
+  Install this file at:  ~/.claude/dependency-graph.html   (beside ~/.claude/tracker.md)
+
+  ── HOW TO GENERATE ONE ────────────────────────────────────────────────────────
+  1. Ask the tracker adapter for THE WHOLE GRAPH of the parent (a map, or the
+     backlog's parent). You get every child with its state, claim, blockers, body
+     and comments.
+  2. Shape it into the JSON below and replace the contents of the
+     <script id="graph-data"> slot near the bottom of this file. Nothing else in
+     this file changes, ever.
+  3. Write the result to  .claude/dependency-graph.html  in the repo being worked
+     on — fixed filename, so there is only ever one.
+  4. Ensure the repo's .gitignore contains a line for  .claude/  . The hook
+     block-infra-staging.sh stops this file entering git; the ignore line stops it
+     showing up as untracked noise. Nothing else in the playbook adds that line,
+     and this page can run a whole stage before the repo is scaffolded.
+  5. Open it. One command regenerates AND opens — never one without the other,
+     and never automatically on ticket-close. It is current if you just ran it.
+
+  ── THE DATA SLOT ──────────────────────────────────────────────────────────────
+  {
+    "kind":        "map" | "backlog",
+    "title":       "the map's title, or the project name",
+    "url":         "link back to the tracker (optional)",
+    "generatedAt": "2026-08-05T21:40:00Z — shown as the staleness stamp",
+    "tickets": [
+      {
+        "number":    40,
+        "title":     "...",
+        "state":     "open" | "closed",
+        "url":       "...",
+        "claimedBy": "login, or null when unclaimed",
+        "labels":    ["wayfinder:task"],
+        "blockedBy": [36, 37],          // ticket NUMBERS, not database ids
+        "body":      "markdown — the question",
+        "comments":  [ {"author": "...", "createdAt": "...", "body": "markdown"} ]
+      }
+    ],
+    "sidebar": {                        // a map fills these; a backlog omits them
+      "notYetSpecified": "markdown, verbatim from the map body",
+      "outOfScope":      "markdown, verbatim from the map body"
+    }
+  }
+
+  ── TWO RULES THE GENERATOR MUST FOLLOW ────────────────────────────────────────
+  * Escape  </  as  <\/  everywhere in the JSON. A ticket body containing the
+    literal text </script> otherwise ends the slot early and blanks the page.
+    In a JSON string  <\/  and  </  mean the same thing, so this is always safe.
+  * Emit EVERY comment. Never guess which one is the resolution — on a closed
+    ticket the body is the question and the answer is in a comment, and a
+    heuristic here picks wrong on exactly the ticket you cared about.
+  ═══════════════════════════════════════════════════════════════════════════════
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dependency graph</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1b1b1f; --muted: #5f6368; --line: #d8dade;
+    --panel: #f7f8fa; --link: #0b57d0;
+    --closed-fill: #f1f3f4; --closed-line: #b0b4b9; --closed-fg: #7c8085;
+    --blocked-fill: #fdeceb; --blocked-line: #c5372c; --blocked-fg: #8c2820;
+    --claimed-fill: #fff3d6; --claimed-line: #a9761a; --claimed-fg: #7a5410;
+    --frontier-fill: #d9f2e4; --frontier-line: #0f7a44; --frontier-fg: #0a5730;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a; --fg: #e8eaed; --muted: #9aa0a6; --line: #34363a;
+      --panel: #1e2023; --link: #8ab4f8;
+      --closed-fill: #232528; --closed-line: #4a4d52; --closed-fg: #8b9095;
+      --blocked-fill: #3a1f1c; --blocked-line: #e08b81; --blocked-fg: #f0b7b0;
+      --claimed-fill: #3a2f16; --claimed-line: #e0bb6b; --claimed-fg: #f0d79b;
+      --frontier-fill: #143a27; --frontier-line: #5fd196; --frontier-fg: #9ae7bf;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  a { color: var(--link); }
+
+  header { padding: 14px 20px; border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+  .stamp { color: var(--muted); font-size: 12px; }
+  .stamp b { font-weight: 600; color: var(--fg); }
+
+  .states { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
+  .states span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .chip { width: 26px; height: 13px; border-radius: 3px; display: inline-block; }
+  .chip.closed   { background: var(--closed-fill);   border: 1px solid var(--closed-line); }
+  .chip.blocked  { background: var(--blocked-fill);  border: 1.5px dashed var(--blocked-line); }
+  .chip.claimed  { background: var(--claimed-fill);  border: 2px dotted var(--claimed-line); }
+  .chip.frontier { background: var(--frontier-fill); border: 2.5px solid var(--frontier-line); }
+
+  main { display: flex; align-items: stretch; height: calc(100vh - 108px); }
+  #canvas { flex: 1 1 auto; overflow: auto; padding: 16px; }
+  #sidebar {
+    flex: 0 0 320px; border-left: 1px solid var(--line); background: var(--panel);
+    overflow: auto; padding: 16px 18px;
+  }
+  #sidebar h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin: 0 0 8px; font-weight: 600;
+  }
+  #sidebar section + section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .legend-row {
+    display: flex; gap: 8px; align-items: baseline; padding: 3px 0;
+    cursor: pointer; border-radius: 4px;
+  }
+  .legend-row:hover { background: rgba(127,127,127,.14); }
+  .legend-row .num { font-variant-numeric: tabular-nums; color: var(--muted); flex: 0 0 34px; font-size: 12px; }
+  .legend-row .dot { flex: 0 0 8px; height: 8px; border-radius: 50%; align-self: center; }
+  .legend-row.closed .num, .legend-row.closed .txt { color: var(--closed-fg); }
+  .legend-row .txt { font-size: 12.5px; }
+
+  /* boxes */
+  .node { cursor: pointer; }
+  .node rect { stroke-width: 1.5; }
+  .node.closed   rect { fill: var(--closed-fill);   stroke: var(--closed-line); }
+  .node.blocked  rect { fill: var(--blocked-fill);  stroke: var(--blocked-line); stroke-dasharray: 5 3; }
+  /* Four outlines, not four colours — thick / dotted / dashed / thin-and-small keeps the
+     states apart in greyscale and for a colourblind reader. */
+  .node.claimed  rect { fill: var(--claimed-fill);  stroke: var(--claimed-line); stroke-width: 2; stroke-dasharray: 1.5 3.5; }
+  .node.frontier rect { fill: var(--frontier-fill); stroke: var(--frontier-line); stroke-width: 2.5; }
+  .node text { font-family: inherit; font-size: 13px; font-weight: 600; text-anchor: middle; }
+  .node.closed   text { fill: var(--closed-fg); font-size: 11px; font-weight: 400; }
+  .node.blocked  text { fill: var(--blocked-fg); }
+  .node.claimed  text { fill: var(--claimed-fg); }
+  .node.frontier text { fill: var(--frontier-fg); }
+  .node:hover rect { filter: brightness(0.96); }
+  .node.hit rect { stroke-width: 3.5; }
+  .edge { fill: none; stroke: var(--closed-line); stroke-width: 1.4; }
+  .col-label { fill: var(--muted); font-size: 11px; text-anchor: start; }
+
+  /* detail */
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    display: none; align-items: flex-start; justify-content: center; padding: 40px 20px;
+  }
+  #overlay.open { display: flex; }
+  #detail {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    max-width: 900px; width: 100%; max-height: 100%; overflow: auto; padding: 24px 28px;
+  }
+  #detail .close { float: right; cursor: pointer; border: 0; background: none; color: var(--muted); font-size: 22px; line-height: 1; }
+  #detail h1 { margin: 0 0 6px; font-size: 19px; }
+  #detail .meta { color: var(--muted); font-size: 12.5px; margin-bottom: 18px; }
+  #detail .comment { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 14px; }
+  #detail .comment .who { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .md h1, .md h2, .md h3, .md h4 { font-size: 15px; margin: 20px 0 6px; }
+  .md h1 { font-size: 17px; }
+  .md p, .md ul, .md ol, .md table { margin: 10px 0; }
+  .md code { background: var(--panel); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  .md pre { background: var(--panel); padding: 12px; border-radius: 6px; overflow-x: auto; }
+  .md pre code { background: none; padding: 0; }
+  .md blockquote { margin: 10px 0; padding: 2px 0 2px 14px; border-left: 3px solid var(--line); color: var(--muted); }
+  .md table { border-collapse: collapse; display: block; overflow-x: auto; }
+  .md th, .md td { border: 1px solid var(--line); padding: 5px 9px; text-align: left; font-size: 13px; }
+  .md hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+  .empty { padding: 40px; color: var(--muted); max-width: 640px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="title">Dependency graph</h1>
+  <div class="stamp">
+    <span id="kind"></span>
+    Generated at <b id="stamp">—</b> · regenerate rather than trust
+  </div>
+  <div class="states" id="states"></div>
+</header>
+
+<main>
+  <div id="canvas"></div>
+  <aside id="sidebar"></aside>
+</main>
+
+<div id="overlay"><article id="detail"></article></div>
+
+<script id="graph-data" type="application/json">
+{"kind":"map","title":"","url":"","generatedAt":"","tickets":[],"sidebar":{}}
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  var STATES = ["frontier", "claimed", "blocked", "closed"];
+  var LABELS = {
+    frontier: "frontier — open, unblocked, unclaimed",
+    claimed:  "claimed — someone is on it",
+    blocked:  "blocked — something before it is open",
+    closed:   "closed"
+  };
+
+  /* ── markdown-lite ─────────────────────────────────────────────────────────
+     Enough for ticket bodies and resolution comments: headings, lists, tables,
+     quotes, fences, and inline code/bold/italic/links. Everything is escaped
+     first, so nothing a tracker holds can inject markup. */
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function inline(s) {
+    // Code spans are parked on U+0001 — a control character no tracker text holds —
+    // so a body that literally contains the placeholder cannot corrupt the pass.
+    var code = [];
+    s = s.replace(/`([^`]+)`/g, function (_, c) { code.push(c); return "\u0001" + (code.length - 1) + "\u0001"; });
+    s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>');
+    // Lazy, not [^*]+ — bold spans in these tickets routinely wrap an italic.
+    s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+    s = s.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+    return s.replace(/\u0001(\d+)\u0001/g, function (_, i) { return "<code>" + code[+i] + "</code>"; });
+  }
+
+  function md(src) {
+    var lines = esc(src == null ? "" : src).split(/\r?\n/);
+    var out = [], para = [], list = null, i;
+
+    function flushPara() {
+      if (para.length) { out.push("<p>" + inline(para.join(" ")) + "</p>"); para = []; }
+    }
+    function flushList() {
+      if (list) { out.push("<" + list.tag + ">" + list.items.join("") + "</" + list.tag + ">"); list = null; }
+    }
+    function flush() { flushPara(); flushList(); }
+
+    for (i = 0; i < lines.length; i++) {
+      var ln = lines[i], m;
+
+      if (/^```/.test(ln)) {                                   // fenced code
+        flush();
+        var buf = [];
+        for (i++; i < lines.length && !/^```/.test(lines[i]); i++) buf.push(lines[i]);
+        out.push("<pre><code>" + buf.join("\n") + "</code></pre>");
+        continue;
+      }
+      if (/^\s*$/.test(ln)) { flush(); continue; }
+      if (/^(---+|\*\*\*+)\s*$/.test(ln)) { flush(); out.push("<hr>"); continue; }
+
+      if ((m = ln.match(/^(#{1,6})\s+(.*)$/))) {               // heading
+        flush();
+        var lvl = Math.min(m[1].length, 4);
+        out.push("<h" + lvl + ">" + inline(m[2]) + "</h" + lvl + ">");
+        continue;
+      }
+      if (/^&gt;\s?/.test(ln)) {                               // blockquote
+        flush();
+        var q = [];
+        for (; i < lines.length && /^&gt;\s?/.test(lines[i]); i++) q.push(lines[i].replace(/^&gt;\s?/, ""));
+        i--;
+        out.push("<blockquote>" + inline(q.join(" ")) + "</blockquote>");
+        continue;
+      }
+      if (/^\s*\|.*\|\s*$/.test(ln) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || "")) {   // table
+        flush();
+        var cells = function (row) {
+          return row.trim().replace(/^\||\|$/g, "").split("|").map(function (c) { return inline(c.trim()); });
+        };
+        var head = cells(ln), rows = [];
+        for (i += 2; i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i]); i++) rows.push(cells(lines[i]));
+        i--;
+        out.push("<table><thead><tr><th>" + head.join("</th><th>") + "</th></tr></thead><tbody>" +
+          rows.map(function (r) { return "<tr><td>" + r.join("</td><td>") + "</td></tr>"; }).join("") +
+          "</tbody></table>");
+        continue;
+      }
+      if ((m = ln.match(/^\s*([-*+]|\d+[.)])\s+(.*)$/))) {     // list item
+        flushPara();
+        var tag = /\d/.test(m[1]) ? "ol" : "ul";
+        if (!list || list.tag !== tag) { flushList(); list = { tag: tag, items: [] }; }
+        list.items.push("<li>" + inline(m[2]) + "</li>");
+        continue;
+      }
+      flushList();
+      para.push(ln.trim());
+    }
+    flush();
+    return out.join("\n");
+  }
+
+  /* ── data ──────────────────────────────────────────────────────────────── */
+
+  var el = function (id) { return document.getElementById(id); };
+  var data;
+  try {
+    data = JSON.parse(el("graph-data").textContent);
+  } catch (e) {
+    el("canvas").innerHTML = '<div class="empty"><b>The data slot does not parse.</b><br>' +
+      esc(e.message) + '<br><br>Most likely a ticket body contains <code>&lt;/script&gt;</code> ' +
+      'and the generator did not escape <code>&lt;/</code> as <code>&lt;\\/</code>.</div>';
+    return;
+  }
+
+  var tickets = data.tickets || [];
+  document.title = data.title || "Dependency graph";
+  el("title").textContent = data.title || "Dependency graph";
+  if (data.url) {
+    var a = document.createElement("a");
+    a.href = data.url; a.textContent = " ↗";
+    el("title").appendChild(a);
+  }
+  el("kind").textContent = (data.kind === "backlog" ? "Backlog" : "Map") + " · " + tickets.length + " tickets ·";
+  el("stamp").textContent = data.generatedAt || "unknown";
+
+  if (!tickets.length) {
+    el("canvas").innerHTML = '<div class="empty"><b>The data slot is empty.</b><br><br>' +
+      'This is the shipped template, not a generated picture. Ask the tracker adapter for ' +
+      '<i>the whole graph</i>, fill the <code>graph-data</code> slot, and write the result to ' +
+      '<code>.claude/dependency-graph.html</code>. The recipe is in the comment at the top of this file.</div>';
+    return;
+  }
+
+  var byNum = {};
+  tickets.forEach(function (t) { byNum[t.number] = t; });
+
+  function blockers(t) { return (t.blockedBy || []).filter(function (n) { return n !== t.number; }); }
+
+  function stateOf(t) {
+    if (t.state === "closed") return "closed";
+    var open = blockers(t).filter(function (n) {
+      var b = byNum[n];
+      return !b || b.state !== "closed";   // a blocker outside this graph counts as open
+    });
+    if (open.length) return "blocked";
+    return t.claimedBy ? "claimed" : "frontier";
+  }
+
+  /* rank = 1 + the deepest blocker's rank; columns read left → right, so an
+     arrow always says "this first, then that". */
+  var rank = {}, busy = {};
+  function rankOf(n) {
+    if (rank[n] !== undefined) return rank[n];
+    if (busy[n]) return 0;                 // cycle guard — a cycle is a tracker bug, not a crash
+    busy[n] = 1;
+    var deps = blockers(byNum[n] || {}).filter(function (d) { return byNum[d]; });
+    var r = 0;
+    deps.forEach(function (d) { r = Math.max(r, rankOf(d) + 1); });
+    busy[n] = 0;
+    return (rank[n] = r);
+  }
+  tickets.forEach(function (t) { rankOf(t.number); });
+
+  /* ── layout ────────────────────────────────────────────────────────────── */
+
+  var COL = 160, PAD = 24, GAP = 9;
+  var cols = [];
+  tickets.forEach(function (t) {
+    var r = rank[t.number];
+    (cols[r] = cols[r] || []).push(t);
+  });
+
+  var pos = {}, maxY = 0;
+  cols.forEach(function (col, r) {
+    col.sort(function (a, b) {
+      var ac = a.state === "closed" ? 1 : 0, bc = b.state === "closed" ? 1 : 0;
+      return ac - bc || a.number - b.number;      // live work first, then numeric
+    });
+    var y = PAD + 22;
+    col.forEach(function (t) {
+      var s = stateOf(t);
+      var w = s === "closed" ? 62 : 86, h = s === "closed" ? 22 : 30;
+      pos[t.number] = { x: PAD + r * COL, y: y, w: w, h: h, s: s };
+      y += h + GAP;
+    });
+    maxY = Math.max(maxY, y);
+  });
+
+  var SVGNS = "http://www.w3.org/2000/svg";
+  function svgEl(name, attrs) {
+    var n = document.createElementNS(SVGNS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  var svg = svgEl("svg", {
+    width: PAD + cols.length * COL + 40,
+    height: maxY + PAD,
+    viewBox: "0 0 " + (PAD + cols.length * COL + 40) + " " + (maxY + PAD)
+  });
+  var defs = svgEl("defs");
+  var marker = svgEl("marker", {
+    id: "arrow", viewBox: "0 0 10 10", refX: "9", refY: "5",
+    markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse"
+  });
+  marker.appendChild(svgEl("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: "currentColor" }));
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  cols.forEach(function (col, r) {
+    var lab = svgEl("text", { x: PAD + r * COL, y: PAD + 6, "class": "col-label" });
+    lab.textContent = r === 0 ? "nothing before it" : "after " + r;
+    svg.appendChild(lab);
+  });
+
+  var edgeLayer = svgEl("g"), nodeLayer = svgEl("g");
+  svg.appendChild(edgeLayer); svg.appendChild(nodeLayer);
+
+  tickets.forEach(function (t) {
+    blockers(t).forEach(function (n) {
+      var from = pos[n], to = pos[t.number];
+      if (!from || !to) return;                    // blocker outside the graph: no arrow to draw
+      var x1 = from.x + from.w, y1 = from.y + from.h / 2;
+      var x2 = to.x, y2 = to.y + to.h / 2;
+      var dx = Math.max(30, (x2 - x1) / 2);
+      edgeLayer.appendChild(svgEl("path", {
+        "class": "edge", "marker-end": "url(#arrow)",
+        d: "M " + x1 + " " + y1 + " C " + (x1 + dx) + " " + y1 + ", " + (x2 - dx) + " " + y2 + ", " + x2 + " " + y2
+      }));
+    });
+  });
+
+  function open(t) {
+    var d = el("detail");
+    d.innerHTML = "";
+    var btn = document.createElement("button");
+    btn.className = "close"; btn.textContent = "×"; btn.onclick = close;
+    d.appendChild(btn);
+
+    var h = document.createElement("h1");
+    h.textContent = "#" + t.number + " — " + t.title;
+    d.appendChild(h);
+
+    var meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = stateOf(t) + (t.claimedBy ? " · claimed by " + t.claimedBy : "") +
+      ((t.labels || []).length ? " · " + t.labels.join(", ") : "") +
+      (blockers(t).length ? " · blocked by " + blockers(t).map(function (n) { return "#" + n; }).join(", ") : "");
+    if (t.url) {
+      var link = document.createElement("a");
+      link.href = t.url; link.textContent = " · open in tracker";
+      meta.appendChild(link);
+    }
+    d.appendChild(meta);
+
+    var body = document.createElement("div");
+    body.className = "md";
+    body.innerHTML = md(t.body);
+    d.appendChild(body);
+
+    (t.comments || []).forEach(function (c) {
+      var box = document.createElement("div");
+      box.className = "comment";
+      var who = document.createElement("div");
+      who.className = "who";
+      who.textContent = (c.author || "someone") + (c.createdAt ? " · " + c.createdAt : "");
+      var mdiv = document.createElement("div");
+      mdiv.className = "md";
+      mdiv.innerHTML = md(c.body);
+      box.appendChild(who); box.appendChild(mdiv);
+      d.appendChild(box);
+    });
+
+    el("overlay").classList.add("open");
+    d.scrollTop = 0;
+  }
+  function close() { el("overlay").classList.remove("open"); }
+  el("overlay").onclick = function (e) { if (e.target === el("overlay")) close(); };
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+
+  tickets.forEach(function (t) {
+    var p = pos[t.number];
+    var g = svgEl("g", { "class": "node " + p.s, "data-n": t.number });
+    g.appendChild(svgEl("rect", { x: p.x, y: p.y, width: p.w, height: p.h, rx: 5 }));
+    var tx = svgEl("text", { x: p.x + p.w / 2, y: p.y + p.h / 2 + 4.5 });
+    tx.textContent = "#" + t.number;
+    g.appendChild(tx);
+    var tip = svgEl("title");
+    tip.textContent = "#" + t.number + " — " + t.title + "  (" + p.s + ")";
+    g.appendChild(tip);
+    g.addEventListener("click", function () { open(t); });
+    nodeLayer.appendChild(g);
+  });
+
+  el("canvas").appendChild(svg);
+
+  /* ── header counts + sidebar ───────────────────────────────────────────── */
+
+  var counts = {};
+  tickets.forEach(function (t) { var s = stateOf(t); counts[s] = (counts[s] || 0) + 1; });
+  STATES.forEach(function (s) {
+    var row = document.createElement("span");
+    row.innerHTML = '<i class="chip ' + s + '"></i>' + esc(LABELS[s]) + " · " + (counts[s] || 0);
+    el("states").appendChild(row);
+  });
+
+  var side = el("sidebar");
+  function section(title, build) {
+    var sec = document.createElement("section");
+    var h = document.createElement("h2");
+    h.textContent = title;
+    sec.appendChild(h);
+    build(sec);
+    side.appendChild(sec);
+  }
+
+  section("Tickets", function (sec) {
+    tickets.slice().sort(function (a, b) { return a.number - b.number; }).forEach(function (t) {
+      var s = stateOf(t);
+      var row = document.createElement("div");
+      row.className = "legend-row " + s;
+      row.innerHTML = '<i class="dot chip ' + s + '" style="width:9px;height:9px;border-radius:50%"></i>' +
+        '<span class="num">#' + t.number + '</span><span class="txt"></span>';
+      row.querySelector(".txt").textContent = t.title;
+      row.onclick = function () {
+        var node = nodeLayer.querySelector('[data-n="' + t.number + '"]');
+        if (node) {
+          node.classList.add("hit");
+          node.scrollIntoView({ block: "center", inline: "center" });
+          setTimeout(function () { node.classList.remove("hit"); }, 1200);
+        }
+        open(t);
+      };
+      sec.appendChild(row);
+    });
+  });
+
+  var sb = data.sidebar || {};
+  if (sb.notYetSpecified) {
+    section("Not yet specified", function (sec) {
+      var d = document.createElement("div"); d.className = "md";
+      d.innerHTML = md(sb.notYetSpecified); sec.appendChild(d);
+    });
+  }
+  if (sb.outOfScope) {
+    section("Out of scope", function (sec) {
+      var d = document.createElement("div"); d.className = "md";
+      d.innerHTML = md(sb.outOfScope); sec.appendChild(d);
+    });
+  }
+})();
+</script>
+</body>
+</html>

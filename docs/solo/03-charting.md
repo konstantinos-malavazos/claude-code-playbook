@@ -81,6 +81,14 @@ the first.
 Step 5 is the one that feels like nothing and is actually the stage working. See
 [fog of war](#fog-of-war) below.
 
+**If your tracker cannot draw the map, ask for the picture.** Native blocking edges are a
+GitHub-only luxury, so everywhere else *what is takeable now* is a question you answer by
+reading a list. One command fills
+[a shipped HTML page](../../templates/views/README.md) with the whole graph and opens it —
+one box per ticket, the frontier the only thing highlighted, and a click on any closed box
+gives you its answer. It is generated on demand and never committed; it is current if you
+just ran it.
+
 **The gist line is not a formality.** Every resolution comment opens with a one-line
 summary, because the map's decision list is rebuilt from those first lines rather than
 hand-maintained. Skip it once and regeneration stops being mechanical.

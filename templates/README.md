@@ -1,8 +1,8 @@
 # Templates
 
 Copy-paste skeletons for the harness: agents, skills, commands, hooks, MCP config,
-`CLAUDE.md` layers, and tracker adapters. Each subdirectory has its own README covering
-what it holds and how to install it.
+`CLAUDE.md` layers, and tracker adapters — plus one directory of pages the harness never
+touches. Each subdirectory has its own README covering what it holds and how to install it.
 
 | Directory | What it holds |
 |---|---|
@@ -13,6 +13,7 @@ what it holds and how to install it.
 | [`hooks/`](hooks/README.md) | harness-enforced guardrails |
 | [`mcp/`](mcp/) | MCP server config + settings snippets |
 | [`trackers/`](trackers/README.md) | one adapter installed at `~/.claude/tracker.md` |
+| [`views/`](views/README.md) | pages a skill fills with data and **you** open in a browser |
 
 ## Every file here is a claim about the harness
 
@@ -22,6 +23,10 @@ that an exit code blocks. Those claims are checkable against the official docs, 
 is wrong it usually fails **silently**: the field is ignored, the tool is stripped, the hook
 does not match. Nothing errors. You find out when the guardrail you relied on turns out not
 to have been there.
+
+**One directory is exempt, and says so itself.** [`views/`](views/README.md) holds a page a
+browser renders — no frontmatter, no matcher, no tool name, nothing the harness reads. Its
+claims are checked by opening it, not by the list below.
 
 Two consequences shape everything below.
 

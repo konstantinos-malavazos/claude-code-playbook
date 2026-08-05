@@ -79,9 +79,9 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 |---|---|---|
 | **`/start-ticket`** | ticket id → reviewed single-commit branch (the flagship) | the default path for ~95% of tickets |
 | **`/pitch`** | raw idea → a **verdict**: build, kill or park. Six questions in about an hour, two cold search subagents, and an anonymised `pitch-judge` | the furthest upstream thing here — it runs before a repo exists. Stops ideas that should never reach a pipeline at all. [solo 02](../solo/02-the-kill-gate.md) |
-| **`/charting`** | foggy effort → a **map** of decision tickets on the tracker, resolved one per session until nothing is left to decide | upstream of everything here: work too big for one session and too foggy to plan. Hands off to `/start-ticket` once the route is clear. [solo 03](../solo/03-charting.md) |
+| **`/charting`** | foggy effort → a **map** of decision tickets on the tracker, resolved one per session until nothing is left to decide. Generates the **dependency picture** on demand | upstream of everything here: work too big for one session and too foggy to plan. Hands off to `/start-ticket` once the route is clear. [solo 03](../solo/03-charting.md) |
 | **`/bootstrap`** | decided-but-empty repo → a **scaffolded one**, plus one report: seven checks, evidence per row, no classification | the only flow that runs **once per project**. It makes `/start-ticket`'s preconditions true — including the layer specialists, which nothing else creates. [solo 04](../solo/04-the-bootstrap.md) |
-| **`/cut-backlog`** | closed map + scaffolded repo → an ordered **backlog** of work units, approved on a board before anything is created | the last stage of the solo path, and where it stops. Units are cut from the **smallest version**, not from the map's decisions — one ticket = one thing the app can now do. [solo 05](../solo/05-cutting.md) |
+| **`/cut-backlog`** | closed map + scaffolded repo → an ordered **backlog** of work units, approved on a board before anything is created, then the same **dependency picture** over the tickets that now exist | the last stage of the solo path, and where it stops. Units are cut from the **smallest version**, not from the map's decisions — one ticket = one thing the app can now do. [solo 05](../solo/05-cutting.md) |
 | **decompose path** | large ticket → independent **parallel slices** in git worktrees → one commit per repo | when a ticket is too big for one sequential pass. [09](09-decompose-path.md) |
 | **`/fix-ticket`** | QA bounce-back → diagnose root cause → fix → **amend in place** | a returned ticket stays one ticket / one commit |
 | **`/test-ticket`** | E2E **staging integration test** — produce the real event, reconcile the resulting row/state, **and bank/reuse a per-scenario test recipe in memory** | proves it works on staging *and* learns how to produce each scenario's events once, then reuses it |
@@ -94,6 +94,11 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 
 You don't need all of these. Start with `/start-ticket`; add the others as the pain they
 solve shows up.
+
+**The dependency picture has no row of its own because it is not a flow** — no command, no
+agents. It is a page ([`templates/views/`](../../templates/views/README.md)) that two of
+the flows above fill with data and open, for the trackers that cannot draw their own
+dependencies.
 
 ---
 

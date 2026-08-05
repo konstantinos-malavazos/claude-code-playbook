@@ -42,26 +42,44 @@ gh api repos/<owner>/<repo>/issues/<map>/sub_issues --paginate \
 ## The whole graph
 
 Every child of the map with its state, claim, blockers, body **and** comments — what a
-generated view, an audit, or a rebuild of the map's decision list needs. **Two paginated
-requests, not one per ticket:**
+generated view, an audit, or a rebuild of the map's decision list needs. **One GraphQL
+call. Not REST:**
 
 ```bash
-# every child, with body, state, assignees and blocked-by summary
-gh api repos/<owner>/<repo>/issues/<map>/sub_issues --paginate
-
-# every comment in the repo, in ONE paginated call — then group by issue_url
-gh api repos/<owner>/<repo>/issues/comments --paginate
+gh api graphql -f query='
+{ repository(owner:"<owner>", name:"<repo>") {
+    issue(number:<map>) { number title url body
+      subIssues(first:100) { nodes {
+        number title state url body
+        assignees(first:5){ nodes { login } }
+        labels(first:10){ nodes { name } }
+        blockedBy(first:20){ nodes { number } }
+        comments(first:100){ nodes { author { login } createdAt body } }
+      } } } } }'
 ```
 
-The second call is the one nobody expects: GitHub has a **repo-wide** issue-comments
-endpoint, so comments cost a fixed two-or-three requests rather than one per ticket. Join
-on the comment's `issue_url`, and drop any whose issue is not among the children you just
-fetched — the endpoint is repo-wide, so on a repo holding more than this one map it returns
-comments you did not ask for.
+**REST cannot answer this verb, and it fails by looking like it has.** The
+`…/sub_issues` payload carries `issue_dependencies_summary`, which is **four counts** —
+`blocked_by`, `blocking`, `total_blocked_by`, `total_blocking`. Counts answer *is this
+blocked?* and nothing else: they never say **which** tickets, so a caller drawing arrows
+gets a graph with no edges, and one that tries anyway is back to a
+`…/issues/<n>/dependencies/blocked_by` request per ticket. GraphQL exposes `blockedBy` as
+a real connection, which is what makes one call enough.
 
-Both calls are verified live on a 33-child map. The naive shape — read each ticket, then
-read each ticket's comments — is 66 requests to draw one picture, which is precisely the
-cost that stops a view being regenerated.
+Verified live on a 35-child map: **1.3 s, ~520 KB, 48 comments, 16 blocked-by edges, one
+request.** The REST shape is 2 calls for bodies and comments plus one per blocked child,
+and the naive shape — read each ticket, then read its comments — is 70.
+
+**The `first:` arguments are caps, not pagination.** They are set above the sizes any map
+here reaches; ask for `totalCount` beside any connection you suspect of overflowing, and
+page it if it does. A silently truncated graph is the one failure this call can still have.
+
+`gh api` takes a `--jq` filter, so a caller that wants the answer in its own shape — a
+generated view's data slot, say — gets the fetch *and* the reshape in this one call.
+
+Two REST calls remain useful when you want comments and **no** graph — the repo-wide
+`gh api repos/<owner>/<repo>/issues/comments --paginate` endpoint returns every comment in
+the repo in one paginated call, joined on `issue_url`.
 
 ## Traps — all of these have bitten, all are verified
 
@@ -74,6 +92,7 @@ cost that stops a view being regenerated.
 | **`gh` will not auto-create labels** | Applying an unknown label fails. (GitLab creates on the fly; GitHub does not.) | `gh label create` first. |
 | **`total_blocked_by` never decreases** | It counts closed blockers too, so it is never `0` on a ticket that was ever blocked. | Use `issue_dependencies_summary.blocked_by`, which is open blockers only. |
 | **`gh issue view <n>` can print nothing** | Observed on Windows: no output, no error, exit 0. | Read through `gh api …` as in the table above. |
+| **`issue_dependencies_summary` is counts, not ids** | Four integers. It answers *is this blocked?* and cannot answer *by what?*, so a REST-only whole graph draws boxes and no arrows. | GraphQL `blockedBy`, as in the whole-graph call above. |
 | **`gh api …/issues/<n>` carries no comments** | The payload's `comments` field is a **count** and `comments_url` is a link — the comment bodies are not there. On a closed ticket that is the question without the answer, and it fails silently. | The two-call `read` above. Never treat one call as a read. |
 
 ## Notes

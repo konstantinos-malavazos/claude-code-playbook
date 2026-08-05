@@ -67,8 +67,12 @@ check two things against your instance:
 
 - **Does listing issues return descriptions**, or only titles and metadata?
 - **Is there a project-wide notes endpoint**, or is it strictly per-issue? GitHub has a
-  repo-wide one, which is what makes its whole graph two requests instead of sixty-six.
-  Whether GitLab has an equivalent is exactly the sort of thing this file will not guess at.
+  repo-wide one; whether GitLab has an equivalent is exactly the sort of thing this file
+  will not guess at.
+- **Do the blocking links come back as ids, or as a count?** GitHub's REST payload gives a
+  count — enough for *is this blocked?* and useless for drawing the graph, which is what
+  sends its whole graph to GraphQL. A count here would mean a request per blocked issue.
+  Ask *by what?*, never *how many?*
 
 Neither answer changes the verb. They change whether it is affordable to call it often,
 which is the whole reason it is a verb.

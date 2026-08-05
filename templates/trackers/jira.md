@@ -60,6 +60,10 @@ carries the first four:
 parent = <MAP-KEY> ORDER BY created ASC
 ```
 
+Jira is comfortable here: `issuelinks` returns the linked issues' **keys**, so a caller
+drawing the graph gets real edges. GitHub's REST payload returns a count instead, which is
+why its whole graph goes through GraphQL — the same verb, a different amount of trouble.
+
 Comments are the part that varies. **If your server exposes the search's fields or expand
 argument, ask for `comment` and the whole graph is a single call** — Jira returns comments
 inline with the issue, which no other tracker here does. If it does not, you are down to

@@ -44,10 +44,15 @@ Twelve small verbs and two composed verbs.
 
 **A composed verb earns its place on one test:** the cheapest way to answer it genuinely
 differs per tracker, and every caller wants the same answer. Both pass it. *The frontier*
-is one API call on GitHub and a directory scan on local. *The whole graph* is two paginated
-requests on GitHub and one directory read on local — where the obvious client-side
-assembly is a request per ticket, and a view too expensive to regenerate stops being
-regenerated and quietly becomes a second store.
+is one API call on GitHub and a directory scan on local. *The whole graph* is one GraphQL
+call on GitHub and one directory read on local — where the obvious client-side assembly is
+a request per ticket, and a view too expensive to regenerate stops being regenerated and
+quietly becomes a second store.
+
+**An adapter must return the blockers themselves, not a count of them.** GitHub's REST
+payload offers only a count, which is enough for *is this blocked?* and useless to anything
+drawing the graph — so the two verbs need different endpoints on the same tracker. Whoever
+writes an adapter answers *by what?*, never just *how many?*
 
 ### One definition — `read` means the ticket *and* its comments
 
