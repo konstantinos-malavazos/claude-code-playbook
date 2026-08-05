@@ -6,6 +6,23 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 5 August 2026, after resolving
+> [#37 Write the cutting stage doc and rename the stage](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/37)
+> — **`docs/solo/05-cutting.md` is written, the stage rename is landed, and `docs/solo/` is
+> six of six.** All four stage docs now exist, end to end, which is what the capstone #16 was
+> waiting to be able to describe. A make that decided nothing; every claim traces to #12.
+> **The rename was ten sites, not the four the ticket listed** — #12's own grep found the
+> four that say *"the backlog"* where they mean the stage, and missed six more that name it
+> **in passing, in a list of the other three stages**: `01:61` and `03:186` (*"the bootstrap
+> or the backlog"*), `02:92` (*"charting has nothing to chart, the bootstrap nothing to
+> scaffold…"*), `03:39`, and `04`'s closing ASCII and section heading. **A rename grep finds
+> the sentences about the thing and misses the sentences that merely walk past it.** Also
+> retired: `01`'s *"the four stage docs are still being written"* note, false the moment this
+> file landed, and `04:252`'s *"stage 4 makes the eighth"* — the remaining seam item is
+> number **6**, not 8. Ships **one dead link** to `templates/skills/cut-backlog/SKILL.md`
+> with a *still being written* marker for **#38** to delete.
+> The capstone [#16](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16)
+> still has **three** open edges — #37 was never one of them — and **#38 is down to one**.
+> The session before it resolved
 > [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12)
 > — **stage 4 is *cutting*, the command is `/cut-backlog`, and the units are cut from the
 > *smallest version* rather than from the decisions.** The ticket's own opening premise turned
@@ -20,9 +37,7 @@ still the source of truth; this is a reading convenience that goes stale between
 > recommended and then withdrawn mid-session — see the gotchas. Decided only; spawned
 > **#36 the dependency viewer**, **#37 the stage doc** and **#38 the skill template**, with
 > #36 *and* #37 wired as real blockers on #38.
-> The capstone [#16](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16)
-> is down to **three** open edges — #12 was one of its blockers.
-> The session before it resolved
+> The session before that resolved
 > [#30 Write the stack-choice doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/30)
 > — **`docs/solo/06-choosing-the-stack.md`, and all three link fixes it owed.** A make that
 > decided nothing. It took **`06`**, leaving `05` reserved for the last stage doc. **One stale
@@ -32,7 +47,7 @@ still the source of truth; this is a reading convenience that goes stale between
 > one place no grep of the working tree reaches and the one place this map treats as the
 > durable record. **When a ticket retires a number, the closed comments that quoted it are not
 > retired with it.**
-> The session before that resolved
+> And before that,
 > [#35 Write the /bootstrap skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/35)
 > — **`templates/skills/bootstrap/SKILL.md`, wiring the bootstrap pair**, the first template
 > to set `disable-model-invocation: true`, and it **corrected #34: the exit report is seven
@@ -85,11 +100,11 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 23 of 33 |
-| Tickets open | 10 |
-| On the frontier (takeable now) | 8 |
-| Blocked | 2 — the capstone at **3** open edges, and #38 behind #36 and #37 |
-| Repo files changed since the effort began | 57 by the map’s own tickets, + 15 by #28 off-map |
+| Tickets closed | 24 of 33 |
+| Tickets open | 9 |
+| On the frontier (takeable now) | 7 |
+| Blocked | 2 — the capstone at **3** open edges, and #38 now behind #36 alone |
+| Repo files changed since the effort began | **52** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded. *Recomputed from `git log 04cf1a6~1..HEAD` this session: the previous "57 + 15 off-map" split does not reproduce, so it is retired rather than carried.* |
 | Branches | none — findings live in ticket comments, not in the repo |
 | Working tree | clean |
 
@@ -157,20 +172,27 @@ count to be updated; one of them was counting a different set. **When a ticket r
 number, not every instance of that number is the number being retired.** No grep of `master`
 could have caught it — it was inside the doc being written.
 
-**`docs/solo/` is 5 of 6, and `05` finally has a name and an owner.** `01` the spine, `02` the
-kill gate, `03` charting, `04` the bootstrap, `06` choosing the stack. The gap is
-**`05-cutting.md`**, owned by [#37](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/37)
-— not `05-the-backlog.md`, because #12 renamed the stage. **`06` is the first non-stage solo
-doc**, and it took its number at write time rather than claiming one in advance, which is
-what let `05` stay reserved for a doc nobody had written yet.
+**`docs/solo/` is 6 of 6 — the four stage docs exist end to end.** `01` the spine, `02` the
+kill gate, `03` charting, `04` the bootstrap, `05` cutting, `06` choosing the stack. #37
+closed the last gap. **`06` is the first non-stage solo doc**, and it took its number at
+write time rather than claiming one in advance, which is what let `05` stay reserved for a
+doc nobody had written yet. `07+` is now open for #14, #15 and #18 in write order.
 
 **Stage 4 broke #5's naming rule in the spine that states it, and nobody had noticed.**
 `01-the-solo-path.md:27` says *"the stage is charting; the artifact it produces is the map.
 They never share a name — otherwise you can never say which one you mean."* Three rows above,
 stage 4 was called **the backlog** and produced **the backlog**. It is now **cutting**, and
-the artifact keeps its name. **The rename is four sites, not the sweep it looked like** —
-nearly every *"backlog"* in `docs/` names the artifact and stays, **seam item 6 included**.
-Grepping before estimating is what turned a feared sweep into a four-line change.
+the artifact keeps its name — and the spine now states the rule for both rows.
+
+**The rename was ten sites, not the four #12 estimated — and the six it missed are all the
+same shape.** #12's grep was right that nearly every *"backlog"* in `docs/` names the
+**artifact** and stays, **seam item 6 included**; it found every sentence that is *about*
+the stage. What it missed were the sentences that **walk past** the stage on the way
+somewhere else — *"the bootstrap or the backlog"* (twice), *"charting has nothing to chart,
+the bootstrap nothing to scaffold, the backlog nothing to cut up"*, a table cell in `03`, and
+`04`'s closing ASCII and section heading. **A rename grep finds the sentences about the
+thing and misses the sentences that merely list it beside its siblings** — so grep the
+stage's *siblings*, not just its own name.
 
 **A recommendation was withdrawn mid-grilling and the replacement is better, which is the
 second time the driver's pushback changed an answer this month.** #12 recommended a ticket
@@ -293,6 +315,7 @@ entrances are visible at once.
 | [#33 Retire the flat Serena gate from every file that states it](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/33) | **Done — no file on master states a flat Serena gate.** A make that decided nothing. The destination string is **"a backlog of work units on a scaffolded repo that passes the seam"**, identical in all four places; seam item 4 is renamed **Serena matches the verdict** and reads as two branches looked up in `CLAUDE.md`; `12-when-not-to-use.md` gained one clause for **symbol-poor by nature**. **Eight edits, not six** — a re-grep on the word *Serena* found two more sites in `03-charting.md`. One asymmetry is deliberate: `pitch/SKILL.md` names the seam without linking to it, because an installed skill has no `docs/` beside it. **Unblocks #16** by one edge. |
 | [#10 The bootstrap](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/10) | **Stage 3 is a seven-step checklist Claude runs alone inside the repo folder, ending in one pass/fail report — and it generates the layer specialists, which makes the seam eight checks.** #15 owns *how* the specialists are written, stage 3 owns *when*, the seam owns *whether*. **The layer chain is named in stage 2**, settling what #21 refused. The stub is **generator output plus one empty folder per layer**. **The repo folder is the line** — inside it Claude works alone, outside it you see first — stated as **blast radius, not audience**. **Memory two holds only the *why***, never the facts. The exit test **runs every check, reports once, stops, and classifies nothing**. Spawned #34 and #35. |
 | [#12 Cleared map to backlog of work units](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/12) | **Stage 4 is *cutting*, the command is `/cut-backlog`, and units are cut from the *smallest version* — not from the decisions.** Decisions are **constraints on every unit, not units**; the gate's Q3 named the scope a full stage earlier, which makes its first hard kill a **precondition three stages downstream**. **One ticket = one thing the app can now do, all the way through**; plumbing rides inside the first unit that needs it. **`12-when-not-to-use.md`'s bar is not reused** — on a day-one repo it cannot return *no*. **Dependencies are real, and the ticket body is the single truth**; native links and an HTML view are generated from it. **A board on screen, nothing created until you approve.** Scope is checked by a **trace to the smallest-version phrase, not a count**. Constraints are **copied into each ticket** (the analyzer reads nothing else) with a bottom **`Where this came from`** section that makes the copy falsifiable. Work tickets are **standalone, not children of the map**. Spawned #36, #37, #38. |
+| [#37 Write the cutting stage doc and rename the stage](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/37) | **Done — `docs/solo/05-cutting.md` is written and the stage rename is landed.** A make that decided nothing; every claim traces to #12. **`docs/solo/` is 6 of 6 and all four stage docs exist end to end.** The rename was **ten sites, not four** — the six #12 missed all name the stage **in passing, in a list of its siblings**, which a grep for the stage's own name never reaches. Also retired `01`'s *"the four stage docs are still being written"* note and corrected `04:252`'s *"the eighth"* to **item 6**. Ships one dead link to `templates/skills/cut-backlog/SKILL.md` with a marker for **#38** to delete, and adds the `/cut-backlog` flow catalogue row. **Unblocks #38 by one edge.** |
 | [#30 Write the stack-choice doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/30) | **Done — `docs/solo/06-choosing-the-stack.md` is written.** A make that decided nothing; every claim traces to #21 plus #10's layer-chain settlement. Took **`06`** at write time, so `05` stayed reserved — #12 has since named it `05-cutting.md` and handed it to #37. Carries read-level over write-level, mainstream-first, propose-and-kill as a table on *exit condition*, the three kill checks as an ASCII loop, Serena's *who calls this?* test with **verdict-*no* stated as a pass rather than a gap**, re-read-at-the-tail with its cost recorded, and the `go test ./...` exits 0 / `pytest` exits 5 table. **All three link fixes landed** — `03-charting.md`'s tail section plus the two `04-the-bootstrap.md` sites #34 left as *being written*. **Corrected a stale count inside #21's own resolution comment** (five stack-independent seam checks → six, since #10 grew the seam) — see below. |
 
 ### The layout #2 decided — now live
@@ -301,7 +324,7 @@ entrances are visible at once.
 docs/
 ├── shared/          ← the trunk BOTH entrances converge on   (01–12)
 ├── team/            ← the agile front-end                    (01 metrics, 02 adoption)
-└── solo/            ← the solo front-end (01–04 + 06 written, 05 reserved)
+└── solo/            ← the solo front-end (01–06 written; 07+ free)
 ```
 
 Numbering restarts at `01` per directory.
@@ -314,7 +337,7 @@ Numbering restarts at `01` per directory.
 | `02-the-kill-gate.md` | the kill gate — **written** | #25 |
 | `03-charting.md` | charting — **written** | #22 |
 | `04-the-bootstrap.md` | the bootstrap — **written** (designed by #10) | #34 |
-| `05-cutting.md` | **cutting** — the last stage still unwritten. Renamed from `05-the-backlog.md` by #12, which found the stage and its artifact sharing a name | #37 |
+| `05-cutting.md` | cutting — **written**. Renamed from `05-the-backlog.md` by #12, which found the stage and its artifact sharing a name (designed by #12) | #37 |
 | `06-choosing-the-stack.md` | the stack-choice method — **written**, the first non-stage solo doc | #30 |
 | `07+` | everything else solo — guardrails, progress, resuming, stack→agents | in the order they are written |
 
@@ -372,17 +395,14 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Eight tickets. #12 closed and put **two** back — **the first growth in three sessions**, and
-the expected shape: a design ticket that spawns its pair. A third, #38, is born blocked.
+Seven tickets. #37 closed and spawned nothing — the makes keep coming off cleanly.
 
-**Three of the eight have their decisions banked.** #23, #37 and #38 are makes; #37 carries
-#12's ten decisions inline in its body, which is the thing that made #34 and #30 the only two
-re-greps that found nothing to add. Everything else is a real conversation.
+**Only one of the seven has its decisions banked**: #23, a make. Everything else is a real
+conversation, which is the shape the rest of this map is now in.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#37 Write the cutting stage doc and rename the stage](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/37) | make | **take this next** — `docs/solo/05-cutting.md` is the **last stage doc**, and it is the only thing between the path and a complete set of stages. It closes `04-the-bootstrap.md`'s last dead link and lands the four-site rename. **Blocks #38.** |
-| [#36 The dependency viewer](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/36) | grilling | a real conversation, and it serves **two stages** — charting's map and the backlog are the same picture. Design it once or charting grows a second one. **Blocks #38.** |
+| [#36 The dependency viewer](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/36) | grilling | **take this next** — it is the **only thing left blocking #38**, and closing that pair completes the last stage's doc+template set. A real conversation, and it serves **two stages** — charting's map and the backlog are the same picture. Design it once or charting grows a second one. |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | **#10 handed it one and #34 sharpened it into a collision**: `block-infra-staging.sh` blocks staging `CLAUDE.md` and `.claude/`, and step 2 of the bootstrap *writes* a `CLAUDE.md` into the repo. So it is not commit-vs-push as a preference — the stage's own output is unstageable under a hook the playbook ships. |
 | [#15 Tech stack into working agents and skills](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15) | grilling | starts from a stack already chosen. **#21 pre-answered its input** (reads `CLAUDE.md` + memory two, never the map) and **#10 pre-answered its bootstrap boundary** (it owns *how*, stage 3 owns *when*) — and gave its where-do-files-land decision a second consequence: land them in `~/.claude/` and step 4 of the bootstrap must stop for the human. |
 | [#18 How progress is measured on the solo path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18) | grilling | **#12 handed it the fact it has to accommodate**: the map and the backlog live in the same tracker in different shapes — a tree of children under #1, and a flat ordered set of standalone issues beside it, deliberately invisible to the map's frontier query. |
@@ -395,7 +415,7 @@ re-greps that found nothing to add. Everything else is a real conversation.
 | Ticket | Waiting on |
 |---|---|
 | [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | **3 open blockers** — #14, #15, #18. #12 came off. #33 **handed it the phrase to use**: *a backlog of work units on a scaffolded repo that passes the seam*, which is what the front door must say instead of *"Serena-indexed repo"*. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — **four** templates now claim the solo column only, and `bootstrap` is the first to set `disable-model-invocation`. **#12 renamed a stage it must not describe by the old name.** |
-| [#38 Write the `/cut-backlog` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/38) | **2 open blockers** — #36 the viewer (its step 7 cannot be written without it, and #12 promised non-GitHub trackers that view) and #37 the doc (the decisions live in the doc and the template reads from them). Born blocked, deliberately. |
+| [#38 Write the `/cut-backlog` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/38) | **1 open blocker** — #36 the viewer, whose step 7 cannot be written without it and to whom #12 promised non-GitHub trackers that view. **#37 came off**, and left it a *still being written* marker in `05-cutting.md` to delete plus a written doc to read the decisions from. |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -481,6 +501,20 @@ re-greps that found nothing to add. Everything else is a real conversation.
                     │    phrase. Second driver redirect that changed an answer.
                     │
                     └──► #16 DOWN to 3 edges — #14, #15, #18 left
+        ── #37 docs/solo/05 CUTTING — #12's make, landed. The four stage
+                    │      docs now exist END TO END. docs/solo/ is 6 of 6.
+                    │
+                    ├──► the rename was TEN sites, not the four #12 listed.
+                    │    The six it missed all NAME THE STAGE IN PASSING,
+                    │    in a list of its siblings — "the bootstrap or the
+                    │    backlog". A rename grep finds the sentences ABOUT
+                    │    the thing and misses the ones that WALK PAST it.
+                    │
+                    ├──► also retired: 01's "the four stage docs are still
+                    │    being written", false the moment 05 landed; and
+                    │    04:252's "stage 4 makes the EIGHTH" — it is item 6.
+                    │
+                    └──► #38 DOWN to 1 edge — #36 the viewer is all that is left
 
    #11 left three placeholders. One is left:
         <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
@@ -491,13 +525,13 @@ re-greps that found nothing to add. Everything else is a real conversation.
         <IDEAS-FILE-PATH>            ──► never, reader picks. Private + backed up.
 
    docs/solo/  01 ✓ spine   02 ✓ kill gate   03 ✓ charting   04 ✓ bootstrap
-               05 #37 CUTTING — the LAST stage with no doc.
-                  renamed from "the backlog" by #12
+               05 ✓ cutting — renamed from "the backlog" by #12.
+                  ALL FOUR STAGE DOCS NOW EXIST, END TO END.
                06 ✓ choosing the stack — first non-stage solo doc
                07+ #14 #15 #18 in write order
 
-  10 open tickets ── 3 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
-                  ── 2 wired ────►  #38 THE /cut-backlog TEMPLATE
+   9 open tickets ── 3 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
+                  ── 1 wired ────►  #38 THE /cut-backlog TEMPLATE
 ```
 
 ---
@@ -536,17 +570,18 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
     smallest version, not the decisions. Spawned #36, #37 and #38. **It went doc-first, not
     template-first as recommended here** — the template is blocked by the viewer, and the
     decisions live in the doc, so the bootstrap's order was the only one available.
-12. `/wayfinder 1 37` — **the cutting stage doc. This is the one to take.** It is the last
-    stage with no doc, it closes `04-the-bootstrap.md`'s only remaining dead link, and
-    finishing it means the four stages are complete end to end — which is what #16, the
-    capstone, is waiting to describe. Its body **carries #12's ten decisions inline**, so the
-    session is not guessing what to grep — the thing that made #34 and #30 clean.
-13. `/wayfinder 1 36` — **the dependency viewer.** Takeable now and independent of #37. Worth
-    knowing before you open it: it serves **two stages**, so it is a real conversation rather
-    than a small drawing job, and it walks straight into `block-infra-staging.sh` territory
-    that #14 owns.
-14. `/wayfinder 1 38` — the `/cut-backlog` template. **Blocked by both #36 and #37**; it
-    closes the last stage pair and deletes the marker #37 will leave.
+12. ~~#37, the cutting stage doc.~~ **Done.** `docs/solo/05-cutting.md` written, the stage
+    rename landed, the flow catalogue row added. **The four stage docs now exist end to end
+    and `docs/solo/` is 6 of 6.** Carrying #12's ten decisions inline worked again — nothing
+    was re-litigated — but **the re-grep still found six sites the ticket's list missed**,
+    breaking the two-clean-re-greps run. See the gotcha: they all name the stage *in passing*.
+13. `/wayfinder 1 36` — **the dependency viewer. This is the one to take.** It is now the
+    **only** blocker on #38, so taking it puts the last stage pair within one session of
+    done. Worth knowing before you open it: it serves **two stages**, so it is a real
+    conversation rather than a small drawing job, and it walks straight into
+    `block-infra-staging.sh` territory that #14 owns.
+14. `/wayfinder 1 38` — the `/cut-backlog` template. **Blocked by #36 alone now**; it closes
+    the last stage pair and deletes the marker #37 left in `05-cutting.md`.
 15. Then the rest — #14 guardrails, #15 stack→agents, #18 progress — in any
     order, each writing its own `docs/solo/` doc from `07` up. **#14 now has
     a named question waiting for it** (commit-or-push at the end of stage 3) and **#15 has
@@ -567,12 +602,31 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
 
 Plain `/wayfinder 1` takes the first frontier ticket in map order — still
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
-Name the ticket. **Take #37.**
+Name the ticket. **Take #36.**
 
 ---
 
 ## Gotchas found so far
 
+- **A rename grep finds the sentences *about* the thing and misses the ones that walk past
+  it.** #12 grepped before estimating — the right instinct, and it correctly separated the
+  *artifact* uses of "backlog" (which stay, seam item 6 included) from the *stage* uses
+  (which had to change). It found **four** and the real number was **ten**. Every one of the
+  six it missed has the same shape: the stage is named **in a list of its siblings**, on the
+  way to saying something else. *"If the bootstrap or the backlog breaks a decision…"*
+  *"Charting has nothing to chart, the bootstrap nothing to scaffold, the backlog nothing to
+  cut up."* A grep for the term under rename lands on the paragraphs that discuss it and
+  skips the passing mentions, because a passing mention is **structurally unremarkable** —
+  it is one item in a list. **The cheap fix: grep the siblings.** `the bootstrap`,
+  `charting`, `the kill gate` — every hit is a place the fourth name is likely standing
+  beside them. This is the fifth ticket in seven where a wider re-grep found the site that
+  mattered, and the first where the *pattern* was right and the *reach* was short.
+- **A "still being written" note is a claim with an expiry date, and nothing expires it.**
+  `01-the-solo-path.md` carried *"the four stage docs are still being written"* from #20
+  onward. Each of #25, #22, #34 and #37 made it one quarter less true and none of the first
+  three touched it, because each was writing **its own** doc and the note is about **the
+  set**. Retired by #37 as the last one in. **A note about a set of files belongs to whoever
+  closes the set, and nobody is assigned that.**
 - **A number that varies for exactly one reason is a proxy — check the reason instead.** #12
   recommended a ticket **count** as the brake on scope: over ~10 units, go back to the smallest
   version. It survived until the driver asked *why would the count vary?* — and it does not.
@@ -977,12 +1031,33 @@ Name the ticket. **Take #37.**
 
 ---
 
+## What #37 handed forward
+
+- **The four stage docs exist end to end, which is the thing #16 was waiting to describe.**
+  `docs/solo/` is 6 of 6. The capstone is still blocked by #14, #15 and #18 — #37 was never
+  one of its edges — but the front door can now link a complete path rather than a partial
+  one, and **the stage it must not call *the backlog* is now named *cutting* everywhere on
+  `master`.**
+- **#38 is down to one blocker and inherits a marker to delete.** `05-cutting.md` ships a
+  deliberate dead link to `templates/skills/cut-backlog/SKILL.md` with a *still being
+  written* blockquote beneath it — the kill-gate and bootstrap pattern, doc first. #38
+  deletes the blockquote when the template lands. It also inherits the flow catalogue row,
+  **already written**, so unlike #26 and #35 it does not owe one.
+- **Found, not fixed — `docs/shared/12-when-not-to-use.md` is titled `# 13`.** Its heading
+  still carries its pre-reorg number, from #19's renumber. Nothing links to it by number and
+  no decision on this map depends on it, so it was left rather than swept into a rename
+  ticket. **#16 owns the front door and is the natural place to catch it.**
+- **`01-the-solo-path.md` now states the naming rule for both rows.** #12 found the rule
+  broken three rows below where it is stated; the fix is not just the rename but the second
+  sentence — *the stage is cutting, and the artifact it produces is the backlog* — so the
+  next stage anyone adds has two worked examples instead of one.
+
+---
+
 ## What #12 handed forward
 
-- **`docs/solo/05` has a name and an owner at last.** `05-cutting.md`, owned by
-  [#37](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/37). The number
-  #30 kept free is now spent on the thing it was reserved for, and `docs/solo/` finishes at six
-  of six when #37 lands.
+- ~~**`docs/solo/05` has a name and an owner at last.**~~ **Landed by #37** —
+  `05-cutting.md` is written, and `docs/solo/` is six of six.
 - **#38 is the first ticket on this map born blocked**, and by two edges. That is deliberate:
   the viewer (#36) has to exist before step 7 of the template can be written, and the doc (#37)
   has to exist before the template has decisions to read. **The pair order is wired, not
@@ -1044,8 +1119,9 @@ Name the ticket. **Take #37.**
 
 - **The bootstrap pair is closed and nothing is owed back.** The marker is deleted, the
   catalogue row and README entry are in, and `04-the-bootstrap.md`'s only remaining dead link
-  is `05-the-backlog.md` — #12's, and one `01` has always carried. **Renamed by #12 to
-  `05-cutting.md`; the link is #37's to repoint.**
+  is `05-the-backlog.md` — #12's, and one `01` has always carried. Renamed by #12 to
+  `05-cutting.md`; ~~the link is #37's to repoint~~ — **repointed, and the file it points at
+  written, by #37. `04` now has no dead links at all.**
 - ~~**#12 should go template-first.**~~ Three pairs were built and the pattern looked
   unambiguous: the only one that never shipped a dead link is charting, the only
   template-first one. **#12 could not take the advice** — its template is blocked by the
@@ -1079,8 +1155,8 @@ Name the ticket. **Take #37.**
   `06-choosing-the-stack.md`, along with the third fix into `03-charting.md`'s tail section.
   **The mechanism worked exactly as intended**: #34 refused to guess a filename, wrote
   *"being written as its own doc"* and linked something that existed, and #30 filled it in
-  one ticket later. `04`'s only remaining dead link is **`05-cutting.md`** — #12 renamed it,
-  and #37 both repoints the link and writes the file it points at.
+  one ticket later. ~~`04`'s only remaining dead link is **`05-cutting.md`**~~ — **#37 both
+  repointed the link and wrote the file it points at. `04` is clean.**
 - **#14's question got concrete, and it is a collision rather than a preference.** #10 handed
   it *does stage 3 end with a commit*. #34 found the sharper version: `PHILOSOPHY.md` §5 says
   AI-infra files are **never** committed to a product repo, and
