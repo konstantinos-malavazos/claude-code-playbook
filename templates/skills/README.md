@@ -69,16 +69,17 @@ than the two above:
 | `charting` | an effort too big for one session and too foggy to plan — maps it into decision tickets on the tracker | ✓ | |
 | `pitch` | a raw idea with no repo — the one-hour kill gate that ends in build, kill or park | ✓ | |
 | `bootstrap` | a decided-but-empty repo — scaffolds it and reports on the pipeline's preconditions. **Runs once per project** | ✓ | |
+| `cut-backlog` | a closed map + a scaffolded repo — cuts them into an ordered backlog of work units, approved on a board before anything is created | ✓ | |
 
 The **solo** / **team** columns say which entrance needs each template. `charting` was the
-first to claim a single column, and `pitch` and `bootstrap` followed: all three are stages
-of the solo front-end, which the agile path does not have. Everything above them is shared
-by both.
+first to claim a single column, and `pitch`, `bootstrap` and `cut-backlog` followed: those
+four are the four stages of the solo front-end, which the agile path does not have.
+Everything above them is shared by both.
 
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
 
-## On `disable-model-invocation` — one skill sets it, and the rule says why
+## On `disable-model-invocation` — two skills set it, and the rule says why
 
 Four of these read as user-invoked — `charting`, `pitch`, `grilling`, `diagnose` — and none
 of them sets `disable-model-invocation: true`, so Claude may load any of them on its own.
@@ -86,11 +87,16 @@ That is left as-is on purpose: all four are **conversations**, and a conversatio
 starts a turn early costs you one redirect.
 
 The field earns its place on skills with **side effects or timing you own** — a deploy, a
-commit, a send. **`bootstrap` is the first template here that meets that test, and it sets
-the field.** It is not a conversation: it scaffolds a repo, writes a `CLAUDE.md`, indexes a
-language server, generates agent files and writes memory. A conversation firing a turn early
-costs a redirect; that firing early costs a tree of files nobody asked for. Same rule,
-applied — not a new one.
+commit, a send. **`bootstrap` and `cut-backlog` are the two templates here that meet that
+test, and both set the field.** Neither is a conversation. `bootstrap` scaffolds a repo,
+writes a `CLAUDE.md`, indexes a language server, generates agent files and writes memory;
+`cut-backlog` files a dozen issues in a tracker other people may be able to see. A
+conversation firing a turn early costs a redirect; those firing early cost a tree of files
+nobody asked for, or a backlog nobody approved. Same rule, applied — not a new one.
+
+The two share a shape worth naming: **each one's output is somebody else's input** — the
+bootstrap's report is read at the seam, the backlog is read by `/start-ticket` — so an
+unasked-for run does not merely waste a turn, it publishes something downstream may act on.
 
 `pitch` is the closest remaining call, since it dispatches subagents and spends real time.
 Watch it; if it ever fires unasked, that is the signal to set the field rather than reword

@@ -5,8 +5,8 @@ arrive holding a **closed map**, a **real repo** that builds and runs, and one p
 report from [the bootstrap](04-the-bootstrap.md) covering seven of the seam's eight items.
 
 The stage answers **cut it into work units the pipeline can run.** It ends when those units
-exist in the tracker, ordered, and **you have approved them** — which is the eighth item —
-and hands over to [`/start-ticket`](../shared/08-ticket-pipeline.md).
+exist in the tracker, ordered, and **you have approved them** — seam **item 6**, the last one
+to come true — and hands over to [`/start-ticket`](../shared/08-ticket-pipeline.md).
 
 The stage is **cutting**. The artifact is **the backlog**. Two names, kept distinct — and
 this stage is why the rule is written down. It used to be called *the backlog* and it
@@ -17,9 +17,6 @@ You run it with **`/cut-backlog`**, from
 [`templates/skills/cut-backlog/SKILL.md`](../../templates/skills/cut-backlog/SKILL.md).
 That template owns the mechanics; this doc owns *where the units come from and why they are
 shaped this way*.
-
-> The `/cut-backlog` template is still being written — that link is dead until it lands.
-> The decisions it will be built from are on this page.
 
 ---
 
@@ -119,7 +116,7 @@ Dependencies show up in three places, and **exactly one of them is the truth**:
 |---|---|
 | **The ticket body** — *"needs #6 first"* | **The truth.** The only representation that exists on every tracker. |
 | **Native blocked-by links** | **A picture of it.** Renders the graph in the tracker's own UI, where the tracker has them. |
-| **A generated HTML view** | **A picture of it.** So trackers with no native edges can still show you where you are. |
+| **A generated HTML view** — [`templates/views/`](../../templates/views/README.md) | **A picture of it.** So trackers with no native edges can still show you where you are. |
 
 The body wins because it is the only one that **needs no per-tracker answer**. Nominating
 the native edge would put the truth somewhere different on GitHub than on local files —
