@@ -89,7 +89,7 @@ never weighed against how much you want to build the thing. That is what *hard* 
 | **The hard part is the whole project** — the unknown *is* the idea, nobody has solved it, and there is no cheap way for you to find out whether it is possible | novelty and execution |
 
 The first holds for every class because everything downstream assumes a first version
-exists. Charting has nothing to chart, the bootstrap nothing to scaffold, the backlog
+exists. Charting has nothing to chart, the bootstrap nothing to scaffold, and cutting
 nothing to cut up. It fails here, or it fails later and far more expensively.
 
 The third catches the idea that sounds fine right up until you look at the technical

@@ -7,7 +7,7 @@ it.
 
 The stage answers **make the repo real.** It ends with **one pass/fail report** against
 [the seam](01-the-solo-path.md#the-seam--where-the-solo-path-stops), and hands over to
-[the backlog](05-the-backlog.md).
+[cutting](05-cutting.md).
 
 The stage is **the bootstrap**. The output is a **report**. Two names, kept distinct —
 the stage can finish while the report is red.
@@ -198,7 +198,7 @@ thing the report cannot speak to.
          item 6 is stage 4's)            YOU classify it:
                     │                    a typo, or a wrong stack
                     ▼
-             4. THE BACKLOG
+               4. CUTTING
 ```
 
 **Some checks will fail, and that is expected** — the tail wrote them blind, against an
@@ -241,7 +241,7 @@ proposed and killed, and why the chain is one of the three things ticket 1 decid
 
 ---
 
-## What the bootstrap hands to the backlog
+## What the bootstrap hands to cutting
 
 | | |
 |---|---|
@@ -249,7 +249,7 @@ proposed and killed, and why the chain is one of the three things ticket 1 decid
 | **A `CLAUDE.md`** | Stack, commands, layer chain, Serena verdict. The permanent home for all four. |
 | **Layer specialists on disk** | Which is what makes [`/start-ticket`](../shared/08-ticket-pipeline.md) able to dispatch at all. |
 | **Two memories** | The seam's arithmetic comes out at exactly two, with no special-casing. |
-| **One report** | Seven of the seam's eight items. Stage 4 makes the eighth — the backlog — true, against a repo that is real, so its tickets can name paths that exist. |
+| **One report** | Seven of the seam's eight items. [Cutting](05-cutting.md) makes the remaining one — item 6, *the backlog exists* — true, against a repo that is real, so its tickets can name paths that exist. |
 
 ---
 

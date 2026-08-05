@@ -22,16 +22,17 @@ repeat them.
 | 1 | **The kill gate** | Is this worth building at all? | A verdict is recorded — **build**, **kill**, or **park**. On *build*: a **private repo exists** and the map is its issue #1. | [02-the-kill-gate.md](02-the-kill-gate.md) |
 | 2 | **Charting** | What are we building, and on what? | Every ticket on the map closed, **the tail resolved last** — or the map is **abandoned**. | [03-charting.md](03-charting.md) |
 | 3 | **The bootstrap** | Make the repo real. | The stack-specific checks written by the tail pass (items 1–5, 7 and 8 of the seam). | [04-the-bootstrap.md](04-the-bootstrap.md) |
-| 4 | **The backlog** | Cut the decisions into units the pipeline can run. | Work units exist in the tracker, ordered, and **you approved them**. | [05-the-backlog.md](05-the-backlog.md) |
+| 4 | **Cutting** | Cut the first version into units the pipeline can run. | Work units exist in the tracker, ordered, and **you approved them**. | [05-cutting.md](05-cutting.md) |
 
 The stage is **charting**; the artifact it produces is **the map**. They never share a
-name — otherwise you can never say which one you mean.
+name — otherwise you can never say which one you mean. The same holds one row down: the
+stage is **cutting**, and the artifact it produces is **the backlog**.
 
-> The four stage docs are still being written; `02`–`05` are reserved for them, in stage
-> order. Every other solo doc takes `06` and up.
+> `02`–`05` are reserved for the four stage docs, in stage order. Every other solo doc
+> takes `06` and up.
 
 ```
-   1. THE KILL GATE ──► 2. CHARTING ──► 3. THE BOOTSTRAP ──► 4. THE BACKLOG ══╣ SEAM ╠══► /start-ticket
+   1. THE KILL GATE ──► 2. CHARTING ──► 3. THE BOOTSTRAP ──► 4. CUTTING ══════╣ SEAM ╠══► /start-ticket
       is this worth       what are we      make the repo        cut it into                (the shared
       building?           building, and    real                 work units                  pipeline
            │              on what?              ▲                    │                      takes over)
@@ -58,7 +59,7 @@ name — otherwise you can never say which one you mean.
 |---|---|
 | **The repo is the gate's output** | Charting's artifact is an issue on a tracker, so the repo has to exist before charting, not after. A *build* verdict is what creates it — the agent creates it **private**, after confirming the name with you. Bootstrap therefore **scaffolds and never creates**. |
 | **The tail goes last** | Choosing the stack is a decision, so it lives on the map as a ticket rather than as a stage of its own. Two tickets — *name the stack*, then *write the bootstrap checks* — and **neither is takeable while any other ticket is open**. This is a rule, not blocker wiring. When a product decision is genuinely stuck without the stack, take the stack early **and record why in its answer**. |
-| **One backwards step** | If the bootstrap or the backlog breaks a decision, you reopen the map and add a ticket. You do not push forward on something you now know is wrong. One step back, not a spiral. |
+| **One backwards step** | If the bootstrap or cutting breaks a decision, you reopen the map and add a ticket. You do not push forward on something you now know is wrong. One step back, not a spiral. |
 
 **Charting can end in *abandon*.** The gate is deliberately cheap and decides on very
 little information; charting is where the true size of the thing shows up. A path whose

@@ -36,7 +36,7 @@ two is the single easiest way to lose this stage.
 
 | What the destination might suggest | What charting actually does |
 |---|---|
-| Charting produces the backlog | The backlog is **stage 4**. Charting decides what goes in it. |
+| Charting produces the backlog | Cutting the backlog is **stage 4**. Charting decides what goes in it. |
 | Charting scaffolds the repo | Scaffolding is **stage 3**. Charting decides what to scaffold. |
 | Charting stops when the repo is real | Charting stops when **nothing is left to decide** before stages 3 and 4 can run. |
 
@@ -183,7 +183,7 @@ different things depending on which direction you are facing:
 
 | | What it means |
 |---|---|
-| **Something downstream comes back** | The bootstrap or the backlog hits a decision that turns out to be wrong. You reopen the map and add a ticket. You do not push forward on something you now know is wrong. |
+| **Something downstream comes back** | The bootstrap or [cutting](05-cutting.md) hits a decision that turns out to be wrong. You reopen the map and add a ticket. You do not push forward on something you now know is wrong. |
 | **You want to go back further** | You cannot. Charting does not reopen the kill gate — the way to un-decide *build* is to **abandon**, below. |
 
 One step, not a spiral. If the map keeps reopening, the thing it is telling you is in the
