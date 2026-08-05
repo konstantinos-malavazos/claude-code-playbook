@@ -45,7 +45,7 @@ the description and find children by search.
 | Verb | GitLab surface | Verified? |
 |---|---|---|
 | create | `glab issue create` | ☐ |
-| read | `glab issue view <n>` | ☐ |
+| read | `glab issue view <n>` **and its notes** — `read` means the issue *and* its comments; find the flag or endpoint that returns them and verify it does | ☐ |
 | list | `glab issue list -F json` | ☐ |
 | comment | `glab issue note` — GitLab calls comments **notes** | ☐ |
 | close | `glab issue close` — takes **no** closing comment; note first, then close | ☐ |
@@ -57,6 +57,21 @@ the description and find children by search.
 | mark blocked | **Premium only** — see trap 1 | ☐ |
 | is this blocked? | read each blocker's state | ☐ |
 | **the frontier** | list children, drop blocked and claimed, first in map order | ☐ |
+| **the whole graph** | every child with state, claim, blockers, description and notes | ☐ |
+
+## The two composed verbs, and the third trap hiding in them
+
+Both composed verbs assemble many tickets at once, so both are where a per-issue request
+loop turns a cheap view into an expensive one. Before you settle for one call per ticket,
+check two things against your instance:
+
+- **Does listing issues return descriptions**, or only titles and metadata?
+- **Is there a project-wide notes endpoint**, or is it strictly per-issue? GitHub has a
+  repo-wide one, which is what makes its whole graph two requests instead of sixty-six.
+  Whether GitLab has an equivalent is exactly the sort of thing this file will not guess at.
+
+Neither answer changes the verb. They change whether it is affordable to call it often,
+which is the whole reason it is a verb.
 
 ## Smaller differences worth knowing
 

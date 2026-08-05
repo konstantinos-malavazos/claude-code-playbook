@@ -58,7 +58,12 @@ answers it. One tracker in context, never four.
 | | Verbs |
 |---|---|
 | **Small** | create · read · list · comment · close · reopen · edit body · link child to parent · label · claim · mark blocked · *is this blocked?* |
-| **Composed** | *the frontier* — the open, unblocked, unclaimed children of a map |
+| **Composed** | *the frontier* — the open, unblocked, unclaimed children of a map<br>*the whole graph* — every child with its state, claim, blockers, body and comments |
+
+**`read` includes the ticket's comments.** On a closed ticket the body is the *question* and
+the answer is in the resolution comment — so a read that returns the body alone hands you
+the one half you already had. Ask for a read; the adapter makes however many calls that
+takes.
 
 **Blocking is a question, not an edge.** Ask *"can I start this ticket right now?"* and let
 the adapter go and check. A `Blocked by:` line is a claim about the past — it still says
@@ -114,6 +119,10 @@ frontier.
 Regeneration is the rule because no tracker has optimistic concurrency on a body edit:
 two sessions appending an hour apart silently lose one of the writes. Rebuilding from the
 closed children turns that data loss into a shrug.
+
+**Rebuild it by asking for *the whole graph*, not by reading twenty tickets one at a time.**
+That is the verb's reason for existing: every closed child's leading gist, in whatever the
+cheapest number of calls is on the tracker you happen to be on.
 
 **The authored sections get a rule instead of a lock:** *re-read the map body immediately
 before editing it — never edit from the copy you loaded at session start.* Nothing
@@ -256,8 +265,9 @@ it and stop. Either way the answer is stop, but say which situation you are in.
 2. **Choose the ticket.** If the user named one, take it. Otherwise take the first ticket
    on the frontier. **Claim it before any work**, then **read the claim back** — a claim
    that silently failed looks identical to one that worked.
-3. **Resolve it.** Zoom as needed: fetch the full body of a related or closed ticket on
-   demand; invoke the skills the Notes name.
+3. **Resolve it.** Zoom as needed: **read** a related or closed ticket on demand — body
+   *and* comments, because on a closed one the decision is in the comment; invoke the
+   skills the Notes name.
 4. **Record it** — post the resolution comment (leading gist first), close the ticket,
    regenerate Decisions so far.
 5. **Update the map's edges** — graduate newly-specifiable fog into tickets, rule anything

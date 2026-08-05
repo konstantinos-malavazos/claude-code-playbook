@@ -22,7 +22,7 @@ is also enforced at the tool layer by
 | Verb | How |
 |---|---|
 | create | `mcp__tracker__create_issue` — project, issue type, summary, description |
-| read | `mcp__tracker__get_issue` by key |
+| read | `mcp__tracker__get_issue` by key, **plus its comments** — one call if your server takes a fields/expand argument (ask for `comment`), otherwise a second `mcp__tracker__get_comments`. Confirm which with `/mcp`; see [`README.md`](README.md) |
 | list | `mcp__tracker__search` with JQL |
 | comment | `mcp__tracker__add_comment` |
 | close | transition to your done status — **not** a `close` call; see below |
@@ -50,6 +50,25 @@ Then, for each result, read its `is blocked by` links and drop any whose blocker
 **This two-step is invisible to the caller.** A skill asks for the frontier and gets a list;
 that the adapter did the blocked-filter itself is the adapter's business. That is the
 contract working as designed.
+
+## The whole graph
+
+Every child with state, claim, blockers, description **and** comments. One JQL search
+carries the first four:
+
+```
+parent = <MAP-KEY> ORDER BY created ASC
+```
+
+Comments are the part that varies. **If your server exposes the search's fields or expand
+argument, ask for `comment` and the whole graph is a single call** — Jira returns comments
+inline with the issue, which no other tracker here does. If it does not, you are down to
+one comment read per ticket, and Jira has no repo-wide comments endpoint to fall back on
+the way GitHub does. Check with `/mcp` before you assume either.
+
+That check is worth making once and writing down, because this verb exists for callers that
+regenerate a view on every run. On the expensive branch, cache the result within the
+session rather than asking twice.
 
 ## Traps
 

@@ -130,7 +130,7 @@ prevent.
 refuses to record blocking that way, because a map's graph churns for weeks as fog clears.
 A backlog differs on both counts:
 
-- The whole graph is **authored in one sitting** and then stops moving.
+- The dependency graph is **authored in one sitting** and then stops moving.
 - The line names **which ticket**, never whether that ticket is finished. Open-or-closed is
   looked up live, every time.
 

@@ -38,11 +38,31 @@ it is running against.
 | | Verbs |
 |---|---|
 | **Small** | create · read · list · comment · close · reopen · edit body · link child to parent · label · claim · mark blocked · *is this blocked?* |
-| **Composed** | *the frontier* — the open, unblocked, unclaimed children of a parent |
+| **Composed** | *the frontier* — the open, unblocked, unclaimed children of a parent<br>*the whole graph* — every child of a parent with its state, claim, blockers, body and comments |
 
-Twelve small verbs and exactly one composed verb. The frontier earns its place because the
-cheapest way to answer it genuinely differs per tracker — one API call on GitHub, a
-directory scan on local — and every caller wants the same answer.
+Twelve small verbs and two composed verbs.
+
+**A composed verb earns its place on one test:** the cheapest way to answer it genuinely
+differs per tracker, and every caller wants the same answer. Both pass it. *The frontier*
+is one API call on GitHub and a directory scan on local. *The whole graph* is two paginated
+requests on GitHub and one directory read on local — where the obvious client-side
+assembly is a request per ticket, and a view too expensive to regenerate stops being
+regenerated and quietly becomes a second store.
+
+### One definition — `read` means the ticket *and* its comments
+
+**The answer to a closed ticket is not in its body.** The body holds the question; the
+resolution comment holds the decision. A `read` that returns the body alone hands back the
+question and silently drops the answer — and every *go and see what that ticket decided*
+instruction in this playbook rests on this one verb.
+
+Measured on a real map: reading ticket #12 returned **2,224 characters of question and 0 of
+answer**, while its resolution comment held **14,193**.
+
+So `read` is *defined* to include the comments. It is **not** a thirteenth verb: where a
+tracker needs two calls to satisfy it, the adapter makes both and the caller never finds
+out. Same faking-it rule as everything else here. This never surfaced on local markdown,
+where the question and the comments live in one file and the defect is invisible.
 
 ### Three rules the vocabulary depends on
 

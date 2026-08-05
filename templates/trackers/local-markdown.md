@@ -76,7 +76,7 @@ reused, even after a ticket is deleted.
 | Verb | How |
 |---|---|
 | create | new file at the next free number in `issues/` |
-| read | read the file |
+| read | read the file — **question and comments together**, which is what `read` means everywhere; see [`README.md`](README.md) |
 | list | read `issues/` |
 | comment | append under `## Comments` |
 | close | `State: resolved` |
@@ -96,6 +96,16 @@ going and looking.
 
 Scan `issues/` for files with `State: open`, an empty `Claim:`, and every number in
 `Blocked by:` now `resolved`. First by number wins.
+
+## The whole graph
+
+Read every file in `issues/`. One directory read, and you already have the states, the
+claims, the `Blocked by:` lines, the questions **and** the comments, because this adapter
+keeps them all in one file per ticket.
+
+**That is why the missing-comments defect never surfaced here.** On a hosted tracker the
+body and the comments are separate fetches, and a `read` that made only the first one
+looked like it worked. Cheapest adapter for this verb, and the one that hid the bug in it.
 
 ## Single-session by declaration
 

@@ -6,6 +6,31 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 5 August 2026, after resolving
+> [#39 The tracker contract: read must include comments, and a whole-graph verb](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/39)
+> — **both changes are landed in all five tracker files: `read` is *defined* to include the
+> ticket's comments, and *the whole graph* is the contract's second composed verb.** A make
+> that decided nothing; both changes were argued and handed over by #36. **Eight files
+> edited, not the five the ticket listed**: `templates/skills/charting/SKILL.md` restates the
+> vocabulary table and had to gain both, this file's own ten-line contract summary asserted
+> *"exactly one composed verb"*, and `05-cutting.md` used the phrase *the whole graph* in
+> plain English before it was a verb.
+> **`read` is a definition, not a thirteenth verb.** Still twelve small verbs, now two
+> composed. Where a tracker needs two calls the adapter makes both and the caller never
+> finds out — the faking-it rule the contract already had. **The local adapter is why nobody
+> caught it**: question and comments live in one file there, so the one adapter that
+> satisfies the fix for free is also the one that hid the defect for four months.
+> **The whole graph earns its place on the frontier's own test**, and the GitHub numbers are
+> what make it concrete: `…/issues/<map>/sub_issues --paginate` returns every child with its
+> body, and `…/issues/comments --paginate` returns **every comment in the repo** in one
+> paginated call — join on `issue_url`. Two requests against the naive sixty-six.
+> **One number was deliberately not written down.** #36's note here says *"all 52 comments"*;
+> it is 54 today and will be 55 after this ticket closes. A count that changes every time
+> anyone comments is not a fact an adapter can carry, so `github.md` states the shape — a
+> fixed handful of requests rather than one per ticket — and quotes no total.
+> **New verified trap:** `gh api …/issues/<n>` carries a `comments` field that is a **count**
+> and a `comments_url` that is a **link**. Nothing about a one-call read looks wrong; it just
+> returns the question.
+> The session before it resolved
 > [#36 The dependency viewer: one HTML picture for the map and the backlog](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/36)
 > — **the viewer is a shipped HTML page with a data slot, generated on demand into
 > `.claude/`, serving the map and the backlog both.** The adapter fetches, the page draws.
@@ -133,13 +158,17 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | 24 of 33 |
+| Tickets closed | 26 of 35 |
 | Tickets open | 9 |
 | On the frontier (takeable now) | 7 |
-| Blocked | 2 — the capstone at **3** open edges, and #38 now behind #36 alone |
+| Blocked | 2 — the capstone at **3** open edges, and #38 now behind **#40** alone |
 | Repo files changed since the effort began | **52** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded. *Recomputed from `git log 04cf1a6~1..HEAD` this session: the previous "57 + 15 off-map" split does not reproduce, so it is retired rather than carried.* |
 | Branches | none — findings live in ticket comments, not in the repo |
 | Working tree | clean |
+
+*Ticket counts recomputed this session from the map's children, not carried: the previous
+`24 of 33` predated #36 closing and #39/#40 being created. Two more children exist than the
+last count knew about.*
 
 **The seam is eight checks now, and the eighth was a hole the size of the whole implement
 step.** `08-ticket-pipeline.md:18` dispatches to layer specialists, and **no seam check said
@@ -383,7 +412,7 @@ non-stage one.
 |---|---|
 | Adapters shipping | Jira, GitHub, local markdown. **GitLab is a *shape*, not an adapter.** |
 | The floor | **Every verb works on every adapter.** Where a tracker lacks it natively, the adapter fakes it and the skill is never told. |
-| Vocabulary | Small verbs **plus exactly one composed verb, the frontier**. |
+| Vocabulary | **Twelve small verbs and two composed** — the frontier, and *the whole graph* (#39, on the frontier's own earning test). **`read` is defined to include the ticket's comments**, not made a thirteenth verb. |
 | Blocking | The predicate *"can I start this right now?"* — **not** a native edge. |
 | Claim | **Advisory, not a mutex.** Local declares itself single-session. |
 | Map body | **A generated view, not a store.** Rebuild from the closed children. |
@@ -428,14 +457,14 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Seven tickets. #37 closed and spawned nothing — the makes keep coming off cleanly.
+Seven tickets. #39 closed and spawned nothing.
 
-**Only one of the seven has its decisions banked**: #23, a make. Everything else is a real
-conversation, which is the shape the rest of this map is now in.
+**Two of the seven have their decisions banked**: #23 and #40, both makes. Everything else
+is a real conversation, which is the shape the rest of this map is now in.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#36 The dependency viewer](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/36) | grilling | **take this next** — it is the **only thing left blocking #38**, and closing that pair completes the last stage's doc+template set. A real conversation, and it serves **two stages** — charting's map and the backlog are the same picture. Design it once or charting grows a second one. |
+| [#40 Write the dependency viewer template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/40) | make | **take this next** — it is the **only thing left blocking #38**, and closing that pair completes the last stage's doc+template set. #36 banked every decision; #39 has now landed the two contract verbs it fetches through, so the adapter side is real and no longer has to be assumed. It also carries the `.gitignore` line. |
 | [#14 Which guardrails hold when you are solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/14) | grilling | **#10 handed it one and #34 sharpened it into a collision**: `block-infra-staging.sh` blocks staging `CLAUDE.md` and `.claude/`, and step 2 of the bootstrap *writes* a `CLAUDE.md` into the repo. So it is not commit-vs-push as a preference — the stage's own output is unstageable under a hook the playbook ships. |
 | [#15 Tech stack into working agents and skills](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15) | grilling | starts from a stack already chosen. **#21 pre-answered its input** (reads `CLAUDE.md` + memory two, never the map) and **#10 pre-answered its bootstrap boundary** (it owns *how*, stage 3 owns *when*) — and gave its where-do-files-land decision a second consequence: land them in `~/.claude/` and step 4 of the bootstrap must stop for the human. |
 | [#18 How progress is measured on the solo path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18) | grilling | **#12 handed it the fact it has to accommodate**: the map and the backlog live in the same tracker in different shapes — a tree of children under #1, and a flat ordered set of standalone issues beside it, deliberately invisible to the map's frontier query. |
@@ -448,7 +477,7 @@ conversation, which is the shape the rest of this map is now in.
 | Ticket | Waiting on |
 |---|---|
 | [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | **3 open blockers** — #14, #15, #18. #12 came off. #33 **handed it the phrase to use**: *a backlog of work units on a scaffolded repo that passes the seam*, which is what the front door must say instead of *"Serena-indexed repo"*. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — **four** templates now claim the solo column only, and `bootstrap` is the first to set `disable-model-invocation`. **#12 renamed a stage it must not describe by the old name.** |
-| [#38 Write the `/cut-backlog` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/38) | **1 open blocker** — #36 the viewer, whose step 7 cannot be written without it and to whom #12 promised non-GitHub trackers that view. **#37 came off**, and left it a *still being written* marker in `05-cutting.md` to delete plus a written doc to read the decisions from. |
+| [#38 Write the `/cut-backlog` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/38) | **1 open blocker** — **#40 the viewer template**, which took #36's place on the edge when #36 closed. Its step 7 cannot be written without the viewer, and #12 promised non-GitHub trackers that view. **#37 came off**, and left it a *still being written* marker in `05-cutting.md` to delete plus a written doc to read the decisions from. |
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -608,26 +637,34 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
     and `docs/solo/` is 6 of 6.** Carrying #12's ten decisions inline worked again — nothing
     was re-litigated — but **the re-grep still found six sites the ticket's list missed**,
     breaking the two-clean-re-greps run. See the gotcha: they all name the stage *in passing*.
-13. `/wayfinder 1 36` — **the dependency viewer. This is the one to take.** It is now the
+13. ~~#36, the dependency viewer.~~ **Done.** A shipped HTML page with a data slot,
+    generated on demand into `.claude/`, serving the map and the backlog both. Decided only.
+    Spawned #39 and #40, and **#40 took its place as the blocker on #38**.
+14. ~~#39, the tracker contract fixes.~~ **Done.** `read` now means the ticket *and* its
+    comments, and *the whole graph* is the second composed verb — landed in all five tracker
+    files plus the charting template and this file. A make that decided nothing. **Eight
+    files, not the five the ticket listed**; the extras are the two places that restate the
+    vocabulary and one that used the new verb's name as plain English.
+15. `/wayfinder 1 40` — **the viewer template. This is the one to take.** It is now the
     **only** blocker on #38, so taking it puts the last stage pair within one session of
-    done. Worth knowing before you open it: it serves **two stages**, so it is a real
-    conversation rather than a small drawing job, and it walks straight into
-    `block-infra-staging.sh` territory that #14 owns.
-14. `/wayfinder 1 38` — the `/cut-backlog` template. **Blocked by #36 alone now**; it closes
+    done. #36 banked the decisions and #39 landed the two verbs it fetches through, so this
+    is a make with nothing left to argue. It carries the `.gitignore` line, and the open risk
+    #36 named is whether a ~420 KB page with 33 boxes still reads clearly.
+16. `/wayfinder 1 38` — the `/cut-backlog` template. **Blocked by #40 alone now**; it closes
     the last stage pair and deletes the marker #37 left in `05-cutting.md`.
-15. Then the rest — #14 guardrails, #15 stack→agents, #18 progress — in any
+17. Then the rest — #14 guardrails, #15 stack→agents, #18 progress — in any
     order, each writing its own `docs/solo/` doc from `07` up. **#14 now has
     a named question waiting for it** (commit-or-push at the end of stage 3) and **#15 has
     three** (its bootstrap boundary is settled; its where-do-files-land call now also decides
     whether the bootstrap stops for the human; and the stack-choice method it consumes is
     now a doc it can link rather than restate).
-16. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
+18. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
     and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
-17. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
-18. **#32 is small and off-map.** Pick an inert tool that still exists, then **spawn the
+19. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
+20. **#32 is small and off-map.** Pick an inert tool that still exists, then **spawn the
     agent and watch it return a verdict** before closing. Correct-by-reading is what got us
     here. Latent — nothing is installed, so no running gate is skipping its judge today.
-19. **#29 still waits, but its argument is now weaker.** It remains the biggest thing on the
+21. **#29 still waits, but its argument is now weaker.** It remains the biggest thing on the
     board and Phase 0 alone is a full sitting. But the claim that its payoff is *latent* just
     took a hit: ten minutes of running one template found a defect that two documentation
     audits missed. **The cheap half of #29 — copy a template in and spawn it — is worth
@@ -641,6 +678,31 @@ Name the ticket. **Take #36.**
 
 ## Gotchas found so far
 
+- **The adapter that satisfies a contract clause for free is the one that hides the defect
+  in it.** `read` never included comments. On local markdown the question and the comments
+  are the same file, so `read` there was correct without anyone deciding it was — and the
+  clause was never written down, because on the adapter the contract was drafted against
+  there was nothing to write. On GitHub they are two endpoints and one of them was never
+  called, which is how *"read ticket #12"* came to return **2,224 characters of question and
+  0 of answer** while the resolution comment held **14,193**. **A verb that costs one adapter
+  nothing is a verb whose definition nobody had to state** — check the cheap adapter last,
+  or you will mistake its convenience for the contract.
+- **Naming a verb can collide with prose that was correct until the moment you named it.**
+  `05-cutting.md:133` said *"the whole graph is authored in one sitting"*, meaning the
+  backlog's dependency graph — ordinary English, and unambiguous right up until #39 made
+  *the whole graph* a contract verb. It sits three lines under a link to
+  `templates/trackers/README.md`, so the one reader most likely to hit it is the one holding
+  the contract in mind. Reworded to *the dependency graph*. **The grep to run when you coin a
+  term is for the term you just coined, in the files that were written before it existed** —
+  it finds sentences nobody broke, which is why nobody is looking for them.
+- **A count of live things is not a fact you may write down.** #36 verified the repo-wide
+  comments call and recorded *"all 52 comments"* in this file. It is **54** today, and it
+  will be 55 once this ticket's own resolution comment posts — the number moved because
+  *writing about it* moved it. The verified thing was the **shape** (one paginated call, not
+  one per ticket); the total was incidental and decayed within the day. This is #30's
+  recompute-don't-transcribe rule with a sharper edge on it: some numbers should not be
+  transcribed *at all*, because there is no moment at which they are true for longer than it
+  takes to write them.
 - **A rename grep finds the sentences *about* the thing and misses the ones that walk past
   it.** #12 grepped before estimating — the right instinct, and it correctly separated the
   *artifact* uses of "backlog" (which stay, seam item 6 included) from the *stage* uses
@@ -1063,6 +1125,32 @@ Name the ticket. **Take #36.**
   `[text](target)` against the filesystem.
 
 ---
+
+## What #39 handed forward
+
+- **#40 has a real adapter under it now.** The viewer template fetches through two verbs
+  that, until this ticket, one of the shipped adapters could not answer and none of them
+  defined: *the whole graph*, and a `read` that returns the answer. `github.md` carries both
+  commands verbatim, verified live, so #40 writes a page against a documented contract
+  rather than against `gh` incantations it has to derive itself.
+- **#38 inherits the vocabulary, and it is now two composed verbs, not one.** Any sentence
+  in the `/cut-backlog` template that quotes the contract's shape must say **twelve small
+  and two composed**. The backlog is a flat set of standalone issues rather than a map's
+  children, so *the whole graph* on that side is a **list** plus its comments — worth
+  stating, because the phrase "whole graph" reads as parent-scoped and the backlog has no
+  parent.
+- **#18 gets a fact about what a status view costs.** Both status artifacts are generated
+  views over the same tickets, and *the whole graph* is what makes regenerating either one
+  affordable — two requests rather than one per ticket. If #18 concludes the map and the
+  backlog should be one artifact, this is the verb it would be built on.
+- **#16 gains nothing and loses nothing.** The front door does not enumerate verbs. Checked,
+  not assumed.
+- **Left deliberately untouched: `docs/solo/03-charting.md` and
+  `docs/shared/03-setup.md`.** Both name a few verbs in prose — *create*, *close*, *claim*,
+  *is this blocked?*, *give me the frontier* — as illustrations, and both point at
+  `templates/trackers/` for the full list. Neither states a count, so neither was falsified.
+  An illustrative list is not a restatement, and turning one into a maintained copy of the
+  vocabulary is how a second store gets built by accident.
 
 ## What #37 handed forward
 
