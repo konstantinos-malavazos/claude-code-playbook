@@ -138,21 +138,25 @@ before writing anywhere other people can see it*, which for a solo builder on a 
 repo means **never ask**. Their machine has no other people on it. It does have other
 projects.
 
-Three things cross the line:
+Two things cross the line:
 
 | What crosses | Why it is fine |
 |---|---|
-| **The generated specialists and stack skills**, *if* they land in `~/.claude/` rather than in the repo | Where they land is the stack-adaptation flow's call, not stage 3's. If it is global, you see it. |
 | **The tracker adapter's global path** | Step 5 only **reads** it. Nothing is written outside the repo. |
 | **The two memories** | Memory is not a folder you can revert. [05-forgetful.md](../shared/05-forgetful.md) already gates this: nothing enters memory un-reviewed. |
 
-**Whether stage 3 ends with a commit is not settled here.** Note that it collides with a
-real guardrail rather than a preference: `PHILOSOPHY.md` §5 says AI-infra files are never
-committed to a product repo, and
-[`templates/hooks/block-infra-staging.sh`](../../templates/hooks/block-infra-staging.sh)
-enforces it at the tool layer — while step 2 of this stage writes a `CLAUDE.md` into the
-repo, and step 4 may write `.claude/`. Which of the solo guardrails hold unchanged is its
-own question, deliberately left open here.
+**Step 4's output does not cross it.** The generated specialists and standards skills land
+in the repo's own `.claude/agents/` and `.claude/skills/` — they are facts about *this*
+codebase, not your machine's configuration — which is what lets step 4 run unattended like
+every other step.
+
+**Stage 3 ends with one commit, and only on an all-green report.** Something has to commit
+the `CLAUDE.md` step 2 writes, and the generated agent files with it.
+[07-guardrails-when-solo.md](07-guardrails-when-solo.md) has the reasoning: the hook that
+blocks AI-infra staging expresses a rule about **provenance** as a rule about **paths**,
+and the fix is a test — *would a fresh clone need this file?* — rather than another path
+exception. Red means the stack or the setup is wrong, and on day one there is nothing worth
+preserving in history.
 
 ---
 

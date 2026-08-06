@@ -5,7 +5,41 @@ Local tracking file for the wayfinder effort on
 **Committed and pushed**, so the effort can be resumed from any machine. The tracker is
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
-> **Snapshot taken:** 5 August 2026, after resolving
+> **Snapshot taken:** 6 August 2026, after resolving
+> [#42 Write the solo guardrails doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/42)
+> — **written: `docs/solo/07-guardrails-when-solo.md`**, the reader-facing *why* behind #14,
+> and `docs/solo/` is seven files. A make that decided nothing.
+> **The ticket's own body carried an expired premise.** It instructs *"exactly one file
+> flips"* and *"is `.claude/` part of the product? — **no**"*; #15 amended both a session
+> later. The doc therefore states **three path classes flip** (`CLAUDE.md` conditional on
+> the allowlist, `.claude/agents/**` and `.claude/skills/**` unconditionally) and that the
+> product question has **no per-directory answer** — it is per *file*, and the fresh-clone
+> test is what answers it. #36 survives on *the viewer* not being product rather than
+> *`.claude/`* not being. **Second consecutive ticket to find its instructions expired
+> inside an open ticket's body**, where no grep of `master` reaches: #15 found it in #43's
+> body, this one in its own.
+> **The finding: flipping the hook does not make the file committable.** Two independent
+> mechanisms keep a file out of git and #14 moved only one — the hook blocks the *command*,
+> `.gitignore` makes the file invisible to it — and **three files** instruct a **blanket**
+> `.claude/` ignore line: `templates/views/README.md:78`,
+> `templates/skills/charting/SKILL.md:134`, `templates/skills/cut-backlog/SKILL.md:252`.
+> Deletion is wrong (#36 needs that line), so the fix is **exceptions written with the
+> line**, sorting the way the hook now sorts. **Two guardrails on one directory, living in
+> different files** — the ticket that changed one had no reason to grep for the other.
+> **Two unowned falsified claims fixed in `04-the-bootstrap.md`.** The crosses-the-line
+> table lost a row and *three things cross* is recomputed to **two** (#15 lands the
+> specialists in-repo, so step 4's output crosses nothing); and the *"whether stage 3 ends
+> with a commit is not settled here"* paragraph — which carried **both** #43's *never
+> committed* claim **and** an open question #14 had closed — was rewritten whole rather
+> than split across two tickets. #43 has a comment saying so.
+> **Handed to #43, four sites its sweep does not have:** `global.CLAUDE.md:82` (four lines
+> below the `:76` it already owns, failing #14's sorting rule the same way),
+> `commit-conventions/SKILL.md:40`, the `.gitignore` trio, and the `/test-ticket` §6
+> knock-on (`test-ticket.md:23`/`:33`, `07-the-flows.md:87`).
+> Verified: every relative link and `#anchor` in both files resolves — **0 dead, 0 bad**.
+> Ships one *still being written* marker for #43 to delete.
+>
+> The session before it resolved
 > [#15 Turn a chosen tech stack into working agents and skills](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15)
 > — **the flow is `/adapt-to-stack`: it reads the repo's `CLAUDE.md` and nothing else,
 > generates one layer specialist and one standards skill per layer into the repo's
@@ -314,11 +348,11 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | **30 of 40** |
-| Tickets open | 10 — #14 spawned #42/#43, #15 spawned #44/#45 |
+| Tickets closed | **31 of 40** |
+| Tickets open | 9 — #42 closed and spawned nothing; its follow-on work went to #43, which already existed |
 | On the frontier (takeable now) | 7 |
-| Blocked | **3** — #16 the capstone at 3 open edges (#43, #42, #18), #43 on #42, #45 on #44 |
-| Repo files changed since the effort began | **52** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded. *Recomputed from `git log 04cf1a6~1..HEAD` this session: the previous "57 + 15 off-map" split does not reproduce, so it is retired rather than carried.* |
+| Blocked | **2** — #16 the capstone at **2** open edges (#43, #18), #45 on #44. **#43 is unblocked and takeable.** |
+| Repo files changed since the effort began | **56** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded, this session's working tree included. *Recomputed from `git log 04cf1a6~1..HEAD` plus `git status`; the carried **52** was one session's snapshot and had already been overtaken. **Third recompute in a row that did not reproduce the carried number** — the row is cheap to recompute and expensive to trust.* |
 | Branches | none — findings live in ticket comments, not in the repo |
 | Working tree | committed and pushed at the end of this session |
 
@@ -546,6 +580,7 @@ entrances are visible at once.
 | [#40 Write the dependency viewer template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/40) | **Done — `templates/views/dependency-graph.html` and its README are written, generated against this map and opened in a browser.** A make; every design decision traces to #36. The directory is **`views/`** — named for what it is to the reader, because the harness turns it into nothing — and `templates/README.md` gains an **exemption** from *every file here is a claim about the harness*. **`issue_dependencies_summary` is four integers**, so #39's two-call whole graph draws **no arrows**; GitHub's is now **one GraphQL call** returning children, states, claims, bodies, comments and edges, reshaped by `--jq` into the data slot in the same call. The contract gains **an adapter answers *by what?*, never just *how many?*** Verified live: 480 KB, 35 boxes, four states told apart by **outline rather than colour**. **No flow catalogue row and no new skill** — the picture has no command; two flows generate it. **Unblocks #38.** |
 | [#38 Write the `/cut-backlog` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/38) | **Done — `templates/skills/cut-backlog/SKILL.md` is written, the skills README carries its entry, and the marker in `05-cutting.md` is deleted. All four solo stages now ship a doc *and* a template.** A make that decided nothing; every rule traces to #12 plus #40's step-7 block. **The ticket's own step 7 contradicted its own bullet** — *"native edges where the tracker has them, the viewer where it does not"* is a branch on tracker capability, which #4 forbids — so step 7 is unconditional: *mark blocked* per body line **and** generate the picture, always. **One mechanical point nobody had stated: create in dependency order**, because the board shows positions, ids do not exist until step 6, and the body line is the truth — so step 3's ordering is load-bearing. Second template to set `disable-model-invocation: true`. **The re-grep found one site, in the paired stage doc**: `05-cutting.md:8`'s *"the eighth item"*, where the rest of the file says **item 6** — see the gotcha. No flow catalogue row was owed; unblocks nothing. **Spawned [#41](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/41)** — *the whole graph* is parent-scoped and #12 made work units standalone, which #39 predicted in writing; step 7 asks over **the ids in hand**, true under every answer, and the contract question goes to #41. |
 | [#30 Write the stack-choice doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/30) | **Done — `docs/solo/06-choosing-the-stack.md` is written.** A make that decided nothing; every claim traces to #21 plus #10's layer-chain settlement. Took **`06`** at write time, so `05` stayed reserved — #12 has since named it `05-cutting.md` and handed it to #37. Carries read-level over write-level, mainstream-first, propose-and-kill as a table on *exit condition*, the three kill checks as an ASCII loop, Serena's *who calls this?* test with **verdict-*no* stated as a pass rather than a gap**, re-read-at-the-tail with its cost recorded, and the `go test ./...` exits 0 / `pytest` exits 5 table. **All three link fixes landed** — `03-charting.md`'s tail section plus the two `04-the-bootstrap.md` sites #34 left as *being written*. **Corrected a stale count inside #21's own resolution comment** (five stack-independent seam checks → six, since #10 grew the seam) — see below. |
+| [#42 Write the solo guardrails doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/42) | **Done — `docs/solo/07-guardrails-when-solo.md` is written.** A make that decided nothing; every claim traces to #14. §5's rule of thumb is **two tests** and solo deletes exactly one; three guardrails hold with the reason rewritten, **§6 is replaced not modified**, and the AI-infra path list becomes the **fresh-clone test**. The allowlist sits **outside every repo** so the agent cannot write it. Cost and review are **habits, explicitly labelled**. **The ticket's own body had expired** — #15 amended *"exactly one file flips"* and the *`.claude/` is not product* answer, so the doc states **three path classes flip** and that the question is **per file, not per directory**. **Found: the hook flip alone does not make a file committable** — three files still write a **blanket** `.claude/` `.gitignore` line, and the fix is exceptions, not deletion. Fixed two unowned falsified claims in `04-the-bootstrap.md` and handed **four extra sites** to #43. |
 
 ### The layout #2 decided — now live
 
@@ -568,7 +603,8 @@ Numbering restarts at `01` per directory.
 | `04-the-bootstrap.md` | the bootstrap — **written** (designed by #10) | #34 |
 | `05-cutting.md` | cutting — **written**. Renamed from `05-the-backlog.md` by #12, which found the stage and its artifact sharing a name (designed by #12) | #37 |
 | `06-choosing-the-stack.md` | the stack-choice method — **written**, the first non-stage solo doc | #30 |
-| `07+` | everything else solo — guardrails, progress, resuming, stack→agents | in the order they are written |
+| `07-guardrails-when-solo.md` | which guardrails hold when you are solo — **written** (designed by #14) | #42 |
+| `08+` | everything else solo — progress, resuming | in the order they are written |
 
 The stage block is reserved in **stage order**, so a stage doc never collides with a
 non-stage one.
@@ -624,18 +660,18 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Seven tickets, recomputed from the graph this session. #14 and #15 both closed and between
-them spawned **#42, #43, #44 and #45**; #42 and #44 walk straight onto this list.
+Seven tickets, recomputed from the graph this session. #42 closed and **#43 came off its
+blocker onto this list**, so the count is unchanged while the list is not.
 
-**The shape flipped back.** The previous snapshot said one of seven was a make and the rest
-were conversations. It is now **three makes** — #23, #42, #44 — because the last two
-grillings each banked a decision that needs writing down. **Only #18 still gates the
-capstone**; #14 and #15 came off it and were replaced by makes.
+**Still three makes** — #23, #43, #44 — with #43 replacing #42 one-for-one. That is the
+doc-then-template pair working as designed: the doc ticket closes, the make it was blocking
+becomes takeable, and the make now carries four sites its own body never listed.
+**#16's edges are down to two**, #43 and #18.
 
 | Ticket | Type | Note |
 |---|---|---|
 | [#44 Rework `11-adapting-to-your-stack.md` as the explainer](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/44) | make | **#15's doc.** Turns `11` from manual instructions into the explainer behind `/adapt-to-stack`, adds the optional per-layer model to `repo.CLAUDE.md`, and deletes `04-the-bootstrap.md:94`'s marker — **the last dead forward link on the solo docs**. **Blocks #45.** |
-| [#42 Write the solo guardrails doc](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/42) | make | **#14's doc, and it blocks both #43 and #16** — the highest-leverage make left. |
+| [#43 Rewire the guardrails for solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/43) | make | **#14's hooks, unblocked by #42 — and the last edge but one on the capstone.** Carries **#15's correction** (`.claude/agents/**` and `.claude/skills/**` flip alongside `CLAUDE.md`, the rest of `.claude/` stays hard-blocked, `test-hooks.sh` gets **both sides** of that line) **and #42's four extra sites**: `global.CLAUDE.md:82`, `commit-conventions/SKILL.md:40`, the `.gitignore` trio, and the `/test-ticket` §6 knock-on. `04-the-bootstrap.md:150` is **already done** — do not re-edit it. |
 | [#41 The whole graph has no parent to scope by on the backlog side](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/41) | grilling | **#39 predicted this one in writing and #38 hit it.** *The whole graph* is defined over the **children of a parent**; #12 made work units **standalone on purpose**; #36 said one page serves the map and the backlog both. Three right decisions, jointly incomplete. `/cut-backlog` ships the instruction that survives every answer — ask over **the ids in hand** — so nothing is blocked, but the contract does not say it. **The question that separates the alternatives is what regenerates the picture six weeks later**, when nobody holds the ids. |
 | [#18 How progress is measured on the solo path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18) | grilling | **the last conversation gating the capstone.** #12 handed it the fact it has to accommodate: the map and the backlog live in the same tracker in different shapes — a tree of children under #1, and a flat ordered set of standalone issues beside it, deliberately invisible to the map's frontier query. |
 | [#8 Resuming an effort across dozens of sessions](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8) | grilling | **must check #5's §8 boundary first** |
@@ -647,8 +683,7 @@ capstone**; #14 and #15 came off it and were replaced by makes.
 | Ticket | Waiting on |
 |---|---|
 | [#45 Write the `/adapt-to-stack` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/45) | **#44** — doc first, then template, as every other stage pair did. |
-| [#43 Rewire the guardrails for solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/43) | **#42** — and it now carries **#15's correction**: `.claude/agents/**` and `.claude/skills/**` flip out of `block-infra-staging.sh` alongside `CLAUDE.md`, the rest of `.claude/` stays hard-blocked, `test-hooks.sh` gets **both sides** of that line, and four *"AI-infra files are never committed"* prose sites its own sweep missed. |
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | **3 open blockers** — now **#43, #42, #18**. #14 and #15 came off and were replaced by #14's two makes, so the count held at three while the *kind* of work changed: two of the three are now files to write, not decisions to take. #12 came off earlier. #33 **handed it the phrase to use**: *a backlog of work units on a scaffolded repo that passes the seam*, which is what the front door must say instead of *"Serena-indexed repo"*. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — **four** templates claim the solo column only (`charting`, `pitch`, `bootstrap`, `cut-backlog` — recounted from the README this session, and it is one per stage), and **two** of them set `disable-model-invocation`. **#12 renamed a stage it must not describe by the old name**, and **#38 completed the set**: every solo stage now has a doc and a template for the front door to point at. |
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | **2 open blockers** — now **#43, #18**. #42 came off this session and spawned nothing, so the count actually fell for the first time in three sessions: one file to write and one decision to take. #14 and #15 came off before it, #12 earlier still. #33 **handed it the phrase to use**: *a backlog of work units on a scaffolded repo that passes the seam*, which is what the front door must say instead of *"Serena-indexed repo"*. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — **four** templates claim the solo column only (`charting`, `pitch`, `bootstrap`, `cut-backlog` — recounted from the README this session, and it is one per stage), and **two** of them set `disable-model-invocation`. **#12 renamed a stage it must not describe by the old name**, and **#38 completed the set**: every solo stage now has a doc and a template for the front door to point at. |
 
 **That claim is retired.** The previous snapshot said the capstone's three remaining edges
 were *all conversations* and that *every make on this map is now landed*. Both were true
@@ -913,6 +948,29 @@ Name the ticket. **Take #42** — it is the only ticket on the board blocking tw
 
 ## Gotchas found so far
 
+- **Two guardrails on one directory, living in different files, and moving one buys
+  nothing.** #14 flipped `block-infra-staging.sh` so the repo's `CLAUDE.md` and (after #15)
+  `.claude/agents/**` and `.claude/skills/**` can be committed. They still cannot: **three
+  files instruct a flow to write a blanket `.claude/` line into the repo's `.gitignore`** —
+  `templates/views/README.md:78`, `templates/skills/charting/SKILL.md:134`,
+  `templates/skills/cut-backlog/SKILL.md:252` — all written by #36/#40 when nothing under
+  `.claude/` was meant to survive. **The hook blocks the *command*; `.gitignore` makes the
+  file invisible to it.** Two independent mechanisms, one directory, and every ticket that
+  touched the subject reasoned about exactly one of them. Deletion is the wrong fix — #36
+  genuinely needs the line — so the two have to sort the same way. **The check: when you
+  loosen a guardrail, ask what *else* is enforcing the same outcome by a different
+  mechanism.** Every re-grep lesson so far has been about **reach** (#33, #37) or **sorting**
+  (#14); this one is about a **second enforcement point** that no wording of the first one
+  would ever return.
+- **A ticket's own body is a premise that can expire, and #42 found it in its own.** #42's
+  body instructs *"exactly one file flips"* and *"is `.claude/` part of the product? — no"*.
+  Both were correct when #14 wrote them and were amended by #15 the next session; #43 got the
+  correction and #42 did not, because #15 was editing the ticket that owns the hook. **The
+  make ticket read its instructions, and its instructions were a session stale.** Second
+  consecutive ticket to hit this — see the entry below, which is the same failure seen from
+  #15's side. The defence generalises one step: **a make should re-read the resolution
+  comment of its parent decision, not only its own body**, because the parent is where a
+  later correction gets posted.
 - **An open ticket's body is a premise that can expire, and nothing on `master` will tell
   you.** #43's body instructs a future session that *only `CLAUDE.md` flips* out of
   `block-infra-staging.sh`. #14 reached that correctly, knowing nothing of what #15 would
@@ -1419,6 +1477,36 @@ Name the ticket. **Take #42** — it is the only ticket on the board blocking tw
   `[text](target)` against the filesystem.
 
 ---
+
+## What #42 handed forward
+
+- **To [#43](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/43),
+  now unblocked — four sites its own body and #15's correction both missed.**
+  `templates/claude-md/global.CLAUDE.md:82` (*"Never stage/commit AI-infra files"*), four
+  lines below the `:76` it already owns and failing #14's sorting rule the same way — it
+  states what is **permitted**, not what a flow does.
+  `templates/skills/commit-conventions/SKILL.md:40`, the workspace-wide copy of the same
+  claim, which #15 confirmed is a setup-time file rather than a generated one.
+  **The `.gitignore` trio** — `templates/views/README.md:78`,
+  `templates/skills/charting/SKILL.md:134`,
+  `templates/skills/cut-backlog/SKILL.md:252` — all writing a **blanket** `.claude/` ignore
+  line. And the **`/test-ticket` §6 knock-on**: `templates/commands/test-ticket.md:23`/`:33`
+  and `docs/shared/07-the-flows.md:87` still say *staging only*, which on this path means
+  nothing.
+- **To #43, one thing already done: `04-the-bootstrap.md:150`.** #15 put it on that ticket's
+  list; the same paragraph carried a second falsified claim — *"whether stage 3 ends with a
+  commit is not settled here"* — which is reader-facing prose on nobody's list, so the whole
+  paragraph was rewritten here rather than split across two tickets. **Do not re-edit it.**
+  `04:39` and `04:261` (the step count) are untouched and still #43's.
+- **To whoever writes the `.gitignore` exceptions:** deletion is wrong. #36 needs that line
+  — the hook stops the viewer entering git, nothing stops it showing as untracked noise —
+  so the ignore file has to sort the same way `block-infra-staging.sh` now sorts. If they
+  disagree, staging a generated specialist needs `-f` and the flip has bought nothing.
+- **Nothing to #16 beyond one fewer edge.** `PHILOSOPHY.md` §5 and §6 were left untouched,
+  per this ticket's boundary; what #16 adds is the pointer plus the one sentence saying
+  which clause solo removes.
+- **Nothing verified live.** This doc ships no executable claim. The link and anchor check
+  is the only verification it admits of, and it passed at 0 dead, 0 bad.
 
 ## What #15 handed forward
 
