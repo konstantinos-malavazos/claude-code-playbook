@@ -44,8 +44,9 @@ or the briefs alone.
    gate. For each, note who owns the answer and how reversible a wrong guess is; plan a
    default or a placeholder so dependent work isn't blocked.
 6. Write the **final commit message** (per the commit-conventions skill) into planner.md.
-7. Create the feature branch following the workspace new-branch workflow (fetch →
-   checkout main → pull --rebase → branch). Confirm clean status, local-only. Never push.
+7. Create the feature branch following the new-branch workflow in the **global**
+   `CLAUDE.md` (fetch → checkout the repo's main branch → pull --rebase → branch).
+   Confirm clean status, local-only. Never push.
 
 ## RE-PLAN mode (when invoked by /resume-ticket)
 Amend the prior plan with newly-available answers: lift placeholders, promote any parked

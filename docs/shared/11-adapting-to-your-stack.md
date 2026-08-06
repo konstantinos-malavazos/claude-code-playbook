@@ -192,8 +192,9 @@ added ↔ the property the service maps ↔ the member the consumer reads.) This
 The first item is yours. The rest are read off the flow's report.
 
 - [ ] The repo's `CLAUDE.md` states my chain as an ordered list of layers — shape A or
-      shape B, and on shape B the workspace `CLAUDE.md` carries the cross-repo order and
-      the new-branch workflow.
+      shape B, and on shape B the workspace `CLAUDE.md` carries the cross-repo order.
+      (The new-branch workflow is not there in either shape; it is in the global
+      `CLAUDE.md` — see [06](06-claude-md-layers.md).)
 - [ ] The report shows **one specialist created per layer** in `.claude/agents/`, each with
       its paths and build/test commands filled in from that file.
 - [ ] The report shows **one standards skill per layer** in `.claude/skills/`.

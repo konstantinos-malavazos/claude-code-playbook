@@ -100,7 +100,7 @@ claude-code-playbook/
 │   │   ├── 03-setup.md             Clean-machine setup, step by step
 │   │   ├── 04-serena.md            Pillar 1 — code navigation by symbol
 │   │   ├── 05-forgetful.md         Pillar 2 — durable memory + the two-memory rule
-│   │   ├── 06-claude-md-layers.md  The CLAUDE.md idea: global · workspace · per-repo
+│   │   ├── 06-claude-md-layers.md  The CLAUDE.md layers — and how repo count picks them
 │   │   ├── 07-the-flows.md         Pillar 3 — the pipeline concept + the flow catalogue
 │   │   ├── 08-ticket-pipeline.md   /start-ticket, step by step (generic)
 │   │   ├── 09-decompose-path.md    Parallel slices for large tickets (git worktrees)
@@ -149,7 +149,7 @@ step 4 forks.
 
 | | The agile path | The solo path |
 |---|---|---|
-| **Next** | Fill in the workspace and per-repo `CLAUDE.md` ([06](docs/shared/06-claude-md-layers.md)), then adapt the layer-chain to your stack ([11](docs/shared/11-adapting-to-your-stack.md)) — the single most important adaptation | Read [the spine](docs/solo/01-the-solo-path.md), then run `/pitch` on the idea. Do **not** create a repo first — a *build* verdict creates it for you |
+| **Next** | Fill in the `CLAUDE.md` layers your repo count calls for — the repo's own on one repo, plus the workspace atlas on siblings ([06](docs/shared/06-claude-md-layers.md)) — then adapt the layer-chain to your stack ([11](docs/shared/11-adapting-to-your-stack.md)) — the single most important adaptation | Read [the spine](docs/solo/01-the-solo-path.md), then run `/pitch` on the idea. Do **not** create a repo first — a *build* verdict creates it for you |
 | **Then** | Copy the agents/skills/commands you want and add the flows one at a time — start with `/start-ticket` | Work the map one ticket per session, then `/bootstrap`, then `/cut-backlog`. The stack, the layer chain, the repo's own `CLAUDE.md` and the specialists are all decided and generated on the way — you write none of them by hand |
 | **You know you're done when** | `/start-ticket` runs cleanly on a small real ticket | All eight [seam checks](docs/solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) hold — at which point you are standing where the agile path starts |
 

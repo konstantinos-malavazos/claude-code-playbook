@@ -3,7 +3,8 @@
   Copy to <workspace>/CLAUDE.md and fill in every <PLACEHOLDER>.
   This is LAYER 2 — the map of THIS workspace: which repos exist, which branch ships,
   how a change moves through the stack. Auto-loaded for any repo under the workspace.
-  If you have a single repo today, keep this file anyway with a one-row repo map.
+  ONLY IF YOU HAVE SIBLING REPOS. With a single repo there is no layer 2 — skip this
+  file; its facts live in the global and per-repo layers.
   See docs/shared/06-claude-md-layers.md and docs/shared/11-adapting-to-your-stack.md.
 -->
 
@@ -26,6 +27,10 @@ the dominant change pattern.
 The branch each repo ships to production from. Rebase onto this before cutting a feature
 branch. (Repos differ — write them down; don't assume.)
 
+This table is an **index**, not the owner: each repo also states its own branch in its
+`CLAUDE.md`. It earns its place because working in `<repo-a>/` you may need what
+`<repo-b>/` ships from, and `<repo-b>/CLAUDE.md` is not loaded.
+
 | Repo | Main branch |
 |---|---|
 | `<repo-a>` | `<main|develop|...>` |
@@ -34,21 +39,11 @@ branch. (Repos differ — write them down; don't assume.)
 For any repo not listed: detect via `git symbolic-ref refs/remotes/origin/HEAD` and ASK
 before branching.
 
-## New-branch workflow (MANDATORY)
+## New-branch workflow
 
-Every new feature branch, inside the target repo — never skip, never substitute merge for
-rebase:
-
-```
-git fetch origin
-git checkout <main-branch-from-table>
-git pull --rebase origin <main-branch>
-git checkout -b <TICKET-ID>_<kebab-slug>
-```
-
-- `--rebase` is mandatory. If the working tree is dirty → STOP and ask (never auto-stash).
-- If the rebase conflicts on the main branch → STOP and surface it.
-- After branching, confirm `git status` is clean and the branch is local-only. Never push.
+The sequence and its stop rules are in the **global** `CLAUDE.md` — identical in every
+repo, so it is stated once there. The only workspace-specific input is the branch name,
+from the table above.
 
 ## Sequential implementation chain (MANDATORY order)
 

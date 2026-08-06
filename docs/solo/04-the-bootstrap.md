@@ -45,7 +45,7 @@ before it produced.** Step 1 is the exception, and it is placed by a different r
 |---|---|---|
 | 1 | **Answer the two allowlist questions** — may the agent push here, and is this repo's `CLAUDE.md` its own | The only part of the stage that is **yours**. It goes first so everything after it runs unattended — and step 3's output cannot be committed until it is answered. |
 | 2 | **Scaffold the stub** — the framework's own generator, **plus one empty folder per layer in the chain** | Nothing can be indexed, or pointed at, until code exists. |
-| 3 | **Write the repo's `CLAUDE.md`** — stack, build/test/run commands, layer chain, Serena verdict | Step 5 reads the chain from it; the seam reads the verdict from it. |
+| 3 | **Write the repo's `CLAUDE.md`** — stack, build/test/run commands, the branch this repo ships from, layer chain, Serena verdict | Step 5 reads the chain from it; the seam reads the verdict from it. The branch is **detected**, not asked for — this stage runs inside a repo that already exists, so `git symbolic-ref refs/remotes/origin/HEAD` answers it. No extra step, no extra question. |
 | 4 | **Index Serena** — *only if the verdict says yes* | Needs step 2's code. An index of an empty folder proves nothing. |
 | 5 | **Generate the layer specialists and the stack skills** | Needs the chain from step 3 and the folders from step 2. |
 | 6 | **Check the installed tracker adapter matches this project's tracker** | **Verify, never install.** Installing is a global setup act. |
@@ -279,7 +279,7 @@ proposed and killed, and why the chain is one of the three things ticket 1 decid
 | | |
 |---|---|
 | **A repo that builds and runs** | The stub, plus one folder per layer. |
-| **A `CLAUDE.md`** | Stack, commands, layer chain, Serena verdict. The permanent home for all four. |
+| **A `CLAUDE.md`** | Stack, commands, the branch this repo ships from, layer chain, Serena verdict. The permanent home for all five — and the only `CLAUDE.md` a one-repo project has below the global one. |
 | **Layer specialists on disk** | Which is what makes [`/start-ticket`](../shared/08-ticket-pipeline.md) able to dispatch at all. |
 | **Two memories** | The seam's arithmetic comes out at exactly two, with no special-casing. |
 | **One report** | Seven of the seam's eight items. [Cutting](05-cutting.md) makes the remaining one — item 6, *the backlog exists* — true, against a repo that is real, so its tickets can name paths that exist. |

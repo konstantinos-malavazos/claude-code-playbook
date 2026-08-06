@@ -49,7 +49,8 @@ Consume both briefs. Do pinpoint Serena reads to finalize the design. Produce a
 step-by-step plan with **Serena-verified file/symbol targets** and a **risk assessment**, allocate work
 to layer specialists in chain order, decide **slice-count** (1 = sequential;
 >1 = decompose — see [09](09-decompose-path.md)), write the **final commit message**, and
-create the feature branch (following the workspace new-branch workflow). The planner
+create the feature branch (following the new-branch workflow in the global `CLAUDE.md`,
+onto the branch this repo ships from). The planner
 **cannot** write to memory — design only.
 
 ## Step 3b — Grilling gate (human)

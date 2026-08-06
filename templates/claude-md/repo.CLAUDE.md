@@ -1,7 +1,8 @@
 <!--
   TEMPLATE: per-repo instructions.
-  Copy to <workspace>/<repo>/CLAUDE.md and fill in every <PLACEHOLDER>.
+  Copy to <repo>/CLAUDE.md and fill in every <PLACEHOLDER>. One per repo, always.
   This is LAYER 3 — facts true ONLY inside this repo. Loaded only when working here.
+  With one repo this is the ONLY CLAUDE.md below the global one; there is no layer 2.
   Keep it LEAN: the 20 facts that stop a wrong turn, not a re-description of the repo.
   Point, don't paste — where Serena applies, let it find the code details.
   See docs/shared/06-claude-md-layers.md.
@@ -20,6 +21,11 @@
 # run local: <command>
 ```
 
+## Main branch (prod target)
+- This repo ships from **`<main|develop|...>`**. Rebase onto it before cutting a feature
+  branch — the workflow itself is in the global `CLAUDE.md`; this line supplies the name.
+- Detect rather than guess: `git symbolic-ref refs/remotes/origin/HEAD`.
+
 ## Serena
 - Verdict: **<yes / no>** — <if no, one line of why: e.g. "shell + YAML; there is no
   symbol graph to ask *who calls this?* of">.
@@ -30,9 +36,10 @@
 - <Startup / composition root>: `<path>`
 - <The area this repo is usually changed in>: `<path>` (use Serena for the details)
 
-## Local conventions that differ from the workspace default
+## Local conventions that differ from the default
 - <e.g. this repo uses X test framework / Y folder layout / Z naming — only note the
-  DIFFERENCES from the workspace CLAUDE.md.>
+  DIFFERENCES from the layer above: the workspace CLAUDE.md if you have sibling repos,
+  otherwise the global one.>
 
 ## Gotchas (things that will bite an agent)
 - <e.g. "this service publishes event `X`; changing its payload breaks consumer repo

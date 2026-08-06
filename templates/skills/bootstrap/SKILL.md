@@ -110,12 +110,13 @@ Run the framework's own generator. Then create **one empty folder per layer of t
 
 ### 3 — Write the repo's `CLAUDE.md`
 
-From `templates/claude-md/repo.CLAUDE.md`. Four things must land in it:
+From `templates/claude-md/repo.CLAUDE.md`. Five things must land in it:
 
 | | |
 |---|---|
 | The stack | as named by the tail |
 | Build / test / run commands | as written by the tail |
+| **The branch this repo ships from** | **detect** it — `git symbolic-ref refs/remotes/origin/HEAD` — do not ask. This is the only place it lives; the global `CLAUDE.md` holds the workflow that reads it |
 | The layer chain | you are **copying** it, not choosing it |
 | **The Serena verdict**, and one line of why | this is the only place it lives |
 

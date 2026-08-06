@@ -68,9 +68,12 @@ Almost everything can live at **global** (`~/.claude/`) or **project**
 
 - **Global** — your personal way of working, shared across every project: your agents,
   skills, guardrail hooks, and personal CLAUDE.md.
-- **Project** — facts specific to one workspace: which repos exist, which branch ships
-  to production, project-scoped MCP servers (Serena is per-project because it indexes a
-  working copy), project permissions.
+- **Project** — facts specific to the codebase you're in: which branch ships to
+  production, project-scoped MCP servers (Serena is per-project because it indexes a
+  working copy), project permissions. Where that scope's `CLAUDE.md` sits depends on how
+  many repos you have — the repo's own for one, plus a workspace file above it for
+  siblings, which is where *which repos exist* then lives. See
+  [06-claude-md-layers.md](06-claude-md-layers.md).
 
 Rule of thumb: *behaviour* is global, *facts about this codebase* are project-scoped.
 

@@ -24,7 +24,8 @@ description: >-
 - `[<TICKET-ID>]` always at the end, in square brackets, matching the branch ticket id.
 
 ## One commit per branch per repo (amend-as-you-go)
-Every feature branch lands as **exactly one commit per repo**.
+Every feature branch lands as **exactly one commit per repo**. `<main-branch>` below is
+filled at run time — read it off the repo's `CLAUDE.md`; never transcribe it here.
 ```
 existing=$(git rev-list --count origin/<main-branch>..HEAD)
 if [ "$existing" -eq 0 ]; then

@@ -22,7 +22,7 @@ route, gate, and consolidate.
    design, send @planner back to RE-PLAN. Record deferrals to durable ticket state.
 5. **Decompose fork:**
    - `slice-count == 1` → dispatch the **layer specialists in chain order** (per the
-     workspace CLAUDE.md). After each, confirm its build/tests are green and its handoff
+     layer chain in the repo's CLAUDE.md). After each, confirm its build/tests are green and its handoff
      is written. If ≥2 layers touched, run the **alignment** check before review.
    - `slice-count > 1` → run `/to-spec` then `/to-tickets`, get the user's approval of the
      slice board, dispatch the slices in parallel worktrees, then @aligner → @integrator

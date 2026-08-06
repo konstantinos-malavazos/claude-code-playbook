@@ -70,6 +70,7 @@ Do not hand off until `get_diagnostics_for_file` is clean on every file you touc
 build is green, and the relevant tests pass.
 
 ## Commit (amend-as-you-go — one commit per repo)
+`<main-branch>` is filled at run time — read it off the repo's `CLAUDE.md`.
 ```
 existing=$(git rev-list --count origin/<main-branch>..HEAD)
 if [ "$existing" -eq 0 ]; then

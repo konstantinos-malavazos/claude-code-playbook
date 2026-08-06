@@ -1,9 +1,9 @@
 # 06 — The CLAUDE.md layers
 
 `CLAUDE.md` is the always-on instruction file Claude Code loads automatically. Its power
-is that it comes in **layers** that stack via a parent-directory walk: when you work in
-`workspace/repo-a/`, Claude loads *every* `CLAUDE.md` from your home directory down to
-that folder. Each layer answers a different question.
+is that it comes in **layers** that stack via a parent-directory walk: Claude loads
+*every* `CLAUDE.md` from your home directory down to the folder you are working in. Each
+layer answers a different question — and **how many layers you get is not fixed**.
 
 > This playbook gives you the **idea and structure** of each layer as templates in
 > [`../../templates/claude-md/`](../../templates/claude-md/) — not one team's content. Fill in
@@ -11,23 +11,46 @@ that folder. Each layer answers a different question.
 
 ---
 
-## The three layers
+## How many layers you get
+
+There is always a **top** layer (how you work) and a **bottom** layer (this codebase).
+Whether there is a **middle** one depends on one question: **how many repos do you work
+across at once?**
+
+**One repo — two layers.** There is no atlas to write, because the map of the workspace
+would read *"there is one repo, and it is this one"*:
+
+```
+~/.claude/CLAUDE.md            ← GLOBAL : how YOU work, on every project
+        │  (loaded everywhere)
+        ▼
+<repo>/CLAUDE.md               ← REPO   : facts true only inside this repository —
+           (loaded only in that repo)     including the branch it ships from
+```
+
+**Sibling repos checked out side by side — three layers.** The middle one is the atlas
+they share:
 
 ```
 ~/.claude/CLAUDE.md            ← GLOBAL   : how YOU work, on every project
         │  (loaded everywhere)
         ▼
-<workspace>/CLAUDE.md          ← WORKSPACE: the multi-repo atlas — the map of this
-        │  (loaded for any repo    workspace: which repos exist, which branch ships,
-        │   under the workspace)    the cross-repo change pattern
+<workspace>/CLAUDE.md          ← WORKSPACE: the multi-repo atlas — which repos exist,
+        │  (loaded for any repo    which branch each one ships from, the cross-repo
+        │   under the workspace)    change pattern
         ▼
 <workspace>/<repo>/CLAUDE.md   ← REPO     : facts true only inside this one repository
            (loaded only in that repo)
 ```
 
-They **compose**. The global file never repeats a workspace fact; the workspace file
-never repeats a repo fact. Each fact lives in exactly one layer — the most specific one
-that's still always true.
+They **compose**. The global file never repeats a codebase fact; where a workspace file
+exists, it never repeats a repo fact. Each fact lives in exactly one layer — the most
+specific one that's still always true.
+
+**The numbers below name the three files, not a count.** Layer 2 is the one that comes
+and goes; layers 1 and 3 are always there. On the [solo path](../solo/01-the-solo-path.md)
+you get the two-layer shape — [the bootstrap](../solo/04-the-bootstrap.md) writes exactly
+one `CLAUDE.md`, the repo's own, and that is not an omission.
 
 ---
 
@@ -45,7 +68,10 @@ not about any particular codebase:
 - **First-action rules** — e.g. "before touching code, recall prior context from memory;
   all code access goes through Serena, by symbol — never grep or whole-file reads for a
   code-structure question, never `Edit` where `replace_symbol_body` applies."
-- **Ticket / branch / commit conventions** — the format you always use.
+- **Ticket / branch / commit conventions** — the format you always use, including the
+  **new-branch workflow**: the exact fetch/checkout/rebase/branch sequence and its stop
+  rules. The sequence is the same in every repo, so it is stated once, here. Only the
+  branch *name* it checks out is a codebase fact, and that lives in layer 3.
 - **Ticket-tracker policy** — which adapter is installed at `~/.claude/tracker.md`, and
   the write rule: "ask before writing anywhere other people can see it."
 - **Handoff protocol** — where in-flight agent state lives and that it's ephemeral.
@@ -56,32 +82,38 @@ Template: [`../../templates/claude-md/global.CLAUDE.md`](../../templates/claude-
 
 ---
 
-## Layer 2 — Workspace / multi-repo atlas (`<workspace>/CLAUDE.md`)
+## Layer 2 — Workspace / multi-repo atlas (`<workspace>/CLAUDE.md`) — *only with sibling repos*
 
 **Question it answers:** *What lives in this workspace, and how do changes move through
 it?*
 
-If your work spans several repositories checked out side-by-side (a very common shape),
-this is the **map**. It's auto-loaded for *any* repo under the workspace via the
-parent-directory walk, so it's the natural home for cross-repo facts:
+**Skip this layer entirely if you have one repo.** Every item below is a fact *about the
+plurality*: with one repo each one either evaporates or belongs to a neighbouring layer,
+and a file that exists to say *"there is one repo"* is a file an agent loads for nothing.
+
+If your work spans several repositories checked out side-by-side, this is the **map**.
+It's auto-loaded for *any* repo under the workspace via the parent-directory walk, so
+it's the natural home for cross-repo facts:
 
 - **Repo map** — a table: path · stack · purpose · which specialist agent owns it.
-- **Main-branch-per-repo table** — the branch that ships to production for each repo
-  (you rebase onto this before cutting a feature branch). Repos differ; write them down.
-- **The new-branch workflow** — the exact fetch/checkout/rebase/branch sequence, so every
-  agent cuts branches the same way.
+- **Main-branch-per-repo table** — the branch each repo ships to production from. This is
+  an **index, not the owner**: each repo also states its own in layer 3. It earns its
+  place on a need one repo does not have — working in `recipes-api/`, you may need what
+  `recipes-web/` ships from, and *that* repo's `CLAUDE.md` is not loaded.
 - **The sequential implementation chain** — the canonical order a multi-repo change
-  follows (your `schema → service → consumer` equivalent).
+  follows (your `schema → service → consumer` equivalent). With one repo the chain is
+  still declared, but in the repo's own file — see
+  [11-adapting-to-your-stack.md](11-adapting-to-your-stack.md).
 - **Cross-repo rules** — when cross-repo edits are allowed, how to widen scope.
 
-Even if you have a **single** repo today, this layer is still useful as the "workspace
-policy" file; it just has a one-row repo map.
+The **new-branch workflow** is not here. The sequence is identical in every repo, so it
+lives once in layer 1; this file supplies only the branch name it checks out.
 
 Template: [`../../templates/claude-md/workspace.CLAUDE.md`](../../templates/claude-md/workspace.CLAUDE.md)
 
 ---
 
-## Layer 3 — Per-repo (`<workspace>/<repo>/CLAUDE.md`)
+## Layer 3 — Per-repo (`<repo>/CLAUDE.md`)
 
 **Question it answers:** *What's true inside THIS repository specifically?*
 
@@ -89,7 +121,11 @@ Loaded only when you're working inside that repo. Home for facts that would be n
 anywhere else:
 
 - The repo's stack, entry points, and build/test commands.
-- Local conventions that differ from the workspace default.
+- **The branch this repo ships from** — the prod target you rebase onto before cutting a
+  feature branch. It is a fact about this codebase, so this is where it lives, whichever
+  shape you are in. (With sibling repos the workspace table indexes it too; see rule 5 —
+  an index is not a second owner.)
+- Local conventions that differ from the default.
 - Repo-specific gotchas ("this service consumes topic X; don't change the payload
   without updating consumer Y").
 - Where the important code lives (a pointer, not a paste — let Serena find the details).
@@ -103,11 +139,15 @@ Template: [`../../templates/claude-md/repo.CLAUDE.md`](../../templates/claude-md
 
 ## Rules that keep the layers healthy
 
-1. **One fact, one layer.** Never paste the same table into two files. If a repo's
-   CLAUDE.md and the workspace CLAUDE.md disagree, you have a bug.
+1. **One fact, one layer.** Never paste the same rule into two files. If a repo's
+   CLAUDE.md and the workspace CLAUDE.md disagree, you have a bug. (An *index* is the one
+   exception, and it is bounded by rule 5.)
 2. **Most-specific-that's-always-true.** A fact goes in the lowest layer where it's
-   *always* true. "We rebase, never merge" is global. "This repo ships from `develop`"
-   is workspace. "This service's consumer is repo Y" is per-repo.
+   *always* true — and *lowest* depends on how many repos you have. "We rebase, never
+   merge" is behaviour, so it is global in both shapes. "This repo ships from `develop`"
+   is a fact about a codebase, so it is **per-repo** — on sibling repos the workspace
+   atlas also indexes it, which is not the same as owning it. "This service's consumer is
+   repo Y" is per-repo. "Which repos exist" only has a home when there is more than one.
 3. **Point, don't paste.** CLAUDE.md is not documentation of the codebase — that's what
    Serena + Forgetful are for. It's the small set of always-true policies and pointers.
 4. **Never commit personal AI-infra CLAUDE.md into a shared product repo** unless the

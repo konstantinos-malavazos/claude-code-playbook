@@ -21,10 +21,14 @@ without assuming they share your editor, your shell config, or your patience.
 
 **Minimum viable onboarding:**
 
-1. **Workspace CLAUDE.md is the source of truth** for everything that touches
-   shared repos: the implementation chain, the branch workflow, which repos
-   exist. This file lives in version control (more on that below) and is the
-   first thing a new engineer reads.
+1. **The shared, version-controlled CLAUDE.md is the source of truth** for
+   everything that touches shared repos: the implementation chain, and — on
+   sibling repos — which repos exist and which branch each ships from. On
+   several repos that file is the **workspace** atlas; on one it is the repo's
+   own, and there is no workspace layer at all (see
+   [06](../shared/06-claude-md-layers.md)). Either way it is the first thing a
+   new engineer reads. The *branch workflow* is not in it — that is behaviour,
+   so it sits in each person's global CLAUDE.md, which is item 2's point.
 2. **Personal global CLAUDE.md is theirs** — they write their own. Don't share
    the personal file; the whole point of the global layer is that it captures
    *your* process. Templates become a conversation starter, not a mandate.

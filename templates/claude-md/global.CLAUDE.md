@@ -78,9 +78,22 @@ reads — write freely. A **public** personal repo counts as shared.
   the file and reason about it, just try the push and believe the hook.
 - Never `--force`, `--no-verify`, amend a pushed commit, `reset --hard`, or delete
   branches without asking.
-- Before a new branch: fetch, checkout the repo's prod-target main branch, `pull
-  --rebase` (never plain merge), then branch. (Per-repo main branch is in the workspace
-  CLAUDE.md.)
+- **New-branch workflow (MANDATORY)** — inside the target repo, never skipped, never
+  merge substituted for rebase:
+  ```
+  git fetch origin
+  git checkout <main-branch>
+  git pull --rebase origin <main-branch>
+  git checkout -b <TICKET-ID>_<kebab-slug>
+  ```
+  - If the working tree is dirty → **STOP** and ask (never auto-stash).
+  - If the rebase conflicts on the main branch → **STOP** and surface it.
+  - After branching, confirm `git status` is clean and the branch is local-only. Never push.
+
+  `<main-branch>` is a fact about the repo, not a rule: read it from the repo's own
+  `CLAUDE.md`, or — with sibling repos — from the workspace `CLAUDE.md`'s main-branch
+  table. Stated nowhere: detect via `git symbolic-ref refs/remotes/origin/HEAD` and ASK
+  before branching.
 - **Never stage/commit AI-infra files**: `.claude/`, MCP-state dirs, memory files. Three
   exceptions, because a fresh clone needs them: `.claude/agents/**` and `.claude/skills/**`
   always, and the repo's own `CLAUDE.md` where `~/.claude/repo-allowlist` says
