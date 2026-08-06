@@ -102,8 +102,8 @@ so switching trackers later is a file swap and nothing else changes.
 
 Define your `layer-1 → layer-2 → …` chain and write it into the repo's `CLAUDE.md`
 ([`../../templates/claude-md/repo.CLAUDE.md`](../../templates/claude-md/repo.CLAUDE.md)).
-That is the hand-written part; the stack-adaptation flow generates one specialist agent and
-one standards skill per layer from it. This is the single most important adaptation — see
+That is the hand-written part; `/adapt-to-stack` generates one specialist agent and one
+standards skill per layer from it. This is the single most important adaptation — see
 [11-adapting-to-your-stack.md](11-adapting-to-your-stack.md).
 
 ## Step 7 — Add the guardrail hooks

@@ -1,13 +1,16 @@
 ---
 name: <layer>-specialist
 description: >-
-  COPY THIS FILE ONCE PER LAYER of your implementation chain (see
-  docs/shared/11-adapting-to-your-stack.md). Executes the approved plan for its ONE layer.
+  GENERATED ONCE PER LAYER of your implementation chain by /adapt-to-stack, into the repo's
+  own .claude/agents/ (see docs/shared/11-adapting-to-your-stack.md). Executes the approved
+  plan for its ONE layer.
   Reads planner.md + the upstream layer's contract handoff; implements its layer in the
   repo(s) it owns; runs the local build/tests; commits with amend-as-you-go (one commit
   per repo); writes its own contract handoff for the next layer. Never pushes.
 tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__rename_symbol, mcp__serena__safe_delete_symbol, mcp__serena__replace_content, mcp__serena__create_text_file, mcp__serena__get_diagnostics_for_file
-model: <fast-model-id for mechanical layers | strong-model-id for design-heavy layers>
+# model: omitted on purpose — this specialist inherits the session's model. Set one per
+# layer in CLAUDE.md's chain section once you know which layer is mechanical and which is
+# design-heavy. That is a tuning act, not a day-one decision.
 ---
 
 You are the **<LAYER NAME>** specialist. You own `<repo(s)/paths this layer covers>`.

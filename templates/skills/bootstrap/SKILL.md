@@ -137,9 +137,9 @@ fall back to globbing the tree or reading whole files to compensate.
 
 ### 5 — Generate the layer specialists and the stack skills
 
-One specialist agent per layer of the chain, plus the stack's skills. Generate them from
-`templates/agents/layer-specialist.md` and the skill templates; each specialist names the
-folder step 2 created for its layer.
+One specialist agent per layer of the chain, plus the stack's skills. **Run
+`/adapt-to-stack`**; it reads the `CLAUDE.md` step 3 just wrote and generates both, and
+each specialist names the folder step 2 created for its layer.
 
 - **Call the generation flow; do not reimplement it.** How these files are written is not
   this stage's business. This stage owns *when* — here, after the chain exists and the

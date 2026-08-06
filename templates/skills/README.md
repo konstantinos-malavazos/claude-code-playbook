@@ -39,10 +39,21 @@ than the two above:
 
 - **The directory name is what you type**, not the `name` field. `name` only changes the
   label in listings — so a skill in `foo/` is always `/foo`, however the frontmatter reads.
-  **`engineering-standards` is the one template where this matters**: it is copied per
-  layer, so rename the *directory* to `backend-standards` (or whatever) as well as filling
-  the `<layer>` placeholder, or you will have three skills all answering to
-  `/engineering-standards`.
+  **`engineering-standards` is the one template where this matters**: there is one per
+  layer, so the *directory* is named `backend-standards` (or whatever) as well as the
+  `<layer>` placeholder being filled — otherwise you have three skills all answering to
+  `/engineering-standards`. `/adapt-to-stack` does that renaming when it generates them;
+  the rule is here because it is what makes the output distinct, not because you type it.
+- **A personal skill beats a project skill of the same name** — the opposite of what "more
+  specific wins" would suggest, and the opposite of how project *agents* resolve, where the
+  definition closest to the working directory wins. It bites the generated per-layer
+  standards skills, which live in a repo's own `.claude/skills/`: one stray
+  `backend-standards` in `~/.claude/skills/` shadows every repo's generated one, silently
+  and everywhere. Keep layer names out of `~/.claude/skills/`.
+- **A `.claude/` directory created mid-session is not watched.** Edits to skills that
+  existed at startup are picked up live; a `.claude/skills/` or `.claude/agents/` folder
+  that did not exist when the session began needs a restart before anything can load from
+  it. This is exactly the state `/adapt-to-stack` leaves behind on its first run.
 - **Auto-loaded** skills fire on intent (e.g. "commit" → `commit-conventions`). This is the
   default: any skill without `disable-model-invocation: true` can be loaded by Claude.
 - **User-invoked** skills run when you type `/skill-name`. **A description that says "use
@@ -60,7 +71,8 @@ than the two above:
 | Skill | Loads on / used for | solo | team |
 |---|---|---|---|
 | `commit-conventions` | about to commit / branch naming / MR-PR template | ✓ | ✓ |
-| `engineering-standards` | **copy per layer** — the review/coding standard for that language | ✓ | ✓ |
+| `engineering-standards` | **one per layer, generated** — the review/coding standard for that language | ✓ | ✓ |
+| `adapt-to-stack` | a repo whose `CLAUDE.md` names a layer chain — generates one specialist and one standards skill per layer into that repo's own `.claude/`, and never overwrites | ✓ | ✓ |
 | `tdd` | test-first feature/bug work (red-green-refactor) | ✓ | ✓ |
 | `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
@@ -79,7 +91,7 @@ Everything above them is shared by both.
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
 
-## On `disable-model-invocation` — two skills set it, and the rule says why
+## On `disable-model-invocation` — three skills set it, and the rule says why
 
 Four of these read as user-invoked — `charting`, `pitch`, `grilling`, `diagnose` — and none
 of them sets `disable-model-invocation: true`, so Claude may load any of them on its own.
@@ -87,16 +99,19 @@ That is left as-is on purpose: all four are **conversations**, and a conversatio
 starts a turn early costs you one redirect.
 
 The field earns its place on skills with **side effects or timing you own** — a deploy, a
-commit, a send. **`bootstrap` and `cut-backlog` are the two templates here that meet that
-test, and both set the field.** Neither is a conversation. `bootstrap` scaffolds a repo,
-writes a `CLAUDE.md`, indexes a language server, generates agent files and writes memory;
-`cut-backlog` files a dozen issues in a tracker other people may be able to see. A
-conversation firing a turn early costs a redirect; those firing early cost a tree of files
-nobody asked for, or a backlog nobody approved. Same rule, applied — not a new one.
+commit, a send. **`bootstrap`, `cut-backlog` and `adapt-to-stack` are the three templates
+here that meet that test, and all three set the field.** None is a conversation.
+`bootstrap` scaffolds a repo, writes a `CLAUDE.md`, indexes a language server, generates
+agent files and writes memory; `cut-backlog` files a dozen issues in a tracker other people
+may be able to see; `adapt-to-stack` writes an agent file and a skill directory per layer
+into a repo, and they are meant to be committed. A conversation firing a turn early costs a
+redirect; those firing early cost a tree of files nobody asked for, or a backlog nobody
+approved. Same rule, applied — not a new one.
 
-The two share a shape worth naming: **each one's output is somebody else's input** — the
-bootstrap's report is read at the seam, the backlog is read by `/start-ticket` — so an
-unasked-for run does not merely waste a turn, it publishes something downstream may act on.
+The three share a shape worth naming: **each one's output is somebody else's input** — the
+bootstrap's report is read at the seam, the backlog is read by `/start-ticket`, and the
+generated specialists are what `/start-ticket` dispatches **to** — so an unasked-for run
+does not merely waste a turn, it publishes something downstream may act on.
 
 `pitch` is the closest remaining call, since it dispatches subagents and spends real time.
 Watch it; if it ever fires unasked, that is the signal to set the field rather than reword

@@ -169,15 +169,6 @@ and — like [the bootstrap's exit test](../solo/04-the-bootstrap.md#the-exit-te
 That last row costs no state at all — no timestamps, no ledger. **The convention that makes
 a template fillable is what makes un-filled-ness detectable.**
 
-> **The `/adapt-to-stack` skill template is still being written.** Until it lands, steps 2
-> and 3 are the same act done by hand: copy
-> [`../../templates/agents/layer-specialist.md`](../../templates/agents/layer-specialist.md)
-> and
-> [`../../templates/skills/engineering-standards/SKILL.md`](../../templates/skills/engineering-standards/SKILL.md)
-> once per layer and fill in **step 2's table** out of `CLAUDE.md` yourself. Everything on
-> this page is what the output should look like either way — what changes is who does the
-> typing.
-
 ### 4. Wire the order into `/start-ticket`
 
 The planner allocates tracks and the orchestrator dispatches the specialists **in chain

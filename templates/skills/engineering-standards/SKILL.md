@@ -1,8 +1,10 @@
 ---
 name: <layer>-engineering-standards
 description: >-
-  COPY THIS PER LAYER/LANGUAGE of your chain (e.g. schema-standards, backend-standards,
-  frontend-standards). The coding + review standard for <LAYER/LANGUAGE>. Loaded when
+  GENERATED ONCE PER LAYER/LANGUAGE of your chain by /adapt-to-stack, into the repo's own
+  .claude/skills/ under a per-layer directory name (e.g. schema-standards,
+  backend-standards, frontend-standards). The coding + review standard for
+  <LAYER/LANGUAGE>. Loaded when
   writing or reviewing <LANGUAGE> code, or when running as the <layer>-specialist agent.
   Deliberately carries NO rules for other layers so it stays cheap to load.
 ---

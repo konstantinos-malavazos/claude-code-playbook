@@ -28,7 +28,7 @@ cannot choose. The full set:
 | `description` | When Claude should delegate to it | ✓ all |
 | `tools` | Allowlist. **Inherits every tool if omitted** — including every MCP server | ✓ all |
 | `disallowedTools` | Denylist. Applied **first**, then `tools` resolves against the remainder | — |
-| `model` | `sonnet` / `opus` / `haiku` / `fable`, a full id, or `inherit`. **Defaults to `inherit`** | ✓ all |
+| `model` | `sonnet` / `opus` / `haiku` / `fable`, a full id, or `inherit`. **Defaults to `inherit`** | ✓ all but `layer-specialist` |
 | `permissionMode` | `default`, `acceptEdits`, `auto`, `dontAsk`, `bypassPermissions`, `plan` | — |
 | `maxTurns` | Caps agentic turns. The way to make an agent that weighs but cannot act | ✓ `pitch-judge` |
 | `skills` | Skills preloaded into its context at startup — full content, not just the description | — |
@@ -72,7 +72,8 @@ against that set and is clean — but a tool you add later may not be.
   pin instead, deliberately: a pipeline agent's cost and judgement should not swing with the
   session's model. Use a fast/cheap model for mechanical, bounded work and a stronger model
   for design, judgement, and cross-repo reasoning.
-  **The one exception is the generated layer specialists**, which omit the field unless the
+  **The one exception is the layer specialist** — the template and every file generated from
+  it omit the field, unless the
   repo's `CLAUDE.md` names one per layer — on a day-one repo nobody knows yet which layer is
   mechanical, deriving it from the layer's *name* is the artifact guessing, and a pinned id
   written into N generated files is N files to change the day it rots. Pinning is advice to
@@ -132,7 +133,7 @@ back to reading files — verify one agent before you trust the set.
 | `ticket-analyzer.md` | tracker → structured brief (read-only) | ✓ | ✓ |
 | `context-gatherer.md` | heavy memory + Serena sweep in a throwaway context | ✓ | ✓ |
 | `planner.md` | design + track allocation + branch (no memory writes, no code) | ✓ | ✓ |
-| `layer-specialist.md` | **copy once per layer of your chain** — the implementer (Serena-only edits) | ✓ | ✓ |
+| `layer-specialist.md` | **generated once per layer of your chain** by `/adapt-to-stack`, into that repo's own `.claude/agents/` — the implementer (Serena-only edits) | ✓ | ✓ |
 | `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
 | `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
 | `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |
