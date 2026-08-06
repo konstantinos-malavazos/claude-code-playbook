@@ -25,10 +25,11 @@ tickets/
 the decisions an effort made and why. A dot-prefixed scratch folder says *throwaway*, which
 is exactly wrong.
 
-> **On `PHILOSOPHY.md` §5.** §5 says never stage AI-infra files — `.claude/`, `CLAUDE.md`,
-> memory, handoffs. Ticket files look adjacent to that list and are not on it, deliberately.
-> §5 protects *plumbing* from the repo; these are records the project would want in its
-> history even if every AI tool vanished tomorrow. Commit them.
+> **On `PHILOSOPHY.md` §5.** §5 sorts AI-infra files by *provenance*, not by path: **would
+> a fresh clone need this file?** Ticket files pass it outright — they are records the
+> project would want in its history even if every AI tool vanished tomorrow, not plumbing.
+> Commit them. (The old wording was a path list, and ticket files were kept off it by hand;
+> the test answers the question directly instead.)
 
 ## Ticket file
 

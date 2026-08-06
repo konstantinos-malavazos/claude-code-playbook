@@ -77,20 +77,35 @@ worth the up-front setup.
 
 Don't rely on the model "remembering" not to do dangerous things. Make them impossible:
 
-- **Hooks hard-block** dangerous git (`push`, `reset --hard`, `--no-verify`, force,
-  branch deletes) at the tool layer — the *harness* runs them, not the model.
+- **Hooks hard-block** dangerous git (`reset --hard`, `--no-verify`, force pushes,
+  branch deletes) at the tool layer — the *harness* runs them, not the model. Plain
+  `push` is on the list too, but conditionally; see the last bullet.
 - **Ask before writing anywhere other people can see it.** The test is the *audience*, not
   the tool: tracker comments, transitions and field edits need explicit human approval when
   they land somewhere others read — enforced by a read-only veto at the MCP layer, not just
   a policy line. On a private solo repo nobody is watching, so write freely; on a **public**
   one they are, so ask. Each tracker adapter declares which it is
   ([`templates/trackers/README.md`](templates/trackers/README.md)).
-- **AI-infra files are never committed** to product repos (`.claude/`, `CLAUDE.md`,
-  MCP state).
-- **You push; the agent doesn't.** The human owns the irreversible outward-facing steps
-  (push, open the MR/PR, merge).
+- **AI-infra files are sorted, not blanket-blocked.** The test is *provenance*, not path:
+  **if you cloned this repo fresh on a new laptop, would you need this file?** The repo's
+  own `CLAUDE.md` and the generated layer specialists pass it and are committed; memory
+  state, handoffs, the code index and generated views fail it and never are. A rule that
+  names locations instead of origins breaks the moment one of your own flows starts
+  producing files at those locations — which is exactly what happened.
+- **Push is a per-repo answer, and the default is no.** The human owns the irreversible
+  outward-facing steps (push, open the MR/PR, merge) unless that repo is explicitly listed
+  in `~/.claude/repo-allowlist`, keyed by remote URL. The hooks are wired globally — one
+  install, every repo — so an allowlist is the only thing that lets a weekend project
+  loosen without loosening the live project two folders over. `git add -A` stays blocked
+  everywhere regardless.
 
 The rule of thumb: *if it's hard to reverse or leaves your machine, a human confirms it.*
+
+**That is two tests, not one** — *reversibility* and *audience* — and working alone deletes
+exactly one of them. Owning the project makes nothing easier to undo, so the reversibility
+half is untouched; the audience half was doing all its work because the driver did not own
+the repo. Every solo verdict falls out of that one sentence, worked through in
+[docs/solo/07-guardrails-when-solo.md](docs/solo/07-guardrails-when-solo.md).
 
 > **These are defaults with a reason, not laws.** They were written out of a workflow where
 > the driver does **not** own the code or the projects, which is why they are so cautious.
@@ -107,6 +122,13 @@ Any interaction with real infrastructure is **read-first**. Where the flow must 
 (e.g. produce a test event), it does so **on staging only**; production is forbidden by
 default and every other write-class action needs explicit approval. Investigations prove
 root cause from returned data — they never patch blindly.
+
+> **This is the one section that does not survive solo work, and it is replaced rather than
+> relaxed.** A weekend project has no staging tier, so the environment axis has nothing to
+> point at — while a live payment API and your only copy of real data are still there. The
+> replacement asks the rule of thumb directly: *can I undo it, and does it touch anyone but
+> me?* See
+> [docs/solo/07-guardrails-when-solo.md](docs/solo/07-guardrails-when-solo.md).
 
 ---
 
@@ -128,10 +150,19 @@ Four principles that keep the agent's output senior-grade
 
 ## 8. Measure it
 
-Every pipeline run is costed (tokens per story point, cache-reuse) so "is this getting
-more efficient?" is a number, not a feeling. Token counts are durable — they survive
-model-price changes. The memory gets the same treatment: a periodic golden-query eval
-scores whether the canonical questions still retrieve the right answers.
+"Is this getting more efficient?" should be answerable with a number rather than a
+feeling — but the units are yours, and the measuring is optional. Pick what would
+change what you *do*; a metric nobody acts on is overhead. A team costs each run
+against story points, where the scarce resource is budget and no single person can
+see the whole picture. Working alone both of those change, and so do the numbers.
+The memory is the one case with the same answer either way: a periodic golden-query
+eval, because a memory that is never retrieved fails silently, and no amount of
+attention catches a thing that did not happen.
+
+The two instances: [docs/team/01-metrics.md](docs/team/01-metrics.md) (the ledger, story
+points, cost per ticket) and
+[docs/solo/07-guardrails-when-solo.md](docs/solo/07-guardrails-when-solo.md) (two numbers,
+counted by hand). Neither is the rule; the paragraph above is.
 
 ---
 

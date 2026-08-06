@@ -1,4 +1,4 @@
-# 11 — Measuring a pipeline run
+# 01 — Measuring a pipeline run
 
 If you can't measure it, you can't tell whether the setup is compounding or just feels
 good. The goal is a **ledger**: one row per ticket, so "is the pipeline getting more

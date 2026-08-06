@@ -1,4 +1,4 @@
-# 12 — Adapting the layer-chain to your stack
+# 11 — Adapting the layer-chain to your stack
 
 This is the **one adaptation you must get right**. Everything else is defaults you can
 take as-is; this is the part that's specific to *your* codebase.

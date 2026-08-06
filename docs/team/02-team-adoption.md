@@ -1,14 +1,21 @@
-# 14 — Adopting this playbook as a team
+# 02 — Adopting this playbook as a team
 
-The playbook is framed for agile teams but reads like a solo setup. This doc
-fills the gap: what changes when a second engineer adopts it, who owns the
-templates, how conventions stay in sync, and what breaks when they don't.
+Both [entrances](../../README.md#two-entrances--pick-yours) describe a **one-person
+install** — clone the templates, fill in your placeholders, go. This doc fills the gap:
+what changes when a second engineer adopts it, who owns the templates, how conventions
+stay in sync, and what breaks when they don't.
+
+> **"Solo" means something specific elsewhere in this repo** — the
+> [solo path](../solo/01-the-solo-path.md), the front-end that turns a raw idea into a
+> backlog. That is not what this doc is contrasting against. The thing that scales badly
+> to a second person is the *install*, and it does so identically whichever entrance you
+> came through.
 
 ---
 
 ## Onboarding a second engineer
 
-The solo setup is "clone the templates, fill in your placeholders, and go."
+The one-person install is "clone the templates, fill in your placeholders, and go."
 For a second person, the same templates need to produce the **same workflow**
 without assuming they share your editor, your shell config, or your patience.
 

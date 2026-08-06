@@ -43,6 +43,12 @@ inline. The guardrail hooks assume this.
 
 ## Decide up front: your implementation chain
 
+> **Only if you have a codebase.** Arriving with a raw idea, you have no stack yet and
+> cannot answer this — the chain is named alongside the stack in
+> [charting's tail](../solo/06-choosing-the-stack.md), a stage later. Skip this section
+> and come back to it never: the [bootstrap](../solo/04-the-bootstrap.md) writes the chain
+> into the repo's `CLAUDE.md` and generates the specialists from it.
+
 Before you write any agents, answer one question:
 
 > When a change touches multiple layers of my stack, what order does it propagate in,
