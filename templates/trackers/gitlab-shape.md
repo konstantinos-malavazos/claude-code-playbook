@@ -56,6 +56,8 @@ the description and find children by search.
 | claim | `glab issue update --assignee` | ☐ |
 | mark blocked | **Premium only** — see trap 1 | ☐ |
 | is this blocked? | read each blocker's state | ☐ |
+| retitle | `glab issue update --title` | ☐ |
+| delete a ticket | `glab issue delete <n>` — **irreversible, and on a `Part of #<map>` link the parent line is prose, so check nothing still points at it.** Leave a line on the map; the number is burned | ☐ |
 | **the frontier** | list children, drop blocked and claimed, first in map order | ☐ |
 | **the whole graph** | every child with state, claim, blockers, description and notes | ☐ |
 

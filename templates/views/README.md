@@ -17,6 +17,12 @@ one back.
 |---|---|---|
 | [`dependency-graph.html`](dependency-graph.html) | `~/.claude/dependency-graph.html` | `.claude/dependency-graph.html`, in the repo being worked on |
 
+**One repo is the default, not the only case.** An effort with no single owning repo — a map
+spanning several, as in [13-massive-tickets.md](../../docs/shared/13-massive-tickets.md) —
+has no repo to write into and no `.gitignore` to edit. There the page lands beside the chart
+wherever the [tracker adapter](../trackers/README.md) puts it, and the two `.gitignore` rules
+below simply do not apply. Absent that, use the row above.
+
 ## Why this directory is called `views`
 
 Every other directory here is named for **what the harness turns the file into** —
@@ -78,8 +84,9 @@ committed.
 **Whatever generates it also ensures `.claude/` is in the repo's `.gitignore` — with
 `!.claude/agents/` and `!.claude/skills/` beside it.** The hook stops the file entering git;
 nothing stops it showing as untracked noise, and no other file in the playbook adds that
-line. It cannot wait for the bootstrap: this page runs during charting, a full stage
-earlier, when the repo exists but has not been scaffolded.
+line. On the solo path it cannot wait for the bootstrap: this page runs during charting, a
+full stage earlier, when the repo exists but has not been scaffolded. On a mature repo the
+line is usually already there — *usually* is not *always*, so check rather than assume.
 
 **The exceptions are not optional, and forgetting them is silent.** `block-infra-staging.sh`
 lets `.claude/agents/` and `.claude/skills/` through because a fresh clone needs them; a

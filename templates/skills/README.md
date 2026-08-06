@@ -79,15 +79,19 @@ than the two above:
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
 | `prototype` | a design question nobody can settle on paper — throwaway code built to be reacted to and then deleted | ✓ | ✓ |
-| `charting` | an effort too big for one session and too foggy to plan — maps it into decision tickets on the tracker | ✓ | |
+| `charting` | an effort too big for one session and too foggy to plan — maps it into tickets on the tracker | ✓ | ✓ |
 | `pitch` | a raw idea with no repo — the one-hour kill gate that ends in build, kill or park | ✓ | |
 | `bootstrap` | a decided-but-empty repo — scaffolds it and reports on the pipeline's preconditions. **Runs once per project** | ✓ | |
 | `cut-backlog` | a closed map + a scaffolded repo — cuts them into an ordered backlog of work units, approved on a board before anything is created | ✓ | |
 
-The **solo** / **team** columns say which entrance needs each template. `charting` was the
-first to claim a single column, and `pitch`, `bootstrap` and `cut-backlog` followed: those
-four are the four stages of the solo front-end, which the agile path does not have.
-Everything above them is shared by both.
+The **solo** / **team** columns say which entrance needs each template. `pitch`, `bootstrap`
+and `cut-backlog` are the ones that claim a single column: they are stages of the solo
+front-end, which the agile path does not have. Everything above them is shared by both.
+
+**`charting` used to sit with them and no longer does.** It is stage 2 of the solo path
+*and* the engine behind the massive-ticket flow, which runs it against a mature multi-repo
+codebase — see [13-massive-tickets.md](../../docs/shared/13-massive-tickets.md). Same skill,
+opposite situation. The solo front-end is four stages but only three solo-only skills.
 
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.

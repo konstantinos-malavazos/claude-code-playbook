@@ -120,7 +120,8 @@ Resolving a ticket clears the fog ahead of it. Whatever just became sharp gradua
 new tickets, and the patch it came from is deleted, so it lives in exactly one place.
 
 Expect the map to **grow** for the first several sessions. That is not scope creep; it is
-the fog thinning. Charting is over when the map stops growing and the frontier empties.
+the fog thinning. Charting is over when the map stops growing and the last ticket closes — **not** when the
+frontier empties, which is also what a [stalled map](#three-endings) looks like.
 
 ---
 
@@ -147,6 +148,13 @@ bootstrap checks. Others turn up as decisions spawn them, and that is the rule w
 rather than the map drifting. What tells you a make has drifted is not its existence but
 its subject — a make that would produce something belonging to **stage 3 or 4** is charting
 reaching past its own stopping point.
+
+**A make on this path carries no layer.** The skill's `make:<layer>` type dispatches to a
+`@<layer>-specialist`, and on the solo path neither the specialists nor the `CLAUDE.md`
+chain they are generated from exists yet — [`/adapt-to-stack`](../shared/11-adapting-to-your-stack.md)
+runs inside [the bootstrap](04-the-bootstrap.md), a whole stage later. So the tail's
+bootstrap-checks ticket is a plain make with no layer label and nobody to dispatch to. If
+you find yourself reaching for a layer name here, that is stage 3 leaking backwards.
 
 ---
 
@@ -201,7 +209,7 @@ next section.
 
 ---
 
-## Two endings
+## Three endings
 
 ```
                        ┌──────────────────────────────────────┐
@@ -225,26 +233,42 @@ next section.
                        │        │                             │
                        └────────┼─────────────────────────────┘
                                 │
-                 ┌──────────────┴───────────────┐
-                 ▼                              ▼
-             CLEARED                        ABANDONED
-        one memory written             one memory written
-                 │                       (what you learned)
-                 ▼                              │
-        3. THE BOOTSTRAP                        ▼
-                                        the path stops here
-             ◄──── one backwards step allowed ────
+          ┌─────────────────────┼─────────────────────┐
+          ▼                     ▼                     ▼
+       CLEARED               STALLED               ABANDONED
+ one memory written      nothing stamped      one memory written
+          │              re-enters above      (what you learned)
+          ▼                                           │
+  3. THE BOOTSTRAP                                    ▼
+                                             the path stops here
+      ◄──── one backwards step allowed ────
 ```
 
 **Cleared** is the ordinary ending: the frontier is empty, the fog is gone, the tail is
-resolved, and there is nothing left to decide before someone goes and does the thing.
+resolved, and there is nothing left to decide before someone goes and does the thing. This
+is the ending the [skill](../../templates/skills/charting/SKILL.md) calls **done** — same
+ending, and the skill's name is the general one because not every map hands off to a
+bootstrap.
+
+**Stalled** is the one that looks like cleared and is not. The frontier is empty, but
+tickets are still open, because every one of them is waiting on somebody outside the
+session. On this path that is almost always a `task`: an account to open, access to
+provision, a domain to buy. **Do not read an empty frontier as stage 2 finishing.** Check
+whether anything is still open first.
+
+A stalled map is not handed to [the bootstrap](04-the-bootstrap.md) and its map is not
+closed — the day the blocker clears, those tickets have to be pickable again. Name each one
+and who owns the thing it waits on; that owner is the ticket's claim, which is what took it
+off the frontier in the first place. One `grilling` ticket asking *proceed without X, or
+wait?* is the move that refills the frontier.
 
 **Abandoned** is an ending, not a failure — and [the spine doc](01-the-solo-path.md) says
 why the path needs one: the gate is deliberately cheap, so it decides on very little
 information, and charting is where the true size of the thing shows up.
 
-**How you tell which one you are in** — the test is not *"is this hard?"*, because
-everything worth building is hard by stage 2. The test is:
+**Telling stalled from the other two is mechanical**: is anything still open? Telling
+**cleared** from **abandoned** is the judgement call, and the test is not *"is this
+hard?"*, because everything worth building is hard by stage 2. The test is:
 
 > **Would this fact have changed the gate's verdict, if you had known it at the gate?**
 
@@ -292,7 +316,7 @@ Neither answers the questions a reader actually has while standing *in* the stag
 - A map that grows for several sessions is the stage working correctly.
 - The stack is not a stage; it is the last two tickets, and there is a written escape for
   the one case where waiting is dishonest.
-- There are two ways out, and there is a test for which one you are looking at.
+- There are three ways out, and an empty frontier only distinguishes one of them.
 
 Read this while you are charting. Read [01-the-solo-path.md](01-the-solo-path.md) before
 you start and

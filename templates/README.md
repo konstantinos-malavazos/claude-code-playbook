@@ -7,7 +7,7 @@ touches. Each subdirectory has its own README covering what it holds and how to 
 | Directory | What it holds |
 |---|---|
 | [`claude-md/`](claude-md/) | global · workspace · per-repo `CLAUDE.md` skeletons |
-| [`agents/`](agents/README.md) | the pipeline's subagents, plus `pitch-judge` |
+| [`agents/`](agents/README.md) | the pipeline's subagents, plus the two judges — `pitch-judge` and `map-reviewer` |
 | [`skills/`](skills/README.md) | auto-loading knowledge and user-invoked procedures |
 | [`commands/`](commands/README.md) | slash commands that orchestrate agents in order |
 | [`hooks/`](hooks/README.md) | harness-enforced guardrails |

@@ -142,6 +142,11 @@ codebase, so they live in that repo's own `.claude/agents/` and are generated fr
 by hand. Run it on a small real ticket. Once that's smooth, add
 `/fix-ticket`, `/test-ticket`, `/end-of-day`, `/garden-memory` as the need arises.
 
+**The three `*-massive` commands come later, and only together.** `/start-massive`,
+`/resume-massive` and `/build-chart-ticket` are one flow for tickets too foggy to plan
+([13-massive-tickets.md](13-massive-tickets.md)); they also need the `charting` skill and
+the layer specialists in place. Installing one of the three on its own does nothing.
+
 ---
 
 ## Minimum viable version

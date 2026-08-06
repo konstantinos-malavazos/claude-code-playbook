@@ -37,10 +37,17 @@ it is running against.
 
 | | Verbs |
 |---|---|
-| **Small** | create · read · list · comment · close · reopen · edit body · link child to parent · label · claim · mark blocked · *is this blocked?* |
+| **Small** | create · read · list · comment · close · reopen · edit body · link child to parent · label · claim · mark blocked · *is this blocked?* · retitle · delete a ticket |
 | **Composed** | *the frontier* — the open, unblocked, unclaimed children of a parent<br>*the whole graph* — every child of a parent with its state, claim, blockers, body and comments |
 
-Twelve small verbs and two composed verbs.
+Fourteen small verbs and two composed verbs.
+
+**`delete a ticket` is the verb that tests the faking-it rule hardest.** On local markdown it
+is `rm`. On GitHub it is a real, admin-only, irreversible delete. On Jira there is usually no
+delete tool at all and the adapter substitutes a close plus a label. One sentence in the
+charting skill — *"delete or rewrite tickets the decision invalidated"* — therefore means
+three different operations, which is exactly the work a verb contract exists to absorb.
+Whichever it is on your tracker, **a burned number is never reused.**
 
 **A composed verb earns its place on one test:** the cheapest way to answer it genuinely
 differs per tracker, and every caller wants the same answer. Both pass it. *The frontier*
@@ -64,7 +71,7 @@ instruction in this playbook rests on this one verb.
 Measured on a real map: reading ticket #12 returned **2,224 characters of question and 0 of
 answer**, while its resolution comment held **14,193**.
 
-So `read` is *defined* to include the comments. It is **not** a thirteenth verb: where a
+So `read` is *defined* to include the comments. It is **not** a fifteenth verb: where a
 tracker needs two calls to satisfy it, the adapter makes both and the caller never finds
 out. Same faking-it rule as everything else here. This never surfaced on local markdown,
 where the question and the comments live in one file and the defect is invisible.

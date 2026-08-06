@@ -143,16 +143,21 @@ stronger is available; no shipped tracker can honour a lock.
 
 ### The picture
 
-**Only if the page template is installed.** Ask for the whole graph, fill its data slot,
-write the result where the adapter says the map lives, and open it — one command, and never
+**Only if the page template is installed at `~/.claude/dependency-graph.html`.** Ask for the
+whole graph, fill that page's data slot, write the result to `.claude/dependency-graph.html`
+in the repo being worked on, ensure `.claude/` is in that repo's `.gitignore` **with
+`!.claude/agents/` and `!.claude/skills/` beside it**, and open it — one command, and never
 on ticket-close. The page's own header comment carries the schema and the two rules that
 fail silently. It is for the human, not for you: a tracker that cannot draw its own
 dependencies leaves *what is takeable now* as a question answered by hand.
 
+**One repo is the default, not the only case.** An effort with no single owning repo has no
+`.gitignore` to edit and nowhere obvious to write — so where the adapter says the map lives,
+the picture lives beside it, and the two gitignore rules do not apply. That is the only
+override; absent it, use the paths above.
+
 **If the template is not installed, skip it and say so once.** Nothing else depends on the
-picture, and the adapter's generated progress view carries the same facts as text. An
-effort charted outside any repo has no `.gitignore` to edit and no repo to write into —
-which is why the destination is the adapter's business, not this skill's.
+picture, and the adapter's generated progress view carries the same facts as text.
 
 ## The leading-gist rule
 
@@ -206,6 +211,12 @@ whatever your repo's `CLAUDE.md` declares as its implementation chain — the sa
 gives you `make:schema`, `make:service`, `make:consumer`, dispatching to
 `@schema-specialist` and its siblings. Adding a layer to the chain adds a ticket type for
 free; nothing here needs editing.
+
+**No declared chain means no `make:<layer>`, and that row is simply off the table.** A map
+charted before its repo is scaffolded has no `CLAUDE.md` to read a chain from and no
+specialists to dispatch to — `/adapt-to-stack` has not run yet. Do not invent layer names
+to fill the gap. A make ticket on such a map carries no layer, dispatches to nobody, and
+should be rare enough to be worth a sentence in the map's Notes explaining why it is there.
 
 **The `make:<layer>` label IS the dispatch.** There is no separate track-allocation step and
 no planner deciding who implements it — the label already said. Cross-layer ordering is

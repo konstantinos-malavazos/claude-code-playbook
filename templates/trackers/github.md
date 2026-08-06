@@ -25,6 +25,8 @@ approval; see the audience rule in [`README.md`](README.md).
 | claim | `gh api repos/<owner>/<repo>/issues/<n>/assignees -X POST -f "assignees[]=<user>"`, then read it back |
 | mark blocked | `gh api repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -X POST -F issue_id=<blocker-db-id>` |
 | is this blocked? | `gh api repos/<owner>/<repo>/issues/<n> --jq '.issue_dependencies_summary.blocked_by == 0'` — `true` means takeable |
+| retitle | `gh issue edit <n> --title "..."` — sub-issue and dependency links are by id, so retitling never breaks one |
+| delete a ticket | `gh issue delete <n>` — **needs admin on the repo and cannot be undone.** Leave a line on the map saying the number existed and why it is gone; GitHub never reuses it |
 
 **`<db-id>` is the issue's numeric database id, never its `#number`.** Get it with
 `gh api repos/<owner>/<repo>/issues/<n> --jq .id`.

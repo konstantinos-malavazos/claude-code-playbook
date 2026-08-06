@@ -35,6 +35,12 @@ that say a repo is ready — and hands over to exactly the same pipeline the agi
 runs. Everything downstream of that seam is shared. If you arrive with a ticket, you were
 already past the seam and never needed the front-end.
 
+**One case sits awkwardly between the doors:** a ticket on a codebase that already exists,
+whose destination is clear but whose *route* is not. It is not a raw idea, and it is not
+something `/start-ticket` can plan in one pass — so it charts first and walks the resulting
+map over weeks. The discriminator is fog, not size. See
+[docs/shared/13-massive-tickets.md](docs/shared/13-massive-tickets.md).
+
 > If you have 5 minutes and want the *why*: read [PHILOSOPHY.md](PHILOSOPHY.md).
 > It is path-neutral — the mindset is the same through both doors.
 
@@ -106,11 +112,12 @@ claude-code-playbook/
 │   │   ├── 09-decompose-path.md    Parallel slices for large tickets (git worktrees)
 │   │   ├── 10-memory-hygiene.md    Deliberate memory: /end-of-day + /garden-memory
 │   │   ├── 11-adapting-to-your-stack.md  Mapping the abstract layer-chain to YOUR layers
-│   │   └── 12-when-not-to-use.md   Where the pattern loses — for both paths
+│   │   ├── 12-when-not-to-use.md   Where the pattern loses — for both paths
+│   │   └── 13-massive-tickets.md   Charting an existing codebase: a map walked over weeks
 │   ├── solo/                       THE SOLO PATH — idea to backlog
 │   │   ├── 01-the-solo-path.md     The spine: four stages, and the seam they end at
 │   │   ├── 02-the-kill-gate.md     Stage 1 — /pitch: is this worth building at all?
-│   │   ├── 03-charting.md          Stage 2 — /charting: a map of decisions, one per session
+│   │   ├── 03-charting.md          Stage 2 — /charting: a map of tickets, one per session
 │   │   ├── 04-the-bootstrap.md     Stage 3 — /bootstrap: make the repo real
 │   │   ├── 05-cutting.md           Stage 4 — /cut-backlog: the first version into work units
 │   │   ├── 06-choosing-the-stack.md  How the stack actually gets chosen (charting's tail)
@@ -121,9 +128,9 @@ claude-code-playbook/
 ├── examples/                       A worked walkthrough of one ticket, end to end
 └── templates/
     ├── claude-md/    global · workspace · per-repo CLAUDE.md skeletons
-    ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · …
+    ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · map-reviewer · …
     ├── skills/       tdd · engineering-standards · grilling · pitch · charting · bootstrap · cut-backlog · …
-    ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory
+    ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory · start-massive · resume-massive · build-chart-ticket
     ├── hooks/        block-dangerous-git · block-infra-staging · block-secret-staging · block-mcp-writes · …
     ├── mcp/          MCP config snippets (global + project) + settings snippet
     ├── trackers/     one adapter, installed at ~/.claude/tracker.md

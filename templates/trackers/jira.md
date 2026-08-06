@@ -33,6 +33,8 @@ is also enforced at the tool layer by
 | claim | `mcp__tracker__assign_issue`, then read it back |
 | mark blocked | an **issue link** of type `Blocks` / `is blocked by` |
 | is this blocked? | read the issue's links, then **read the state of each blocker** |
+| retitle | `mcp__tracker__update_issue` on the summary field. The key is the identity, so links survive |
+| delete a ticket | **the one verb this adapter fakes outright.** Most Jira MCP servers expose no delete tool, and the *Delete Issues* permission is usually withheld anyway — so: transition to done, label it `<LABEL-PREFIX>:void`, and record the key on the map. Check `/mcp` before assuming you have a real delete; if you do, it is still the wrong default on a shared tracker |
 
 ## The frontier
 
