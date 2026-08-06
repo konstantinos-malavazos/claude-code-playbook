@@ -2,17 +2,17 @@
 name: charting
 description: >-
   Chart an effort that is too big for one session and whose route is not yet visible —
-  turn the fog into a map of decision tickets on the issue tracker, then resolve them one
-  per session until nothing is left to decide. Use when the goal is clear but the way to
-  it is not, when work will span many sessions, or when the user says "chart this" / "map
-  this out" / "I don't know where to start". NOT for work you can already plan in one pass.
+  turn the fog into a map of tickets on the issue tracker, then resolve them one per
+  session until nothing is left to decide. Use when the goal is clear but the way to it is
+  not, when work will span many sessions, or when the user says "chart this" / "map this
+  out" / "I don't know where to start". NOT for work you can already plan in one pass.
 ---
 
 # Charting — find the way, don't charge at the destination
 
 An idea arrives too big for one session and wrapped in fog: you can see the
 **destination**, but not the route. Charting is the work of finding that route. It writes
-the route down as a **map** on the issue tracker and then walks it, one decision per
+the route down as a **map** on the issue tracker and then walks it, one ticket per
 session, until nothing is left to decide.
 
 > Prior art: the `wayfinder` skill. This is a re-derivation, not a copy — it swaps native
@@ -45,9 +45,11 @@ eats the context the predictable half needed.
 A decision ticket normally spawns its make ticket on close. That is the system working,
 not a ticket that ran long.
 
-**Charting produces decisions by default.** The pull to just go and do the work is usually
-the signal that you have reached the edge of the map and it is time to hand off. An effort
-can override this in its Notes; absent that, do not carry execution into the map.
+**Charting charts; it does not execute.** Whether a map is mostly decisions or mostly
+makes depends on how much fog it started in. A map drawn from a written spec is mostly
+makes. A map drawn from a vague idea is mostly decisions. The rule that does not vary:
+the pull to go and do the work *while inside a decision ticket* means you have reached the
+edge of the map, so open a make ticket and hand off.
 
 ## Talk to the tracker in verbs, never in commands
 
@@ -57,7 +59,7 @@ answers it. One tracker in context, never four.
 
 | | Verbs |
 |---|---|
-| **Small** | create · read · list · comment · close · reopen · edit body · link child to parent · label · claim · mark blocked · *is this blocked?* |
+| **Small** | create · read · list · comment · close · reopen · edit body · link child to parent · label · claim · mark blocked · *is this blocked?* · retitle · delete a ticket |
 | **Composed** | *the frontier* — the open, unblocked, unclaimed children of a map<br>*the whole graph* — every child with its state, claim, blockers, body and comments |
 
 **`read` includes the ticket's comments.** On a closed ticket the body is the *question* and
@@ -71,7 +73,18 @@ the adapter go and check. A `Blocked by:` line is a claim about the past — it 
 demanding the answer forces a check.
 
 **Identity is the id; the title is decoration.** Retitling is normal while mapping and must
-never break a link.
+never break a link — which is why `retitle` is a verb and not something you improvise. On an
+adapter whose links carry the title rather than the id, retitling breaks them, and the
+adapter is the thing that has to say so.
+
+**`delete a ticket` is a verb because trackers disagree about it.** On some it removes the
+ticket; on others there is no delete at all and the nearest thing is a close. Ask for the
+verb and let the adapter reconcile it. Never reuse a deleted ticket's number.
+
+**`claim` names whoever holds the ticket now — not only this session.** A ticket handed to a
+person outside the session, or to a background agent, is claimed *to them*. That is what
+keeps it off the frontier while it is in someone else's hands; see *Stop condition* for what
+goes wrong when it stays unclaimed.
 
 ## The map
 
@@ -130,13 +143,16 @@ stronger is available; no shipped tracker can honour a lock.
 
 ### The picture
 
-**Ask for the whole graph, fill the data slot in `~/.claude/dependency-graph.html`, write it
-to `.claude/dependency-graph.html`, ensure `.claude/` is in the repo's `.gitignore`
-**with `!.claude/agents/` and `!.claude/skills/` beside it**, and open it — one command,
-and never on ticket-close.** The page's own header comment carries
-the schema and the two rules that fail silently. It is for the human, not for you: a
-tracker that cannot draw its own dependencies leaves *what is takeable now* as a question
-answered by hand.
+**Only if the page template is installed.** Ask for the whole graph, fill its data slot,
+write the result where the adapter says the map lives, and open it — one command, and never
+on ticket-close. The page's own header comment carries the schema and the two rules that
+fail silently. It is for the human, not for you: a tracker that cannot draw its own
+dependencies leaves *what is takeable now* as a question answered by hand.
+
+**If the template is not installed, skip it and say so once.** Nothing else depends on the
+picture, and the adapter's generated progress view carries the same facts as text. An
+effort charted outside any repo has no `.gitignore` to edit and no repo to write into —
+which is why the destination is the adapter's business, not this skill's.
 
 ## The leading-gist rule
 
@@ -173,21 +189,35 @@ A child issue of the map, sized to one agent session:
 The answer is **not** in the body — it is posted as a resolution comment on close. Assets
 made along the way are linked, never pasted in.
 
-Each ticket carries one `<LABEL-PREFIX>:<type>` label. **A type is a session shape, not a
-pointer to a skill:**
+Each ticket carries one `<LABEL-PREFIX>:<type>` label. **A type is a session shape**, and
+for the `make:*` types it is also the dispatch:
 
 | Type | Who drives | Backed by | Use when |
 |---|---|---|---|
 | `research` | agent alone (AFK) | `/research` | the fact lives outside this workspace — vendor docs, a spec, an RFC |
-| `grilling` | human in the loop | `/grilling` | the default. A judgement only the human can make |
+| `grilling` | human in the loop | `/grilling` | the default for a decision. A judgement only the human can make |
 | `prototype` | human in the loop | `/prototype` | "how should it look / behave" — make something cheap and rough to react to |
 | `task` | either | needs none, by design | manual work blocking a decision: an account to open, access to provision, data to move |
+| `make:<layer>` | agent | `@<layer>-specialist` | a piece of the destination, built in one layer of your implementation chain |
+
+**`make:<layer>` is one row, not a list, and you do not enumerate it here.** The layers are
+whatever your repo's `CLAUDE.md` declares as its implementation chain — the same source
+`/adapt-to-stack` generates the specialists from. A chain of `schema → service → consumer`
+gives you `make:schema`, `make:service`, `make:consumer`, dispatching to
+`@schema-specialist` and its siblings. Adding a layer to the chain adds a ticket type for
+free; nothing here needs editing.
+
+**The `make:<layer>` label IS the dispatch.** There is no separate track-allocation step and
+no planner deciding who implements it — the label already said. Cross-layer ordering is
+expressed as blocking edges between tickets, never as a hardcoded chain: on a given map the
+chain order often is not the order the tickets have to run in.
 
 **HITL types never resolve without the human.** An agent that answers its own grilling
 questions has broken the ticket, not finished it.
 
-`task` is the one type that *does* rather than decides. It earns its place by unblocking a
-decision, not by delivering the destination.
+`task` and the makes both *do* rather than decide, and they are not the same thing. A make
+delivers a piece of the destination. A `task` delivers something outside the codebase — an
+account, an access grant, a file moved — whose only purpose is to unblock a decision.
 
 ### One name per thing
 
@@ -252,7 +282,7 @@ it and stop. Either way the answer is stop, but say which situation you are in.
        STOP                              │
                                     ◄────┘  until the frontier is empty
                                          │
-                                    map closes ──► ONE memory
+                                    map closes ──► bank the conclusion
 ```
 
 ### Chart the map
@@ -266,7 +296,9 @@ it and stop. Either way the answer is stop, but say which situation you are in.
    sketched into Not yet specified.
 4. **Create the tickets you can specify now**, then wire the blocking edges in a **second
    pass** — issues need ids before they can reference each other.
-5. **Fire the research subagents** for every `research` ticket, in parallel.
+5. **Fire the research subagents** for every `research` ticket, in parallel — but **name
+   the list and get the human's nod first**, since each one spends a background context.
+   Claim each to the agent as you dispatch it.
 6. **Stop.** Charting hand-resolves nothing. Sizing the map is one session's work.
 
 ### Work through the map
@@ -283,6 +315,17 @@ it and stop. Either way the answer is stop, but say which situation you are in.
 5. **Update the map's edges** — graduate newly-specifiable fog into tickets, rule anything
    past the destination out of scope, and delete or rewrite tickets the decision
    invalidated.
+6. **If the ticket ends the session in someone else's hands, claim it to them** — the
+   person who owes the access grant, the agent still researching. Comment what was asked
+   and when. This is not politeness; see below.
+
+**A handed-off ticket that stays unclaimed makes the map unfinishable.** A `task` waiting on
+a person is open, unclaimed, and has no blocking edge — so it sits on the frontier and every
+later session picks it up and asks for the same thing again. The frontier never empties, so
+the *stalled* ending below can never be reached and the map can neither stall nor close.
+Claiming it to its holder takes it off the frontier, which is the only way the frontier
+empties. The same applies to a `research` ticket left unclaimed: the next session sees it
+takeable and fires a second agent at a question already being answered.
 
 **One ticket per session — research is the only exception**, because research runs AFK in
 subagent contexts and does not spend the session's own.
@@ -299,21 +342,35 @@ Charting is the only thing that knows the session is ending, and handoff files
 auto-delete — the tracker is the only durable surface left. Keeping the claim is safe
 precisely because the claim was never a lock.
 
-## When the map closes — one memory, not twenty
+## When the map closes — one memory per map, not one per ticket
 
-**The unit of work is the whole map, not the ticket.** When the map closes, write **one**
-memory: the distilled conclusion of the effort.
+**The unit of work is the whole map, not the ticket.** When the map closes, write the
+distilled conclusion of the effort.
 
-A per-ticket memory would be a second copy of something the tracker already holds, free to
-drift from the first — and twenty of them arrive downstream as noise. The tickets are the
-record; the memory is the conclusion.
+Aim for **one** memory. Split only when one cannot hold it: memories have a size limit, and
+a map spanning several repos has a different conclusion for each. Then write a **hub**
+memory carrying the effort's conclusion plus **one per repo**, and cross-link them.
+
+**Never one per ticket.** A per-ticket memory is a second copy of something the tracker
+already holds, free to drift from the first — and twenty of them arrive downstream as
+noise. The tickets are the record; the memory is the conclusion.
 
 ## Stop condition
 
-**Charting is done when the frontier is empty and the fog is gone** — every open question
-either resolved, ticketed, or ruled out of scope, and nothing left to decide before
-someone goes and does the thing.
+Three ways a map can stop. Work out which one you are in before you say anything.
 
-A map that ends in **abandon** is a finished map. Learning the destination is not worth
-reaching is the cheapest possible outcome, and it is the one charting exists to make
-affordable.
+**Done.** The frontier is empty *and* no tickets are open — every question resolved,
+ticketed, or ruled out of scope, and nothing left to decide before someone goes and does
+the thing.
+
+**Stalled.** The frontier is empty but tickets are still open, because every one of them is
+blocked on something outside this session. This is **not** done. Name each blocked ticket
+and who owns the thing it waits on — that owner is the ticket's claim, which is why you
+wrote one. Never report a stalled map as finished, and never stamp it closed: the day the
+blocker clears it has to be pickable again.
+
+A stalled map has one move that refills the frontier: open a single `grilling` ticket asking
+*proceed without X, or wait?* A handoff claim that has gone stale is the signal to do it.
+
+**Abandoned.** The destination turned out not to be worth reaching. This is a finished map,
+and the cheapest possible outcome — the one charting exists to make affordable.

@@ -41,6 +41,14 @@ and moves to the next.
 | `resume-ticket` | reopen an in-flight ticket across sessions (delta mode) | ✓ | ✓ |
 | `end-of-day` | daily memory nomination | ✓ | ✓ |
 | `garden-memory` | periodic memory hygiene | ✓ | ✓ |
+| `start-massive` | chart a foggy effort into a map of small tickets, then stop | ✓ | ✓ |
+| `resume-massive` | walk that map, one ticket per session; owns the three endings | ✓ | ✓ |
+| `build-chart-ticket` | implement one `make:<layer>` ticket off a map | ✓ | ✓ |
+
+The three `*-massive` templates are one flow and only work together — see
+[13-massive-tickets.md](../../docs/shared/13-massive-tickets.md). They need the `charting`
+skill and a tracker adapter installed; `build-chart-ticket` also needs the layer specialists
+`/adapt-to-stack` generates.
 
 The **solo** / **team** columns say which entrance needs each template. Everything here is
 shared today; the columns exist so path-specific templates can declare themselves as they

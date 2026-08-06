@@ -137,6 +137,7 @@ back to reading files — verify one agent before you trust the set.
 | `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
 | `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
 | `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |
+| `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | ✓ | ✓ |
 
 The **solo** / **team** columns say which entrance needs each template. `pitch-judge` is the
 first to claim a single column — it belongs to the solo path's kill gate, which the agile

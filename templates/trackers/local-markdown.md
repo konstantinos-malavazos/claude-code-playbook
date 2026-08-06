@@ -25,6 +25,25 @@ tickets/
 the decisions an effort made and why. A dot-prefixed scratch folder says *throwaway*, which
 is exactly wrong.
 
+### When the effort spans more than one repo
+
+The layout above assumes one repo owns the effort. A map that spans several does not fit it:
+no single repo owns the record, and committing it to one of them makes the other two look
+like they were not involved. For that case, move the whole tree to the workspace instead:
+
+```
+<workspace>/.claude/charts/<KEY>/    ← <KEY> is the tracker id the map serves
+    map.md, PROGRESS.md, context.md, tickets/, research/, reviews/<repo>.md
+```
+
+**Workspace chart state is not committed**, so it trades the committed-record property for
+being able to exist at all. Two rules come with it:
+
+- **Never put it under the handoffs directory.** Those auto-delete at session end and a map
+  runs for weeks. This is the single most expensive mistake available here.
+- `<KEY>` is a folder name only. The tracker writes nothing back to the hosted tracker the
+  key belongs to.
+
 > **On `PHILOSOPHY.md` §5.** §5 sorts AI-infra files by *provenance*, not by path: **would
 > a fresh clone need this file?** Ticket files pass it outright — they are records the
 > project would want in its history even if every AI tool vanished tomorrow, not plumbing.
@@ -50,15 +69,18 @@ Blocked by: 03, 04
 <appended, newest last>
 ```
 
-### Two status fields, not one
+### Three status fields, not one
 
-`Type:` and `State:` are independent, and `Claim:` is a third thing again.
+`Type:`, `State:` and `Claim:` are independent.
 
 | Field | Values | Means |
 |---|---|---|
-| `Type:` | `research` · `prototype` · `grilling` · `task` | the session shape |
+| `Type:` | see the charting skill's type table — that table is the source of truth, not this file | the session shape, and for `make:<layer>` also the dispatch |
 | `State:` | `open` · `resolved` | whether the question is answered |
-| `Claim:` | a name, or `—` | who is working it right now |
+| `Claim:` | a name, or `—` | who is working it right now — **this session, a person outside it, or a background agent.** Not only you |
+
+`Blocked by:` is a fourth line and is **not** a status — it is a claim about the past. See
+*is this blocked?*.
 
 Older versions of this adapter overloaded one `Status:` line between `/triage`'s role
 strings and charting's `claimed`/`resolved`, which made a ticket unable to be both
@@ -66,9 +88,13 @@ strings and charting's `claimed`/`resolved`, which made a ticket unable to be bo
 
 ### Identity is the number
 
-`07` is the ticket. The `-tracker-primitives` slug is decoration — **rename it freely; links
-resolve on the number.** Never renumber a file: numbers are handed out once and never
-reused, even after a ticket is deleted.
+`07` is the ticket. The `-tracker-primitives` slug is decoration — **blocking edges resolve
+on the number, so renaming never breaks one.** Never renumber a file: numbers are handed out
+once and never reused, even after a ticket is deleted.
+
+The next free number is one past the highest that has **ever** existed, which equals one past
+the highest on disk only when nothing has been deleted. When in doubt read `map.md` — a
+deleted ticket leaves its number behind in the Decisions or Out-of-scope prose.
 
 ---
 
@@ -85,18 +111,36 @@ reused, even after a ticket is deleted.
 | edit body | edit the `## Question` section |
 | link child to parent | the file's presence in `<effort-slug>/issues/` **is** the link |
 | label | the `Type:` line |
-| claim | set `Claim:` to your name, save before any work |
+| claim | set `Claim:` to the holder's name — yours, a person's, an agent's — save, then **read it back**. A claim that silently failed to write looks exactly like one that worked |
 | mark blocked | add the number to `Blocked by:` |
 | is this blocked? | **read each listed file and check its `State:`** — never trust the line alone |
+| retitle | edit the `# NN — <title>` heading; optionally rename the slug. **Never touch the number.** Blocking edges resolve on the number and survive. **But `map.md`'s links are file paths carrying the slug, so renaming it kills them** — regenerate `Decisions so far` (it rebuilds links from disk) and fix any hand-authored link under *Out of scope* |
+| delete a ticket | `rm` the file. Leave one line in `map.md` — under *Out of scope*, or in the invalidating decision's gist — saying the number existed and why it is gone. The number is burned |
 
-**That last row is the whole reason blocking is a question.** `Blocked by: 03` is a claim
-about the past; it still reads *blocked* long after `03` resolved. The answer requires
+**`is this blocked?` is the whole reason blocking is a question.** `Blocked by: 03` is a
+claim about the past; it still reads *blocked* long after `03` resolved. The answer requires
 going and looking.
+
+**On `delete a ticket` — this verb does not generalise, and that is the point of having
+it.** Here it is literally `rm`. On Jira there is no delete at all; the nearest thing is a
+close. The same charting sentence — *"delete or rewrite tickets the decision invalidated"* —
+means two different operations depending on the adapter, which is exactly what a verb
+contract exists to absorb.
 
 ## The frontier
 
 Scan `issues/` for files with `State: open`, an empty `Claim:`, and every number in
 `Blocked by:` now `resolved`. First by number wins.
+
+**Frontier empty does not mean done.** It can go empty while tickets remain open and waiting
+on someone outside this workspace. That is a distinct outcome — the charting skill names it
+*stalled* — and it is not a finished map.
+
+**A handed-off ticket carries its holder's name in `Claim:` and is off the frontier by
+construction. That is the only way the frontier can empty.** A ticket waiting on a person or
+a background agent has no `Blocked by:` edge to hide behind, so left unclaimed it stays
+takeable, every later session picks it up again, and the frontier never empties — which
+makes *stalled* unreachable and the map unfinishable.
 
 ## The whole graph
 

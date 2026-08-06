@@ -95,7 +95,9 @@ hand-maintained. Skip it once and regeneration stops being mechanical.
 
 **A session that runs out before the ticket does** posts a progress comment and keeps the
 claim. Nothing is lost and nothing is jammed — the claim was never a lock. Resuming across
-many sessions is its own subject and its own doc.
+many sessions is its own subject and its own doc:
+[13-massive-tickets.md](../shared/13-massive-tickets.md), which runs this same skill against
+an existing multi-repo codebase and adds the commands that walk a map for weeks.
 
 ---
 
