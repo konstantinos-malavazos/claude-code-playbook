@@ -452,7 +452,7 @@ Done when a reader with an idea and no repo can follow the path end to end.
 | Blocked | **1** — #47, on #45 **and** #48 |
 | Repo files changed since the effort began | **61** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded, this session's working tree included. *Recomputed from `git log 04cf1a6~1..HEAD` plus `git diff --name-only`.* **Reproduced a second time**, across two closures rather than one — same reason as last session: #16 and #44 both edited files the effort had already touched and created none. **A count that holds while two tickets land is measuring re-editing, not stillness** — the file count stopped being a progress signal several sessions ago and is kept only because it is cheap and would move loudly if a stage started writing somewhere new. |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | committed at the end of this session; **not pushed** — #14 made push a per-repo answer defaulting to no, so it is asked for rather than assumed |
+| Working tree | committed and pushed at the end of this session — **asked for, not assumed**, per #14's per-repo push answer defaulting to no |
 
 *Ticket counts recomputed this session from the map's children, not carried — one GraphQL
 call now returns the states, the claims and the blocking edges together, so the frontier
