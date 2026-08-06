@@ -99,13 +99,21 @@ This is the single most important adaptation — see
 Copy the hooks you want from `templates/hooks/` into `~/.claude/hooks/` and wire them in
 `~/.claude/settings.json`. Start with:
 
-- `block-dangerous-git.sh` — no push / reset --hard / force / --no-verify
+- `block-dangerous-git.sh` — no reset --hard / force / --no-verify, and no push unless the
+  repo is allowlisted
 - `block-mcp-writes.sh` — read-only veto on the tracker + git-host MCP
-- `block-infra-staging.sh` — never commit `.claude/` / `CLAUDE.md`
+- `block-infra-staging.sh` — sorts `.claude/`: `agents/` and `skills/` through, `CLAUDE.md`
+  if allowlisted, the rest blocked
+- `block-secret-staging.sh` — no `.env`, key files or credential-shaped names
 - `cleanup-handoffs.sh` — wipe ephemeral handoffs at session end
 
+**Also create `~/.claude/repo-allowlist`, empty.** Copy the comments out of
+`templates/hooks/repo-allowlist.sample` and add nothing. Two of the hooks above read it;
+with no entries every repo answers **no** to both its questions, which is the safe default.
+You add a line the first time a project asks you for one — the bootstrap's step 1 asks.
+
 **Verify each hook fires** before you trust it (try a `git push` in a scratch repo and
-confirm it's blocked).
+confirm it's blocked), or run `bash templates/hooks/test-hooks.sh`, which does it for you.
 
 ## Step 8 — Add the flows, one at a time
 

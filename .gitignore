@@ -14,6 +14,12 @@ MEMORY.md
 *token*
 *secret*
 
+# ...but a template NAMED for the credentials it blocks is not a credential. This file
+# was invisible to `git add` the moment it was written, and nothing said so — the same
+# two-mechanisms-one-directory failure the hook itself exists to fix: a pattern matching
+# on the NAME cannot tell a secret from a file about secrets.
+!templates/hooks/block-secret-staging.sh
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db

@@ -18,13 +18,37 @@ norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
 
 block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
 
+# --- The allowlist -------------------------------------------------------------
+# ~/.claude/repo-allowlist answers two questions per repo, keyed by REMOTE URL, both
+# defaulting to no. See repo-allowlist.sample. This lookup is duplicated verbatim in
+# block-infra-staging.sh on purpose: a shared file you can forget to copy turns a
+# guardrail into one that silently stops guarding, which is the failure this whole
+# directory is built to avoid. Duplication is loud; a missing include is not.
+allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
+    local field="$1" file="$HOME/.claude/repo-allowlist" dir remote key push own
+    [ -r "$file" ] || return 1
+    # Prefer the payload's cwd if the harness sends one; fall back to ours.
+    dir="$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null || true)"
+    [ -n "$dir" ] && [ -d "$dir" ] || dir="$PWD"
+    remote="$(git -C "$dir" config --get remote.origin.url 2>/dev/null || true)"
+    [ -n "$remote" ] || return 1
+    while read -r key push own; do
+        case "$key" in ''|\#*) continue ;; esac
+        case "$remote" in *"$key"*) ;; *) continue ;; esac
+        case "$field" in
+            push)      [ "$push" = "yes" ] && return 0 ;;
+            claude-md) [ "$own"  = "yes" ] && return 0 ;;
+        esac
+    done < "$file"
+    return 1
+}
+
 # --- Hard blocks ---------------------------------------------------------------
-# git push — the human pushes manually. (Add a narrow exception below if you have one.)
+# git push — the human pushes manually, unless this repo is allowlisted for it.
 if printf '%s' "$norm" | grep -Eiq '(^|[;&|] *)git +push'; then
-    # Example exception: allow pushing to a dedicated staging branch only.
-    # if printf '%s' "$norm" | grep -Eiq 'git +push +origin +staging\b'; then :; else
-    block "git push is not allowed — push manually."
-    # fi
+    if ! allowlist_says push; then
+        block "git push is not allowed here — this repo is not in ~/.claude/repo-allowlist with push: yes. Push manually, or add a line."
+    fi
 fi
 
 printf '%s' "$norm" | grep -Eiq 'git +reset +--hard'      && block "git reset --hard"

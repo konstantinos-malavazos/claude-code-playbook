@@ -38,8 +38,14 @@ fi
 - Never silently rewrite the message; if you disagree mid-flight → STOP and surface it.
 
 ## Never commit AI-infra files
-`CLAUDE.md` (any depth), `.claude/`, MCP-state dirs, memory files. Use explicit paths in
-`git add` — never `git add -A`/`.`.
+`.claude/`, MCP-state dirs, memory files. Use explicit paths in `git add` — never
+`git add -A`/`.`.
+
+**Three exceptions, decided by whether a fresh clone would need the file:**
+`.claude/agents/**` and `.claude/skills/**` are generated from this repo's `CLAUDE.md` and
+are product files; and the repo's own `CLAUDE.md` is committable where
+`~/.claude/repo-allowlist` says so. Everything else under `.claude/` regenerates or belongs
+to your machine.
 
 ## MR/PR description template
 ```

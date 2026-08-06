@@ -73,14 +73,19 @@ reads — write freely. A **public** personal repo counts as shared.
 
 ## Git rules
 
-- **Never `git push`** — I push manually.
+- **Never `git push`** unless this repo has a `push: yes` line in
+  `~/.claude/repo-allowlist`. Not listed means no, and the hook enforces it — do not read
+  the file and reason about it, just try the push and believe the hook.
 - Never `--force`, `--no-verify`, amend a pushed commit, `reset --hard`, or delete
   branches without asking.
 - Before a new branch: fetch, checkout the repo's prod-target main branch, `pull
   --rebase` (never plain merge), then branch. (Per-repo main branch is in the workspace
   CLAUDE.md.)
-- **Never stage/commit AI-infra files**: `CLAUDE.md` (any depth), `.claude/`, MCP-state
-  dirs, memory files. Use explicit paths in `git add` — never `git add -A`/`.`.
+- **Never stage/commit AI-infra files**: `.claude/`, MCP-state dirs, memory files. Three
+  exceptions, because a fresh clone needs them: `.claude/agents/**` and `.claude/skills/**`
+  always, and the repo's own `CLAUDE.md` where `~/.claude/repo-allowlist` says
+  `own-claude-md: yes`. Use explicit paths in `git add` — never `git add -A`/`.`, which is
+  blocked everywhere regardless.
 
 ## Handoff protocol (ephemeral pipeline state)
 
@@ -112,4 +117,9 @@ task genuinely needs it.
 
 - Schema changes go through <YOUR MIGRATION TOOL> — never raw DDL.
 - Read-only sampling → **staging only**; production is forbidden via this path.
+- **On a project with no staging tier** (most solo ones), that rule has nothing to point
+  at. The replacement is the same test in different words: **can I undo it, and does it
+  touch anyone but me?** Work freely against anything local you can recreate; stop for
+  anything that spends money, sends something to another person, or touches the only copy
+  of real data.
 - <Any other environment/credential policy.>

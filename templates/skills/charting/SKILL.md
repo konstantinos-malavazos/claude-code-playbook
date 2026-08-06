@@ -131,8 +131,9 @@ stronger is available; no shipped tracker can honour a lock.
 ### The picture
 
 **Ask for the whole graph, fill the data slot in `~/.claude/dependency-graph.html`, write it
-to `.claude/dependency-graph.html`, ensure `.claude/` is in the repo's `.gitignore`, and
-open it — one command, and never on ticket-close.** The page's own header comment carries
+to `.claude/dependency-graph.html`, ensure `.claude/` is in the repo's `.gitignore`
+**with `!.claude/agents/` and `!.claude/skills/` beside it**, and open it — one command,
+and never on ticket-close.** The page's own header comment carries
 the schema and the two rules that fail silently. It is for the human, not for you: a
 tracker that cannot draw its own dependencies leaves *what is takeable now* as a question
 answered by hand.

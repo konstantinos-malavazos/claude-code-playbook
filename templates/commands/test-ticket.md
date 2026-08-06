@@ -20,7 +20,8 @@ of the same scenario reuse it.
        (confidence ~0.6, `validated: pending`) with a flow fingerprint.
    - Write the staging test plan (produce steps + reconciliation queries + pass/fail) and
      STOP for approval.
-3. **@tester** — on approval, run it on **staging only**:
+3. **@tester** — on approval, run it on **staging** — or **against local** on a project
+   that has no staging tier:
    - **produce** the real event (the one allowed write path),
    - **reconcile** — poll the DB/store until the correctly-shaped row/state lands, with a
      timeout + stability check,
@@ -30,5 +31,8 @@ of the same scenario reuse it.
 4. Write `test-report.md`.
 
 ## Guardrails
-Staging only; production forbidden. Read-first. "Produce the event on staging" is the
-ONLY allowed write path; every other write-class action needs explicit approval.
+Production forbidden. Read-first. **Staging where there is one; local where there is not**
+— what does not change is that the event is produced **for real** and the resulting row is
+**reconciled**, which is the whole value of the flow. Asserting against a mock proves the
+mock works. Producing the event is the ONLY allowed write path; every other write-class
+action needs explicit approval.

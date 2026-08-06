@@ -139,7 +139,7 @@ Making a weak language server a universal kill would kill good projects for a ba
 | **No** | Check 2 passes. Serena is optional on this project. | Seam check 4 reads the verdict and passes. `CLAUDE.md` says why. |
 
 **Record the verdict either way.** It is not a private conclusion — it goes into the repo's
-`CLAUDE.md` at [bootstrap step 2](04-the-bootstrap.md#step-3--serena-is-conditional-and-the-verdict-is-looked-up),
+`CLAUDE.md` at [bootstrap step 3](04-the-bootstrap.md#the-eight-steps),
 and the seam looks it up rather than deciding it. A verdict of *no* is a **pass**, not a
 gap.
 
@@ -199,8 +199,8 @@ ticket 2 writes down whatever ticket 1 decided.
 ### The layer chain is named here too
 
 Ticket 1 names the layer chain alongside the stack. Not the bootstrap — even though the
-bootstrap is where the chain first becomes *visible*, as folders at step 1 and agent files
-at step 4.
+bootstrap is where the chain first becomes *visible*, as folders at step 2 and agent files
+at step 5.
 
 | Why not stage 3 | |
 |---|---|

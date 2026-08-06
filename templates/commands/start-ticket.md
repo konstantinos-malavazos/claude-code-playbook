@@ -36,6 +36,9 @@ route, gate, and consolidate.
    branch is ready and **they** push + open the MR/PR. You never push.
 
 ## Guardrails
-- Never push, never write to the tracker, never commit AI-infra files.
+- Never write to the tracker. **Never push** — this flow is stricter than the hook on
+  purpose: even where `~/.claude/repo-allowlist` permits it, `/start-ticket` hands you the
+  branch. **Commit no AI-infra files**: `.claude/` (except `agents/` and `skills/`, which
+  are product files generated from this repo's `CLAUDE.md`), MCP state, memory files.
 - Keep the branch at exactly one commit per repo.
 - Handoff files are ephemeral; only the consolidated memory is durable.

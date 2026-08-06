@@ -22,8 +22,10 @@ re-driving the same ten steps by hand.
   `@release-reviewer` checks cross-repo blast radius (contract/payload coupling,
   downstream consumers, schema collisions).
 - **One commit per branch per repo.** Amend-as-you-go; the reviewer asserts it.
-- **Guardrails are hooks, not trust.** Push is hard-blocked; the tracker is read-only;
-  AI-infra files are never committed.
+- **Guardrails are hooks, not trust.** Push is blocked unless the repo is allowlisted; the
+  tracker is read-only; AI-infra files are never committed **except the repo's own
+  `CLAUDE.md` and the generated `.claude/agents/` and `.claude/skills/`, which a fresh
+  clone needs**.
 
 ---
 
@@ -84,7 +86,7 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 | **`/cut-backlog`** | closed map + scaffolded repo → an ordered **backlog** of work units, approved on a board before anything is created, then the same **dependency picture** over the tickets that now exist | the last stage of the solo path, and where it stops. Units are cut from the **smallest version**, not from the map's decisions — one ticket = one thing the app can now do. [solo 05](../solo/05-cutting.md) |
 | **decompose path** | large ticket → independent **parallel slices** in git worktrees → one commit per repo | when a ticket is too big for one sequential pass. [09](09-decompose-path.md) |
 | **`/fix-ticket`** | QA bounce-back → diagnose root cause → fix → **amend in place** | a returned ticket stays one ticket / one commit |
-| **`/test-ticket`** | E2E **staging integration test** — produce the real event, reconcile the resulting row/state, **and bank/reuse a per-scenario test recipe in memory** | proves it works on staging *and* learns how to produce each scenario's events once, then reuses it |
+| **`/test-ticket`** | E2E **integration test** against staging, or against **local** where there is no staging tier — produce the real event, reconcile the resulting row/state, **and bank/reuse a per-scenario test recipe in memory** | proves it works where it will actually run *and* learns how to produce each scenario's events once, then reuses it |
 | **`/resume-ticket`** | reopen an in-flight ticket across sessions; if it had **deferred decisions**, collect the now-available answers and re-enter in delta mode | tickets span days; open questions get answered later; state survives the handoff wipe via durable memory |
 | **`/close-ticket`** | finalize + consolidate into memory | clean end-of-ticket bookkeeping |
 | **`/end-of-day`** | **daily memory nomination**: harvest the day's durable conclusions, dedupe vs memory, approve each item individually | deliberate memory — nothing enters the knowledge base un-reviewed. [10](10-memory-hygiene.md) |

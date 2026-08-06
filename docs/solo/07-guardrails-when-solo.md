@@ -125,7 +125,7 @@ This is the guardrail that broke, and it broke in **both directions at once**:
 
 | | The hook says | Correct? |
 |---|---|---|
-| The bootstrap's `CLAUDE.md` (written by [step 2](04-the-bootstrap.md)) | never stage | **wrong** — a fresh clone needs it |
+| The bootstrap's `CLAUDE.md` (written by [step 3](04-the-bootstrap.md#the-eight-steps)) | never stage | **wrong** — a fresh clone needs it |
 | The [dependency viewer's](../../templates/views/README.md) page in `.claude/` | never stage | **right** — one command regenerates it |
 
 Same hook, same rule, opposite verdicts — so **the defect is not the path list, and
@@ -154,7 +154,7 @@ product, and the hook refusing to stage it is
 [the enforcement, not the obstacle](../../templates/views/README.md) — that is the part
 the viewer's placement rests on, and it is untouched. What is **not** true is the wider
 claim that everything under `.claude/` is plumbing: the
-[layer specialists](04-the-bootstrap.md#step-4--stage-3-is-where-the-layer-specialists-get-made)
+[layer specialists](04-the-bootstrap.md#step-5--stage-3-is-where-the-layer-specialists-get-made)
 live there and are committed.
 
 > **This exception was predicted before it existed.** The rule was written down as *never
@@ -170,6 +170,13 @@ a blanket `.claude/` ignore line also hides the specialists that are supposed to
 committed. **Whatever writes that line writes the exceptions with it.** Two guardrails on
 one directory, living in different files, is how a rule ends up half-enforced without
 anyone deciding it should be.
+
+> **This playbook did it to itself, in the commit that added the credential hook.** This
+> repo's `.gitignore` carries `*secret*`, so `block-secret-staging.sh` — a template *about*
+> credentials — was invisible to `git add` from the moment it was written, silently, with
+> no error. **A pattern that matches on the name cannot tell a secret from a file about
+> secrets**, which is the same sentence as *a rule about provenance expressed as a rule
+> about paths*, one directory over.
 
 **Does the bootstrap commit, then? Yes — and only on an all-green report.** Something has
 to commit that `CLAUDE.md`: [`/start-ticket`](../shared/08-ticket-pipeline.md) is told
@@ -290,10 +297,11 @@ section least able to afford it.
 | §5 and §6 themselves | [`PHILOSOPHY.md`](../../PHILOSOPHY.md) — pointed at from here, never restated there |
 | Which flows push, and when | [07-the-flows.md](../shared/07-the-flows.md), [08-ticket-pipeline.md](../shared/08-ticket-pipeline.md) — **a flow that declines to push on a repo the hook would permit is not a contradiction.** The hook says what is *possible*; a flow says what it *does*. |
 
-> **Still being written:** the allowlist file and the credential-blocking hook do not exist
-> in `templates/` yet, and the three places that tell a flow to write `.claude/` into
-> `.gitignore` still say it without exceptions. The sibling make lands all of it, and
-> deletes this note when it does. Everything else linked from this page is on disk today.
+Everything on this page is on disk:
+[`repo-allowlist.sample`](../../templates/hooks/repo-allowlist.sample),
+[`block-secret-staging.sh`](../../templates/hooks/block-secret-staging.sh), the two-way
+sort in [`block-infra-staging.sh`](../../templates/hooks/block-infra-staging.sh), and the
+`.gitignore` exceptions that make the sort mean anything.
 
 ---
 

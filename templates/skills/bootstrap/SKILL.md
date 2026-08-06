@@ -66,30 +66,49 @@ Two clarifications that make the test decidable:
 The reason, in one sentence: **everything inside a fresh git repo is undoable with
 `git checkout .`, and nothing outside it is.**
 
-## The seven steps
+## The eight steps
 
-In order. Each one needs something the one before it produced.
+In order. Steps 2–8 each need something the one before them produced. Step 1 does not —
+it is first because it is the only one that is not yours to do.
 
 | # | Step |
 |---|---|
-| 1 | Scaffold the stub |
-| 2 | Write the repo's `CLAUDE.md` |
-| 3 | Index Serena — **only if the verdict says yes** |
-| 4 | Generate the layer specialists and the stack skills |
-| 5 | **Verify** the installed tracker adapter |
-| 6 | Write the two memories |
-| 7 | Run every check, report once, stop |
+| 1 | **Ask** the two allowlist questions, and wait |
+| 2 | Scaffold the stub |
+| 3 | Write the repo's `CLAUDE.md` |
+| 4 | Index Serena — **only if the verdict says yes** |
+| 5 | Generate the layer specialists and the stack skills |
+| 6 | **Verify** the installed tracker adapter |
+| 7 | Write the two memories |
+| 8 | Run every check, report once, stop |
 
-### 1 — Scaffold the stub
+### 1 — Ask the two allowlist questions, and wait
+
+`~/.claude/repo-allowlist` is outside the repo, so this is the line, and the line says
+**stop**. Ask both questions, show the exact line you propose to add, and **wait for an
+answer.** Do not add a line on their behalf, and do not read the file and assume.
+
+| Ask | Because |
+|---|---|
+| **May I `git push` on this repo?** | Otherwise every push in this repo's life is blocked. |
+| **Is this repo's `CLAUDE.md` its own — would a fresh clone need it?** | Step 3 writes that file and step 8's commit stages it. Unanswered, the stage cannot finish. |
+
+**Ask before you scaffold, not when you hit the wall.** Everything after this step runs
+unattended; stopping in the middle of it to ask is worse than asking first.
+
+If the answers are *no*, that is a valid outcome, not a failure — you carry on and the
+final commit stages neither `CLAUDE.md` nor the generated agents. Say so in the report.
+
+### 2 — Scaffold the stub
 
 Run the framework's own generator. Then create **one empty folder per layer of the chain**.
 
 - **Write no application code.** There is no application. A generator skeleton that builds
   and starts is the whole deliverable of this step.
-- The folders are placeholders that step 4 will point agent files at. Getting one wrong
+- The folders are placeholders that step 5 will point agent files at. Getting one wrong
   costs a `git mv`; leaving it out costs a specialist that names a path which does not exist.
 
-### 2 — Write the repo's `CLAUDE.md`
+### 3 — Write the repo's `CLAUDE.md`
 
 From `templates/claude-md/repo.CLAUDE.md`. Four things must land in it:
 
@@ -100,10 +119,10 @@ From `templates/claude-md/repo.CLAUDE.md`. Four things must land in it:
 | The layer chain | you are **copying** it, not choosing it |
 | **The Serena verdict**, and one line of why | this is the only place it lives |
 
-Keep it lean — the facts that stop a wrong turn, not a description of the repo. Step 4
+Keep it lean — the facts that stop a wrong turn, not a description of the repo. Step 5
 reads the chain back out of this file, and the seam reads the verdict out of it.
 
-### 3 — Index Serena, if the verdict says yes
+### 4 — Index Serena, if the verdict says yes
 
 **Read the verdict from the `CLAUDE.md` you just wrote.** Do not decide it, and do not
 default to indexing because indexing seems harmless.
@@ -116,18 +135,18 @@ default to indexing because indexing seems harmless.
 **A sparse index on a real stub is a red check, not a retry.** Report it and move on. Never
 fall back to globbing the tree or reading whole files to compensate.
 
-### 4 — Generate the layer specialists and the stack skills
+### 5 — Generate the layer specialists and the stack skills
 
 One specialist agent per layer of the chain, plus the stack's skills. Generate them from
 `templates/agents/layer-specialist.md` and the skill templates; each specialist names the
-folder step 1 created for its layer.
+folder step 2 created for its layer.
 
 - **Call the generation flow; do not reimplement it.** How these files are written is not
   this stage's business. This stage owns *when* — here, after the chain exists and the
   folders are on disk.
 - **If the generated files land outside the repo, the line applies.** Show them and wait.
 
-### 5 — Verify the tracker adapter
+### 6 — Verify the tracker adapter
 
 Read `~/.claude/tracker.md` and confirm it is the adapter for **this project's** tracker.
 
@@ -138,7 +157,7 @@ The failure this catches is silent and normal: work on one tracker, home project
 another. If the installed adapter is the wrong one, or missing, that is a **red check**.
 Report it. Do not install one to make the check pass.
 
-### 6 — Write the two memories
+### 7 — Write the two memories
 
 | | |
 |---|---|
@@ -151,9 +170,11 @@ retrieved by meaning. Write only the reasoning, which lives nowhere else.
 
 Memory is outside the line. **Show both memories before writing them, and wait.**
 
-### 7 — Run every check, report once, stop
+### 8 — Run every check, report once, stop
 
-The last step is the exit test, below.
+The last step is the exit test, below. **On an all-green report, and only then, make one
+commit** — explicit paths, never `git add .`. Red commits nothing: on day one the recovery
+is to delete the folder and start again, and there is nothing worth keeping in history.
 
 ## The exit test
 
@@ -194,10 +215,11 @@ suggestion at the bottom of the report.
 
 ## Where you stop
 
-Four stops, and none of them is a failure of the stage:
+Five stops, and none of them is a failure of the stage:
 
 | You stop when | And you say |
 |---|---|
+| **Step 1, before anything else** | the two allowlist questions, and the exact line you propose to add |
 | A write lands outside the repo | what you are about to write, and where |
 | One of the five inputs is missing | which one, and that charting is not finished |
 | The report is done | nothing more — no classification, no fix, no re-run |
@@ -205,7 +227,8 @@ Four stops, and none of them is a failure of the stage:
 
 ## Stop condition
 
-**The stage is done when the report exists.** Not when every check is green.
+**The stage is done when the report exists** — plus one commit if it is green. Not when
+every check is green.
 
 A red report is a *finished* stage. This stage's job is to produce the verdict, not to
 guarantee it is a good one — and a stage that keeps working until everything passes is a

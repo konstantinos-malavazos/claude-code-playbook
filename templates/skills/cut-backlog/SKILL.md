@@ -249,8 +249,8 @@ Then draw it:
 
 > **Ask for the whole graph over the units you just created, fill the data slot in
 > `~/.claude/dependency-graph.html`, write it to `.claude/dependency-graph.html`, ensure
-> `.claude/` is in the repo's `.gitignore`, and open it — one command, and never on
-> ticket-close.**
+> `.claude/` is in the repo's `.gitignore` **with `!.claude/agents/` and
+> `!.claude/skills/` beside it**, and open it — one command, and never on ticket-close.**
 
 The page's own header comment carries the data-slot schema and the two rules that fail
 silently. Do not restate them here; read them there.

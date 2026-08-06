@@ -75,10 +75,18 @@ one is the resolution.
 refusing to stage it is the enforcement, not an obstacle — a generated view must never be
 committed.
 
-**Whatever generates it also ensures `.claude/` is in the repo's `.gitignore`.** The hook
-stops the file entering git; nothing stops it showing as untracked noise, and no other file
-in the playbook adds that line. It cannot wait for the bootstrap: this page runs during
-charting, a full stage earlier, when the repo exists but has not been scaffolded.
+**Whatever generates it also ensures `.claude/` is in the repo's `.gitignore` — with
+`!.claude/agents/` and `!.claude/skills/` beside it.** The hook stops the file entering git;
+nothing stops it showing as untracked noise, and no other file in the playbook adds that
+line. It cannot wait for the bootstrap: this page runs during charting, a full stage
+earlier, when the repo exists but has not been scaffolded.
+
+**The exceptions are not optional, and forgetting them is silent.** `block-infra-staging.sh`
+lets `.claude/agents/` and `.claude/skills/` through because a fresh clone needs them; a
+blanket ignore line hides those files from `git add` anyway. **Two mechanisms, one
+directory** — the hook blocks the *command*, `.gitignore` makes the file invisible to it —
+and moving one without the other buys nothing. See
+[`docs/solo/07-guardrails-when-solo.md`](../../docs/solo/07-guardrails-when-solo.md).
 
 **One command regenerates *and* opens.** There is no separate view step, so staleness stops
 being something to manage — looking at it *is* regenerating it. Deliberately **not**

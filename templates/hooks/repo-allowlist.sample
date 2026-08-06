@@ -1,0 +1,44 @@
+# ~/.claude/repo-allowlist
+#
+# The answers you have given, one line per repo. Install this file EMPTY — comments
+# only — and add a line the first time a repo asks you for one.
+#
+# It lives in ~/.claude/ and NOT in any repo, on purpose: a file inside the project is
+# one the agent can write, and a guardrail the model can switch off is a suggestion with
+# extra steps. PHILOSOPHY.md §5 is "enforced by the harness, not by trust".
+#
+# NOT LISTED MEANS NO TO BOTH. That is the whole design — a new repo is safe with no
+# action from you, and a live project stays safe by omission rather than by being
+# remembered.
+#
+# ---------------------------------------------------------------------------------
+# FORMAT: three whitespace-separated fields.
+#
+#   <remote-fragment>            <push>   <own-claude-md>
+#
+#   remote-fragment   matched as a SUBSTRING of `git config --get remote.origin.url`,
+#                     so one line covers the SSH and HTTPS forms of the same repo.
+#                     Keyed by REMOTE, never by folder path — what push risks is where
+#                     the content goes, and a path is the rule-about-paths mistake this
+#                     whole design exists to retire. Make it specific enough not to
+#                     match a repo you did not mean: "github.com/you/thing", not "you".
+#   push              may the agent run `git push` here?          yes | no
+#   own-claude-md     is this repo's CLAUDE.md its own — that is, would a fresh clone
+#                     on a new laptop need it?                    yes | no
+#
+# Anything that is not exactly `yes` is no.
+# ---------------------------------------------------------------------------------
+#
+# Two things this file cannot switch off, whatever it says:
+#
+#   * `git add -A` / `git add .` stays blocked everywhere. The accidental sweep is the
+#     case the guardrail was really written for.
+#   * `.claude/` (except `agents/` and `skills/`), `.serena`, `.forgetful` and MEMORY.md
+#     stay blocked everywhere. Those are your machine, not the project.
+#
+# See docs/solo/07-guardrails-when-solo.md for why each answer is the shape it is.
+#
+# Example — delete or keep commented; an empty file is the correct starting state:
+#
+# github.com/you/weekend-project    yes    yes
+# github.com/you/photo-organiser    yes    yes

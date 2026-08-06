@@ -9,6 +9,10 @@
 // PowerShell is a SEPARATE tool from Bash. A git guardrail matched only on "Bash"
 // silently stops guarding the moment the model uses PowerShell — keep both names.
 // Adjust MCP prefixes to the servers you run.
+//
+// block-dangerous-git.sh and block-infra-staging.sh both read ~/.claude/repo-allowlist.
+// Create it (empty) from repo-allowlist.sample — with no file, every repo answers no to
+// both questions, which is the safe default and the behaviour these hooks had before.
 {
   "hooks": {
     "PreToolUse": [
@@ -16,7 +20,8 @@
         "matcher": "Bash|PowerShell",
         "hooks": [
           { "type": "command", "command": "~/.claude/hooks/block-dangerous-git.sh" },
-          { "type": "command", "command": "~/.claude/hooks/block-infra-staging.sh" }
+          { "type": "command", "command": "~/.claude/hooks/block-infra-staging.sh" },
+          { "type": "command", "command": "~/.claude/hooks/block-secret-staging.sh" }
         ]
       },
       {

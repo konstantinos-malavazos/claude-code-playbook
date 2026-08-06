@@ -13,6 +13,7 @@ What you need before [03-setup.md](03-setup.md).
 | **A code-navigation MCP server** (Serena) | pillar 1 — eyes on the code | runs as a local server; needs the language toolchain for the languages you index |
 | **A semantic-memory MCP server** (Forgetful) | pillar 2 — durable memory | self-hosted; needs a PostgreSQL + pgvector backend (Docker is the easy path) |
 | **A runtime for your MCP servers** | most MCP servers are Node or Python processes | Node LTS and/or Python 3.11+ as required by the servers you pick |
+| **`jq`** | **every blocking hook parses its payload with it** | on `PATH` for the shell the hooks run in. Without it they exit `127`, which is a *non-blocking* error — **the tool call proceeds and the guardrail is not there.** Check with `jq --version` in the same shell Claude Code uses, not just in your usual terminal |
 
 ---
 
@@ -31,7 +32,8 @@ What you need before [03-setup.md](03-setup.md).
 
 - A **tracker API token** (read scope is enough) — unless your tracker is local markdown
   files, which needs none.
-- A **git-host personal access token** (read scope; you push manually anyway).
+- A **git-host personal access token** (**read scope** — `block-mcp-writes.sh` vetoes
+  write-class MCP calls, so a wider token would buy nothing but risk).
 - Any **DB connection string** for a *staging* read-only sample path.
 
 Put these in environment variables and reference them from config as `${VAR}` — never

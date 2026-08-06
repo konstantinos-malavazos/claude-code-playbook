@@ -36,25 +36,46 @@ judgement call you make inside the checklist.
 
 ---
 
-## The seven steps
+## The eight steps
 
-In this order. The order is not taste — **each step needs something the one before it
-produced.**
+In this order. For steps 2–8 the order is not taste — **each one needs something the one
+before it produced.** Step 1 is the exception, and it is placed by a different rule.
 
 | # | Step | Why it is here |
 |---|---|---|
-| 1 | **Scaffold the stub** — the framework's own generator, **plus one empty folder per layer in the chain** | Nothing can be indexed, or pointed at, until code exists. |
-| 2 | **Write the repo's `CLAUDE.md`** — stack, build/test/run commands, layer chain, Serena verdict | Step 4 reads the chain from it; the seam reads the verdict from it. |
-| 3 | **Index Serena** — *only if the verdict says yes* | Needs step 1's code. An index of an empty folder proves nothing. |
-| 4 | **Generate the layer specialists and the stack skills** | Needs the chain from step 2 and the folders from step 1. |
-| 5 | **Check the installed tracker adapter matches this project's tracker** | **Verify, never install.** Installing is a global setup act. |
-| 6 | **Write the two memories** | Memory two names the layer chain, so the chain has to be declared first. |
-| 7 | **Run every check, produce one report, stop** | The checks are the tail's, and this is the first repo they can run against. |
+| 1 | **Answer the two allowlist questions** — may the agent push here, and is this repo's `CLAUDE.md` its own | The only part of the stage that is **yours**. It goes first so everything after it runs unattended — and step 3's output cannot be committed until it is answered. |
+| 2 | **Scaffold the stub** — the framework's own generator, **plus one empty folder per layer in the chain** | Nothing can be indexed, or pointed at, until code exists. |
+| 3 | **Write the repo's `CLAUDE.md`** — stack, build/test/run commands, layer chain, Serena verdict | Step 5 reads the chain from it; the seam reads the verdict from it. |
+| 4 | **Index Serena** — *only if the verdict says yes* | Needs step 2's code. An index of an empty folder proves nothing. |
+| 5 | **Generate the layer specialists and the stack skills** | Needs the chain from step 3 and the folders from step 2. |
+| 6 | **Check the installed tracker adapter matches this project's tracker** | **Verify, never install.** Installing is a global setup act. |
+| 7 | **Write the two memories** | Memory two names the layer chain, so the chain has to be declared first. |
+| 8 | **Run every check, produce one report, stop** | The checks are the tail's, and this is the first repo they can run against. |
 
-### Step 1 — the stub is generator output *plus one empty folder per layer*
+### Step 1 — the two questions that are not yours to skip
+
+Two answers, both about **this repo**, both going into
+[`~/.claude/repo-allowlist`](../../templates/hooks/repo-allowlist.sample):
+
+| Question | What it unlocks |
+|---|---|
+| **May the agent push here?** | `git push` on this remote. Unanswered, it stays blocked. |
+| **Is this repo's `CLAUDE.md` its own?** | Staging the `CLAUDE.md` step 3 is about to write. |
+
+**This step is not forced into position by a dependency, and every other step is.** It is
+placed first for a different reason: it is the **one crossing outside the repo folder** in
+the whole stage, and the rest of the checklist runs unattended. Asking first means the
+unattended part starts after you have finished being involved, rather than stopping in the
+middle to ask. See [07-guardrails-when-solo.md](07-guardrails-when-solo.md) for why the
+answers live outside the repo and default to no.
+
+**A bash script cannot judge provenance. You can.** That is the whole reason this is a step
+rather than something the hook works out.
+
+### Step 2 — the stub is generator output *plus one empty folder per layer*
 
 The generator gives you a skeleton that builds and runs. It does not give you the shape of
-your chain, and step 4 needs that shape: every specialist agent is handed
+your chain, and step 5 needs that shape: every specialist agent is handed
 *"the area this repo is usually changed in: `<path>`"*, and with no folders on disk that
 path is a guess.
 
@@ -62,12 +83,12 @@ So the stub is the generator's output **plus one empty folder per layer**. The f
 ticket will reshape them, and that is fine — **a folder is cheap to move, a wrong path
 baked into an agent file is not.**
 
-### Step 3 — Serena is conditional, and the verdict is looked up
+### Step 4 — Serena is conditional, and the verdict is looked up
 
-You do not decide here whether Serena applies. The tail decided it, step 2 wrote it into
-`CLAUDE.md`, and step 3 reads it back.
+You do not decide here whether Serena applies. The tail decided it, step 3 wrote it into
+`CLAUDE.md`, and step 4 reads it back.
 
-| Verdict | Step 3 |
+| Verdict | Step 4 |
 |---|---|
 | **Yes** | Index the repo, then confirm a symbol search returns **real results**, not empty. |
 | **No** | Skip. `CLAUDE.md` already says why, and [seam check 4](01-the-solo-path.md#the-seam--where-the-solo-path-stops) reads the same line. |
@@ -76,7 +97,7 @@ A **sparse** index on a real stub — verdict *yes*, and the symbols do not come
 not a step to retry. It is the backwards step: the stack cannot be read the way the
 project assumed. See [04-serena.md](../shared/04-serena.md).
 
-### Step 4 — stage 3 is where the layer specialists get made
+### Step 5 — stage 3 is where the layer specialists get made
 
 This is the step the seam was missing. [`/start-ticket`](../shared/08-ticket-pipeline.md)
 dispatches its implement step to **layer specialists**, and until now nothing on this path
@@ -88,25 +109,25 @@ Three different things own three different questions, and none of them restates 
 | Question | Owner |
 |---|---|
 | **How** the specialists and stack skills get generated | the stack-adaptation flow — [11-adapting-to-your-stack.md](../shared/11-adapting-to-your-stack.md) and [`templates/agents/layer-specialist.md`](../../templates/agents/layer-specialist.md) |
-| **When** it happens | this stage, at step 4 |
+| **When** it happens | this stage, at step 5 |
 | **Whether** it happened | [seam check 8](01-the-solo-path.md#the-seam--where-the-solo-path-stops) |
 
 > Turning a named stack into generated agents is still being designed as a flow of its own;
-> today `11-adapting-to-your-stack.md` describes it as manual work. Step 4 is the same act
+> today `11-adapting-to-your-stack.md` describes it as manual work. Step 5 is the same act
 > either way — what changes is who does the typing.
 
-### Step 5 — verify, never install
+### Step 6 — verify, never install
 
 Installing a tracker adapter is a **global** act, done once at
 [setup step 5](../shared/03-setup.md), not per project. It also cannot be otherwise: the
 kill gate wrote the map into a tracker one whole stage before the bootstrap runs, so an
 adapter was already installed and already working.
 
-What step 5 checks is narrower and easy to get wrong — that the **one installed adapter is
+What step 6 checks is narrower and easy to get wrong — that the **one installed adapter is
 the right one for this project's tracker**. Home projects on GitHub and work on Jira is the
 normal case, and the failure is silent.
 
-### Step 6 — memory two holds only the *why*
+### Step 7 — memory two holds only the *why*
 
 | | |
 |---|---|
@@ -138,25 +159,27 @@ before writing anywhere other people can see it*, which for a solo builder on a 
 repo means **never ask**. Their machine has no other people on it. It does have other
 projects.
 
-Two things cross the line:
+Three things cross the line, and **one of them is a step**:
 
 | What crosses | Why it is fine |
 |---|---|
-| **The tracker adapter's global path** | Step 5 only **reads** it. Nothing is written outside the repo. |
+| **Step 1, the allowlist answers** | The file is in `~/.claude/` precisely so the agent cannot write it. **You** answer; it only reads. |
+| **The tracker adapter's global path** | Step 6 only **reads** it. Nothing is written outside the repo. |
 | **The two memories** | Memory is not a folder you can revert. [05-forgetful.md](../shared/05-forgetful.md) already gates this: nothing enters memory un-reviewed. |
 
-**Step 4's output does not cross it.** The generated specialists and standards skills land
+**Step 5's output does not cross it.** The generated specialists and standards skills land
 in the repo's own `.claude/agents/` and `.claude/skills/` — they are facts about *this*
-codebase, not your machine's configuration — which is what lets step 4 run unattended like
+codebase, not your machine's configuration — which is what lets step 5 run unattended like
 every other step.
 
 **Stage 3 ends with one commit, and only on an all-green report.** Something has to commit
-the `CLAUDE.md` step 2 writes, and the generated agent files with it.
+the `CLAUDE.md` step 3 writes, and the generated agent files with it — and **explicit
+paths, never `git add .`**, which the hook blocks whatever step 1 answered.
 [07-guardrails-when-solo.md](07-guardrails-when-solo.md) has the reasoning: the hook that
 blocks AI-infra staging expresses a rule about **provenance** as a rule about **paths**,
 and the fix is a test — *would a fresh clone need this file?* — rather than another path
 exception. Red means the stack or the setup is wrong, and on day one there is nothing worth
-preserving in history.
+preserving in history, so a red report commits nothing.
 
 ---
 
@@ -169,29 +192,32 @@ stage 3's to make true. Item 6 — *the backlog exists* — belongs to stage 4 a
 thing the report cannot speak to.
 
 ```
-   ┌─ THE REPO FOLDER ─ Claude works alone in here ────────────┐
-   │                                                           │
-   │   1. scaffold the stub ────┐                              │
+       1. the two allowlist questions ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─► ~/.claude/repo-allowlist
+              YOU answer; the agent only reads                       (you answer, once)
+                     │
+   ┌─ THE REPO FOLDER┼─ Claude works alone from here on ───────┐
+   │                 ▼                                         │
+   │   2. scaffold the stub ────┐                              │
    │      + one folder / layer  │                              │
    │            │               │                              │
    │            ▼               │                              │
-   │   2. write CLAUDE.md ──────┼──► the chain ──► step 4      │
-   │      stack · commands      │    the verdict ──► step 3    │
+   │   3. write CLAUDE.md ──────┼──► the chain ──► step 5      │
+   │      stack · commands      │    the verdict ──► step 4    │
    │      chain · verdict       │    · · · · · · ·► the seam   │
    │            │               │                              │
    │            ▼               ▼                              │
-   │   3. index Serena     4. generate the                     │
-   │      (if verdict yes)    layer specialists ─ ─ ─ ─ ─ ─ ─ ─│─ ─► ~/.claude/ ?
-   │            │                  │                           │
+   │   4. index Serena     5. generate the                     │
+   │      (if verdict yes)    layer specialists                │
+   │            │                  │  → .claude/agents/ (here) │
    │            └────────┬─────────┘                           │
    │                     ▼                                     │
-   │   5. verify the adapter ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │─ ─► reads ~/.claude/tracker.md
+   │   6. verify the adapter ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │─ ─► reads ~/.claude/tracker.md
    │                     │                                     │
    │                     ▼                                     │
-   │   6. write memory two ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │─ ─► memory (you review)
+   │   7. write memory two ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ │─ ─► memory (you review)
    │                     │                                     │
    │                     ▼                                     │
-   │   7. RUN EVERY CHECK ──► ONE REPORT ──► STOP              │
+   │   8. RUN EVERY CHECK ──► ONE REPORT ──► STOP              │
    │                              │                            │
    └──────────────────────────────┼────────────────────────────┘
                                   │      ─ ─ ►  crosses the line: you see it first
@@ -202,6 +228,7 @@ thing the report cannot speak to.
          item 6 is stage 4's)            YOU classify it:
                     │                    a typo, or a wrong stack
                     ▼
+            one commit, then
                4. CUTTING
 ```
 
@@ -219,7 +246,7 @@ Two failures look identical on the line and are completely different in kind:
 read as a wrong stack. Stopping at the first failure hides which one you are in, at
 precisely the moment of this stage's most expensive judgement.
 
-So step 7 **reports and stops. It does not classify.** Classifying is a decision, and stage
+So step 8 **reports and stops. It does not classify.** Classifying is a decision, and stage
 3 is a checklist — the same reason the layer chain is named in stage 2 and not here.
 
 ---
@@ -230,12 +257,12 @@ So step 7 **reports and stops. It does not classify.** Classifying is a decision
 upstream. Stage 3 only copies it into `CLAUDE.md`.
 
 A reader standing in stage 3 will expect to be asked, because this is the first point where
-the chain becomes visible — folders on disk at step 1, agent files at step 4. It was
+the chain becomes visible — folders on disk at step 2, agent files at step 5. It was
 settled before you got here, for two reasons:
 
 - **A checklist is the wrong place for an architecture decision.** You are executing, not
   deliberating, and a real decision dropped into a checklist gets rubber-stamped.
-- **Stage 3 *consumes* the chain at step 4.** Deciding it here would mean deciding and
+- **Stage 3 *consumes* the chain at step 5.** Deciding it here would mean deciding and
   building from it in the same breath, with nothing in between to catch a bad answer.
 
 The tail's placement and its ordering rule are in
@@ -262,8 +289,9 @@ proposed and killed, and why the chain is one of the three things ticket 1 decid
 The seam tells you *what must be true*. The tail's checks tell you *how to prove it*.
 Neither answers the questions a reader has while standing **in** the stage:
 
-- **The order of the seven steps is forced**, not stylistic — every step needs the one
-  before it, and re-ordering them quietly breaks something two steps later.
+- **The order of the eight steps is forced for seven of them**, not stylistic — each
+  needs the one before it, and re-ordering them quietly breaks something two steps later.
+  **Step 1 is the odd one out**, placed by where the line is rather than by a dependency.
 - **The stub is not just generator output.** The empty folders exist because an agent file
   is about to name them.
 - **This is where the layer specialists come from** — the gap that made the seam eight
