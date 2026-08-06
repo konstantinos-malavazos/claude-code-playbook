@@ -6,6 +6,28 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 6 August 2026, after resolving
+> [#18 How is progress measured on the solo path?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18)
+> — **measuring is optional and its units are the reader's to pick; the unit is one shipped
+> work unit, the two numbers worth keeping cost nothing to collect, nothing automates any of
+> it, and it lands as a section under *habits* rather than a doc of its own.**
+> **[#16](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) is now
+> takeable — the capstone has no open blockers left.**
+> **The ticket cited a source that said the opposite of what it claimed.** Its load-bearing
+> fact was that `/goal` is *"a native, durable, zero-effort measurement surface"*; #6's own
+> durability column says the condition survives a resume but **turn count, timer and token
+> baseline reset**, so `/goal` measures one *session*, never one unit. Fifth arrival of the
+> premise rule and a sharper one — #36's came from the Notes, #15's from another open
+> ticket's body, #42's and #38's from their own, and **all four were true when written**.
+> This one was false on the day it was typed, in the sentence it was summarising. Hence
+> **re-read the source, not the ticket's summary of it**: a gist is a compression, and
+> compression is where the qualifier goes missing.
+> **`blocked_by` lied for about thirty seconds.** Closing #18 and immediately reading #16
+> returned `blocked_by: 1` while GraphQL showed every blocker already closed — same instant,
+> two endpoints, two answers, settling to `0` with no intervening write. **The summary is
+> eventually consistent; the graph is not**, so the frontier query can silently hide a
+> ticket that just became takeable. Added to `templates/trackers/github.md`'s traps table.
+>
+> **Previous snapshot** was after resolving
 > [#43 Rewire the guardrails for solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/43)
 > — **the allowlist, the two-way `.claude/` sort, `block-secret-staging.sh` and the
 > bootstrap's eighth step are on disk, and `test-hooks.sh` is 66 green cases across three
@@ -385,11 +407,11 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | **32 of 41** |
-| Tickets open | 9 — #43 closed and spawned #46, so the open count held while the map grew |
-| On the frontier (takeable now) | 7 |
-| Blocked | **2** — #16 the capstone down to **one** edge (#18), #45 on #44 |
-| Repo files changed since the effort began | **61** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded, this session's working tree included. *Recomputed from `git log 04cf1a6~1..HEAD` plus `git status`; the carried **52** was one session's snapshot and had already been overtaken. **Third recompute in a row that did not reproduce the carried number** — the row is cheap to recompute and expensive to trust.* |
+| Tickets closed | **33 of 41** |
+| Tickets open | **8** — #18 closed and spawned nothing, so the open count fell for the first time in four sessions |
+| On the frontier (takeable now) | 7 — **and #16 is one of them** |
+| Blocked | **1** — #45 on #44, and that is the whole list |
+| Repo files changed since the effort began | **61** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded, this session's working tree included. *Recomputed from `git log 04cf1a6~1..HEAD` plus `git status`. **It reproduced this time, after three that did not** — and the reason is worth keeping: this session touched only files the effort had already touched (`07-guardrails-when-solo.md`, `01-metrics.md`, `templates/trackers/github.md`), so a stable count means editing-in-place, not inactivity.* |
 | Branches | none — findings live in ticket comments, not in the repo |
 | Working tree | committed and pushed at the end of this session |
 
@@ -397,12 +419,20 @@ Done when a reader with an idea and no repo can follow the path end to end.
 call now returns the states, the claims and the blocking edges together, so the frontier
 and the blocked list below are counted rather than reasoned about.*
 
-**The carried count did not reproduce, and that is the second time.** The previous snapshot
-said *28 of 36*; the map has **40 children** and **30 are closed**, and the two sessions
-since account for one closure and four new tickets — so the old total was already short by
-two before this session touched anything. Recomputed, not reconciled: #17, #28, #29 and #32
-are **not** children of the map and never enter this count. Same lesson as the file count on
-the row above, and as #30 and #39 — **recompute any number you are about to write down.**
+**This time the carried count did reproduce** — *32 of 41* carried, **33 of 41** recomputed,
+which is exactly one closure with no new children. Third session running the counts off one
+GraphQL call, and the first where reconciling would have been safe. **That is not a reason to
+stop recomputing**: it reproduced because #18 spawned nothing, and a session cannot know that
+before it counts. Recomputed, not reconciled: #17, #28, #29 and #32 are **not** children of
+the map and never enter this count. Same discipline as the file count on the row above, and
+as #30 and #39 — **recompute any number you are about to write down.**
+
+**Recorded because it will bite again: `blocked_by` is eventually consistent.** Reading #16
+seconds after closing #18 returned `blocked_by: 1` while GraphQL's `blockedBy` showed all 19
+blockers already `CLOSED` — the same instant, two endpoints, two answers. It settled to `0`
+about thirty seconds later with no intervening write. **The frontier query is built on that
+count**, so for a short window after any close it can silently omit a ticket that just became
+takeable. Now a row in `templates/trackers/github.md`'s traps table.
 
 **The seam is eight checks now, and the eighth was a hole the size of the whole implement
 step.** `08-ticket-pipeline.md:18` dispatches to layer specialists, and **no seam check said
@@ -698,21 +728,23 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Seven tickets, recomputed from the graph this session. #43 closed and **spawned #46**, so
-the count held again — but the shape moved back toward conversations.
+Seven tickets, recomputed from the graph this session. #18 closed and **spawned nothing**, so
+the count held for a third time — but the shape changed underneath it: **#16 came off the
+blocked list and onto the frontier**, and it is the capstone.
 
-**Two makes now** — #23 and #44 — and five grillings. **#16's edges are down to one, #18**,
-which makes that single conversation the last thing between the effort and its capstone.
-**#46 is the only ticket on this map about the playbook's own code being wrong** rather
-than about what to write.
+**Three makes now** — #16, #23 and #44 — and four grillings. **The capstone is takeable for
+the first time on this map.** It is also the largest ticket on the frontier by some distance:
+five sessions have handed it exact text, and it is the one ticket whose scope is *the front
+door a stranger reads first*. **#46 is still the only ticket on this map about the playbook's
+own code being wrong** rather than about what to write.
 
 | Ticket | Type | Note |
 |---|---|---|
+| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | make | **The capstone, unblocked this session and the obvious next ticket.** Its blocker list is 19 long and every one is closed. Five sessions have left it exact text — see the Blocked section below, which now records what it inherited rather than what it waits for. **#18 added three sites**: `PHILOSOPHY.md:129–134` (§8, with replacement text written out), a **recommendation to leave** `:142`, and `README.md:81`'s stale `11-metrics.md` path. |
 | [#44 Rework `11-adapting-to-your-stack.md` as the explainer](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/44) | make | **#15's doc.** Turns `11` from manual instructions into the explainer behind `/adapt-to-stack`, adds the optional per-layer model to `repo.CLAUDE.md`, and deletes `04-the-bootstrap.md:94`'s marker — **the last dead forward link on the solo docs**. **Blocks #45.** |
 | [#46 The blocking hooks fail open when jq is missing](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/46) | grilling | **Verified live: all four hooks are off on this machine.** No `jq` on `PATH` → the script dies at the parse and exits **127**, which is a *non-blocking* error, so the tool call proceeds. Documentation landed with #43; the decision left is whether **not running** is an acceptable state for a guardrail — fail-closed blocks the `git` commands you need to fix it, and dropping `jq` means hand-rolling a JSON parse in a security-relevant script. |
 | [#41 The whole graph has no parent to scope by on the backlog side](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/41) | grilling | **#39 predicted this one in writing and #38 hit it.** *The whole graph* is defined over the **children of a parent**; #12 made work units **standalone on purpose**; #36 said one page serves the map and the backlog both. Three right decisions, jointly incomplete. `/cut-backlog` ships the instruction that survives every answer — ask over **the ids in hand** — so nothing is blocked, but the contract does not say it. **The question that separates the alternatives is what regenerates the picture six weeks later**, when nobody holds the ids. |
-| [#18 How progress is measured on the solo path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18) | grilling | **the last conversation gating the capstone.** #12 handed it the fact it has to accommodate: the map and the backlog live in the same tracker in different shapes — a tree of children under #1, and a flat ordered set of standalone issues beside it, deliberately invisible to the map's frontier query. |
-| [#8 Resuming an effort across dozens of sessions](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8) | grilling | **must check #5's §8 boundary first** |
+| [#8 Resuming an effort across dozens of sessions](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8) | grilling | **must check #5's §8 boundary first.** **#18 handed it the progress file** — #13's comment had given *what goes in it* to #18, but #8's own body and the map's fog both claim it, and #18 stood down. It also inherits one requirement: if mid-session death in the *implementation* pipeline posts a progress comment the way #5 made charting do, then **sessions per work unit = progress comments + 1**, and #18's headline metric collects itself. |
 | [#23 Write the prototype skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/23) | make | side quest — but it now owns the **last** live `<PLACEHOLDER>` in the charting template |
 | [#24 The playbook's own domain-modeling skill](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/24) | grilling | side quest, blocks nothing |
 
@@ -720,16 +752,28 @@ than about what to write.
 
 | Ticket | Waiting on |
 |---|---|
-| [#45 Write the `/adapt-to-stack` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/45) | **#44** — doc first, then template, as every other stage pair did. |
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | **1 open blocker — #18, and that is the whole list.** #43 came off this session, #42 the session before, #14/#15 before that. Every remaining edge is one conversation. **#43 handed it four sites with the exact text**: `PHILOSOPHY.md:88` and `:90`, `README.md:134`, and a fourth nobody had listed — `templates/trackers/local-markdown.md:28` **quotes** §5's path list, so it is right today and wrong the moment §5 is edited. #33 **handed it the phrase to use**: *a backlog of work units on a scaffolded repo that passes the seam*, which is what the front door must say instead of *"Serena-indexed repo"*. **#13 sharpened it**: the README is now the only file left claiming Jira is assumed. **#26 added a pattern it should expect** — **four** templates claim the solo column only (`charting`, `pitch`, `bootstrap`, `cut-backlog` — recounted from the README this session, and it is one per stage), and **two** of them set `disable-model-invocation`. **#12 renamed a stage it must not describe by the old name**, and **#38 completed the set**: every solo stage now has a doc and a template for the front door to point at. |
+| [#45 Write the `/adapt-to-stack` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/45) | **#44** — doc first, then template, as every other stage pair did. **The whole list.** |
 
-**That claim is retired.** The previous snapshot said the capstone's three remaining edges
-were *all conversations* and that *every make on this map is now landed*. Both were true
-when written and both expired within two sessions: #14 and #15 each banked decisions that
-need writing down, so #16 now waits on **two makes and one conversation**, and three new
-makes exist. **A sentence asserting that a set is complete is a sentence with a short
-shelf life on a map that spawns tickets** — the same shape #37 found in `01`'s *"the four
-stage docs are still being written"*.
+**#16 is off this table.** It waited on 19 tickets over the life of the map; #18 was the
+last, and it is now the biggest thing on the frontier. What it *inherited* is the point,
+so it is recorded here rather than lost with the row:
+
+| Handed to #16 by | What it must carry |
+|---|---|
+| **#18** | `PHILOSOPHY.md:129–134` — §8 rewritten, replacement text written out in a comment, because §8 mandates measurement (*"**every** pipeline run is costed"*) while `docs/team/01-metrics.md:7` calls it optional. Plus a **recommendation to leave** `:142`, and `README.md:81`'s stale `11-metrics.md` path. |
+| **#43** | Four sites with exact text: `PHILOSOPHY.md:88` and `:90`, `README.md:134`, and one nobody had listed — `templates/trackers/local-markdown.md:28`, which **quotes** §5's path list, so it is right today and wrong the moment §5 is edited. |
+| **#33** | The phrase the front door must use: *a backlog of work units on a scaffolded repo that passes the seam*, not *"Serena-indexed repo"*. |
+| **#13** | The README is the last file in the repo still claiming Jira is assumed. |
+| **#26** | **Four** templates claim the solo column only (`charting`, `pitch`, `bootstrap`, `cut-backlog` — one per stage), and **two** set `disable-model-invocation`. **Recount before writing.** |
+| **#12 / #38** | Stage 4 is **cutting**, not *the backlog* — and every solo stage now has both a doc and a template for the front door to point at. |
+
+**Two retired claims, kept as a warning about this section.** A previous snapshot said the
+capstone's remaining edges were *all conversations* and that *every make on this map is now
+landed*. Both were true when written and both expired within two sessions. **A sentence
+asserting that a set is complete is a sentence with a short shelf life on a map that spawns
+tickets** — the same shape #37 found in `01`'s *"the four stage docs are still being
+written"*. The row above says *the whole list* and inherits exactly that risk: it is true at
+this snapshot and false the moment #44 or #16 spawns anything.
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -881,11 +925,41 @@ stage docs are still being written"*.
                05 ✓ cutting — renamed from "the backlog" by #12.
                   ALL FOUR STAGE DOCS NOW EXIST, END TO END.
                06 ✓ choosing the stack — first non-stage solo doc
-               07+ #42 (#14) and #18 — #15 took no number, it reworks shared/11
+               07 ✓ guardrails when solo — #42 (#14's doc)
+               08+ NOBODY. #15 took no number (it reworks shared/11) and
+                   #18 took no number ON PURPOSE — measuring is optional,
+                   and an 08 devoted to it would say the opposite.
+                   SIZE IS A CLAIM ABOUT IMPORTANCE.
 
-  10 open tickets ── 3 wired ────►  #16 TWO-ENTRANCE FRONT DOOR  (capstone)
-                  ── nothing else is blocked
-                  ── and all three of those edges are CONVERSATIONS now
+        ── #18 HOW PROGRESS IS MEASURED — no doc, no make, no spawn.
+                    │  Optional, units are the reader's. Unit = one SHIPPED
+                    │  WORK UNIT. Two numbers, both free: sessions/unit and
+                    │  the kill-gate ratio. NOTHING automates it.
+                    │
+                    ├──► the ticket CITED THE SOURCE THAT REFUTED IT.
+                    │    /goal was called "durable, zero-effort"; #6's own
+                    │    row says turn count and token baseline RESET on
+                    │    resume. The four premise bugs before it had all
+                    │    EXPIRED. This one was never true.
+                    │    RE-READ THE SOURCE, NOT THE TICKET'S SUMMARY.
+                    │
+                    ├──► a session cannot be a denominator: it runs until
+                    │    the context fills, so it costs the same every
+                    │    time and CANNOT SHOW AN IMPROVEMENT. Inverts to
+                    │    SESSIONS PER UNIT. A stage cannot either — it
+                    │    runs once, and you can only measure what repeats.
+                    │
+                    ├──► §8 MANDATES and 01-metrics.md EXCUSES. A rule and
+                    │    its own implementation, contradicting, both on
+                    │    master the whole effort. §8 handed to #16.
+                    │
+                    └──► blocked_by LAGGED THE CLOSE by ~30s while GraphQL
+                         showed every blocker shut. The frontier query is
+                         built on that count. Now a trap-table row.
+
+   8 open tickets ── 1 wired ────►  #45 waits on #44. THAT IS THE WHOLE LIST.
+                  ── #16 TWO-ENTRANCE FRONT DOOR (capstone) IS TAKEABLE,
+                     after 19 closed edges. It is the next ticket.
 ```
 
 ---
@@ -976,16 +1050,33 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
     audits missed. **The cheap half of #29 — copy a template in and spawn it — is worth
     stealing at the top of any session.** The expensive half can keep waiting.
 
+24. ~~#18, how progress is measured.~~ **Done.** Measuring is optional and its units are the
+    reader's; the unit is one shipped work unit; two numbers, both free to collect; nothing
+    automates any of it. **Spawned nothing** and wrote no new doc — it landed as a section
+    under *habits* in `07-guardrails-when-solo.md`, because **size is a claim about
+    importance** and an eighth `docs/solo/` file would have contradicted the decision it was
+    recording. **Unblocked #16.**
+
 Plain `/wayfinder 1` takes the first frontier ticket in map order — still
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
-Name the ticket. **Take #42** — it is the only ticket on the board blocking two others
-(#43 and #16), and #43 is now carrying a correction it must not lose. After that #44, then
-#18, the last conversation standing between this map and its front door.
+Name the ticket. **Take #16, the capstone** — unblocked for the first time this session,
+after 19 closed edges. Six tickets have handed it exact text and it is the front door a
+stranger reads first, so it wants a full sitting rather than the tail of one. **Recount
+before you write**: #26's *four templates* and every seam ordinal have each moved under a
+later ticket at least once, and this map's most repeated lesson is that a number carried
+from a closed comment is a snapshot, not a fact.
+
+After #16: **#44**, which unblocks #45 and kills the last dead forward link on the solo
+docs; then **#8**, which now owns the progress file and inherits a requirement from #18 that
+makes *sessions per work unit* collect itself if hole 1 lands on progress comments.
 
 ---
 
 ## Gotchas found so far
 
+- **A ticket can cite the source that refutes it.** #18's body called `/goal` *"a native, durable, zero-effort measurement surface"* and named #6 as the authority. #6's own durability column says the condition survives a resume but **turn count, timer and token baseline reset** — so `/goal` measures a *session*, not a unit, and the ticket's headline fact was false in the sentence it was summarising. **This is a different failure from the four premise bugs before it.** #36's premise came from the Notes, #15's from another open ticket's body, #42's and #38's from their own — **all four were true when written and expired**. This one was never true. **So *re-check the premise* is not enough: re-read the source, not the ticket's summary of it.** A gist is a compression, and compression is where the qualifier goes missing — which matters most on a map whose entire durable record is gists.
+- **`blocked_by` is eventually consistent and the frontier query is built on it.** Closing #18 and immediately reading #16 returned `blocked_by: 1` while GraphQL's `blockedBy` showed all 19 blockers already `CLOSED` — same instant, two endpoints, two answers, settling to `0` roughly thirty seconds later with no intervening write. **For a short window after any close, the frontier can silently omit a ticket that just became takeable**, and there is no error to notice: a short list looks like a short list. **The summary is eventually consistent; the graph is not.** Now a row in `templates/trackers/github.md`'s traps table, which is the fourth entry there about a REST count that cannot be trusted for what it appears to say.
+- **A principle file and the page implementing it can contradict each other, which is the pair least likely to be read apart.** `PHILOSOPHY.md:131` says *"**every** pipeline run is costed"*; `docs/team/01-metrics.md:7` says *"this is **optional**"*. Both have been on `master` the whole effort. Every earlier instance of *docs are model input* was two peer documents drifting; this one is a **rule and its own implementation**, where a reader who loads both cannot tell which is the exception. Found only because #18 went looking for whether *optional* was even available to it.
 - **A guardrail's own dependency is a guardrail nobody guards.** Every blocking hook starts with `jq -r '.tool_input.command …'`. With no `jq` the script dies there and exits **127** — and the hooks README's own box says every non-2 exit is a *non-blocking* error, so the tool call proceeds. Verified live on 6 August 2026: `command -v jq` returns nothing on this machine, so **all four hooks are currently off**, and nothing anywhere said so — `jq` appeared in no doc, only as an aside inside `templates/hooks/README.md`. **The suite cannot catch it and does not claim to**: it shims the parse with python and prints a NOTE, because its job is the matching logic. **A green suite means the patterns are right, not that the hook runs on your machine.** Third instance in this directory of a guardrail reporting success while guarding nothing (after `exit 1`, after the multi-line flatten), and **all three were found by running it** — so *these scripts cannot be verified by reading them* needs a second half: **the suite is not the same thing as the machine.** Decision spun to [#46](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/46) rather than patched, because fail-closed blocks the very commands you need to fix it.
 - **A pattern that matches on the name cannot tell a secret from a file about secrets.** `.gitignore` carries `*secret*`, so `templates/hooks/block-secret-staging.sh` was **invisible to `git add` from the moment it was written** — absent from `git status`, no error, and it would simply have been missing from the commit. This is #34's *a rule about provenance expressed as a rule about paths* in a new costume, and it happened **inside the ticket whose whole subject is that failure**. The sharpest part: the **previous session had already written the abstract rule into `07-guardrails-when-solo.md`** — *whatever writes that ignore line writes the exceptions with it* — and this session still walked into it. **A rule you have written is not a rule you have applied**, and the only thing that caught it was reading `git status` rather than trusting the edit.
 - **A claim can survive while the reason under it dies.** #14 sorted twelve `never push` sites and its rule held exactly — only `global.CLAUDE.md:76` moved. It still missed a thirteenth: `02-prerequisites.md:34`, *"a git-host token (read scope; **you push manually anyway**)"*. Read scope is still right; the **because-clause** is dead, and the real reason is `block-mcp-writes.sh`. **A grep that sorts by conclusion never reads the justification**, so a loosened rule leaves correct sentences resting on retired ones.
@@ -1518,6 +1609,16 @@ Name the ticket. **Take #42** — it is the only ticket on the board blocking tw
   changed meaning*; and **the depth change**, where every link pointing *out* of `docs/`
   needed `../../` — 19 links across 6 files. The check that caught both: resolve every
   `[text](target)` against the filesystem.
+
+---
+
+## What #18 handed forward
+
+- **To [#16](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16), whose last blocker this was:** the `PHILOSOPHY.md` §8 replacement text, written out verbatim in a comment, because §8 names **story points and cache-reuse** as the universal units and #18 deleted both. Plus the reason it must move rather than `01-metrics.md`: §8 mandates (*"every pipeline run is costed"*) while the page implementing it excuses (*"this is optional"*), and #18 settled that measuring is optional. Plus two more sites — a **recommendation to leave** `PHILOSOPHY.md:142`'s one-sentence mindset (headline-then-nuance works *within* one file in the way it never works across two, which is exactly why the §8 pair was a defect and this is not), and `README.md:81`, still naming `11-metrics.md`, a path that today points at a different file.
+- **To [#8](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8), which gained a subject and a requirement:** #13's comment had handed #18 *what goes in the generated progress file*; #8's own body and the map's fog both claim it and only #12's gist pointed elsewhere, so **#18 stood down** — split on the verb, *measuring* (read every few months) against *status* (read for thirty seconds before work). The requirement: #5 settled that a charting session dying mid-ticket **posts a progress comment and keeps the claim**; if #8's answer to hole 1 gives the implementation pipeline the same shape, then **sessions per work unit = progress comments + 1**, read straight off the ticket. A nudge, not a constraint — #18's decision survives either way, worst case you count evenings from memory.
+- **To the *Memory hygiene for solo* fog patch:** the golden-query eval **survives solo**, and it is the only measurement that keeps a non-negotiable reason — *you cannot notice a memory that never came back*, and being the only reader is no defence against silence. It **starts when the memory index no longer fits on one screen**, not on day one, since seam item 7 seeds exactly two. **Cadence is the patch's**, and `07-guardrails-when-solo.md` says so in its does-not-own table, so the boundary is written rather than assumed.
+- **To whoever writes the next make:** **size is a claim about importance.** A new `docs/solo/08` was rejected because an eighth doc devoted to the optional thing tells a reader the opposite of the decision — writing a whole doc about it would have contradicted it. The corollary is the reason nothing was spawned: the escape valve fires on a *long discussion*, and six questions producing one section plus one blockquote is smaller than the ticket that would describe it.
+- **To anyone reading a ticket body on this map:** **re-read the source, not the ticket's summary of it.** #18's headline fact was wrong on the day it was typed, and it named the research that refuted it.
 
 ---
 

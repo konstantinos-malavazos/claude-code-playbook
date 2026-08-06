@@ -286,6 +286,62 @@ Neither is a guardrail, and they are written down as habits **and labelled as su
 not required for.** Calling these two guardrails would be dressing up wishes, in the
 section least able to afford it.
 
+### If you want to measure the cost habit
+
+**Optional, and yours to shape.** Pick numbers that would change what you *do*; a metric
+nobody acts on is overhead. What survives from `PHILOSOPHY.md` §8 is its point — *"is
+this getting more efficient?"* deserves a number rather than a feeling. What does not
+survive is the team ledger's units: story points need an estimating ceremony you do not
+have, and tokens-per-point is priced for a team justifying tooling spend to someone else.
+
+**The unit is one shipped work unit** — one thing the app can now do
+([05-cutting.md](05-cutting.md)), so nothing is ever estimated. Not a **session**: a
+session runs until the context window fills, so it costs about the same every time and
+cannot show an improvement. Not a **stage** either — each runs once per project, and a
+number you only ever see once has no trend. You can only measure something that repeats.
+
+Two that are worth having, chosen because they cost nothing to collect:
+
+| Number | What it looks like | What you do when it moves |
+|---|---|---|
+| **Sessions per work unit** | `login 5 · search 2 · export 2 · password reset 4` | Climbing means the units are too big, or the stack was wrong — the backwards step |
+| **Kill-gate outcomes** | `9 ideas — 6 killed, 1 parked, 2 built` | All-build means [`/pitch`](02-the-kill-gate.md) has become a rubber stamp |
+
+**Tokens are deliberately not a headline.** Solo they are close to a restatement of
+sessions-per-unit, and they are the expensive one to gather — `/goal` reports turns and
+tokens, but resets its baseline on every `--resume`, so a multi-session unit has to be
+summed by hand. Add them the day you start hitting usage limits: at that point they stop
+being a copy and start being the thing that bites.
+
+**Nothing collects any of this, and that is not a gap.**
+
+- The kill-gate count **cannot** be automated. The ideas file lives outside every repo on
+  purpose ([02-the-kill-gate.md](02-the-kill-gate.md)), so no hook and no command in a
+  repo can see it. Half-automated metrics are worse than none — they look complete, so
+  you stop checking the half they missed.
+- A hook here would be **global**. It is wired in `~/.claude/settings.json`, so a metrics
+  hook for a weekend project runs on the paying work too — the same reasoning as the
+  allowlist above.
+- A ledger would be a **second copy**. The tracker keeps every ticket and comment, and a
+  kill is a recorded no rather than a deletion, so both sources are already permanent.
+  Regenerating beats storing; a stored copy only adds something to drift.
+
+So you ask, in a normal session, when you want to know — and the **feeling is allowed to
+be the trigger, never the answer**. Feeling slow is what sends you to look; the number is
+what tells you whether you were right. §8 forbids skipping the second step, not the first.
+
+**The memory eval is the one worth keeping even here.** `/garden-memory`'s golden-query
+pass ([10-memory-hygiene.md](../shared/10-memory-hygiene.md)) survives solo for a reason
+none of the above have: **you cannot notice a memory that never came back.** A wrong
+answer you catch yourself — you are the only reader. Silence you do not. You banked why
+library X went badly, it is not retrieved when you pick a library, and you quietly repeat
+a decision you already paid for. Being solo is no help against that at all.
+
+It does not start on day one — the bootstrap seeds **two** memories, and you cannot write
+golden queries for two things you know by heart. Start when the memory index no longer
+fits on one screen: below that you read the whole thing in ten seconds and you *are* the
+eval. How often to run it after that is memory hygiene's question, not this page's.
+
 ---
 
 ## What this doc does not own
@@ -295,6 +351,8 @@ section least able to afford it.
 | The hook scripts, the allowlist file, the new secrets hook | [`templates/hooks/`](../../templates/hooks/README.md) and its test suite — the sibling make. **These scripts cannot be verified by reading them; run `test-hooks.sh`.** |
 | The bootstrap's step list and step count | [04-the-bootstrap.md](04-the-bootstrap.md) |
 | §5 and §6 themselves | [`PHILOSOPHY.md`](../../PHILOSOPHY.md) — pointed at from here, never restated there |
+| The per-ticket metrics ledger, story points, cost columns | [01-metrics.md](../team/01-metrics.md) — **the team instance**, not the general rule. Its machinery exists to serve points and dollars, and solo has neither. |
+| How often to run the memory eval | [10-memory-hygiene.md](../shared/10-memory-hygiene.md) — this page says *when it starts mattering*, never *how often* |
 | Which flows push, and when | [07-the-flows.md](../shared/07-the-flows.md), [08-ticket-pipeline.md](../shared/08-ticket-pipeline.md) — **a flow that declines to push on a repo the hook would permit is not a contradiction.** The hook says what is *possible*; a flow says what it *does*. |
 
 Everything on this page is on disk:

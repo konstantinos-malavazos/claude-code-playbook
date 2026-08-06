@@ -94,6 +94,7 @@ the repo in one paginated call, joined on `issue_url`.
 | **`gh issue view <n>` can print nothing** | Observed on Windows: no output, no error, exit 0. | Read through `gh api …` as in the table above. |
 | **`issue_dependencies_summary` is counts, not ids** | Four integers. It answers *is this blocked?* and cannot answer *by what?*, so a REST-only whole graph draws boxes and no arrows. | GraphQL `blockedBy`, as in the whole-graph call above. |
 | **`gh api …/issues/<n>` carries no comments** | The payload's `comments` field is a **count** and `comments_url` is a link — the comment bodies are not there. On a closed ticket that is the question without the answer, and it fails silently. | The two-call `read` above. Never treat one call as a read. |
+| **`blocked_by` lags a close** | Verified: closing a blocker and immediately reading the blocked ticket returned `blocked_by: 1` while **GraphQL `blockedBy` showed every blocker already closed** — the same instant, two endpoints, two answers. It settled to `0` about thirty seconds later with no intervening write. So *is this blocked?* can report a blocker that no longer exists, and the frontier query silently hides a ticket that just became takeable. | Re-read before believing a non-zero count you did not expect, and check `blockedBy` states when it matters. **The summary is eventually consistent; the graph is not.** |
 
 ## Notes
 

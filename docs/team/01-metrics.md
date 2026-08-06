@@ -7,6 +7,12 @@ efficient?" is a number.
 This is **optional** — skip it until the rest is smooth — but it's what turns anecdote
 into evidence when you show the team.
 
+> **This page is one instance of a general idea, not the rule.** The idea is *pick numbers
+> that would change what you do*; the ledger below is what that produces for a team, whose
+> units are story points and whose scarce resource is budget. Solo, both of those are gone
+> — see [07-guardrails-when-solo.md](../solo/07-guardrails-when-solo.md#if-you-want-to-measure-the-cost-habit),
+> which measures against a shipped work unit and counts by hand.
+
 ---
 
 ## What to record per ticket
