@@ -252,12 +252,12 @@ uses only homes that already exist — no ADR, no new artifact.
 | **The bootstrap** | copied into the repo's `CLAUDE.md`, and into memory two (*the stack and the layer chain, and why*) |
 | **The seam** | check 1 is true **because both of those exist** |
 
-So the choosing→generating handover needs nothing new.
-[11-adapting-to-your-stack.md](../shared/11-adapting-to-your-stack.md) reads `CLAUDE.md` and
-memory two, both of which sit on the far side of the seam, and it must **never reach back
-into the map** — by then the map may be closed, while `CLAUDE.md` is in the repo
-permanently. The seam is the interface; generation starts on the far side of it and does not
-look back.
+So the choosing→generating handover needs nothing new. Generation
+([11-adapting-to-your-stack.md](../shared/11-adapting-to-your-stack.md)) reads **`CLAUDE.md`
+and nothing else** — not memory two, and never the map, which by then may be closed while
+`CLAUDE.md` is in the repo permanently. Memory two is not an input at all; it holds the
+*why* for a session months later that needs to know what was ruled out. The seam is the
+interface; generation starts on the far side of it and does not look back.
 
 ---
 

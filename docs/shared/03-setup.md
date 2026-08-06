@@ -100,9 +100,10 @@ so switching trackers later is a file swap and nothing else changes.
 
 ## Step 6 — Adapt the implementation chain
 
-Define your `layer-1 → layer-2 → …` chain and create one specialist agent per layer from
-[`../../templates/agents/layer-specialist.md`](../../templates/agents/layer-specialist.md).
-This is the single most important adaptation — see
+Define your `layer-1 → layer-2 → …` chain and write it into the repo's `CLAUDE.md`
+([`../../templates/claude-md/repo.CLAUDE.md`](../../templates/claude-md/repo.CLAUDE.md)).
+That is the hand-written part; the stack-adaptation flow generates one specialist agent and
+one standards skill per layer from it. This is the single most important adaptation — see
 [11-adapting-to-your-stack.md](11-adapting-to-your-stack.md).
 
 ## Step 7 — Add the guardrail hooks
@@ -129,8 +130,11 @@ confirm it's blocked), or run `bash templates/hooks/test-hooks.sh`, which does i
 ## Step 8 — Add the flows, one at a time
 
 Copy `templates/commands/start-ticket.md` → `~/.claude/commands/`, plus the agents it
-references (`ticket-analyzer`, `context-gatherer`, `planner`, your layer specialists,
-`repo-reviewer`, `release-reviewer`). Run it on a small real ticket. Once that's smooth, add
+references (`ticket-analyzer`, `context-gatherer`, `planner`, `repo-reviewer`,
+`release-reviewer`). **The layer specialists are not among them** — they are facts about one
+codebase, so they live in that repo's own `.claude/agents/` and are generated from its
+`CLAUDE.md` ([11-adapting-to-your-stack.md](11-adapting-to-your-stack.md)), not copied here
+by hand. Run it on a small real ticket. Once that's smooth, add
 `/fix-ticket`, `/test-ticket`, `/end-of-day`, `/garden-memory` as the need arises.
 
 ---

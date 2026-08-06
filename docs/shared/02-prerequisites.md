@@ -55,8 +55,9 @@ Before you write any agents, answer one question:
 > and who's the specialist for each layer?
 
 That ordered list (e.g. `schema → service → client`, or `migration → API → frontend`) is
-the backbone of the whole pipeline. Write it down now; you'll encode it in the workspace
-CLAUDE.md and one specialist agent per layer. See
+the backbone of the whole pipeline. Write it down now; you'll encode it in the `CLAUDE.md`
+that owns it — the repo's for one repo, the workspace's for sibling repos — and the
+specialists are generated from there. See
 [11-adapting-to-your-stack.md](11-adapting-to-your-stack.md).
 -e 
 ---

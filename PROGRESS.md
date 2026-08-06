@@ -6,6 +6,45 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 6 August 2026, after resolving
+> [#44 Rework `11-adapting-to-your-stack.md` as the explainer](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/44)
+> — **written: `11` is the explainer behind `/adapt-to-stack` — you name the chain, the flow
+> generates the rest — and the last dead forward link on the solo docs is closed.** A make
+> that decided nothing. **Unblocks
+> [#45](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/45).**
+> **The ticket's file list was short by four, and the sharpest was in setup:**
+> `03-setup.md:133` told you to copy *"your layer specialists"* into `~/.claude/` beside
+> `ticket-analyzer` and `planner` — the exact opposite of #15's project-scoped decision, and
+> nothing in the ticket pointed there. Found by grepping the **concept** (*per-layer
+> copying*), not a filename.
+> **`06-choosing-the-stack.md:256` is the one worth carrying.** It said generation reads
+> `CLAUDE.md` *and memory two* — true when #21 wrote it, falsified by #15 decision 2 making
+> `CLAUDE.md` the only input, and **not on #15's own list**. So: *the doc most likely to be
+> falsified by a decision is the one written by the ticket that handed the decision over.*
+> **A contradiction the ticket could not have named, because it lives in a template
+> README.** `templates/agents/README.md:69` says pipeline agents *pin exact model ids,
+> deliberately*; the layer specialist is a pipeline agent; #15 decision 3 omits the field on
+> the generated ones. Neither file is wrong on its own terms — **a decision about
+> *generated* output can contradict a convention written for *hand-written* output.**
+> Pinning is advice to a human who knows the agent, and a generator knows only a layer's
+> name. It now carries the exception, because **the file an agent loads while writing an
+> agent file is that README.**
+> **The ticket's line number was stale** — `04-the-bootstrap.md:94` for a marker sitting at
+> `:115`, moved by #42 and #43. *A handoff's line number decays faster than anything else in
+> it.*
+> **Graduated the last of the *Single-vs-multi-repo* fog:**
+> [#48 Does the solo path have a workspace `CLAUDE.md` layer at all?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/48),
+> which **blocks #47**. The word `workspace` appears **nowhere** in `docs/solo/` — the
+> bootstrap writes exactly one `CLAUDE.md`, the repo's — while `06-claude-md-layers.md:77`
+> still tells a single-repo reader that layer 2 is useful and puts the new-branch workflow
+> and the main-branch table there. The patch is now empty and removed from the map.
+>
+> **[#16](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) closed
+> in the session before this one and never got a snapshot here** — that session updated no
+> part of this file. Its findings are in its resolution comment, and the map's
+> Decisions-so-far carries its gist; nothing below has been back-filled for it, so treat any
+> #16-shaped gap in this file as missing rather than decided.
+>
+> **Previous snapshot** was after resolving
 > [#18 How is progress measured on the solo path?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18)
 > — **measuring is optional and its units are the reader's to pick; the unit is one shipped
 > work unit, the two numbers worth keeping cost nothing to collect, nothing automates any of
@@ -27,7 +66,7 @@ still the source of truth; this is a reading convenience that goes stale between
 > eventually consistent; the graph is not**, so the frontier query can silently hide a
 > ticket that just became takeable. Added to `templates/trackers/github.md`'s traps table.
 >
-> **Previous snapshot** was after resolving
+> **The snapshot before that** was after resolving
 > [#43 Rewire the guardrails for solo](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/43)
 > — **the allowlist, the two-way `.claude/` sort, `block-secret-staging.sh` and the
 > bootstrap's eighth step are on disk, and `test-hooks.sh` is 66 green cases across three
@@ -407,13 +446,13 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | **33 of 41** |
-| Tickets open | **8** — #18 closed and spawned nothing, so the open count fell for the first time in four sessions |
-| On the frontier (takeable now) | 7 — **and #16 is one of them** |
-| Blocked | **1** — #45 on #44, and that is the whole list |
-| Repo files changed since the effort began | **61** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded, this session's working tree included. *Recomputed from `git log 04cf1a6~1..HEAD` plus `git status`. **It reproduced this time, after three that did not** — and the reason is worth keeping: this session touched only files the effort had already touched (`07-guardrails-when-solo.md`, `01-metrics.md`, `templates/trackers/github.md`), so a stable count means editing-in-place, not inactivity.* |
+| Tickets closed | **35 of 43** |
+| Tickets open | **8** — flat, and the flatness is a coincidence: **two closed** (#16, #44) and **two arrived** (#47 from #16, #48 from #44). The carried *8* would have been right for the wrong reason |
+| On the frontier (takeable now) | **7** — #8, #23, #24, #41, #45, #46, #48 |
+| Blocked | **1** — #47, on #45 **and** #48 |
+| Repo files changed since the effort began | **61** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded, this session's working tree included. *Recomputed from `git log 04cf1a6~1..HEAD` plus `git diff --name-only`.* **Reproduced a second time**, across two closures rather than one — same reason as last session: #16 and #44 both edited files the effort had already touched and created none. **A count that holds while two tickets land is measuring re-editing, not stillness** — the file count stopped being a progress signal several sessions ago and is kept only because it is cheap and would move loudly if a stage started writing somewhere new. |
 | Branches | none — findings live in ticket comments, not in the repo |
-| Working tree | committed and pushed at the end of this session |
+| Working tree | committed at the end of this session; **not pushed** — #14 made push a per-repo answer defaulting to no, so it is asked for rather than assumed |
 
 *Ticket counts recomputed this session from the map's children, not carried — one GraphQL
 call now returns the states, the claims and the blocking edges together, so the frontier
@@ -728,20 +767,21 @@ to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` 
 
 ## The frontier — takeable right now
 
-Seven tickets, recomputed from the graph this session. #18 closed and **spawned nothing**, so
-the count held for a third time — but the shape changed underneath it: **#16 came off the
-blocked list and onto the frontier**, and it is the capstone.
+Seven tickets, recomputed from the graph this session. The count held for a fourth time and
+**for the first time it held by cancellation, not by stillness** — #16 and #44 both closed,
+#47 and #48 both arrived. A carried number would have been right here and right for the
+wrong reason.
 
-**Three makes now** — #16, #23 and #44 — and four grillings. **The capstone is takeable for
-the first time on this map.** It is also the largest ticket on the frontier by some distance:
-five sessions have handed it exact text, and it is the one ticket whose scope is *the front
-door a stranger reads first*. **#46 is still the only ticket on this map about the playbook's
-own code being wrong** rather than about what to write.
+**Two makes** — #23 and #45 — and five grillings. **The capstone is gone: #16 landed, so the
+front door now presents two entrances**, and nothing on the frontier is the largest-ticket
+outlier it was. **#46 is still the only ticket on this map about the playbook's own code
+being wrong** rather than about what to write. #45 is the only one with a fresh handoff
+waiting.
 
 | Ticket | Type | Note |
 |---|---|---|
-| [#16 Two-entrance front door](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/16) | make | **The capstone, unblocked this session and the obvious next ticket.** Its blocker list is 19 long and every one is closed. Five sessions have left it exact text — see the Blocked section below, which now records what it inherited rather than what it waits for. **#18 added three sites**: `PHILOSOPHY.md:129–134` (§8, with replacement text written out), a **recommendation to leave** `:142`, and `README.md:81`'s stale `11-metrics.md` path. |
-| [#44 Rework `11-adapting-to-your-stack.md` as the explainer](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/44) | make | **#15's doc.** Turns `11` from manual instructions into the explainer behind `/adapt-to-stack`, adds the optional per-layer model to `repo.CLAUDE.md`, and deletes `04-the-bootstrap.md:94`'s marker — **the last dead forward link on the solo docs**. **Blocks #45.** |
+| [#45 Write the `/adapt-to-stack` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/45) | make | **Unblocked by #44 this session, and the obvious next ticket** — the doc it explains is live and its marker is the only dead pointer on the docs. #44 handed it **six template sites** that say *copy once per layer*, all true today and false the moment it lands (including `templates/skills/bootstrap/SKILL.md:140-141`, which names the templates four lines above its own *call the flow, do not reimplement it* rule), plus the *unfilled `<model-id>` counts as absent* clause. **`templates/agents/README.md:69` is already done** — it now carries the generated-specialist exception. Two live probes still unverified, both #15's. |
+| [#48 Does the solo path have a workspace `CLAUDE.md` layer at all?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/48) | grilling | **Graduated from the last of the *Single-vs-multi-repo* fog, and it blocks #47.** The word `workspace` appears **nowhere** in `docs/solo/` — the bootstrap writes exactly one `CLAUDE.md`, the repo's — while `06-claude-md-layers.md:77` still tells a single-repo reader layer 2 is useful and `:69-72` puts the **new-branch workflow** and the **main-branch table** there. Those two facts have no home on a one-repo project. The chain half is settled twice over and must not be reopened. |
 | [#46 The blocking hooks fail open when jq is missing](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/46) | grilling | **Verified live: all four hooks are off on this machine.** No `jq` on `PATH` → the script dies at the parse and exits **127**, which is a *non-blocking* error, so the tool call proceeds. Documentation landed with #43; the decision left is whether **not running** is an acceptable state for a guardrail — fail-closed blocks the `git` commands you need to fix it, and dropping `jq` means hand-rolling a JSON parse in a security-relevant script. |
 | [#41 The whole graph has no parent to scope by on the backlog side](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/41) | grilling | **#39 predicted this one in writing and #38 hit it.** *The whole graph* is defined over the **children of a parent**; #12 made work units **standalone on purpose**; #36 said one page serves the map and the backlog both. Three right decisions, jointly incomplete. `/cut-backlog` ships the instruction that survives every answer — ask over **the ids in hand** — so nothing is blocked, but the contract does not say it. **The question that separates the alternatives is what regenerates the picture six weeks later**, when nobody holds the ids. |
 | [#8 Resuming an effort across dozens of sessions](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8) | grilling | **must check #5's §8 boundary first.** **#18 handed it the progress file** — #13's comment had given *what goes in it* to #18, but #8's own body and the map's fog both claim it, and #18 stood down. It also inherits one requirement: if mid-session death in the *implementation* pipeline posts a progress comment the way #5 made charting do, then **sessions per work unit = progress comments + 1**, and #18's headline metric collects itself. |
@@ -752,11 +792,14 @@ own code being wrong** rather than about what to write.
 
 | Ticket | Waiting on |
 |---|---|
-| [#45 Write the `/adapt-to-stack` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/45) | **#44** — doc first, then template, as every other stage pair did. **The whole list.** |
+| [#47 A worked walkthrough of the solo path, end to end](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/47) | **#45** (the walkthrough cannot narrate a flow with no template) **and #48** (it has to show which `CLAUDE.md` files exist at each stage, and that is exactly what #48 decides). **The whole list.** #44 came off it this session. |
 
-**#16 is off this table.** It waited on 19 tickets over the life of the map; #18 was the
-last, and it is now the biggest thing on the frontier. What it *inherited* is the point,
-so it is recorded here rather than lost with the row:
+**#45 is off this table**, unblocked by #44 — see the frontier above for what it inherited.
+
+**#16 is off this table too, and it has landed.** It waited on 19 tickets over the life of
+the map; #18 was the last. What it *inherited* is kept below rather than lost with the row —
+**it is now a record of what was handed over, not of what is outstanding**, and #16's own
+resolution comment is the authority on which of these it acted on and how:
 
 | Handed to #16 by | What it must carry |
 |---|---|
@@ -1609,6 +1652,16 @@ makes *sessions per work unit* collect itself if hole 1 lands on progress commen
   changed meaning*; and **the depth change**, where every link pointing *out* of `docs/`
   needed `../../` — 19 links across 6 files. The check that caught both: resolve every
   `[text](target)` against the filesystem.
+
+---
+
+## What #44 handed forward
+
+- **To [#45](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/45), which it unblocked:** the marker to delete (the blockquote closing `11`'s *It never overwrites* section), and **six template sites that say *copy once per layer*** — `templates/skills/bootstrap/SKILL.md:140-141`, `templates/agents/layer-specialist.md:4` and `:10`, `templates/skills/engineering-standards/SKILL.md:4`, `templates/agents/README.md:129`, `templates/skills/README.md:42-45` and `:63`. All are **true today** because no flow ships, and all become false the moment #45 lands. The `bootstrap/SKILL.md` one is the odd one: its own *call the generation flow; do not reimplement it* rule sits four lines below the sentence that names the templates. Plus `repo.CLAUDE.md`'s new clause — **an unfilled `<model-id>` counts as absent, never as a model called `<model-id>`** — and the note that `templates/agents/README.md:69` is already done.
+- **To [#48](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/48), which it opened:** the whole workspace-layer question, graduated from the *Single-vs-multi-repo for greenfield* fog patch now that #44 fixed the `11` half. The evidence that made it statable: **`workspace` appears nowhere in `docs/solo/`**, the bootstrap's step 3 writes exactly one `CLAUDE.md`, and `06-claude-md-layers.md` still assigns the new-branch workflow and the main-branch table to a layer the solo path never produces. Explicitly fenced off: where the **layer chain** lives, settled by #10 and routed by #44.
+- **To [#17](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/17):** the stray-`-e ` count is **13**, not #16's 14, across 12 files with `PHILOSOPHY.md` holding two — with the list, and a note to recompute rather than trust it, since this is the second consecutive ticket to move the number.
+- **To whoever writes the next make:** **a decision about *generated* output can contradict a convention written for *hand-written* output**, and neither file is wrong on its own terms. `templates/agents/README.md:69` said pipeline agents pin exact model ids deliberately; #15 said the generated specialists omit the field. The convention's reason — *cost and judgement should not swing with the session's model* — is sound for a human placing an agent they know, and simply unreachable by a generator that knows only a layer's name. **Grep the conventions, not only the claims**, whenever a ticket decides that something previously typed by hand is now emitted by a flow.
+- **To anyone consuming a handoff on this map:** **a handoff's line number decays faster than anything else in it.** #44's body said `04-the-bootstrap.md:94`; the marker was at `:115`, moved by #42 and #43 in the two sessions between. #16's *a file and a line is still a summary* arriving from the cheap end — there the citation was wrong about its content, here merely about its address, and both fail the same way if obeyed literally.
 
 ---
 

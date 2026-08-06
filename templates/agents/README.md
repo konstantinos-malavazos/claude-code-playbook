@@ -72,6 +72,12 @@ against that set and is clean — but a tool you add later may not be.
   pin instead, deliberately: a pipeline agent's cost and judgement should not swing with the
   session's model. Use a fast/cheap model for mechanical, bounded work and a stronger model
   for design, judgement, and cross-repo reasoning.
+  **The one exception is the generated layer specialists**, which omit the field unless the
+  repo's `CLAUDE.md` names one per layer — on a day-one repo nobody knows yet which layer is
+  mechanical, deriving it from the layer's *name* is the artifact guessing, and a pinned id
+  written into N generated files is N files to change the day it rots. Pinning is advice to
+  a human who knows the agent; it is not advice a generator can follow.
+  See [`../../docs/shared/11-adapting-to-your-stack.md`](../../docs/shared/11-adapting-to-your-stack.md).
 - **An agent that dispatches another agent needs `Agent` in its `tools` list.** Nesting is
   on by default (three layers below the main conversation), but an explicit allowlist still
   wins: leave `Agent` out and the dispatch simply cannot happen. `repo-reviewer` is the one
