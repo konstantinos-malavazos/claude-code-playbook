@@ -78,6 +78,7 @@ than the two above:
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
+| `prototype` | a design question nobody can settle on paper — throwaway code built to be reacted to and then deleted | ✓ | ✓ |
 | `charting` | an effort too big for one session and too foggy to plan — maps it into decision tickets on the tracker | ✓ | |
 | `pitch` | a raw idea with no repo — the one-hour kill gate that ends in build, kill or park | ✓ | |
 | `bootstrap` | a decided-but-empty repo — scaffolds it and reports on the pipeline's preconditions. **Runs once per project** | ✓ | |
@@ -93,10 +94,10 @@ Everything above them is shared by both.
 
 ## On `disable-model-invocation` — three skills set it, and the rule says why
 
-Four of these read as user-invoked — `charting`, `pitch`, `grilling`, `diagnose` — and none
+Four of these are **conversations** — `charting`, `pitch`, `grilling`, `diagnose` — and none
 of them sets `disable-model-invocation: true`, so Claude may load any of them on its own.
-That is left as-is on purpose: all four are **conversations**, and a conversation that
-starts a turn early costs you one redirect.
+That is left as-is on purpose: a conversation that starts a turn early costs you one
+redirect.
 
 The field earns its place on skills with **side effects or timing you own** — a deploy, a
 commit, a send. **`bootstrap`, `cut-backlog` and `adapt-to-stack` are the three templates
@@ -112,6 +113,32 @@ The three share a shape worth naming: **each one's output is somebody else's inp
 bootstrap's report is read at the seam, the backlog is read by `/start-ticket`, and the
 generated specialists are what `/start-ticket` dispatches **to** — so an unasked-for run
 does not merely waste a turn, it publishes something downstream may act on.
+
+### The precondition the test does not state: nothing else dispatches to it
+
+`prototype` writes files, so the side-effects test above would seem to put the field on it.
+It does not get one, and the reason is mechanical rather than a judgement call. The field
+does not merely stop autoloading — it blocks the Skill tool:
+
+> The `user-invocable` field only controls menu visibility, not Skill tool access. Use
+> `disable-model-invocation: true` to block programmatic invocation.
+>
+> **Hide individual skills** by adding `disable-model-invocation: true` to their frontmatter.
+> This removes the skill from Claude's context entirely.
+>
+> — [Extend Claude with skills](https://code.claude.com/docs/en/skills)
+
+**A skill body that says *run `/other-skill`* is a programmatic invocation.** `charting`'s
+ticket-types table names `/prototype` as what backs a `prototype` ticket, so setting the
+field there would turn that row into a dead pointer — the skill would be unreachable from
+the only thing that dispatches to it.
+
+So the side-effects test has a precondition it never stated: **nothing else dispatches to
+it.** The three above pass because a human types all three and nothing calls them —
+*except* that `/bootstrap` step 5 says **Run `/adapt-to-stack`**, and `/adapt-to-stack` sets
+the field. One of those two is wrong; which one changes is
+[#49](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/49), not this
+README's call.
 
 `pitch` is the closest remaining call, since it dispatches subagents and spends real time.
 Watch it; if it ever fires unasked, that is the signal to set the field rather than reword

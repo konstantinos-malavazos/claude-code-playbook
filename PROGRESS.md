@@ -6,6 +6,64 @@ Local tracking file for the wayfinder effort on
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
 > **Snapshot taken:** 6 August 2026, after resolving
+> [#23 Write the prototype skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/23)
+> — **written: `templates/skills/prototype/SKILL.md` — single file, zero placeholders — plus
+> the flow catalogue row and four files the ticket did not name. [#11](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/11)'s
+> last open placeholder is closed, and the one ticket type charting names with an empty shelf
+> no longer has one.** A make that decided nothing; every rule traces to #5. **It spawned the
+> map's first new ticket in two sessions:
+> [#49](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/49), which
+> blocks #47.**
+>
+> **Single file, because the upstream's reason for splitting does not survive the port.** Its
+> two branch files are long only where they are stack-specific, and stack-specific is exactly
+> what cannot be written here. And **picking the branch is the skill's first act**, so
+> progressive disclosure would defer a file that loads on every run anyway — half a page
+> saved, one hop and the repo's one-file convention spent.
+>
+> **It ships zero `<PLACEHOLDER>`s, against the ticket's own third bullet** — and checking
+> that premise against the tree first, as the Notes require, turned up something better than
+> a count. **The repo uses angle brackets for three different things**: a *reader
+> placeholder* filled once at copy time (3 of 12 — `<LABEL-PREFIX>`, `<IDEAS-FILE-PATH>`,
+> memory-schema's), a *generator slot* `/adapt-to-stack` fills per layer (`<layer>`,
+> `<LANGUAGE>`), and a *runtime slot* the agent fills every run (`<N> of 7 pass`,
+> `<TICKET-ID>`). A naive grep hits **7 of 12** and looks like a refutation; it is not. The
+> rule that follows: **a placeholder holds what is constant for the reader**, and a run
+> command is constant for the **repo** — so it is read off `CLAUDE.md` rather than
+> transcribed. #44's *transcription drifts*, one level down.
+>
+> **Deciding whether `/prototype` sets `disable-model-invocation` found a live bug on
+> `master`.** The docs say the field *"blocks programmatic invocation"* and *"removes the
+> skill from Claude's context entirely"* — so `/prototype` **cannot** set it, because
+> `/charting` dispatches to it and the row would become a dead pointer. Generalising *why*
+> exposed the precondition the README never stated — **nothing else dispatches to it** — and
+> `/bootstrap` step 5 breaks it by telling the agent to **Run `/adapt-to-stack`**, which sets
+> the field. Opened as **#49** rather than fixed here: neither file is wrong on its own terms
+> and the two repairs are not equivalent. Second instance of *a convention written for typed
+> output contradicted by a decision about dispatched output* — #44 found the first, in
+> `templates/agents/README.md`.
+>
+> **The spike sites are the ones worth carrying.** `12-when-not-to-use.md` has answered
+> *"use an ad-hoc investigation agent"* for spike work since before this map and was
+> **complete when written**. It stopped being complete the moment a skill existed for the
+> half of spike work that is *building something to look at* — and it names the gap in its
+> own words, so **no grep for `prototype` reaches it**. Generalised: **shipping a capability
+> silently falsifies every doc that answered "there is nothing for that yet."** Spike work now
+> splits **reading → investigation agent** / **building something to look at → `/prototype`**
+> in three places, plus both copies of the kill gate's *spike clash* argument.
+> **Then my own table falsified the paragraph beneath it** — #16's rule again, and this time
+> the inconsistency was *created by the fix* and sat two paragraphs from it, in a file I had
+> already finished editing.
+>
+> **Deliberately left:** no footer bumped — the two harness quotes went into
+> `templates/skills/README.md`, which has none, and **no *doc* gained a harness claim**, so
+> #17 keeps that audit and its stray-`-e ` count is still **13**, re-counted. And the flow
+> catalogue's opening definition now has a **fifth** row it does not fit; still #17's.
+> 0 dead links, 0 bad anchors across seven files. **Not verified: that the skill loads or
+> dispatches** — nothing was run, and the dispatch claim rests on primary-source docs rather
+> than an observation. #29 still owns proving the templates actually run.
+>
+> **Previous snapshot** was after resolving
 > [#45 Write the `/adapt-to-stack` skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/45)
 > — **written: `templates/skills/adapt-to-stack/SKILL.md`, plus the flow catalogue row and
 > both README entries — the six sites #44 handed over are landed, its marker is deleted, and
@@ -61,7 +119,7 @@ still the source of truth; this is a reading convenience that goes stale between
 > 0 dead links, 0 bad anchors. **Not verified: that a generated specialist launches** — no
 > subagent was spawned. **Unblocks nothing on its own** — #47 is down to #48 alone.
 >
-> **Previous snapshot** was after resolving
+> **The snapshot before that** was after resolving
 > [#44 Rework `11-adapting-to-your-stack.md` as the explainer](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/44)
 > — **written: `11` is the explainer behind `/adapt-to-stack` — you name the chain, the flow
 > generates the rest — and the last dead forward link on the solo docs is closed.** A make
@@ -100,7 +158,7 @@ still the source of truth; this is a reading convenience that goes stale between
 > Decisions-so-far carries its gist; nothing below has been back-filled for it, so treat any
 > #16-shaped gap in this file as missing rather than decided.
 >
-> **The snapshot before that** was after resolving
+> The session before it resolved
 > [#18 How is progress measured on the solo path?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18)
 > — **measuring is optional and its units are the reader's to pick; the unit is one shipped
 > work unit, the two numbers worth keeping cost nothing to collect, nothing automates any of
@@ -502,11 +560,11 @@ Done when a reader with an idea and no repo can follow the path end to end.
 
 | | Count |
 |---|---|
-| Tickets closed | **36 of 43** |
-| Tickets open | **7** — one closed (#45), none arrived. First session in three where the open count actually moved |
-| On the frontier (takeable now) | **6** — #8, #23, #24, #41, #46, #48 |
-| Blocked | **1** — #47, on **#48 alone** |
-| Repo files changed since the effort began | **63** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded, this session's working tree included. *Recomputed from `git log 04cf1a6~1..HEAD` plus `git diff --name-only`.* **Reproduced a second time**, across two closures rather than one — same reason as last session: #16 and #44 both edited files the effort had already touched and created none. **A count that holds while two tickets land is measuring re-editing, not stillness** — the file count stopped being a progress signal several sessions ago and is kept only because it is cheap and would move loudly if a stage started writing somewhere new. |
+| Tickets closed | **37 of 44** |
+| Tickets open | **7** — one closed (#23) and **one arrived** (#49, from #23). Flat, and the flatness is a cancellation rather than stillness |
+| On the frontier (takeable now) | **6** — #8, #24, #41, #46, #48, #49 |
+| Blocked | **1** — #47, now on **#48 and #49** |
+| Repo files changed since the effort began | **64** distinct files — map tickets and #28's off-map audit together, `PROGRESS.md` excluded, this session's working tree included. *Recomputed from `git log 04cf1a6~1..HEAD` plus `git diff --name-only` plus untracked.* **It finally moved, by exactly one**, and that one is `templates/skills/prototype/SKILL.md`: the other six files this session touched were already in the set. **The count moves only when a stage writes somewhere new**, which is the single thing it was kept for after it stopped being a progress signal — three sessions of it holding, then a `+1` that says precisely what happened. |
 | Branches | none — findings live in ticket comments, not in the repo |
 | Working tree | committed and pushed at the end of this session — **asked for, not assumed**, per #14's per-repo push answer defaulting to no |
 
@@ -514,11 +572,13 @@ Done when a reader with an idea and no repo can follow the path end to end.
 call now returns the states, the claims and the blocking edges together, so the frontier
 and the blocked list below are counted rather than reasoned about.*
 
-**The carried count reproduced again** — *35 of 43* carried, **36 of 43** recomputed, exactly
-one closure with no new children, because #45 spawned nothing. Fourth session running the
-counts off one GraphQL call. Recomputed, not reconciled: #17, #28, #29 and #32 are **not**
-children of the map and never enter this count. Same discipline as the file count on the row
-above, and as #30 and #39 — **recompute any number you are about to write down.**
+**The carried count did not reproduce this time, and that is the point** — *36 of 43* carried,
+**37 of 44** recomputed: one closure *and* one new child, so both halves of the fraction moved
+and reconciling from the carried number would have been wrong in the denominator, which is the
+half nobody thinks to check. Fifth session running the counts off one call. Recomputed, not
+reconciled: #17, #28, #29 and #32 are **not** children of the map and never enter this count.
+Same discipline as the file count on the row above, and as #30 and #39 — **recompute any
+number you are about to write down.**
 
 **And this paragraph was itself a full session stale.** It read *"32 of 41 carried, 33 of 41
 recomputed"* while the table three lines above said **35 of 43** — #44's session recomputed
@@ -589,8 +649,9 @@ pairs were built in **opposite orders**, and it made a visible difference: chart
 template landed first, so its doc never shipped a dead link, while `02-the-kill-gate.md`
 carried a *still being written* marker for one commit. #26 deleted it.
 
-**The only make left is #23, plus whatever #24 spawns.** Everything else open is a
-grilling — four stage and cross-cutting conversations, plus #8.
+**No makes are left.** #23 was the last one, and it closed this session; every open ticket is
+a `grilling` except #47, which is a make and blocked. Whatever #24 and #49 spawn will be the
+next ones.
 
 **The exit report is seven checks, not eight — #35 caught #34's error a session later.**
 Seam item 6 is *the backlog exists*, which is stage 4's, so stage 3 cannot speak to it. The
@@ -821,40 +882,46 @@ Without it, #4's *"rebuild Decisions-so-far from the closed children"* means re-
 long comments and re-summarising each — expensive *and* non-deterministic. With it,
 regeneration is a concatenation of first lines: free, and identical every run.
 
-**Four ticket types, two of which name a skill.** A type is a *session shape*, not a pointer
-to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` → nothing yet
-(#23), `task` → needs none by design.
+**Four ticket types, three of which name a skill.** A type is a *session shape*, not a pointer
+to a skill: `research` → `/research`, `grilling` → `/grilling`, `prototype` → `/prototype`
+(**shipped by #23**; the reframe was what let four types survive when only two had templates,
+and now three do), `task` → needs none by design.
 
 ---
 
 ## The frontier — takeable right now
 
-Six tickets, recomputed from the graph this session. **The count finally moved** — it had
-held for four sessions running, twice by stillness and once by cancellation, and #45 closing
-with nothing spawned is the first plain decrement in a long time.
+Six tickets, recomputed from the graph this session. **Held at six by cancellation** — #23
+closed and #49 arrived in the same session, the second time this map has produced a flat
+count for a reason that is not stillness.
 
-**One make** — #23 — **and five grillings**, the most conversation-heavy the frontier has
-been. Nothing here has a fresh handoff waiting: #45 consumed the last one. **#46 is still the
-only ticket on this map about the playbook's own code being wrong** rather than about what to
-write, and it is the only one where the defect is live on this machine today.
+**Six grillings and no makes** — the first all-conversation frontier this map has had, and
+the state #5's decide-or-make rule predicts once the writing catches up with the deciding.
+**Two tickets are now about the playbook's own machinery being wrong** rather than about what
+to write — #46 and the new #49 — where there was one for the whole life of the map. #49 is the
+only ticket here with a fresh handoff waiting.
 
 | Ticket | Type | Note |
 |---|---|---|
 | [#48 Does the solo path have a workspace `CLAUDE.md` layer at all?](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/48) | grilling | **Graduated from the last of the *Single-vs-multi-repo* fog, and it blocks #47.** The word `workspace` appears **nowhere** in `docs/solo/` — the bootstrap writes exactly one `CLAUDE.md`, the repo's — while `06-claude-md-layers.md:77` still tells a single-repo reader layer 2 is useful and `:69-72` puts the **new-branch workflow** and the **main-branch table** there. Those two facts have no home on a one-repo project. The chain half is settled twice over and must not be reopened. |
+| [#49 `/bootstrap` cannot invoke `/adapt-to-stack`](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/49) | grilling | **New this session, and it blocks #47.** `disable-model-invocation: true` does not merely stop autoloading — the docs say it *"blocks programmatic invocation"* and *"removes the skill from Claude's context entirely"*. `/bootstrap` step 5 tells the **agent** to run `/adapt-to-stack`, which sets the field. **Neither file is wrong on its own terms**, which is why it is a decision: drop the field and lose the guard on a skill that writes agent files into a repo, or break the one unattended flow with a manual step. A third shape may exist. |
 | [#46 The blocking hooks fail open when jq is missing](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/46) | grilling | **Verified live: all four hooks are off on this machine.** No `jq` on `PATH` → the script dies at the parse and exits **127**, which is a *non-blocking* error, so the tool call proceeds. Documentation landed with #43; the decision left is whether **not running** is an acceptable state for a guardrail — fail-closed blocks the `git` commands you need to fix it, and dropping `jq` means hand-rolling a JSON parse in a security-relevant script. |
 | [#41 The whole graph has no parent to scope by on the backlog side](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/41) | grilling | **#39 predicted this one in writing and #38 hit it.** *The whole graph* is defined over the **children of a parent**; #12 made work units **standalone on purpose**; #36 said one page serves the map and the backlog both. Three right decisions, jointly incomplete. `/cut-backlog` ships the instruction that survives every answer — ask over **the ids in hand** — so nothing is blocked, but the contract does not say it. **The question that separates the alternatives is what regenerates the picture six weeks later**, when nobody holds the ids. |
 | [#8 Resuming an effort across dozens of sessions](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8) | grilling | **must check #5's §8 boundary first.** **#18 handed it the progress file** — #13's comment had given *what goes in it* to #18, but #8's own body and the map's fog both claim it, and #18 stood down. It also inherits one requirement: if mid-session death in the *implementation* pipeline posts a progress comment the way #5 made charting do, then **sessions per work unit = progress comments + 1**, and #18's headline metric collects itself. |
-| [#23 Write the prototype skill template](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/23) | make | side quest — but it now owns the **last** live `<PLACEHOLDER>` in the charting template |
-| [#24 The playbook's own domain-modeling skill](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/24) | grilling | side quest, blocks nothing |
+| [#24 The playbook's own domain-modeling skill](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/24) | grilling | side quest, blocks nothing. **The last of the two tickets #5 spun out as side quests** — #23 was the other, and it closed this session |
 
 ## Blocked
 
 | Ticket | Waiting on |
 |---|---|
-| [#47 A worked walkthrough of the solo path, end to end](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/47) | **#48 alone** — it has to show which `CLAUDE.md` files exist at each stage, and that is exactly what #48 decides. **#45 came off it this session**, so the walkthrough now has a template for every flow it must narrate. |
+| [#47 A worked walkthrough of the solo path, end to end](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/47) | **#48 and #49.** #48 because it has to show which `CLAUDE.md` files exist at each stage, and that is exactly what #48 decides. **#49 is new this session and went on deliberately**: the walkthrough narrates `/bootstrap` calling `/adapt-to-stack`, and that call cannot execute as written. **A blocker added by a make** — the first time on this map, and easy to undo if the driver disagrees. |
 
 **#45 is closed** — the row it used to occupy on the frontier is gone, and what it handed
 forward is below.
+
+**#23 is closed too**, and it left this table heavier rather than lighter. **A make is
+supposed to unblock things and this one blocked one** — which is the decide-or-make rule
+working, not failing: it found a real decision and stopped rather than settling it in passing.
 
 **#16 is off this table too, and it has landed.** It waited on 19 tickets over the life of
 the map; #18 was the last. What it *inherited* is kept below rather than lost with the row —
@@ -876,7 +943,14 @@ landed*. Both were true when written and both expired within two sessions. **A s
 asserting that a set is complete is a sentence with a short shelf life on a map that spawns
 tickets** — the same shape #37 found in `01`'s *"the four stage docs are still being
 written"*. The row above says *the whole list* and inherits exactly that risk: it is true at
-this snapshot and false the moment #44 or #16 spawns anything.
+this snapshot and false the moment any open ticket spawns anything.
+
+**And it fired.** #23 was a make — the category least expected to spawn — and it opened #49
+and wired it onto #47. **The sentence naming which tickets could invalidate it was itself the
+stale part**: it said *"the moment #44 or #16 spawns anything"*, and both had been closed for
+sessions by the time the risk actually landed from a third direction. So the warning is
+sharper without the names: **any open ticket can do it, and the make you were not watching is
+as likely as the grilling you were.**
 
 ```
    DONE ── #3 stages+seam · #4 tracker contract · #5 charting contract
@@ -1016,9 +1090,9 @@ this snapshot and false the moment #44 or #16 spawns anything.
                          Step 7 asks over THE IDS IN HAND, which is true
                          under every answer. The contract still is not.
 
-   #11 left three placeholders. One is left:
+   #11 left three placeholders. NONE IS OPEN:
         <TRACKER-ADAPTER-PATH>       ──► RESOLVED by #13 = ~/.claude/tracker.md
-        <PROTOTYPE-SKILL-OR-NONE>    ──► #23   (the last one open)
+        <PROTOTYPE-SKILL-OR-NONE>    ──► RESOLVED by #23 = /prototype
         <LABEL-PREFIX>               ──► never, reader's own convention
 
    #26 added one that is meant to stay open:
@@ -1060,9 +1134,10 @@ this snapshot and false the moment #44 or #16 spawns anything.
                          showed every blocker shut. The frontier query is
                          built on that count. Now a trap-table row.
 
-   7 open tickets ── 1 wired ────►  #47 waits on #48. THAT IS THE WHOLE LIST.
-                  ── #48 IS THE ONLY TICKET BLOCKING ANYTHING. Everything
-                     else on the frontier blocks nothing at all.
+   7 open tickets ── 2 wired ────►  #47 waits on #48 AND #49. STILL THE
+                                    WHOLE LIST — one blocked ticket, two edges.
+                  ── #49 IS NEW, AND A MAKE PUT IT THERE. #23 closed and
+                     handed the map a decision instead of an unblocking.
 ```
 
 ---
@@ -1148,7 +1223,10 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
     file lands.
 20. #8 resume whenever you like, but **read #5's §8 first** — the boundary is already fixed
     and #8 must respect it. `03-charting.md` closes with a deliberate hook for its doc.
-21. #23 and #24 are side quests. They block nothing and are on nobody's critical path.
+21. ~~#23 and~~ #24 are side quests. They block nothing and are on nobody's critical path.
+    **Half wrong, and #23 is why.** It blocked nothing on the way in and **opened a ticket
+    that blocks #47** on the way out. A side quest is a claim about what a ticket *depends*
+    on; it says nothing about what the ticket will *find*.
 22. **#32 is small and off-map.** Pick an inert tool that still exists, then **spawn the
     agent and watch it return a verdict** before closing. Correct-by-reading is what got us
     here. Latent — nothing is installed, so no running gate is skipping its judge today.
@@ -1173,17 +1251,27 @@ Wayfinder resolves **one ticket per session**, and tickets are sized to a fresh 
     they are not being back-filled here; their findings are in their resolution comments and
     in the snapshot chain at the top of this file.
 
+26. ~~#23, the prototype skill template.~~ **Done.** Single file, zero placeholders, plus the
+    catalogue row, both README entries and four files the ticket did not name. **#11's last
+    placeholder is closed** and the four ticket types now stand three-to-one rather than
+    two-to-two. **Spawned #49 and wired it onto #47** — the first blocker this map has gained
+    from a make. Its transferable finding is not about prototypes at all:
+    **`disable-model-invocation` blocks the Skill tool**, so a skill anything else dispatches
+    to cannot carry it.
+
 Plain `/wayfinder 1` takes the first frontier ticket in map order — still
 #8 *Resuming an effort that spans dozens of sessions*, which is **not** what I would take.
-Name the ticket. **Take #48** — it is the only ticket blocking anything (#47, the
-walkthrough), and every other open ticket blocks nothing at all. It is also the last question
-standing between this map and a path a stranger can follow end to end.
+Name the ticket. **Take #48 or #49** — they are now the only two tickets blocking anything,
+and they block the same one, #47. Between them, **#48 first**: it is a question about the
+path itself and the last one standing between this map and a route a stranger can follow,
+where #49 is a defect in two template files and will not move the shape of anything.
 
-After #48: **#47**, the worked walkthrough, which is the closest thing left to a capstone now
-that #16 has landed and every stage ships both a doc and a template. Then **#46**, the one
-live defect — the hooks are off on this machine today — and **#8**, which owns the progress
-file and inherits a requirement from #18 that makes *sessions per work unit* collect itself
-if hole 1 lands on progress comments. **#23 and #24 remain side quests.**
+After those: **#47**, the worked walkthrough, which is the closest thing left to a capstone
+now that every stage ships both a doc and a template. Then **#46**, the other live defect —
+the hooks are off on this machine today — and **#8**, which owns the progress file and
+inherits a requirement from #18 that makes *sessions per work unit* collect itself if hole 1
+lands on progress comments. **#24 is the last side quest**; #23 was the other, and it closed
+this session.
 
 **This paragraph was two sessions stale until now** — it advised taking #16, which closed two
 sessions ago, and then #44, which closed one. **Advice ages faster than facts**, and it sits
@@ -1194,6 +1282,8 @@ resolve a ticket, rewrite this block even when nothing else about it changed.
 
 ## Gotchas found so far
 
+- **`disable-model-invocation: true` blocks the Skill tool, not just autoloading — so a skill anything else dispatches to cannot carry it.** The docs are explicit: it *"blocks programmatic invocation"* and *"removes the skill from Claude's context entirely."* The field reads like *don't fire unasked*, and that reading is what put it on `/adapt-to-stack` while `/bootstrap` step 5 tells the agent to **run** it. **Nothing errors at authoring time and nothing errors at reading time** — the two files are each correct alone, and the failure only exists in the call between them. Now #49. The rule underneath: **a guard on invocation is a claim about every caller, and skill bodies are callers.**
+- **The repo uses angle brackets for three different things, and only one is a placeholder.** A *reader placeholder* is filled once at copy time (`<LABEL-PREFIX>`, `<IDEAS-FILE-PATH>`); a *generator slot* is filled per layer by `/adapt-to-stack` (`<layer>`, `<LANGUAGE>`); a *runtime slot* is filled by the agent every run (`<N> of 7 pass`, `<TICKET-ID>`). Grep the brackets and 7 of 12 skill templates look parameterised; count the kinds and only **3** are. It matters because the kinds have different constraints: **a reader placeholder can only hold what is constant for the reader**, so a per-repo fact like a run command must be read off the repo, while a generator slot holds per-repo facts happily. Two templates were nearly given placeholders they could never have been filled in correctly.
 - **A `.claude/` directory created mid-session is not watched; one that already existed is.** Editing a skill or agent file under a directory that existed at startup is picked up live, within seconds — which is what the `pitch-judge` probe found and recorded as *"the restart caveat was wrong."* Creating the directory itself is the case that still needs a restart, and it is exactly the case a generator hits: `/adapt-to-stack`'s first run brings `.claude/agents/` and `.claude/skills/` into existence, so its own output cannot be dispatched to in that session. **Every check that reads the disk passes**, which is why the report has to say it out loud. The two probes look contradictory and are not — **the unit is the directory, not the file.**
 - **A personal skill beats a project skill of the same name.** The opposite of *more specific wins*, and the opposite of how project **agents** resolve, where the definition closest to the working directory wins. So the same flow, writing into `.claude/agents/` and `.claude/skills/` in one run, produces output whose collisions resolve in **opposite directions** — and one stray `backend-standards` in `~/.claude/skills/` silently shadows every repo's generated one. Nothing warns you.
 - **`tools: []` and an absent `model:` fail in opposite directions.** #27 learned the hard way that an empty tools list refuses to launch, and the instinct afterwards is to distrust every omitted frontmatter field. It does not generalise: a subagent has a **floor of one tool** and no floor on model, so omitting `model` is documented to inherit. **The lesson from one field is not a lesson about frontmatter.**
@@ -1732,6 +1822,17 @@ resolve a ticket, rewrite this block even when nothing else about it changed.
   changed meaning*; and **the depth change**, where every link pointing *out* of `docs/`
   needed `../../` — 19 links across 6 files. The check that caught both: resolve every
   `[text](target)` against the filesystem.
+
+---
+
+## What #23 handed forward
+
+- **To [#49](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/49), which it opened:** the two doc quotes, the exact two sites (`templates/skills/bootstrap/SKILL.md:140-146` and `templates/skills/adapt-to-stack/SKILL.md:9`), the third site that describes the call in prose (`docs/shared/07-the-flows.md`'s catalogue row), and both candidate repairs with what each costs. **Whichever way it goes, `templates/skills/README.md` already carries the precondition** — *nothing else dispatches to it* — so the fix is to the two files, not to the rule.
+- **To [#47](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/47), which it blocked:** the walkthrough must narrate `/bootstrap` reaching step 5, and today that step cannot execute. **The blocker was added by a make and is easy to undo** if the driver would rather the walkthrough carry a caveat than wait.
+- **To [#17](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/17):** the flow catalogue's opening definition is now wrong for a **fifth** row — `/prototype` orchestrates no agents at all, which is the weakest fit yet after `/bootstrap`, `/cut-backlog` and `/adapt-to-stack`. Also re-counted the stray `-e ` lines: still **13**, unchanged by this session.
+- **To whoever ships the next capability:** **shipping it silently falsifies every doc that answered "there is nothing for that yet."** `12-when-not-to-use.md` had told readers to reach for an ad-hoc investigation agent for spike work since before this map, and it was complete when written. Those docs describe the gap **in their own words**, so no grep for the new thing's name will find them — grep the *job* instead (*spike*, *throwaway*, *react to*), which is how both spike sites and `03-charting.md:77` turned up.
+- **To whoever writes the next template:** **check which kind of angle bracket you need before adding one.** A reader placeholder can only hold what is constant for the reader; a run command or a route convention is constant for the repo and belongs in that repo's `CLAUDE.md`, where `/adapt-to-stack` already reads from. The ticket asked for placeholders and the tree said otherwise.
+- **To the *Which knowledge gets extracted into shared skills* fog patch:** nothing. `/prototype` is used by both paths and needed no branch, but its input is a design question rather than a file, so it is not the two-genuinely-different-inputs case the patch is waiting for. Recorded as *not a data point* rather than left to look like one.
 
 ---
 
@@ -2380,8 +2481,11 @@ resolve a ticket, rewrite this block even when nothing else about it changed.
 - ~~**#13** owns `<TRACKER-ADAPTER-PATH>` and every verb name.~~ **Done** — the path is
   `~/.claude/tracker.md` and no verb was renamed, so the charting template needed only the
   one placeholder swapped.
-- **#23** owns `<PROTOTYPE-SKILL-OR-NONE>`. When the prototype template ships, the whole
-  change is swapping that one cell in the types table.
+- ~~**#23** owns `<PROTOTYPE-SKILL-OR-NONE>`. When the prototype template ships, the whole
+  change is swapping that one cell in the types table.~~ **Done** — and the prediction was
+  exactly right about the charting template: one cell, `/prototype`. **#11's three
+  placeholders are now all closed or permanent.** What it could not predict is that the
+  *rest* of the change ran to six files, none of them charting's.
 - **No memory was written, on purpose.** #5 decided memory is one per map, at close. The
   map is open, so this ticket banks nothing. Expect the same for every remaining ticket.
 

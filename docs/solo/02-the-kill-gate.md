@@ -304,11 +304,14 @@ has solved. So the solo path appears to end by feeding a spike into a pipeline t
 spikes.
 
 **It does not, because the hard part never reaches the pipeline as a spike.** It becomes a
-`research` ticket on the map and is burned off **during charting** — stage 2, before the
-repo is scaffolded and long before a backlog exists. By the time work units arrive at
-`/start-ticket`, the exploratory part is over and what is left is buildable. That is the
-`research` ticket type doing precisely the job `12-when-not-to-use.md` says an
-investigation agent should do, at the only point on the path where it is cheap.
+`research` or `prototype` ticket on the map and is burned off **during charting** — stage 2,
+before the repo is scaffolded and long before a backlog exists. By the time work units
+arrive at `/start-ticket`, the exploratory part is over and what is left is buildable.
+
+Those two ticket types are the two rows `12-when-not-to-use.md` splits spike work into,
+done at the only point on the path where it is cheap: a `research` ticket is the reading
+half — the job it says an investigation agent should do — and a `prototype` ticket is the
+building-something-to-look-at half.
 
 ---
 

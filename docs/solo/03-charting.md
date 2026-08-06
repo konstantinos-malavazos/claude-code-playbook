@@ -74,7 +74,7 @@ the first.
 |---|---|
 | 1 | Open the map. The low-resolution view — destination, notes, what is already decided. Not every ticket body. |
 | 2 | Take a ticket from **the frontier** — the open, unblocked, unclaimed ones. Claim it before any work. |
-| 3 | Resolve it. Usually a [`/grilling`](../../templates/skills/grilling/SKILL.md) conversation, one question at a time. Sometimes a [`/research`](../../templates/skills/research/SKILL.md) subagent, sometimes manual work. |
+| 3 | Resolve it. Usually a [`/grilling`](../../templates/skills/grilling/SKILL.md) conversation, one question at a time. Sometimes a [`/research`](../../templates/skills/research/SKILL.md) subagent, sometimes a [`/prototype`](../../templates/skills/prototype/SKILL.md) you react to, sometimes manual work. |
 | 4 | Post the answer as a resolution comment, **gist first**, and close the ticket. |
 | 5 | Look at what the answer just made visible, and ticket it. |
 

@@ -180,7 +180,7 @@ pointer to a skill:**
 |---|---|---|---|
 | `research` | agent alone (AFK) | `/research` | the fact lives outside this workspace — vendor docs, a spec, an RFC |
 | `grilling` | human in the loop | `/grilling` | the default. A judgement only the human can make |
-| `prototype` | human in the loop | `<PROTOTYPE-SKILL-OR-NONE>` | "how should it look / behave" — make something cheap and rough to react to |
+| `prototype` | human in the loop | `/prototype` | "how should it look / behave" — make something cheap and rough to react to |
 | `task` | either | needs none, by design | manual work blocking a decision: an account to open, access to provision, data to move |
 
 **HITL types never resolve without the human.** An agent that answers its own grilling

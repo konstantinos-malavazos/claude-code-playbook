@@ -49,15 +49,24 @@ When you don't know what the answer looks like, the pipeline's linear chain
 - A spike's output is understanding, not code. The pipeline optimises for a
   reviewable single-commit branch; that's not what a spike produces.
 
-**Use instead:** an ad-hoc investigation agent (read-only, no commit structure,
-no review gates). Write the findings directly to memory, then decide whether
+**Use instead:** it depends which kind of not-knowing you have.
+
+| The spike is | Use |
+|---|---|
+| **reading** — why is this happening, where does the data go wrong | an ad-hoc investigation agent (read-only, no commit structure, no review gates) |
+| **building something to look at** — does this state model hold up, what should this look like | [`/prototype`](../../templates/skills/prototype/SKILL.md) — throwaway code, reacted to and deleted |
+
+Either way the output is understanding, not a branch — but **where it lands differs.** An
+investigation's findings are nominated into memory like any other durable conclusion
+([10-memory-hygiene.md](10-memory-hygiene.md)); a prototype's verdict goes on the ticket and
+banks nothing, because the unit it sits inside banks once, at its end. Then decide whether
 the next ticket is pipeline-shaped.
 
 **On the solo path this is already handled upstream.** The
 [kill gate](../solo/02-the-kill-gate.md) ends by naming the idea's hard part, which is
-exactly a spike — but it never reaches `/start-ticket` as one. It becomes a `research`
-ticket on the map and is burned off during [charting](../solo/03-charting.md), before
-the backlog exists. The two docs also ask different questions: this one asks whether the
+exactly a spike — but it never reaches `/start-ticket` as one. It becomes a `research` or
+`prototype` ticket on the map — the same two rows as the table above — and is burned off
+during [charting](../solo/03-charting.md), before the backlog exists. The two docs also ask different questions: this one asks whether the
 pipeline is the wrong *tool*, the gate asks whether it is the wrong *idea*.
 
 ---
@@ -214,7 +223,8 @@ downstream here and this doc will not pretend otherwise.
 | One-line fix, 1 file | Chat |
 | Small change, 1–2 files, no design | Chat |
 | Multi-layer change, 2+ repos | `/start-ticket` |
-| Exploratory / spike | Investigation agent |
+| Exploratory / spike — **reading** | Investigation agent |
+| Exploratory / spike — **building something to look at** | `/prototype` |
 | First time in a new codebase | Manual discovery first |
 | Prod incident | `/hotfix` (lighter pipeline, same guardrails) |
 | Unstable requirements | Chat until the spec solidifies |
