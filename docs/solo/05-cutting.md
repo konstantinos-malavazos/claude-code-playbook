@@ -146,6 +146,36 @@ surface before anyone has agreed what belongs on it.
 
 ---
 
+## If the session dies mid-board
+
+**You lose the board, and nothing else.** Nothing is in the tracker until you approve, so
+there is no half-created backlog to clean up — which is the failure a create-first stage
+would have handed you instead.
+
+Everything the board was built **from** is permanent, and none of it lives in the session:
+
+| The input | Where it still is |
+|---|---|
+| **The smallest version** | The map's Notes, written at the gate three stages ago. |
+| **The constraints** | Each in its own closed ticket, on a map that is closed and frozen. |
+| **The paths the tickets name** | On disk, in the repo the bootstrap made real. |
+
+So you re-run **`/cut-backlog`** and it rebuilds. **What you actually pay for is your own
+editing** — the reordering, the merges, the splits, the rewrites — across three to ten
+units. Minutes, not evenings. That is the honest cost, and it is small enough that a draft
+file saved as you go is not worth what it would cost you.
+
+**Do not keep a `.claude/backlog-draft.md`.** It outlives the approval it was meant to
+survive, and then there are two backlogs — one in the tracker that is real, one on disk that
+is not, and nothing to say which you are reading.
+
+**A cut that cannot fit one sitting is a finding, not a resume problem.** Three to ten units
+*is* one sitting. If yours is not, that is
+[the trace check](#the-scope-check-is-a-trace-not-a-count) arriving early by a different
+route: **the smallest version grew.** Fix that, not the session length.
+
+---
+
 ## The scope check is a trace, not a count
 
 The obvious brake is a number: *more than about ten tickets, go back to the smallest
@@ -302,7 +332,7 @@ weeks of decisions and wondering what to do with them:
 - **The scope check is a trace, not a count** — and the trace names the ticket that is
   wrong, which is the thing a count never can.
 - **Nothing is created until you approve the board**, because a tracker is a bad place to
-  change your mind.
+  change your mind — which is also why losing the board costs so little.
 
 Read this before your first cut. Read [01-the-solo-path.md](01-the-solo-path.md) for the
 seam it completes, and [04-the-bootstrap.md](04-the-bootstrap.md) for the repo it is

@@ -253,6 +253,40 @@ So step 8 **reports and stops. It does not classify.** Classifying is a decision
 
 ---
 
+## If the session dies partway
+
+Nothing records how far you got, **on purpose**. You type **`/bootstrap`** again, and each
+step checks the disk and skips itself.
+
+Seven of the eight steps leave something you can go and look at — the allowlist lines, the
+stub, `CLAUDE.md`, the index, the agent files, the two memories, the commit. **Step 6 is the
+only one that writes nothing**, and it is a single read of the installed tracker adapter, so
+redoing it is free. Step 5 was already safe before this rule existed:
+[`/adapt-to-stack`](../shared/11-adapting-to-your-stack.md) creates what is missing and
+never overwrites what you have written.
+
+A **progress file** is the obvious alternative and it is the wrong one. It is a second copy
+of what the disk already says, and the two can disagree — at which point the copy is what
+you read and the disk is what is true. That is the spine's
+[*re-derive, never store*](01-the-solo-path.md#which-stage-are-you-standing-in) rule, and
+stage 3 is where following it costs the least: eight steps, seven footprints, one free redo.
+
+### Where the report lives — nowhere
+
+The template says the stage is done **when the report exists**, and then says nothing about
+where it exists. That is not an omission:
+
+| The report was | What survives the session |
+|---|---|
+| **Green** | The **commit**. That is the durable tell that stage 3 finished. |
+| **Red** | **Nothing.** A red report commits nothing, and the report goes with the session. |
+
+So *did stage 3 finish?* has the same answer as *how far did it get?* — **run it again.**
+The skipping is what makes that cheap, and a re-run against a finished repo prints the
+report you lost.
+
+---
+
 ## What was decided in stage 2, not here
 
 **The layer chain is named with the stack**, by the tail's first ticket, one stage
@@ -302,6 +336,8 @@ Neither answers the questions a reader has while standing **in** the stage:
   audience rule the rest of the playbook uses, and it is the one that is right here.
 - **A red check is not automatically a failure of the stack**, and the whole point of
   reporting all seven at once is to let you tell which kind you are looking at.
+- **Nothing records how far the stage got** — running it again is the entire recovery, and
+  it is also how you find out whether it finished at all.
 
 Read this before your first bootstrap. Read [01-the-solo-path.md](01-the-solo-path.md) for
 the seam it is proving, and [03-charting.md](03-charting.md) for where the stack, the chain

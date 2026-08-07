@@ -53,6 +53,39 @@ stage is **cutting**, and the artifact it produces is **the backlog**.
 
 ---
 
+## Which stage are you standing in?
+
+**Nothing stores the answer.** You go and look — every stage leaves a tell in the repo or
+the tracker. Read these top to bottom and stop at the first that matches.
+
+| Where you are | The tell |
+|---|---|
+| **Not started, or still in the gate** | No repo. |
+| **Stage 2 — charting** | The repo exists, and issue **#1 is open**. |
+| **Stage 3 — the bootstrap** | Issue **#1 is closed**, and the repo has **no `CLAUDE.md`**. |
+| **Stage 4 — cutting** | `CLAUDE.md` and the layer specialists are on disk, and there are **no work tickets**. |
+| **Past the seam** | Work tickets exist, each carrying **`From map #1`**. |
+
+**Stage 1 has no row of its own**, and that falls out of the first rule below: the repo is
+the gate's output, so *no repo* means you either have not started or are still in the gate —
+and the gate is one sitting, so you are not going to lose track of being in it.
+
+> ### Re-derive, never store
+>
+> There is no phase marker file, no *stage:* line in `CLAUDE.md`, and no progress file
+> anywhere on this path. Each of them would be **a fact about the repo written down beside
+> the repo** — it can be wrong, and nothing would catch it. The tells above *are* the repo,
+> so they cannot disagree with it.
+
+The same rule answers the resume question one level down, and both stage docs say so: a
+bootstrap that died partway is resumed by
+[running it again](04-the-bootstrap.md#if-the-session-dies-partway), and a cut that died
+mid-board is resumed by [running it again](05-cutting.md#if-the-session-dies-mid-board).
+Charting is the exception only in shape, not in rule — its progress lives as **a comment on
+the ticket**, on the tracker, which is where the rest of charting already lives.
+
+---
+
 ## Three rules that cross stage boundaries
 
 | Rule | What it means |
@@ -113,10 +146,12 @@ Nothing downstream of the seam is solo-specific. That is the point of the seam.
 The four stages each have their own doc, and each one is legible on its own. What is
 *not* legible from any of them is the **shape of the whole**: that the repo appears at
 stage 1 rather than stage 3, that stack choice hides inside charting as a tail rather
-than standing as a stage, that abandoning is a legitimate ending, and that the path
-deliberately **stops** at a checklist instead of running on into implementation.
+than standing as a stage, that abandoning is a legitimate ending, that the path deliberately
+**stops** at a checklist instead of running on into implementation, and that **which stage
+you are in is never recorded anywhere** — every stage leaves a tell and you go and read it.
 
-Read this page first, then the stage you are actually standing in.
+Read this page first, then
+[the stage you are actually standing in](#which-stage-are-you-standing-in).
 
 ---
 > **Last verified against:** Claude Code `2.1.220` — July 2026

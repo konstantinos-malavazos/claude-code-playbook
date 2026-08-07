@@ -94,10 +94,18 @@ summary, because the map's decision list is rebuilt from those first lines rathe
 hand-maintained. Skip it once and regeneration stops being mechanical.
 
 **A session that runs out before the ticket does** posts a progress comment and keeps the
-claim. Nothing is lost and nothing is jammed — the claim was never a lock. Resuming across
-many sessions is its own subject and its own doc:
-[13-massive-tickets.md](../shared/13-massive-tickets.md), which runs this same skill against
-an existing multi-repo codebase and adds the commands that walk a map for weeks.
+claim. Nothing is lost and nothing is jammed — the claim was never a lock. **That comment is
+the whole of resuming here**: next session you open the ticket and read it. Nothing else is
+stored, on this stage or any other — see
+[the spine](01-the-solo-path.md#which-stage-are-you-standing-in).
+
+[13-massive-tickets.md](../shared/13-massive-tickets.md) runs this same skill against an
+existing multi-repo codebase, and it is worth reading for **how a map behaves over weeks** —
+the three endings, what the map never caches, and the two ways it fails silently. **Its
+commands are not yours to run.** They are bound to a chart folder under
+`<workspace>/.claude/charts/` and dispatch `/build-chart-ticket`, and neither exists on the
+solo path: your map is issue #1 on the tracker, and you walk it with `/charting`, every
+session.
 
 ---
 

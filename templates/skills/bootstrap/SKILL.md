@@ -234,3 +234,40 @@ every check is green.
 A red report is a *finished* stage. This stage's job is to produce the verdict, not to
 guarantee it is a good one — and a stage that keeps working until everything passes is a
 stage that will quietly change a decision to get there.
+
+## Safe to re-run
+
+**A session that dies partway is resumed by running `/bootstrap` again.** Each step checks
+the disk and skips itself. Nothing records where you stopped; you re-derive it by looking.
+
+| # | Step | What it leaves, so a re-run can skip it |
+|---|---|---|
+| 1 | Ask the allowlist questions | the lines in `~/.claude/repo-allowlist` |
+| 2 | Scaffold the stub | the stub, and one folder per layer |
+| 3 | Write `CLAUDE.md` | `CLAUDE.md` |
+| 4 | Index Serena | the index — or *verdict no*, which `CLAUDE.md` records |
+| 5 | Generate the specialists | the agent and skill files. **Already idempotent** — `/adapt-to-stack` creates what is missing and never overwrites |
+| 6 | Verify the tracker adapter | **nothing** |
+| 7 | Write the two memories | the two memories |
+| 8 | Run every check, report | the commit — **green only** |
+
+**Step 6 is the only step that writes nothing, and it is simply redone.** It is one read of
+`~/.claude/tracker.md`, so detecting that it already happened would cost more than doing it.
+
+**Do not write a progress file.** Not `.claude/bootstrap-progress.md`, not a marker line in
+`CLAUDE.md`, not anything else. It is a second copy of what the disk already says, and it
+can be wrong while the disk is right — which is exactly the failure nothing would catch.
+
+### The report has no home, and does not need one
+
+*Stop condition* says the stage is done when the report exists. **The report is not written
+anywhere.**
+
+| The report was | What survives the session |
+|---|---|
+| **Green** | The **commit**. That is the durable tell that stage 3 finished. |
+| **Red** | **Nothing.** Red commits nothing, and the report goes with the session. |
+
+That is the same answer rather than a gap: **if you want to know whether stage 3 finished,
+run it again.** Every step skips itself, every check runs, and the report prints. Giving the
+report a file would be the progress file under another name.
