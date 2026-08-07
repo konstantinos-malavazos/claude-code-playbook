@@ -1,7 +1,10 @@
 # Tracker adapter: local markdown
 
 Install at `~/.claude/tracker.md`. Tickets are markdown files in the repo. No server, no
-CLI, no account — and no UI, which is the one thing this adapter has to compensate for.
+CLI, no account — and **no UI**, which is the one thing this adapter cannot supply itself.
+It is answered outside the adapter, by the caller: the dependency-graph page if that template
+is installed, and the whole graph printed as text if it is not. The adapter's job is to make
+both cheap, which [the whole graph](#the-whole-graph) does in one directory read.
 
 **Is this a shared place?** Same answer as the repo it lives in — these files are
 committed, so a public repo makes them public. `<yes | no>`.
@@ -14,7 +17,6 @@ committed, so a public repo makes them public. `<yes | no>`.
 tickets/
 └── <effort-slug>/
     ├── map.md                    ← the map body
-    ├── PROGRESS.md               ← generated; see below
     └── issues/
         ├── 01-name-the-stages.md
         ├── 02-tracker-primitives.md
@@ -33,7 +35,7 @@ like they were not involved. For that case, move the whole tree to the workspace
 
 ```
 <workspace>/.claude/charts/<KEY>/    ← <KEY> is the tracker id the map serves
-    map.md, PROGRESS.md, context.md, tickets/, research/, reviews/<repo>.md
+    map.md, context.md, tickets/, research/, reviews/<repo>.md
 ```
 
 **Workspace chart state is not committed**, so it trades the committed-record property for
@@ -157,21 +159,3 @@ looked like it worked. Cheapest adapter for this verb, and the one that hid the 
 This adapter is for **one session at a time.** A claim written in one worktree is invisible
 from another — there is no shared surface to publish it on — so the advisory claim is not
 merely weak here, it is unobservable. If you want parallel sessions, use a hosted tracker.
-
-## The generated progress file
-
-Every hosted tracker gives you an at-a-glance view for free. Local markdown gives you a
-directory listing. `PROGRESS.md` closes that gap: destination, counts, the frontier, what
-is blocked, and the gotchas found so far.
-
-**Generate it; never hand-maintain it.** It goes stale between sessions by design, so it
-opens with its own warning:
-
-```markdown
-> **Snapshot taken:** <date>, after resolving <ticket>.
-> Regenerate rather than trust — the frontier query is in the adapter.
-```
-
-**Carry both the number and the name of every ticket, always.** The number is what you type;
-the name is what makes it legible six weeks later. Never one without the other — a page of
-bare `07, 11, 22` is unreadable by the next session, which is usually you.

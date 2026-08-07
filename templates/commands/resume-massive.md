@@ -1,5 +1,5 @@
 ---
-description: Walk a chart - pick the next takeable ticket, claim it, dispatch it by type, then do the bookkeeping: gist, close, regenerate the decision list and the progress view, graduate the fog. Owns the three endings - done, stalled, abandoned. On done it runs the closing review sequence and banks the map's memories. One ticket per session, research excepted.
+description: Walk a chart - pick the next takeable ticket, claim it, dispatch it by type, then do the bookkeeping: gist, close, regenerate the decision list, graduate the fog. Owns the three endings - done, stalled, abandoned. On done it runs the closing review sequence and banks the map's memories. One ticket per session, research excepted.
 argument-hint: <TICKET-ID> — optional; omit to pick up the only map in flight
 disable-model-invocation: true
 ---
@@ -33,9 +33,8 @@ A closed map's folder stays on disk as the record. A map with no `State:` line a
 
 ## 2. Load it low-res
 
-`map.md` — Destination, Notes, Decisions so far, Not yet specified, Out of scope. Then the
-progress view, **and treat it as a snapshot** — it was generated last session and the
-frontier below is the live answer.
+`map.md` — Destination, Notes, Decisions so far, Not yet specified, Out of scope. Nothing
+else: the frontier in step 3 is computed live, from disk, every session.
 
 Do **not** read every ticket body. That is what the map exists to spare you.
 
@@ -91,9 +90,6 @@ session's one ticket.
    loaded at session start.
 4. **A ticket closed as out of scope is not a decision.** It gets its line under *Out of
    scope* and stays out of *Decisions so far*, which records the route actually walked.
-5. **Regenerate the progress view** — destination, counts, the frontier, what is blocked and
-   on whom, the gotchas so far. Number **and** name for every ticket; a page of bare
-   `07, 11, 22` is unreadable by the next session, which is usually you.
 
 ## 6. Update the edges
 

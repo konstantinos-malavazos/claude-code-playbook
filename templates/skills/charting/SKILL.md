@@ -156,8 +156,12 @@ dependencies leaves *what is takeable now* as a question answered by hand.
 the picture lives beside it, and the two gitignore rules do not apply. That is the only
 override; absent it, use the paths above.
 
-**If the template is not installed, skip it and say so once.** Nothing else depends on the
-picture, and the adapter's generated progress view carries the same facts as text.
+**If the template is not installed, say so once — then ask for *the whole graph* and print
+the same facts as text**: the destination in one line, the frontier by number and name, what
+is blocked and on what, and the closed count. Nothing else depends on the picture, and no
+tracker owes you a substitute for it — the fallback is this paragraph, not an artifact.
+Print it; never write it to a file, which would be a second store going stale from the
+moment it lands.
 
 ## The leading-gist rule
 

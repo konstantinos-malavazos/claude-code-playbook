@@ -79,7 +79,9 @@ one is the resolution.
 
 **`.claude/` in the repo being worked on, at a fixed filename.** `block-infra-staging.sh`
 refusing to stage it is the enforcement, not an obstacle — a generated view must never be
-committed.
+committed. **The reader is what settles that**: this page is for **you**, it needs a browser,
+and an agent gains nothing from parsing HTML. Nothing downstream reads it, so a committed
+copy would be stale weight in the history rather than a record anyone wanted.
 
 **Whatever generates it also ensures `.claude/` is in the repo's `.gitignore` — with
 `!.claude/agents/` and `!.claude/skills/` beside it.** The hook stops the file entering git;
@@ -100,16 +102,6 @@ being something to manage — looking at it *is* regenerating it. Deliberately *
 regenerated on ticket-close: auto-regeneration gives you a file that is *sometimes* fresh,
 which you end up trusting neither way. One rule you can hold: **it is current if you just
 ran it.** The visible *generated at* stamp closes the gap for a browser-refreshed copy.
-
-### It does not replace `PROGRESS.md`
-
-|  | Who reads it | Committed? |
-|---|---|---|
-| **`PROGRESS.md`** | the **next session** — prose, travels with the repo, an agent can read it | yes |
-| **The viewer** | **you** — a picture, needs a browser, an agent gains nothing from parsing HTML | never |
-
-Two generated views of the same tickets, kept apart by **who reads them**. That is also
-what explains the provenance difference, instead of leaving it an accident.
 
 ## Filling the slot
 

@@ -103,12 +103,7 @@ repo's `CLAUDE.md`. Nobody decides afterwards.
 is expressed here as blocking edges — never as a hardcoded chain, because on a given map it
 often is not one.
 
-## 7. Generate the progress view
-
-Per the adapter. Generated, never hand-written, and it opens with its own staleness warning.
-Carry both the number and the name of every ticket.
-
-## 8. Ask before firing research agents
+## 7. Ask before firing research agents
 
 **List the research tickets and get an explicit yes.** Each one spends a background context.
 
@@ -123,7 +118,7 @@ frontier and the next session fires a second agent at the same question.
 Research is the one thing allowed to run alongside the rest, because it runs in its own
 context.
 
-## 9. Stop, and hand back
+## 8. Stop, and hand back
 
 Print, for the user to paste into the tracker themselves:
 

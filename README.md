@@ -98,7 +98,6 @@ the room. Templates stay flat — each `README.md` there says which path needs t
 claude-code-playbook/
 ├── README.md                       ← you are here
 ├── PHILOSOPHY.md                   ← the mindset in one file (read this first)
-├── PROGRESS.md                     ← the running record of how this repo got built
 ├── docs/
 │   ├── shared/                     BOTH PATHS
 │   │   ├── 01-architecture.md      The four config layers: MCP · agents · skills · hooks
