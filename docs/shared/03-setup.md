@@ -154,6 +154,5 @@ the layer specialists in place. Installing one of the three on its own does noth
 If you want the smallest useful thing first: **Steps 1–4 only.** Serena + Forgetful + the
 CLAUDE.md layers already change how every session feels. Add flows and hooks when the
 manual repetition starts to hurt.
--e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

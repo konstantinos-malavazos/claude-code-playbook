@@ -59,6 +59,5 @@ the backbone of the whole pipeline. Write it down now; you'll encode it in the `
 that owns it — the repo's for one repo, the workspace's for sibling repos — and the
 specialists are generated from there. See
 [11-adapting-to-your-stack.md](11-adapting-to-your-stack.md).
--e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

@@ -94,6 +94,5 @@ Reach for decompose when a ticket is too big for one sequential pass **and** it 
 cleanly into independent paths (the classic case: the same change applied across N
 independent units). If the parts are tightly coupled, the sequential chain is simpler and
 safer — don't decompose for its own sake.
--e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

@@ -86,6 +86,5 @@ knowledge base) but the real gate is **governance**, not throughput: a shared st
 access gating, a strict **no-secrets / no-raw-PII** contribution policy, hosting on
 approved infrastructure, and a data-protection review before launch. Start personal;
 graduate to shared once the policy is in place.
--e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

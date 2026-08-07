@@ -66,6 +66,5 @@ An un-gardened memory decays two ways: it fills with noise (retrieval returns ju
 it goes stale (returns confidently-wrong old conclusions). The daily gate stops the
 first; the periodic eval + sweep stops the second. Together they're the difference
 between a memory you trust on ticket N+50 and one you've learned to ignore.
--e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

@@ -81,6 +81,5 @@ often *which symbols matter*), the loop is: memory says "look at `ToBetFeesModel
 Serena jumps straight to it → surgical edit. No file spelunking.
 
 Config snippet: [`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet).
--e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

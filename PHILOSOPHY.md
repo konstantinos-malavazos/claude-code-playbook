@@ -171,10 +171,8 @@ counted by hand). Neither is the rule; the paragraph above is.
 > Give the agent **eyes** and a **memory**, wrap the work in **scoped flows** with
 > **file handoffs** and **hook guardrails**, keep **durable knowledge separate from
 > in-flight noise**, and **measure** whether it's compounding.
--e 
 ---
 
 > **When this mindset doesn't apply** — see [docs/shared/12-when-not-to-use.md](docs/shared/12-when-not-to-use.md) for the boundaries of this pattern.
--e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

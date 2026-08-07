@@ -111,6 +111,5 @@ consolidates them into the **final verdict**.
 - **Reviewers can't edit** so review stays honest.
 - **One commit per branch** so a ticket is one reviewable, revertable unit.
 - **Human owns push/MR** so the irreversible outward step always has a person on it.
--e 
 ---
 > **Last verified against:** Claude Code `2.1.219` — July 2026

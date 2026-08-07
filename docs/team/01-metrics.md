@@ -57,9 +57,6 @@ Retrieval quality is also a number: the `/garden-memory` golden-query eval
 ([10-memory-hygiene.md](../shared/10-memory-hygiene.md)) scores whether the canonical questions
 still return the right answers, and flags regressions vs last month. A memory that
 silently degrades is worse than no memory — so track it like you track the pipeline.
--e 
----
-> **Last verified against:** Claude Code `2.1.219` — July 2026
 
 ---
 
@@ -129,3 +126,6 @@ produced bad work" from "the ticket was hard" from "the human was
 distracted". They're leading indicators, not diagnoses. But a team that
 watches them and discusses the outliers will catch degradation months
 before a team that doesn't.
+
+---
+> **Last verified against:** Claude Code `2.1.219` — July 2026
