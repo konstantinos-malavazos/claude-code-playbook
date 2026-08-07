@@ -5,7 +5,124 @@ Local tracking file for the wayfinder effort on
 **Committed and pushed**, so the effort can be resumed from any machine. The tracker is
 still the source of truth; this is a reading convenience that goes stale between sessions.
 
-> **Snapshot taken:** 6 August 2026, after resolving
+> **THIS FILE IS RETIRED — [#51](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/51) deletes it.**
+> [#8](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8) dropped the
+> progress file entirely. #8 is a decision ticket and writes no files, so the deletion is
+> #51's; until that make lands this is still the live record, and a hole in it would be
+> worse than one more entry. **Do not start a new one.**
+>
+> **Snapshot taken:** 7 August 2026, after resolving
+> [#8 Resuming an effort that spans dozens of sessions](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/8)
+> — **nothing is stored: every resume question on this path is answered by re-deriving from
+> the repo, the tracker or the map.** `PROGRESS.md` is dropped, no solo walker command is
+> added, backlog status is ruled **out of scope**, and nothing in-flight ever reaches memory.
+> Decided only; spawned **#51** (retire the file, 7 files) and
+> **[#52](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/52)**
+> (write down the resume rules, 5 files).
+>
+> **Two premises had expired, and checking them first is what shrank the ticket from three
+> holes to one rule.** #8's body says a mid-ticket death leaves *"nothing recording how far
+> it got"* — [#5](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/5)
+> settled that and it has been on disk since (`charting/SKILL.md:348`,
+> `03-charting.md:96`), so hole 1 was only ever **stages 3 and 4**, which nobody owned. And
+> the body asks whether the command *"duplicates `/resume-ticket` or extends it"* knowing of
+> only those two — **`/resume-massive` did not exist when the ticket was written**, and
+> `03-charting.md:98-100` already points solo readers at it. The map's own *premise you
+> obeyed* rule, applied to the ticket's own body for the third time (#42, #15, now this).
+>
+> **The one rule underneath all seven answers: re-derive, never store.** Every artifact
+> considered would have been a second copy of something the repo or the tracker already
+> holds — which is [#18](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/18)'s
+> *no ledger, anywhere* arriving from the status side rather than the measuring side.
+>
+> **The bootstrap and the cut both store nothing.** Seven of stage 3's eight steps leave a
+> footprint you can look at, and **step 6 is the only one that writes nothing** — a
+> verification, free to redo — so a session that dies at step 5 is resumed by typing
+> `/bootstrap` again, with step 5 already idempotent from
+> [#15](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/15). The
+> cutting board lives only in the conversation (`cut-backlog/SKILL.md:160`, `:175`), but
+> everything it is built from is permanent, so a dead session costs **the human's editing on
+> three-to-ten units** and nothing else. **A cut that cannot fit one sitting is #12's trace
+> check saying the smallest version grew** — a finding, not a resume problem.
+>
+> **`PROGRESS.md` dies on its own stated reason, and that is the finding worth carrying.**
+> `local-markdown.md:161` says it exists because *"every hosted tracker gives you an
+> at-a-glance view for free; local markdown gives you a directory listing."* So it patches a
+> hole **one adapter** has — while `charting/SKILL.md:160` tells every caller to fall back on
+> *"the adapter's generated progress view"* and `views/README.md:104` heads a section *"It
+> does not replace `PROGRESS.md`"*. **`templates/trackers/github.md` defines no progress view
+> at all.** Two files assuming universally what one adapter defines, and the map has been on
+> a hosted tracker for four months without anyone noticing the fallback was empty. Fixed by
+> removing the artifact rather than adding it to five adapters.
+>
+> **Three more grounds, all checked rather than asserted.** [#39](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/39)'s
+> *whole graph* killed the cheap-read argument — one GraphQL call returns every ticket, body
+> and comment, so reading the tracker is also one call. **This file is the evidence against
+> itself**: 2,755 lines, and its entry for #50 and the map's gist for #50 say the same things
+> in the same order at the same length. And it **contradicts its own spec** —
+> `local-markdown.md:169` says *generate it; never hand-maintain it*, and this one is
+> hand-written narrative.
+>
+> **The one thing it alone held has two homes that already exist.** The cross-ticket lessons
+> — *fifth arrival of the premise rule*, *a rule you have written is not a rule you have
+> applied* — go to the **map's Notes** while the map is live (one is already there, from #36)
+> and to the **one memory written when the map closes**, which is what `charting/SKILL.md:356`
+> says that memory is for. **Stated rather than papered over:** a local-markdown user with no
+> HTML template installed is left with a directory listing, and `charting/SKILL.md:160`'s
+> fallback needs a new second half — ask for the whole graph and print it. A sentence, not an
+> artifact.
+>
+> **The hole in hole 3 was in the doc that creates it.** `01-the-solo-path.md:119` closes
+> with *"read the stage you are actually standing in"*, and nothing on the page says how to
+> find out which that is. Five tells answer it, every one a thing you go and look at: no repo
+> · issue #1 open · issue #1 closed with no `CLAUDE.md` · `CLAUDE.md` and specialists on disk
+> with no work tickets · work tickets carrying `From map #1`. **Rejected: a marker file or a
+> `CLAUDE.md` line** — a fact about the repo written down beside the repo can be wrong and
+> nothing would catch it.
+>
+> **Hole 2 was ruled out of scope, not answered — and the body's reason for it is false.**
+> *"At work, Jira gives you a board; solo, nothing does."* A solo builder is on a tracker, and
+> the tracker does not get worse because you are alone; this map is the evidence.
+> `05-cutting.md:285` had already drawn the line — *"The solo path stops here. Everything
+> after this is the shared pipeline."* **It sharpens
+> [#41](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/41)**, which had
+> written the same doubt into its own body: the label-per-backlog option existed only to
+> regenerate the picture six weeks into implementation, and that need is now out of scope.
+> Commented there; **not resolved** — #8 is one input to #41, not a verdict on it.
+>
+> **The interesting tension dissolved rather than resolving.** The body called
+> memory-vs-tracker *"the interesting part of this ticket"*. Once nothing is stored, the only
+> in-flight state that survives a session is the charting progress comment, which #5 already
+> put on the tracker — so `PHILOSOPHY.md` §3 needs no exception at all. **And #18's nudge is
+> paid, in the negative**: it asked whether hole 1 would hand the pipeline the same comment
+> shape, making *sessions per unit = progress comments + 1* free. It does not — hole 1 turned
+> out to be stages 3 and 4, and neither is a ticket. #18's *count it by hand* stands as
+> written, exactly as its own comment allowed for.
+>
+> **The command question was reopened mid-session by the driver and closed on numbers.** The
+> challenge was that a thin command would avoid loading both charting modes. It would not:
+> `charting/SKILL.md` is **388 lines** and `### Chart the map` is **15** of them, the other
+> ~341 being shared by both modes — and `resume-massive.md:11` shows a thin command **loads**
+> the skill rather than replacing it, so it costs context and cannot save it. Held open to
+> the last question anyway, because the honest case for a command was never mode-loading but
+> whether solo has **bookkeeping of its own**. Dropping the progress file deleted the only
+> candidate. **A challenge answered with a line count rather than an argument, and it changed
+> nothing — which is why it was worth measuring.**
+>
+> **Deliberately left: nothing is written.** A grilling cannot also be a make (#5), so all
+> twelve files went to #51 and #52 whole. **Not verified: that `/bootstrap` is re-runnable** —
+> nothing was run, and *safe to re-run* rests on reading the eight steps and on #15's
+> decision. #29 still owns proving the templates run. **Also not done: `Decisions so far` was
+> not fully regenerated** — the new entry was inserted after a fresh re-read of the body, in
+> the file's existing resolution order. A true regeneration from 40 resolution comments would
+> have truncated gists that have been edited since they were first written.
+>
+> **The frontier is now four:** [#24](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/24),
+> #41, [#46](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/46),
+> [#49](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/49) — plus #51
+> and #52 unclaimed. **#47 is still down to #49 alone.**
+>
+> The session before it resolved
 > [#50 Land the two-layer `CLAUDE.md` reframe for the solo path](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/50)
 > — **landed across 17 files: the tree now says what
 > [#48](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/48) decided.**
