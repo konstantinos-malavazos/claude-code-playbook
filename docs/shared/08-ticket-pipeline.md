@@ -114,4 +114,4 @@ consolidates them into the **final verdict**.
 - **One commit per branch** so a ticket is one reviewable, revertable unit.
 - **Human owns push/MR** so the irreversible outward step always has a person on it.
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

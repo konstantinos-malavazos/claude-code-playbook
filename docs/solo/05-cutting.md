@@ -339,4 +339,4 @@ seam it completes, and [04-the-bootstrap.md](04-the-bootstrap.md) for the repo i
 writing tickets against.
 
 ---
-> **Last verified against:** Claude Code `2.1.220` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

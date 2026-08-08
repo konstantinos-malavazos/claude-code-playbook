@@ -216,4 +216,4 @@ and in your [tracker adapter](../../templates/trackers/README.md). The commands 
 [`resume-massive`](../../templates/commands/resume-massive.md).
 
 ---
-> **Last verified against:** Claude Code `2.1.220` — August 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

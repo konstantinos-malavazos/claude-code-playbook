@@ -154,4 +154,4 @@ Read this page first, then
 [the stage you are actually standing in](#which-stage-are-you-standing-in).
 
 ---
-> **Last verified against:** Claude Code `2.1.220` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

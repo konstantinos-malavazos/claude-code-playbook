@@ -285,4 +285,4 @@ Read this when the frontier is empty and the tail is all that is left. Read
 here.
 
 ---
-> **Last verified against:** Claude Code `2.1.220` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

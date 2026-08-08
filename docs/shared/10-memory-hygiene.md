@@ -67,4 +67,4 @@ it goes stale (returns confidently-wrong old conclusions). The daily gate stops 
 first; the periodic eval + sweep stops the second. Together they're the difference
 between a memory you trust on ticket N+50 and one you've learned to ignore.
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

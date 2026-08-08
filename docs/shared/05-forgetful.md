@@ -87,4 +87,4 @@ access gating, a strict **no-secrets / no-raw-PII** contribution policy, hosting
 approved infrastructure, and a data-protection review before launch. Start personal;
 graduate to shared once the policy is in place.
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

@@ -338,4 +338,4 @@ where this stage sits in the whole, and [03-charting.md](03-charting.md) for wha
 the moment a *build* verdict lands.
 
 ---
-> **Last verified against:** Claude Code `2.1.220` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

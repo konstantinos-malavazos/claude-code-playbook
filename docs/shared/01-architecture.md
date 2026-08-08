@@ -104,4 +104,4 @@ Only the distilled conclusion of a ticket becomes a durable memory. Everything i
 lives on disk and evaporates. See [05-forgetful.md](05-forgetful.md) and
 [10-memory-hygiene.md](10-memory-hygiene.md).
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

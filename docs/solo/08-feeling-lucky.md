@@ -481,4 +481,4 @@ correctly next month. That is a real reason. It is just not the usual one.
   independently, is the evidence it is the real one.
 
 ---
-> **Last verified against:** Claude Code `2.1.220` — August 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

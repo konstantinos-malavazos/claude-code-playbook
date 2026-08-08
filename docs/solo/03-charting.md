@@ -348,4 +348,4 @@ you start and
 want the mechanics.
 
 ---
-> **Last verified against:** Claude Code `2.1.220` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

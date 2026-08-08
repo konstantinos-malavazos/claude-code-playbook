@@ -82,4 +82,4 @@ Serena jumps straight to it → surgical edit. No file spelunking.
 
 Config snippet: [`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet).
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

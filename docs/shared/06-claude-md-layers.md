@@ -158,4 +158,4 @@ Template: [`../../templates/claude-md/repo.CLAUDE.md`](../../templates/claude-md
    (environments, service codes, an id↔name map), put it in exactly one layer and have
    the others reference it by name.
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

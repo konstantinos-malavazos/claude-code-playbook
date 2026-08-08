@@ -173,8 +173,12 @@ plan, so the shape can differ run to run.
   "Dynamic workflows" row in `/config`. On by default for Max, Team, and Enterprise; an
   org can disable it via managed settings.
 - Trigger with the keyword `ultracode` in your prompt, or plain phrasing like "use a
-  workflow" / "run a workflow." (Before v2.1.160, the literal word "workflow" was the
-  only trigger.)
+  workflow" / "run a workflow." (Before v2.1.160 the literal keyword was `workflow`;
+  the plain phrasing has always worked, in both versions.)
+- **The keyword is an opt-in only in a prompt you type yourself.** As of v2.1.210 it does
+  **not** start a workflow from `claude -p`, a scheduled task, an SDK prompt not stamped
+  as human input, or a webhook/PR comment relayed into the session. A flow cannot trigger
+  one on your behalf.
 - `/effort ultracode` makes Claude choose a workflow for every substantive task in the
   session.
 - Runtime caps: 16 concurrent agents (fewer on low-core machines), 1000 agents total per
@@ -209,4 +213,4 @@ What actually remains under your control:
   runs unattended.
 
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

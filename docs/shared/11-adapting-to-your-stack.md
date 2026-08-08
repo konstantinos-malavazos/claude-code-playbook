@@ -216,4 +216,4 @@ You need that the first time the report says **disagrees with `CLAUDE.md`** and 
 decide which of the two is wrong.
 
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

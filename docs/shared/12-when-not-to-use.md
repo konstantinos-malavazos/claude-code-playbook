@@ -256,4 +256,4 @@ should not have run costs you one ticket. A front-end you should not have run co
 weeks of sessions deciding things that did not need deciding, and it feels like progress
 the whole time.
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

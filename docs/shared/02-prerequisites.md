@@ -60,4 +60,4 @@ that owns it — the repo's for one repo, the workspace's for sibling repos — 
 specialists are generated from there. See
 [11-adapting-to-your-stack.md](11-adapting-to-your-stack.md).
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

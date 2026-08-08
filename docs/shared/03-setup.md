@@ -161,4 +161,4 @@ If you want the smallest useful thing first: **Steps 1–4 only.** Serena + Forg
 CLAUDE.md layers already change how every session feels. Add flows and hooks when the
 manual repetition starts to hurt.
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

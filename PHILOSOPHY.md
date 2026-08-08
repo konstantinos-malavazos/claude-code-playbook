@@ -175,4 +175,4 @@ counted by hand). Neither is the rule; the paragraph above is.
 
 > **When this mindset doesn't apply** — see [docs/shared/12-when-not-to-use.md](docs/shared/12-when-not-to-use.md) for the boundaries of this pattern.
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

@@ -344,4 +344,4 @@ the seam it is proving, and [03-charting.md](03-charting.md) for where the stack
 and these checks came from.
 
 ---
-> **Last verified against:** Claude Code `2.1.220` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026

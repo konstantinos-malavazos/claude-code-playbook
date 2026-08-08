@@ -128,4 +128,4 @@ watches them and discusses the outliers will catch degradation months
 before a team that doesn't.
 
 ---
-> **Last verified against:** Claude Code `2.1.219` — July 2026
+> **Last verified against:** Claude Code `2.1.226` — August 2026
