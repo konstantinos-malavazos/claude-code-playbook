@@ -99,13 +99,22 @@ the whole of resuming here**: next session you open the ticket and read it. Noth
 stored, on this stage or any other — see
 [the spine](01-the-solo-path.md#which-stage-are-you-standing-in).
 
-[13-massive-tickets.md](../shared/13-massive-tickets.md) runs this same skill against an
+[../team/03-massive-tickets.md](../team/03-massive-tickets.md) runs this same skill against an
 existing multi-repo codebase, and it is worth reading for **how a map behaves over weeks** —
 the three endings, what the map never caches, and the two ways it fails silently. **Its
 commands are not yours to run.** They are bound to a chart folder under
 `<workspace>/.claude/charts/` and dispatch `/build-chart-ticket`, and neither exists on the
 solo path: your map is issue #1 on the tracker, and you walk it with `/charting`, every
-session.
+session. That page sits under `team/` for the same reason — the three commands are team-only.
+
+**The skill is not, and that matters later than this stage.** Once you are past
+[the seam](01-the-solo-path.md#the-seam--where-the-solo-path-stops) your repo stops being
+greenfield, and the next foggy effort you hit is the case that page describes — a clear
+destination and no visible route, on a codebase that already exists. **You chart it the same
+way you charted this one:** `/charting`, your own tracker, one ticket per session, each make
+handed to [`/start-ticket`](../shared/08-ticket-pipeline.md) rather than to
+`/build-chart-ticket`. Read that page for the map's long-run behaviour; ignore its three
+commands. Nothing about fog is team-only.
 
 **Every session, unless you hand the walk to a loop.**
 [08-feeling-lucky.md](08-feeling-lucky.md) drives this stage unattended and answers

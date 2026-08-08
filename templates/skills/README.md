@@ -90,8 +90,13 @@ front-end, which the agile path does not have. Everything above them is shared b
 
 **`charting` used to sit with them and no longer does.** It is stage 2 of the solo path
 *and* the engine behind the massive-ticket flow, which runs it against a mature multi-repo
-codebase — see [13-massive-tickets.md](../../docs/shared/13-massive-tickets.md). Same skill,
+codebase — see [03-massive-tickets.md](../../docs/team/03-massive-tickets.md). Same skill,
 opposite situation. The solo front-end is four stages but only three solo-only skills.
+
+**That flow is team-only and this skill is not** — the `✓ ✓` above is load-bearing, not
+leftover. The three `*-massive` commands are what went team-only; charting a codebase that
+already exists did not. Solo, you point `/charting` at your own repo and hand each make to
+`/start-ticket`. Delete this skill from a solo install and you take stage 2 with it.
 
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.

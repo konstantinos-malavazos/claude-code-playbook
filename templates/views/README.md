@@ -18,7 +18,7 @@ one back.
 | [`dependency-graph.html`](dependency-graph.html) | `~/.claude/dependency-graph.html` | `.claude/dependency-graph.html`, in the repo being worked on |
 
 **One repo is the default, not the only case.** An effort with no single owning repo — a map
-spanning several, as in [13-massive-tickets.md](../../docs/shared/13-massive-tickets.md) —
+spanning several, as in [03-massive-tickets.md](../../docs/team/03-massive-tickets.md) —
 has no repo to write into and no `.gitignore` to edit. There the page lands beside the chart
 wherever the [tracker adapter](../trackers/README.md) puts it, and the two `.gitignore` rules
 below simply do not apply. Absent that, use the row above.

@@ -41,20 +41,27 @@ and moves to the next.
 | `resume-ticket` | reopen an in-flight ticket across sessions (delta mode) | ✓ | ✓ |
 | `end-of-day` | daily memory nomination | ✓ | ✓ |
 | `garden-memory` | periodic memory hygiene | ✓ | ✓ |
-| `start-massive` | chart a foggy effort into a map of small tickets, then stop | ✓ | ✓ |
-| `resume-massive` | walk that map, one ticket per session; owns the three endings | ✓ | ✓ |
-| `build-chart-ticket` | implement one `make:<layer>` ticket off a map | ✓ | ✓ |
+| `start-massive` | chart a foggy effort into a map of small tickets, then stop | — | ✓ |
+| `resume-massive` | walk that map, one ticket per session; owns the three endings | — | ✓ |
+| `build-chart-ticket` | implement one `make:<layer>` ticket off a map | — | ✓ |
 | `feeling-lucky` | walk a **stage 2** map unattended; stop at a guess you cannot take back | ✓ | — |
 | `feeling-very-lucky` | the same walk; stop only when the map or the budget does | ✓ | — |
 
 The three `*-massive` templates are one flow and only work together — see
-[13-massive-tickets.md](../../docs/shared/13-massive-tickets.md). They need the `charting`
+[03-massive-tickets.md](../../docs/team/03-massive-tickets.md). They need the `charting`
 skill and a tracker adapter installed; `build-chart-ticket` also needs the layer specialists
 `/adapt-to-stack` generates.
 
-The two `feeling-*` templates drive **solo stage 2 charting** unattended and are the **first
-path-specific templates here** — which is what the solo/team columns were always for. They
-do **not** drive the `*-massive` flow above, and nothing in them grants anything on it.
+**They are team-only, and the `charting` skill they run is not.** What the three add over
+`/charting` is a chart folder for an effort spanning several repos, a dispatch to the layer
+specialists, and a per-repo closing review — scale, and a ticket somebody else wrote. Charting
+a codebase that already exists needs none of that: solo, you run `/charting` against your own
+repo and hand each make to `/start-ticket`. The skill stays `✓ ✓` in
+[`skills/README.md`](../skills/README.md) for exactly that reason.
+
+The two `feeling-*` templates drive **solo stage 2 charting** unattended. They do **not**
+drive the `*-massive` flow above, and nothing in them grants anything on it — a distinction
+the columns now draw twice, since the two sets sit in opposite ones.
 
 They are solo-only for a reason no flag can change: they dispatch
 [`decision-steward`](../agents/README.md), which stands in for the person whose decision it

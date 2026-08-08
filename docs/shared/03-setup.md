@@ -142,10 +142,16 @@ codebase, so they live in that repo's own `.claude/agents/` and are generated fr
 by hand. Run it on a small real ticket. Once that's smooth, add
 `/fix-ticket`, `/test-ticket`, `/end-of-day`, `/garden-memory` as the need arises.
 
-**The three `*-massive` commands come later, and only together.** `/start-massive`,
-`/resume-massive` and `/build-chart-ticket` are one flow for tickets too foggy to plan
-([13-massive-tickets.md](13-massive-tickets.md)); they also need the `charting` skill and
-the layer specialists in place. Installing one of the three on its own does nothing.
+**The three `*-massive` commands are team-only, come later, and only together.**
+`/start-massive`, `/resume-massive` and `/build-chart-ticket` are one flow for tickets too
+foggy to plan ([../team/03-massive-tickets.md](../team/03-massive-tickets.md)); they also need
+the `charting` skill, `@map-reviewer` and the layer specialists in place. Installing one of
+the three on its own does nothing.
+
+**Solo, skip all three and install the `charting` skill on its own.** It is what stage 2 of
+the solo path runs ([../solo/03-charting.md](../solo/03-charting.md)), and it is also how you
+chart a foggy effort on a repo you already shipped — same skill, no commands wrapped around
+it, each make handed to `/start-ticket`.
 
 ---
 

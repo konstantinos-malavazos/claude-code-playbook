@@ -19,8 +19,11 @@ Three hard rules, nothing overrides them:
 - **One ticket per iteration, one fresh context per iteration.** A ticket is *sized* to a
   fresh context. Never resolve two in one.
 - **Never touch the massive-ticket flow.** `/start-massive`, `/resume-massive` and
-  `/build-chart-ticket` are a different flow over an existing codebase. This command does not
-  drive them, is not driven by them, and grants nothing on that path.
+  `/build-chart-ticket` are a different **path** — team-only, over a codebase somebody else's
+  ticket described. This command does not drive them, is not driven by them, and grants
+  nothing on that path. A solo install has none of the three, so on your machine this rule
+  should have nothing to bite on; it stays because the rule is about ownership, not about
+  which files you happened to copy.
 - **Never modify `/start-ticket`, `/resume-ticket`, `/fix-ticket`, `/test-ticket`** or any
   agent they use.
 

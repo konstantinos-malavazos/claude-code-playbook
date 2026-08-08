@@ -137,14 +137,17 @@ back to reading files — verify one agent before you trust the set.
 | `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
 | `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
 | `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |
-| `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | ✓ | ✓ |
+| `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | | ✓ |
 | `decision-steward.md` | one grilling question on an unattended walk → an answer **plus a basis** (**gathers no evidence**) | ✓ | |
 
-The **solo** / **team** columns say which entrance needs each template. `pitch-judge` is the
-first to claim a single column — it belongs to the solo path's kill gate, which the agile
-path does not have. `decision-steward` is the second, and its reason is stronger: it stands
-in for the person whose decision it is, which is only defensible when that person is the one
-who started the walk. See [08-feeling-lucky.md](../../docs/solo/08-feeling-lucky.md).
+The **solo** / **team** columns say which entrance needs each template. Three claim a single
+column, for three different reasons. `pitch-judge` belongs to the solo path's kill gate, which
+the agile path does not have. `decision-steward` stands in for the person whose decision it
+is, which is only defensible when that person is the one who started the walk — see
+[08-feeling-lucky.md](../../docs/solo/08-feeling-lucky.md). `map-reviewer` is dispatched by
+[`/resume-massive`](../commands/README.md) and by nothing else, and that flow is team-only
+([03-massive-tickets.md](../../docs/team/03-massive-tickets.md)); a solo builder charting an
+existing repo with `/charting` closes the map without it.
 
 **`pitch-judge` and `decision-steward` are the two agents here that read no handoff file and
 touch no code.** Both **gather no evidence**: the entire input arrives in the prompt.

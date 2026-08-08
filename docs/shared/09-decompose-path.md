@@ -10,9 +10,12 @@ by setting **slice-count > 1**; you confirm it.
 
 **This path assumes you can already name the slices.** If you sit down to plan and cannot —
 the destination is clear but the route is not — slicing is the wrong tool, because there is
-nothing yet to slice. That ticket gets charted first: see
-[13-massive-tickets.md](13-massive-tickets.md). The discriminator between the two is **fog,
-not size**; both docs say "large ticket" and they solve different problems.
+nothing yet to slice. That ticket gets **charted** first, with
+[`/charting`](../../templates/skills/charting/SKILL.md). On a team, three commands wrap that
+charting for an effort spanning repos: [../team/03-massive-tickets.md](../team/03-massive-tickets.md).
+Solo, you run the skill directly and hand each make back to `/start-ticket`. Either way the
+discriminator against this page is **fog, not size** — both say "large ticket" and they solve
+different problems.
 
 ---
 

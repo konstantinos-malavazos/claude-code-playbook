@@ -120,10 +120,16 @@ The other three stages each have a reason they want you, and none of them is squ
 Charting is the only one that is **a loop over many sessions**, which is the only shape a
 driver can drive. The other three run once each.
 
-> **The massive-ticket flow is a different thing and this mode does not touch it.**
+> **The massive-ticket flow is a different path and this mode does not touch it.**
 > `/start-massive`, `/resume-massive` and `/build-chart-ticket` walk a map over a codebase
-> that already exists, from a ticket somebody handed you. Nothing here drives them, and
-> nothing here should be read as permission to answer a `grilling` on that flow.
+> that already exists, from a ticket somebody handed you. They are
+> [team-only](../team/03-massive-tickets.md), so a solo install does not carry them at all —
+> which makes this rule easier to keep and does not make it redundant. Nothing here drives
+> them, and nothing here should be read as permission to answer a `grilling` on that flow.
+>
+> **Nor on your own map, once the repo is no longer greenfield.** This mode is scoped to
+> **stage 2**, not to solo. Charting a codebase you already shipped is a case you keep
+> ([03-charting.md](03-charting.md)) — but you walk that map yourself.
 
 ---
 
@@ -452,7 +458,8 @@ correctly next month. That is a real reason. It is just not the usual one.
 | What each verb means on your tracker, and what a claim is | [`trackers/README.md`](../../templates/trackers/README.md) and your installed adapter |
 | The steward's own rules | [`decision-steward.md`](../../templates/agents/decision-steward.md) |
 | Which guardrails hold solo, and why reversibility is the surviving clause | [07-guardrails-when-solo.md](07-guardrails-when-solo.md) |
-| Charting a codebase that already exists | [13-massive-tickets.md](../shared/13-massive-tickets.md) — **a different flow, which this mode does not drive** |
+| The `*-massive` commands over a codebase that already exists | [../team/03-massive-tickets.md](../team/03-massive-tickets.md) — **a different path, team-only, which this mode does not drive** |
+| Charting a codebase *you* already shipped | [03-charting.md](03-charting.md) — still yours, still `/charting`, but walked by hand: this mode is scoped to stage 2 |
 
 ---
 

@@ -1,20 +1,54 @@
-# 13 — Massive tickets (charting an existing codebase)
+# 03 — Massive tickets (charting an existing codebase)
 
-The [decompose path](09-decompose-path.md) splits a large ticket you can already **plan**.
-This doc is for the one you cannot: an effort where the goal is clear, the route is not, and
-finding the route is itself weeks of work.
+The [decompose path](../shared/09-decompose-path.md) splits a large ticket you can already
+**plan**. This doc is for the one you cannot: an effort where the goal is clear, the route is
+not, and finding the route is itself weeks of work.
 
 The test is not size. It is **fog**.
 
 | | Use |
 |---|---|
-| One change, one repo, plannable in a pass | [`/start-ticket`](08-ticket-pipeline.md) |
-| Large, but you can already name the slices | [decompose path](09-decompose-path.md) |
+| One change, one repo, plannable in a pass | [`/start-ticket`](../shared/08-ticket-pipeline.md) |
+| Large, but you can already name the slices | [decompose path](../shared/09-decompose-path.md) |
 | You can see the destination but not the route, and it spans sessions | **this doc** |
 
 If you sit down to plan and cannot, that is the signal. A map you did not need costs more
 than the work; running `/start-massive` on a ticket you could have planned wastes a session
 proving that.
+
+---
+
+## Why this doc lives under `team/`
+
+**Fog is not a team condition, and this flow is.** What sits here is the three commands, not
+the ability to chart a codebase that already exists — and the two are worth keeping apart,
+because only one of them moved.
+
+The three commands assume, at minimum, a ticket somebody else wrote and an effort spanning
+repos that no single one of them owns. That is what buys the chart folder outside any repo,
+the closing review sequence over every repo touched, and `@map-reviewer` re-fetching
+acceptance criteria that were never yours to edit. That is what the `—` against all three
+rows of the [command table](../../templates/commands/README.md) records: a solo install does
+not carry these files at all.
+
+**Solo, the capability survives the move.** A builder past
+[the seam](../solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) who hits a foggy
+effort on the repo they already shipped runs **`/charting`** against it directly — the same
+skill this flow runs, on their own tracker, one ticket per session. It is the same skill by
+construction: `charting` stays `✓ ✓` in
+[`templates/skills/README.md`](../../templates/skills/README.md), and the skill already
+handles both situations explicitly, including
+[the one where the index is sparse rather than empty](../../templates/skills/charting/SKILL.md).
+Each make ticket goes to `/start-ticket`, which is where
+[the flow catalogue](../shared/07-the-flows.md) already sends charting's output.
+
+What they do without is this page's machinery: no `/build-chart-ticket` dispatching layer
+specialists behind a review gate, no per-repo commit-message discipline, no closing sequence.
+On one repo they own, `/start-ticket` and its own reviewers already cover that ground.
+
+> **This is the sharper line the `solo` / `team` split was always drawing.** The old framing
+> called this case *awkward* — neither door quite fitting. It is not awkward; it is a case
+> where both doors chart and only one needs a flow wrapped around the charting.
 
 ---
 
@@ -74,8 +108,8 @@ because it runs in a background context.
 ## The label is the dispatch
 
 A make ticket carries `make:<layer>`, where the layers are the implementation chain declared
-in the repo's `CLAUDE.md` — the same source [`/adapt-to-stack`](11-adapting-to-your-stack.md)
-generates the specialists from. A `schema → service → consumer` chain gives you `make:schema`
+in the repo's `CLAUDE.md` — the same source
+[`/adapt-to-stack`](../shared/11-adapting-to-your-stack.md) generates the specialists from. A `schema → service → consumer` chain gives you `make:schema`
 dispatching `@schema-specialist`, and so on. Add a layer to the chain and you get its ticket
 type for free.
 
@@ -135,7 +169,7 @@ unclaimed, the next session fires a second agent at a question already being ans
 | 3 | every finding becomes a new ticket — **the map does not close this round** |
 | 4 | one re-sweep, and only one. A third round means the map is wrong, not the code |
 | 5 | bank the memories: one, or a hub plus one per repo. Never one per ticket |
-| 6 | hand the unproven, artifact-shaped criteria to [`/test-ticket`](07-the-flows.md) |
+| 6 | hand the unproven, artifact-shaped criteria to [`/test-ticket`](../shared/07-the-flows.md) |
 | 7 | stamp `State: closed` on line 1 of `map.md` — last, and only here |
 
 Step 1 exists because the first repo reviewed got its verdict on day 3, before the consumers
@@ -170,6 +204,10 @@ ends by printing text for **you** to paste.
 - `/charting` reads as greenfield-only if you meet it through the solo path. It is not.
 - Two of the rules above (the self-counting review gate, the unclaimed handoff) are invisible
   in a design read and fatal in a real run.
+- Sitting under `team/` says the **flow** needs other people, not that the **fog** does. A
+  reader who takes the folder as the whole claim concludes a solo builder cannot chart an
+  existing codebase, which is false and would send them to `/start-ticket` with nothing to
+  plan from.
 
 The mechanics live in [`templates/skills/charting/SKILL.md`](../../templates/skills/charting/SKILL.md)
 and in your [tracker adapter](../../templates/trackers/README.md). The commands are

@@ -240,9 +240,13 @@ not in the room.
 > driver owns the product, the repo and the tracker — and buys the recording half with a
 > mandatory basis on every answer plus a ledger of every guess.
 >
-> **It does not reach the [massive-ticket flow](../../../docs/shared/13-massive-tickets.md)**,
+> **It does not reach the [massive-ticket flow](../../../docs/team/03-massive-tickets.md)**,
 > which runs this same skill over a codebase somebody else's ticket described. Same skill,
-> different owner, and the ownership half is the half that cannot be bought.
+> different path, and the ownership half is the half that cannot be bought.
+>
+> **The exception is scoped to solo stage 2, not to solo.** That flow being team-only does not
+> widen it by one ticket: a solo builder charting an existing repo with `/charting` is still
+> outside it, and their `grilling` tickets still need them in the room.
 >
 > **If you are not running that mode, this rule is flat.**
 

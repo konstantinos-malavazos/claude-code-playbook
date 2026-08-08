@@ -35,11 +35,20 @@ that say a repo is ready — and hands over to exactly the same pipeline the agi
 runs. Everything downstream of that seam is shared. If you arrive with a ticket, you were
 already past the seam and never needed the front-end.
 
-**One case sits awkwardly between the doors:** a ticket on a codebase that already exists,
-whose destination is clear but whose *route* is not. It is not a raw idea, and it is not
-something `/start-ticket` can plan in one pass — so it charts first and walks the resulting
-map over weeks. The discriminator is fog, not size. See
-[docs/shared/13-massive-tickets.md](docs/shared/13-massive-tickets.md).
+**One case reaches both doors: fog.** An effort on a codebase that already exists, whose
+destination is clear but whose *route* is not. It is not a raw idea, and it is not something
+`/start-ticket` can plan in one pass — so it charts first and walks the resulting map over
+weeks. The discriminator is fog, not size.
+
+**Both doors chart it; only one wraps a flow around the charting.** The skill is
+[`charting`](templates/skills/charting/SKILL.md), and it is shared:
+
+| | How you chart it |
+|---|---|
+| **Solo**, on a repo you already shipped | Run **`/charting`** against it directly, one ticket per session, and hand each make to `/start-ticket`. Nothing extra to install |
+| **On a team**, on a ticket you didn't write, spanning repos none of which owns the effort | The same skill behind three commands — a chart folder outside any repo, a dispatch to the layer specialists, a per-repo closing review. [docs/team/03-massive-tickets.md](docs/team/03-massive-tickets.md) |
+
+The flow is team-only. **Charting a codebase that already exists is not.**
 
 > If you have 5 minutes and want the *why*: read [PHILOSOPHY.md](PHILOSOPHY.md).
 > It is path-neutral — the mindset is the same through both doors.
@@ -111,8 +120,7 @@ claude-code-playbook/
 │   │   ├── 09-decompose-path.md    Parallel slices for large tickets (git worktrees)
 │   │   ├── 10-memory-hygiene.md    Deliberate memory: /end-of-day + /garden-memory
 │   │   ├── 11-adapting-to-your-stack.md  Mapping the abstract layer-chain to YOUR layers
-│   │   ├── 12-when-not-to-use.md   Where the pattern loses — for both paths
-│   │   └── 13-massive-tickets.md   Charting an existing codebase: a map walked over weeks
+│   │   └── 12-when-not-to-use.md   Where the pattern loses — for both paths
 │   ├── solo/                       THE SOLO PATH — idea to backlog
 │   │   ├── 01-the-solo-path.md     The spine: four stages, and the seam they end at
 │   │   ├── 02-the-kill-gate.md     Stage 1 — /pitch: is this worth building at all?
@@ -124,7 +132,10 @@ claude-code-playbook/
 │   │   └── 08-feeling-lucky.md     Walking a stage 2 map unattended, and what that costs
 │   └── team/                       ONLY WITH OTHER PEOPLE
 │       ├── 01-metrics.md           Costing a pipeline run against story points
-│       └── 02-team-adoption.md     Rolling this out to a team
+│       ├── 02-team-adoption.md     Rolling this out to a team
+│       └── 03-massive-tickets.md   The *-massive flow: a map over an existing codebase,
+│                                   walked over weeks. Solo charts the same case with
+│                                   /charting and none of these three commands
 ├── examples/                       A worked walkthrough of one ticket, end to end
 └── templates/
     ├── claude-md/    global · workspace · per-repo CLAUDE.md skeletons
