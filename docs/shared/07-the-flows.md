@@ -180,15 +180,30 @@ plan, so the shape can differ run to run.
   as human input, or a webhook/PR comment relayed into the session. A flow cannot trigger
   one on your behalf.
 - `/effort ultracode` makes Claude choose a workflow for every substantive task in the
-  session.
+  session. To start a session already in it, `claude --effort ultracode` — **v2.1.203+**.
 - Runtime caps: 16 concurrent agents (fewer on low-core machines), 1000 agents total per
   run. These are hard caps.
-- As of v2.1.219, the "Dynamic workflow size" guideline defaults to medium (aim for
-  fewer than 15 agents). It's advisory, not a cap — a prompt calling for a different
-  scale overrides it. Set it from any settings file with the `workflowSizeGuideline`
-  key, the form worth templating; the `/config` row hides once one is set.
-- No mid-run user input — the script coordinates agents but has no direct filesystem or
-  shell access itself.
+- The "Dynamic workflow size" guideline needs **v2.1.202+**; before that there was no
+  guideline and the effective behaviour was `unrestricted`. Values map to agent counts —
+  `small` <5, `medium` <15, `large` <50, `unrestricted` none. **As of v2.1.219 the default
+  is `medium`**; earlier versions still defaulted to `unrestricted`. It's advisory, not a
+  cap — a prompt calling for a different scale overrides it. Set it from any settings file
+  with the `workflowSizeGuideline` key, the form worth templating; the `/config` row hides
+  once one is set.
+- A run that grows unusually large gets a **`Large workflow` warning** on its progress
+  line — more than 25 agents scheduled, or a projected token total past 1.5M
+  (**v2.1.203+**). It is advisory: it does not pause or cap the run. Choosing a size
+  guideline replaces the 25-agent threshold with that guideline's count, and sessions with
+  ultracode on never show it.
+- **"No mid-run user input" is narrower than it sounds.** The *script* cannot ask you
+  anything, and it has no direct filesystem or shell access — agents do the reading,
+  writing and running. But **agent permission prompts still interrupt**: a shell command,
+  web fetch or MCP call outside your allowlist prompts you mid-run. Allowlist what the
+  agents need *before* a long run, or it will stop and wait for you. For genuine sign-off
+  between stages, run each stage as its own workflow.
+- **The spawned subagents always run in `acceptEdits`, whatever the session's permission
+  mode**, and inherit your tool allowlist. File edits are auto-approved inside a run —
+  worth knowing before pointing one at a repo you care about.
 - Monitor a run with `/workflows`; press `s` on a finished run to save its script as a
   command, to `.claude/workflows/` (project, shared) or `~/.claude/workflows/` (personal).
 - Resume only works within the same session — exiting Claude Code restarts the workflow
