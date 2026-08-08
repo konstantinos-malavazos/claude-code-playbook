@@ -169,3 +169,6 @@ If the team graduates to a shared Forgetful instance (see
 | New agent review | Tool scope, handoff schema, overlap check, integration test |
 | Version mismatch | Version-stamped handoff files, consumer warns on mismatch |
 | Shared memory | No-PII hook, gated writes, shared golden queries |
+
+---
+> **Last verified against:** Claude Code `2.1.226` — August 2026
