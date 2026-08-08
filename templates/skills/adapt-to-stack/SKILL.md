@@ -7,7 +7,6 @@ description: >-
   layer chain and the specialists do not exist yet, when the chain gains a layer, or the
   user says "adapt to my stack" / "generate the layer specialists". NOT for writing
   CLAUDE.md itself, and NOT for editing a generated file that already exists.
-disable-model-invocation: true
 ---
 
 # Adapt to stack — one specialist per layer, generated from one file

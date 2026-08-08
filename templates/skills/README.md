@@ -27,7 +27,7 @@ than the two above:
 | `when_to_use` | Extra trigger phrases, appended to `description` and sharing that cap |
 | `argument-hint` | Autocomplete hint, e.g. `[ticket-id]` |
 | `arguments` | Named positional args for `$name` substitution |
-| `disable-model-invocation` | `true` = only you can invoke it. **This is what makes a skill user-invoked** |
+| `disable-model-invocation` | `true` = only you can invoke it. **This is what makes a skill user-invoked** — and it blocks the Skill tool too, so **no other skill can dispatch to it** |
 | `user-invocable` | `false` hides it from the `/` menu. Does *not* block the Skill tool |
 | `allowed-tools` | Pre-approved for the invoking turn only — not a restriction |
 | `disallowed-tools` | Removed from the pool while active |
@@ -59,7 +59,8 @@ than the two above:
 - **User-invoked** skills run when you type `/skill-name`. **A description that says "use
   when the user says…" does not make a skill user-invoked** — it is a hint, not a
   constraint. Set `disable-model-invocation: true` if it must never fire on its own.
-  Nothing in this set does yet; that is a deliberate default, not an oversight — see below.
+  **Two of these skills do** — `bootstrap` and `cut-backlog`; the rule that sorts them is
+  below, and it is `PHILOSOPHY.md`'s, not a local invention.
 - Keep the front `description` tight and trigger-focused; put the detail in the body.
 - Skills can bundle extra files (templates, checklists) the body points to —
   progressive disclosure keeps the base cost low.
@@ -101,33 +102,47 @@ already exists did not. Solo, you point `/charting` at your own repo and hand ea
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
 
-## On `disable-model-invocation` — three skills set it, and the rule says why
+## On `disable-model-invocation` — two skills set it, and the rule is `PHILOSOPHY.md`'s
 
 Four of these are **conversations** — `charting`, `pitch`, `grilling`, `diagnose` — and none
 of them sets `disable-model-invocation: true`, so Claude may load any of them on its own.
 That is left as-is on purpose: a conversation that starts a turn early costs you one
 redirect.
 
-The field earns its place on skills with **side effects or timing you own** — a deploy, a
-commit, a send. **`bootstrap`, `cut-backlog` and `adapt-to-stack` are the three templates
-here that meet that test, and all three set the field.** None is a conversation.
-`bootstrap` scaffolds a repo, writes a `CLAUDE.md`, indexes a language server, generates
-agent files and writes memory; `cut-backlog` files a dozen issues in a tracker other people
-may be able to see; `adapt-to-stack` writes an agent file and a skill directory per layer
-into a repo, and they are meant to be committed. A conversation firing a turn early costs a
-redirect; those firing early cost a tree of files nobody asked for, or a backlog nobody
-approved. Same rule, applied — not a new one.
+**The test is not local to this directory.** It is `PHILOSOPHY.md`'s rule of thumb, which is
+already two tests and already sorts these skills correctly:
 
-The three share a shape worth naming: **each one's output is somebody else's input** — the
-bootstrap's report is read at the seam, the backlog is read by `/start-ticket`, and the
-generated specialists are what `/start-ticket` dispatches **to** — so an unasked-for run
-does not merely waste a turn, it publishes something downstream may act on.
+> *if it's hard to reverse **or** leaves your machine, a human confirms it.*
+>
+> — [`PHILOSOPHY.md`](../../PHILOSOPHY.md) §5
 
-### The precondition the test does not state: nothing else dispatches to it
+| Skill | Hard to reverse? | Leaves your machine? | Field |
+|---|---|---|---|
+| `bootstrap` | **yes** — writes memory, ends in a commit | no | **set** |
+| `cut-backlog` | no | **yes** — files a dozen issues where other people may see them | **set** |
+| `adapt-to-stack` | no — you `rm` the generated files | no | **not set** |
 
-`prototype` writes files, so the side-effects test above would seem to put the field on it.
-It does not get one, and the reason is mechanical rather than a judgement call. The field
-does not merely stop autoloading — it blocks the Skill tool:
+**`adapt-to-stack` used to set it, and the earlier version of this rule is why.** This
+README once said the field earns its place on skills with *"side effects or timing you own"*
+— and `adapt-to-stack` writes files, so that test returned **set it**. It was the wrong
+question: writing a file is a side effect whatever else is true of it, so the test could
+only ever answer yes. *Hard to reverse* asks the thing that decides, and it returns **no**
+for a skill whose whole contract is that it never overwrites — the worst an unasked run does
+is add files you delete. Settled in
+[#49](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/49).
+
+**Do not re-derive a rule the repo already states.** A local version drifts, and this one
+drifted into a wrong answer before anybody noticed.
+
+The shape all three share is **each one's output is somebody else's input** — the bootstrap's
+report is read at the seam, the backlog by `/start-ticket`, and the generated specialists are
+what `/start-ticket` dispatches **to**. Worth naming, and **not the test**: it is true of
+`adapt-to-stack`, which gets no field.
+
+### The mechanical veto: nothing else may dispatch to it
+
+The test above is a judgement. This is not. The field does not merely stop autoloading — it
+blocks the Skill tool:
 
 > The `user-invocable` field only controls menu visibility, not Skill tool access. Use
 > `disable-model-invocation: true` to block programmatic invocation.
@@ -137,17 +152,28 @@ does not merely stop autoloading — it blocks the Skill tool:
 >
 > — [Extend Claude with skills](https://code.claude.com/docs/en/skills)
 
-**A skill body that says *run `/other-skill`* is a programmatic invocation.** `charting`'s
-ticket-types table names `/prototype` as what backs a `prototype` ticket, so setting the
-field there would turn that row into a dead pointer — the skill would be unreachable from
-the only thing that dispatches to it.
+**A skill body that says *run `/other-skill`* is a programmatic invocation**, so a skill
+something else dispatches to cannot carry the field, whatever the test above returns:
 
-So the side-effects test has a precondition it never stated: **nothing else dispatches to
-it.** The three above pass because a human types all three and nothing calls them —
-*except* that `/bootstrap` step 5 says **Run `/adapt-to-stack`**, and `/adapt-to-stack` sets
-the field. One of those two is wrong; which one changes is
-[#49](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/49), not this
-README's call.
+- **`prototype` writes files and still gets none.** `charting`'s ticket-types table names
+  `/prototype` as what backs a `prototype` ticket; the field would make that row a dead
+  pointer — unreachable from the only thing that dispatches to it.
+- **`bootstrap` step 5 says *Run `/adapt-to-stack`***, which is the second reason the field
+  came off it. Here the veto and the test agreed, so #49 never had to rank them.
+
+**They do not always agree, and this repo ships the case where they do not.**
+`/resume-massive:63` dispatches to `/build-chart-ticket`, which commits, amends, **pushes**
+and writes to the tracker — so it fails *both* halves of the test and earns the field, and it
+is dispatched to and so cannot have it. Filed as
+[#53](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/53). **Do not
+read the veto as *dispatch always wins*** — where they conflict, something about the shape of
+the two skills has to change, not the frontmatter.
+
+**The harness does not fail silently, which is why this hid through three tickets.** It
+blocks the call and *"instructs it not to reproduce the deploy steps another way, so expect
+Claude to suggest running `/deploy` yourself"* — so a broken dispatch surfaces as a flow
+stopping mid-run and asking you to type the thing. Survivable, and therefore easy to walk
+past.
 
 `pitch` is the closest remaining call, since it dispatches subagents and spends real time.
 Watch it; if it ever fires unasked, that is the signal to set the field rather than reword
