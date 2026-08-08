@@ -107,6 +107,13 @@ commands are not yours to run.** They are bound to a chart folder under
 solo path: your map is issue #1 on the tracker, and you walk it with `/charting`, every
 session.
 
+**Every session, unless you hand the walk to a loop.**
+[08-feeling-lucky.md](08-feeling-lucky.md) drives this stage unattended and answers
+`grilling` tickets with an agent that must declare a basis for every answer — `grounded`,
+`guessed`, or `yours` — and stops at the ones you cannot take back. It needs your tickets to
+be files on disk, and it always stops at [the tail](#the-tail). It is a mode over *this*
+stage, not a fifth stage, and it changes nothing on this page except who is sitting there.
+
 ---
 
 ## Fog of war

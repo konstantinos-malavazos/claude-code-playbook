@@ -66,7 +66,7 @@ Reads both briefs, does a pinpoint read of `formatFeedTime`, writes `planner.md`
   (IANA, null=UTC); feed formatting stays centralized in `formatFeedTime(ts, tz)`; default
   unknown-region = UTC (decided PROJ-482)."*
 - Handoff files evaporate at session end.
-- **You** push the branch and open the PR.
+- The agent pushes the branch (this repo is allowlisted); **you** open the PR.
 
 ---
 

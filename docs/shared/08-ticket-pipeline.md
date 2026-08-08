@@ -18,7 +18,7 @@ your layer specialists for the implementer steps, and your git host for "MR/PR".
 | 4 | layer specialists (in chain order) | **Serena edit** + build/test in their repo | code + `<layer>.md` handoff |
 | 5 | `repo-reviewer` | Serena read, run tests; **comments only** | `repo-reviewer.md` — provisional verdict + MR description |
 | 6 | `release-reviewer` | cross-repo Serena read; **comments only** | appended findings → final verdict |
-| 7 | orchestrator + human | — | consolidated memory; human pushes & opens the MR/PR |
+| 7 | orchestrator + human | — | consolidated memory; agent pushes the branch where allowlisted, human opens the MR/PR |
 
 Handoffs live in `<workspace>/.claude/handoffs/<TICKET>/` and evaporate at session end.
 
@@ -98,8 +98,10 @@ consolidates them into the **final verdict**.
 
 - **REQUEST CHANGES** → back to the relevant specialist (amend, don't add commits).
 - **APPROVE** → consolidate the ticket's handoffs into **one durable memory** (root
-  cause / design / blast radius / recipes), then the **human pushes and opens the
-  MR/PR**. The agent never pushes.
+  cause / design / blast radius / recipes), then **the agent pushes the branch** where
+  `~/.claude/repo-allowlist` permits it and the **human opens the MR/PR**. The agent never
+  merges — push moves a branch, merge changes the trunk, and only the second one is the
+  step this pipeline keeps for a person.
 
 ---
 

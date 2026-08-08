@@ -33,12 +33,13 @@ route, gate, and consolidate.
    - `APPROVE` → continue.
 7. **Land** — consolidate the ticket's handoffs into ONE durable memory (root cause /
    design / blast radius / recipes; tagged by functionality). Then tell the user the
-   branch is ready and **they** push + open the MR/PR. You never push.
+   branch is ready. **Push it** where the allowlist permits; **they** open the MR/PR.
 
 ## Guardrails
-- Never write to the tracker. **Never push** — this flow is stricter than the hook on
-  purpose: even where `~/.claude/repo-allowlist` permits it, `/start-ticket` hands you the
-  branch. **Commit no AI-infra files**: `.claude/` (except `agents/` and `skills/`, which
+- Never write to the tracker. **Push the branch when `~/.claude/repo-allowlist` permits
+  it, and not otherwise** — the hook is the authority, and this flow no longer adds a
+  second, invisible no. **Never push to the trunk, and never merge**: that is the step that
+  makes a change the trunk's problem, and it stays yours. **Commit no AI-infra files**: `.claude/` (except `agents/` and `skills/`, which
   are product files generated from this repo's `CLAUDE.md`), MCP state, memory files.
 - Keep the branch at exactly one commit per repo.
 - Handoff files are ephemeral; only the consolidated memory is durable.

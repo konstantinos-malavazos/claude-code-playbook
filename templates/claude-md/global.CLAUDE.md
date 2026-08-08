@@ -88,7 +88,9 @@ reads — write freely. A **public** personal repo counts as shared.
   ```
   - If the working tree is dirty → **STOP** and ask (never auto-stash).
   - If the rebase conflicts on the main branch → **STOP** and surface it.
-  - After branching, confirm `git status` is clean and the branch is local-only. Never push.
+  - After branching, confirm `git status` is clean and the branch is local-only.
+  - Push the finished branch where `~/.claude/repo-allowlist` says `push yes`; never
+    otherwise, and never merge. Mid-flow agents do not push — the flow pushes once, at the end.
 
   `<main-branch>` is a fact about the repo, not a rule: read it from the repo's own
   `CLAUDE.md`, or — with sibling repos — from the workspace `CLAUDE.md`'s main-branch

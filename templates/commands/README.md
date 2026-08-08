@@ -44,14 +44,30 @@ and moves to the next.
 | `start-massive` | chart a foggy effort into a map of small tickets, then stop | ✓ | ✓ |
 | `resume-massive` | walk that map, one ticket per session; owns the three endings | ✓ | ✓ |
 | `build-chart-ticket` | implement one `make:<layer>` ticket off a map | ✓ | ✓ |
+| `feeling-lucky` | walk a **stage 2** map unattended; stop at a guess you cannot take back | ✓ | — |
+| `feeling-very-lucky` | the same walk; stop only when the map or the budget does | ✓ | — |
 
 The three `*-massive` templates are one flow and only work together — see
 [13-massive-tickets.md](../../docs/shared/13-massive-tickets.md). They need the `charting`
 skill and a tracker adapter installed; `build-chart-ticket` also needs the layer specialists
 `/adapt-to-stack` generates.
 
-The **solo** / **team** columns say which entrance needs each template. Everything here is
-shared today; the columns exist so path-specific templates can declare themselves as they
-arrive.
+The two `feeling-*` templates drive **solo stage 2 charting** unattended and are the **first
+path-specific templates here** — which is what the solo/team columns were always for. They
+do **not** drive the `*-massive` flow above, and nothing in them grants anything on it.
+
+They are solo-only for a reason no flag can change: they dispatch
+[`decision-steward`](../agents/README.md), which stands in for the person whose decision it
+is, and that is only defensible when that person is the one who typed the command.
+
+**Any adapter drives them, but a shared tracker does not.** A night of unattended comments
+and closes is the largest batch of tracker writes this playbook produces, and guardrail 2
+still asks before writing where others can see. On GitHub they also compute the frontier from
+the [whole-graph GraphQL call](../trackers/github.md) rather than the REST summary, which
+lags a close and would let a walk call a live map finished. See
+[08-feeling-lucky.md](../../docs/solo/08-feeling-lucky.md).
+
+The **solo** / **team** columns say which entrance needs each template. A `—` means the
+template exists but that entrance must not install it.
 
 Add `/close-ticket` and `/confirm-deployment` from the same pattern when you need them.

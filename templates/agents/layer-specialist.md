@@ -79,7 +79,9 @@ else
     git add <explicit-paths> && git commit --amend --no-edit
 fi
 ```
-Use explicit paths — never `git add -A`/`.`. Never push. Never commit AI-infra files.
+Use explicit paths — never `git add -A`/`.`. **Never push** — the flow pushes once, after
+the last amend for this repo; a mid-flight push would need a force-push to correct and that
+is hook-blocked. Never commit AI-infra files.
 
 ## Hand off (contract for the next layer)
 Write `<workspace>/.claude/handoffs/<TICKET-ID>/<layer>-specialist.md` with the exact

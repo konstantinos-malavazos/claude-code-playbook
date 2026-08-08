@@ -120,16 +120,17 @@ claude-code-playbook/
 │   │   ├── 04-the-bootstrap.md     Stage 3 — /bootstrap: make the repo real
 │   │   ├── 05-cutting.md           Stage 4 — /cut-backlog: the first version into work units
 │   │   ├── 06-choosing-the-stack.md  How the stack actually gets chosen (charting's tail)
-│   │   └── 07-guardrails-when-solo.md  Which guardrails hold when you own everything
+│   │   ├── 07-guardrails-when-solo.md  Which guardrails hold when you own everything
+│   │   └── 08-feeling-lucky.md     Walking a stage 2 map unattended, and what that costs
 │   └── team/                       ONLY WITH OTHER PEOPLE
 │       ├── 01-metrics.md           Costing a pipeline run against story points
 │       └── 02-team-adoption.md     Rolling this out to a team
 ├── examples/                       A worked walkthrough of one ticket, end to end
 └── templates/
     ├── claude-md/    global · workspace · per-repo CLAUDE.md skeletons
-    ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · map-reviewer · …
+    ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · map-reviewer · decision-steward · …
     ├── skills/       tdd · engineering-standards · grilling · pitch · charting · bootstrap · cut-backlog · …
-    ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory · start-massive · resume-massive · build-chart-ticket
+    ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory · start-massive · resume-massive · build-chart-ticket · feeling-lucky · feeling-very-lucky
     ├── hooks/        block-dangerous-git · block-infra-staging · block-secret-staging · block-mcp-writes · …
     ├── mcp/          MCP config snippets (global + project) + settings snippet
     ├── trackers/     one adapter, installed at ~/.claude/tracker.md

@@ -25,4 +25,5 @@ from durable state, don't redo finished work.
 5. Merge metrics into the existing ledger row (don't create a new one).
 
 ## Guardrails
-Never redo already-approved work. Tracker read-only. Never push.
+Never redo already-approved work. Tracker read-only. Push the branch where allowlisted;
+never merge.

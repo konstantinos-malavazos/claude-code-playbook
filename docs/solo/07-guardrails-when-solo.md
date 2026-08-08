@@ -75,6 +75,31 @@ install, every repo.** Deleting the push block to unblock a weekend project also
 the live project sitting two folders over. One machine, several projects, one of them
 live. So the hook stays installed and **asks, per repo**.
 
+#### And when the answer is *yes*, the agent pushes
+
+The allowlist has always had a `push` column, and until now every flow declined anyway —
+*"a flow that declines to push on a repo the hook would permit is not a contradiction"*
+([below](#what-this-doc-does-not-own)). That was a defensible default and it is no longer
+the one this playbook takes.
+
+> **On an allowlisted repo, an agent that finishes work commits and pushes its branch.**
+> Not listed still means no, and that is unchanged.
+
+**Nothing about the guardrail moved; the flows stopped adding a second, invisible no.** Two
+answers to one question is how you get a rule nobody can find the source of: you allowlist
+a repo, nothing pushes, and there is no way to tell whether the hook refused or a prompt
+did. The hook is the authority, and now it is the only one.
+
+**What is still yours** is the merge. On the shared pipeline the agent pushes the branch and
+you open and merge the PR — the review half of this guardrail was already gone solo, but
+*merge* is the step that makes a change the trunk's problem rather than a branch's.
+
+**The one flow that goes further is [I'm feeling lucky](08-feeling-lucky.md)**, which pushes
+to `main` directly. It earns that by where it runs and nowhere else: stage 2 is a private
+stub with no deployment, no consumers and no other contributors, so its `main` is not a
+shared trunk — it is the only branch of a repo nobody else has. **That reasoning expires the
+moment the repo has a consumer**, which is also the moment charting is over.
+
 ### 2. Ask before writing where others can see it — holds as restated
 
 Already decided, already landed, and deliberately not re-argued here. §5 reads *ask before
@@ -353,7 +378,7 @@ eval. How often to run it after that is memory hygiene's question, not this page
 | §5 and §6 themselves | [`PHILOSOPHY.md`](../../PHILOSOPHY.md) — pointed at from here, never restated there |
 | The per-ticket metrics ledger, story points, cost columns | [01-metrics.md](../team/01-metrics.md) — **the team instance**, not the general rule. Its machinery exists to serve points and dollars, and solo has neither. |
 | How often to run the memory eval | [10-memory-hygiene.md](../shared/10-memory-hygiene.md) — this page says *when it starts mattering*, never *how often* |
-| Which flows push, and when | [07-the-flows.md](../shared/07-the-flows.md), [08-ticket-pipeline.md](../shared/08-ticket-pipeline.md) — **a flow that declines to push on a repo the hook would permit is not a contradiction.** The hook says what is *possible*; a flow says what it *does*. |
+| Which flows push, and when | [07-the-flows.md](../shared/07-the-flows.md), [08-ticket-pipeline.md](../shared/08-ticket-pipeline.md). The hook says what is *possible*; a flow says what it *does* — **and since [the push answer above](#and-when-the-answer-is-yes-the-agent-pushes), no flow declines a push the hook would permit.** A flow may still stop short of the *merge*; that is a different verb. |
 
 Everything on this page is on disk:
 [`repo-allowlist.sample`](../../templates/hooks/repo-allowlist.sample),

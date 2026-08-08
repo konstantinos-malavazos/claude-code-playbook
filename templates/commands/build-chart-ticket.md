@@ -109,8 +109,10 @@ is slicing twice.
 message from `map.md` Notes. Every later one amends into it. Never rewrite the message — if
 it no longer describes the work, stop and surface it.
 
-**Never push.** Never stage AI-infra files. Explicit paths in `git add`, never `-A`, never
-`.`.
+**Push the branch where `~/.claude/repo-allowlist` permits it** — but only after the last
+amend for this repo, never mid-flight, because the next amend would need a force-push and
+that is hook-blocked. **Never merge.** Never stage AI-infra files. Explicit paths in
+`git add`, never `-A`, never `.`.
 
 ## 6. Review — only when the repo is finished
 

@@ -18,8 +18,9 @@ stays one ticket / one commit per repo / one metrics row.
    No `fix: address QA` follow-up commits.
 5. **Review** — @repo-reviewer → @release-reviewer, same as /start-ticket.
 6. **Land** — update the ticket's durable memory with the root cause + fix (append, don't
-   duplicate). User pushes.
+   duplicate). Push the branch where allowlisted; the user merges.
 
 ## Guardrails
-Same as /start-ticket: never push, tracker read-only, one commit per repo, no AI-infra
+Same as /start-ticket: push the branch where allowlisted but never merge, tracker
+read-only, one commit per repo, no AI-infra
 files committed.

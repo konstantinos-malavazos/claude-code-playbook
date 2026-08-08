@@ -204,7 +204,7 @@ for the `make:*` types it is also the dispatch:
 | Type | Who drives | Backed by | Use when |
 |---|---|---|---|
 | `research` | agent alone (AFK) | `/research` | the fact lives outside this workspace — vendor docs, a spec, an RFC |
-| `grilling` | human in the loop | `/grilling` | the default for a decision. A judgement only the human can make |
+| `grilling` | human in the loop | `/grilling` | the default for a decision. A judgement only the human can make — see the exception below, which is solo-only and does not change what the type *means* |
 | `prototype` | human in the loop | `/prototype` | "how should it look / behave" — make something cheap and rough to react to |
 | `task` | either | needs none, by design | manual work blocking a decision: an account to open, access to provision, data to move |
 | `make:<layer>` | agent | `@<layer>-specialist` | a piece of the destination, built in one layer of your implementation chain |
@@ -228,7 +228,23 @@ expressed as blocking edges between tickets, never as a hardcoded chain: on a gi
 chain order often is not the order the tickets have to run in.
 
 **HITL types never resolve without the human.** An agent that answers its own grilling
-questions has broken the ticket, not finished it.
+questions has broken the ticket, not finished it — and the break is not that an agent
+*answered*. It is that a decision got made with **nobody owning it and nothing recording on
+what basis**. Both halves have to be false before this rule stops applying, and on this
+skill they never are: charting is shared by both entrances, and on one of them the owner is
+not in the room.
+
+> **The single documented exception** is [I'm feeling
+> lucky](../../../docs/solo/08-feeling-lucky.md), which drives **solo stage 2 charting**
+> unattended and nothing else. It satisfies the ownership half by construction — solo, the
+> driver owns the product, the repo and the tracker — and buys the recording half with a
+> mandatory basis on every answer plus a ledger of every guess.
+>
+> **It does not reach the [massive-ticket flow](../../../docs/shared/13-massive-tickets.md)**,
+> which runs this same skill over a codebase somebody else's ticket described. Same skill,
+> different owner, and the ownership half is the half that cannot be bought.
+>
+> **If you are not running that mode, this rule is flat.**
 
 `task` and the makes both *do* rather than decide, and they are not the same thing. A make
 delivers a piece of the destination. A `task` delivers something outside the codebase — an

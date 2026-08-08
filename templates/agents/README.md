@@ -30,7 +30,7 @@ cannot choose. The full set:
 | `disallowedTools` | Denylist. Applied **first**, then `tools` resolves against the remainder | — |
 | `model` | `sonnet` / `opus` / `haiku` / `fable`, a full id, or `inherit`. **Defaults to `inherit`** | ✓ all but `layer-specialist` |
 | `permissionMode` | `default`, `acceptEdits`, `auto`, `dontAsk`, `bypassPermissions`, `plan` | — |
-| `maxTurns` | Caps agentic turns. The way to make an agent that weighs but cannot act | ✓ `pitch-judge` |
+| `maxTurns` | Caps agentic turns. The way to make an agent that weighs but cannot act | ✓ `pitch-judge`, `decision-steward` |
 | `skills` | Skills preloaded into its context at startup — full content, not just the description | — |
 | `mcpServers` | Which MCP servers it gets | — |
 | `hooks` | Lifecycle hooks scoped to this agent | — |
@@ -138,16 +138,26 @@ back to reading files — verify one agent before you trust the set.
 | `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
 | `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |
 | `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | ✓ | ✓ |
+| `decision-steward.md` | one grilling question on an unattended walk → an answer **plus a basis** (**gathers no evidence**) | ✓ | |
 
 The **solo** / **team** columns say which entrance needs each template. `pitch-judge` is the
 first to claim a single column — it belongs to the solo path's kill gate, which the agile
-path does not have.
+path does not have. `decision-steward` is the second, and its reason is stronger: it stands
+in for the person whose decision it is, which is only defensible when that person is the one
+who started the walk. See [08-feeling-lucky.md](../../docs/solo/08-feeling-lucky.md).
 
-**`pitch-judge` is the one agent here that reads no handoff file and touches no code.** It
-**gathers no evidence**: its entire input arrives in its prompt, and giving it search tools
-would turn it into a third search pass. Mechanically that is `tools: TodoWrite` plus
-`maxTurns: 1` — the floor rule above, and the reason that rule exists. It is dispatched by
-the [`pitch` skill](../skills/README.md) and is meaningless without it.
+**`pitch-judge` and `decision-steward` are the two agents here that read no handoff file and
+touch no code.** Both **gather no evidence**: the entire input arrives in the prompt.
+Mechanically that is `tools: TodoWrite` plus `maxTurns: 1` — the floor rule above, and the
+reason that rule exists. Each is dispatched by one flow and is meaningless without it —
+`pitch-judge` by the [`pitch` skill](../skills/README.md), `decision-steward` by
+[`/feeling-lucky`](../commands/feeling-lucky.md).
+
+**They are starved for the same reason, and it is worth naming once.** Give either one
+search tools and its verdict stops being a judgement about a fixed record and becomes a
+function of what it happened to find — `pitch-judge` becomes a third search pass, and
+`decision-steward` can manufacture `grounded` on demand by turning up *some* line to point
+at. **A restricted input is the only thing that makes either label mean anything.**
 
 Decompose-path agents (`aligner`, `integrator`, `integration-tester`, `slice-*`) follow
 the same anatomy; add them only if you use the decompose path (docs/shared/09).

@@ -199,4 +199,5 @@ durable surface left. Keeping the claim is safe precisely because it was never a
   first lines, and a blank one is a hole in the map's history.
 - Never hand-append to `Decisions so far`. Regenerate it.
 - Never take a second ticket after resolving one, research aside.
-- Never push. Never commit AI-infra files.
+- Push the branch where the allowlist permits; never merge, and never push the trunk.
+- Never commit AI-infra files.
