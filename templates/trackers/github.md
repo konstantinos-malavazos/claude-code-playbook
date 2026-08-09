@@ -43,9 +43,11 @@ gh api repos/<owner>/<repo>/issues/<map>/sub_issues --paginate \
 
 ## The whole graph
 
-Every child of the map with its state, claim, blockers, body **and** comments — what a
-generated view, an audit, or a rebuild of the map's decision list needs. **One GraphQL
-call. Not REST:**
+Every child with its state, claim, blockers, body **and** comments — what a generated view,
+an audit, or a rebuild of the map's decision list needs. **Two scopings, one verb: the
+children of a parent, or a named set of tickets.** Both are **one GraphQL call. Not REST:**
+
+**Scoped by parent** — a map and its children:
 
 ```bash
 gh api graphql -f query='
@@ -59,6 +61,29 @@ gh api graphql -f query='
         comments(first:100){ nodes { author { login } createdAt body } }
       } } } } }'
 ```
+
+**Scoped by a named set** — a backlog of work units, which has no parent to scope by.
+**Aliasing is what makes a named set as cheap as a parent:** one alias per issue number,
+the same fields under each, still one request.
+
+```bash
+gh api graphql -f query='
+{ repository(owner:"<owner>", name:"<repo>") {
+    i2: issue(number:2) { number title state url body
+      assignees(first:5){ nodes { login } }
+      labels(first:10){ nodes { name } }
+      blockedBy(first:20){ nodes { number } }
+      comments(first:100){ nodes { author { login } createdAt body } } }
+    i3: issue(number:3) { … }
+    i4: issue(number:4) { … }
+  } }'
+```
+
+Verified live on this repo: three issues, every field including the `blockedBy` edges, in
+**0.545 s, one request.** The plain way for a dozen units is `read` twice each plus one
+`…/dependencies/blocked_by` per unit — because `issue_dependencies_summary` is counts —
+which is **about 36 requests against one.** The alias keys are yours; the caller reshapes
+with `--jq` as it would for the parent-scoped form.
 
 **REST cannot answer this verb, and it fails by looking like it has.** The
 `…/sub_issues` payload carries `issue_dependencies_summary`, which is **four counts** —

@@ -38,7 +38,7 @@ it is running against.
 | | Verbs |
 |---|---|
 | **Small** | create · read · list · comment · close · reopen · edit body · link child to parent · label · claim · mark blocked · *is this blocked?* · retitle · delete a ticket |
-| **Composed** | *the frontier* — the open, unblocked, unclaimed children of a parent<br>*the whole graph* — every child of a parent with its state, claim, blockers, body and comments |
+| **Composed** | *the frontier* — the open, unblocked, unclaimed children of a parent<br>*the whole graph* — every child **of a parent, or of a named set of tickets**, with its state, claim, blockers, body and comments |
 
 Fourteen small verbs and two composed verbs.
 
@@ -55,6 +55,15 @@ is one API call on GitHub and a directory scan on local. *The whole graph* is on
 call on GitHub and one directory read on local — where the obvious client-side assembly is
 a request per ticket, and a view too expensive to regenerate stops being regenerated and
 quietly becomes a second store.
+
+**The whole graph's two scopings are one verb, and the second passes the same test on the
+same grounds — by measurement.** A named set exists because not every graph has a parent:
+a backlog of work units is deliberately parentless, and it wants the identical picture. On
+GitHub, a dozen units the plain way is `read` twice each plus one blocked-by call per unit,
+because the REST summary is counts — **about 36 requests**. Aliased into one GraphQL query
+it is **one request, 0.545 s**, every field including the `blockedBy` edges. Same answer
+back, same collapse in cost, so it is a second scoping and not a second verb: the contract
+counts verbs by **what comes back**.
 
 **An adapter must return the blockers themselves, not a count of them.** GitHub's REST
 payload offers only a count, which is enough for *is this blocked?* and useless to anything

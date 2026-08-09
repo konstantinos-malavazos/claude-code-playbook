@@ -59,7 +59,7 @@ the description and find children by search.
 | retitle | `glab issue update --title` | ☐ |
 | delete a ticket | `glab issue delete <n>` — **irreversible, and on a `Part of #<map>` link the parent line is prose, so check nothing still points at it.** Leave a line on the map; the number is burned | ☐ |
 | **the frontier** | list children, drop blocked and claimed, first in map order | ☐ |
-| **the whole graph** | every child with state, claim, blockers, description and notes | ☐ |
+| **the whole graph** | every ticket with state, claim, blockers, description and notes — **two scopings**: the children of a parent, **or a named set of tickets** (a backlog has no parent) | ☐ |
 
 ## The two composed verbs, and the third trap hiding in them
 

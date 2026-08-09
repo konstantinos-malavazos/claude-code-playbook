@@ -85,8 +85,9 @@ copy would be stale weight in the history rather than a record anyone wanted.
 
 **Whatever generates it also ensures `.claude/` is in the repo's `.gitignore` — with
 `!.claude/agents/` and `!.claude/skills/` beside it.** The hook stops the file entering git;
-nothing stops it showing as untracked noise, and no other file in the playbook adds that
-line. On the solo path it cannot wait for the bootstrap: this page runs during charting, a
+nothing stops it showing as untracked noise, and **nothing else adds that line during
+charting** — `/adapt-to-stack` patches the exceptions onto an existing line, but that runs at
+the bootstrap. On the solo path this page cannot wait for it: the page runs during charting, a
 full stage earlier, when the repo exists but has not been scaffolded. On a mature repo the
 line is usually already there — *usually* is not *always*, so check rather than assume.
 

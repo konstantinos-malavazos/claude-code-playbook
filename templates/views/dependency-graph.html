@@ -7,18 +7,24 @@
   Install this file at:  ~/.claude/dependency-graph.html   (beside ~/.claude/tracker.md)
 
   ── HOW TO GENERATE ONE ────────────────────────────────────────────────────────
-  1. Ask the tracker adapter for THE WHOLE GRAPH of the parent (a map, or the
-     backlog's parent). You get every child with its state, claim, blockers, body
-     and comments.
+  1. Ask the tracker adapter for THE WHOLE GRAPH. It takes two scopings: a parent
+     (a map), or a NAMED SET OF TICKETS (a backlog, which has no parent — the units
+     are standalone by design, so name their ids). Either way you get back every
+     ticket with its state, claim, blockers, body and comments.
   2. Shape it into the JSON below and replace the contents of the
      <script id="graph-data"> slot near the bottom of this file. Nothing else in
      this file changes, ever.
   3. Write the result to  .claude/dependency-graph.html  in the repo being worked
      on — fixed filename, so there is only ever one.
-  4. Ensure the repo's .gitignore contains a line for  .claude/  . The hook
-     block-infra-staging.sh stops this file entering git; the ignore line stops it
-     showing up as untracked noise. Nothing else in the playbook adds that line,
-     and this page can run a whole stage before the repo is scaffolded.
+  4. Ensure the repo's .gitignore ignores  .claude/  — WITH  !.claude/agents/  and
+     !.claude/skills/  beside it. The hook block-infra-staging.sh stops this file
+     entering git; the ignore line stops it showing up as untracked noise.
+     THE TWO EXCEPTIONS ARE NOT OPTIONAL, AND FORGETTING THEM IS SILENT: the hook
+     lets those two directories through because a fresh clone needs them, and a
+     blanket  .claude/  line hides them from  git add  anyway. Two mechanisms on
+     one directory; move one without the other and you have bought nothing.
+     Nothing else adds that line DURING CHARTING, and this page can run a whole
+     stage before the repo is scaffolded.
   5. Open it. One command regenerates AND opens — never one without the other,
      and never automatically on ticket-close. It is current if you just ran it.
 

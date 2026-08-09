@@ -55,12 +55,23 @@ contract working as designed.
 
 ## The whole graph
 
-Every child with state, claim, blockers, description **and** comments. One JQL search
-carries the first four:
+Every ticket with state, claim, blockers, description **and** comments. **Two scopings, one
+verb** — the children of a parent, or a named set of tickets — and one JQL search carries
+the first four either way. Only the scoping clause changes.
+
+Scoped by parent — a map and its children:
 
 ```
 parent = <MAP-KEY> ORDER BY created ASC
 ```
+
+Scoped by a named set — a backlog of work units, which has no parent to scope by:
+
+```
+key in (<KEY-1>, <KEY-2>, <KEY-3>) ORDER BY created ASC
+```
+
+JQL has `key in` natively, so the second scoping costs a clause, not a call.
 
 Jira is comfortable here: `issuelinks` returns the linked issues' **keys**, so a caller
 drawing the graph gets real edges. GitHub's REST payload returns a count instead, which is

@@ -146,9 +146,13 @@ makes *stalled* unreachable and the map unfinishable.
 
 ## The whole graph
 
-Read every file in `issues/`. One directory read, and you already have the states, the
-claims, the `Blocked by:` lines, the questions **and** the comments, because this adapter
-keeps them all in one file per ticket.
+Read every file in `issues/` — **or just the ones named**, when the graph is a named set of
+tickets rather than the children of a parent. Either way it is one directory read, and you
+already have the states, the claims, the `Blocked by:` lines, the questions **and** the
+comments, because this adapter keeps them all in one file per ticket.
+
+**The named set is the cheapest scoping here, not a harder one.** A parentless graph — a
+backlog of work units — names its tickets, and naming them only narrows the files you open.
 
 **That is why the missing-comments defect never surfaced here.** On a hosted tracker the
 body and the comments are separate fetches, and a `read` that made only the first one

@@ -255,12 +255,19 @@ Then draw it:
 The page's own header comment carries the data-slot schema and the two rules that fail
 silently. Do not restate them here; read them there.
 
-Three things about a backlog in particular:
+Four things about a backlog in particular:
 
-- **Name the units when you ask.** *The whole graph* is defined over the children of a
-  parent, and a backlog has no parent — that is step 6's whole point. You are not stuck:
-  you created these tickets one step ago and you hold every id, so ask for the graph over
-  **the ids in hand** rather than over a parent that does not exist.
+- **Name the units when you ask.** *The whole graph* takes two scopings — the children of a
+  parent, **or a named set of tickets** — and a backlog has no parent, which is step 6's
+  whole point. Ask for the graph over **the ids in hand**. That is the contract's second
+  scoping, not a workaround for a gap in it.
+- **Ask the tracker even though you already hold every field.** You created these units one
+  step ago; a picture drawn from your own notes would cost nothing, and that is exactly why
+  it is worth nothing. **A fetch is a read-back.** Drawn from the session's notes the picture
+  shows what you *meant* to create; drawn from the tracker it shows what **landed**. Let the
+  fourth create of four fail and the remembered picture still draws four boxes while the
+  fetched one draws three — a create that silently failed becomes a **missing box rather
+  than an invisible one**, in the single artifact you were going to open anyway.
 - **It gets the legend only.** The sidebar's *Not yet specified* and *Out of scope* sections
   belong to a map. The page omits them when they are absent — nothing to configure.
 - **`blockedBy` comes from the ticket bodies, not from the tracker.** The page consumes a
