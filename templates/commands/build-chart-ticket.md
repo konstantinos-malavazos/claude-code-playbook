@@ -1,6 +1,6 @@
 ---
 description: Implement ONE make ticket from a chart - context delta → planner → the single layer specialist the label names → review, but only if that repo has no other make tickets left. Guards hard on "claimed and open" and fails loudly. Stops and hands the question back if the planner meets a real decision. Writes nothing to the map and never closes the ticket.
-argument-hint: <TICKET-ID>#<NN>
+argument-hint: <KEY>#<NN>
 ---
 
 # Build Chart Ticket — $ARGUMENTS
@@ -18,11 +18,9 @@ You can call it by hand, but the guards do not relax when you do.
 **Read your tracker adapter first** — it says what these tickets are on disk. The `charting`
 skill is not needed here: charting decided; this executes.
 
-**Two words, and they are not the same thing.** A **map write** creates, edits, comments on
-or closes one of *this chart's* tickets, wherever the adapter puts them. A **tracker write**
-touches the development ticket the whole effort hangs off. The flow does map writes all day
-and never a tracker write — and where the adapter puts the chart on a shared tracker, a map
-write is still visible to everyone, which is why this command makes **none of either**.
+**This command writes nothing to the chart and nothing to the development ticket.** Not a
+comment, not a close, not a new ticket — the caller owns every one of those. Where the
+adapter puts the chart on a shared tracker, a write here is visible to everyone.
 
 ## 0. Guards — fail loudly, never work around
 
@@ -86,14 +84,10 @@ down anywhere. You hand it back:
    it, and how far the implementation got before you stopped.
 2. **End the session.** Say that the question now needs the human.
 
-`/resume-massive` is what files the `grilling` ticket, adds it to this ticket's `Blocked by:`,
-posts the progress comment and leaves the claim on. **This command makes no map writes at
-all**: claiming, filing, gisting, closing and regenerating every one of them belong to the
-caller, and this step used to be the exception that proved nothing.
-
-This is charting's own rule, not a special case: a make decides nothing new — if it finds a
-decision, it opens one. Answering it here would spend the context the implementation needed,
-and the answer would be buried in a make ticket where nobody looks for it.
+Filing the `grilling` ticket, adding it to this ticket's `Blocked by:` and posting the
+progress comment all belong to `/resume-massive`. Answering the question here would spend
+the context the implementation needed, and bury the answer in a make ticket where nobody
+looks for it.
 
 ## 4. The branch — one per repo, for the whole map
 
@@ -143,15 +137,11 @@ Ask the tracker: **is any *other* `make:` ticket for this repo still open or blo
 Ask this live, every time. Never store a "repo is ready for review" flag — it rots exactly
 like a `Blocked by:` line does.
 
-The verdict is not the last word on that repo. When the map closes, a release-mode
-`@release-reviewer` re-reads it against the consumers that did not exist yet, and
-`@map-reviewer` audits it.
-
 ## 7. Hand back — do not close the ticket
 
-**There are two ways out of this command and both of them are text handed to the caller.**
-Step 3's decision report is the short one. This is the other: the work landed, so return a
-**draft resolution comment** and let `/resume-massive` post it:
+Both exits from this command are text handed to the caller. Step 3's decision report is one.
+This is the other: the work landed, so return a **draft resolution comment** and let
+`/resume-massive` post it:
 
 ```markdown
 <one-line gist — what this ticket settled or delivered. This line is contract.>
@@ -161,9 +151,6 @@ Commit: <sha, and the repo branch it is on>
 Design decisions worth keeping: <the ones the code alone will not tell the next session>
 Review: <not yet — N makes left for this repo | verdict in reviews/<repo>.md>
 ```
-
-**The gist is one line because the map rests on it** — rebuilding *Decisions so far*
-concatenates first lines, and a paragraph there makes a free operation expensive.
 
 **The design decisions belong in that comment**, not in a handoff file. Handoffs are gone by
 morning; the ticket is the durable record of what this child decided.

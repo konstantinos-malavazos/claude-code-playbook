@@ -18,10 +18,8 @@ because some decisions cannot be argued to a conclusion — they have to be look
 > it collapses the upstream's three files into one, reads the run command off the repo
 > instead of a placeholder, and lands the verdict on the ticket rather than in memory.
 
-**Before you build anything, check that the question needs a prototype at all.** A fact
-about our own code is Serena's; a fact from outside is `/research`'s; a judgement the human
-can just make is `/grilling`'s. Prototyping is for the question that only gets answered by
-seeing it run.
+**Before you build anything, check that the question needs a prototype at all** — it is only
+for the question that gets answered by seeing it run.
 
 ## The question picks the shape
 
@@ -43,11 +41,9 @@ human meets it while reacting rather than after.
 
 > A prototype ticket is a **decision** ticket that happens to write code.
 
-That reads like it breaks decide-or-make. It does not. The rule is about the destination: a
-decision ticket adds nothing to the thing you are building, and throwaway code on a
-throwaway branch adds nothing to it either — it is the transcript of the decision, the same
-way a grilling's questions are. What *would* break the rule is the prototype quietly
-becoming the implementation.
+Throwaway code on a throwaway branch adds nothing to the thing you are building — it is the
+transcript of the decision, the same way a grilling's questions are. The prototype quietly
+becoming the implementation is the failure.
 
 **The test: if you would be sad to delete it, you built the wrong thing.**
 
@@ -62,9 +58,8 @@ Build it, run it, show it, and stop. If the human is not around, say the prototy
 and name what to look at, then leave a progress note on the ticket and keep the claim. A
 prototype nobody looked at settles nothing, however good it is.
 
-**This is the one HITL type with no exception anywhere.** A grilling can be answered from the
-record, because a record is the kind of thing a decision can be grounded in. *Reacting* is
-not — the reaction **is** the ticket, and there is nothing to stand in for it.
+**There is no unattended exception here, on any path.** The reaction **is** the ticket, and
+there is nothing that can stand in for it.
 
 ## Rules that hold for both branches
 
@@ -81,14 +76,10 @@ not — the reaction **is** the ticket, and there is nothing to stand in for it.
 
 ## Read the run command off the repo, not off a placeholder
 
-The task runner and the route convention are not this skill's business, and they are not
-`<PLACEHOLDER>`s either. **A placeholder holds what is constant for the reader**, filled in
-once when the skill is copied — a label prefix, a memory server's tool names. A run command
-is constant for the *repo*, and a reader who works in two repos would fill it in wrong for
-one of them, permanently and invisibly.
-
-It is already written down one file away: the repo's own `CLAUDE.md` and whatever the tree
-already runs. Read it there. Copying it in is transcription, and transcription drifts.
+The task runner is not a `<PLACEHOLDER>` — a placeholder holds what is constant for the
+*reader*, and a run command is constant for the *repo*, so a reader who works in two repos
+fills it in wrong for one of them permanently and invisibly. Read it where it is already
+written: the repo's own `CLAUDE.md` and whatever the tree already runs.
 
 Same for a UI variant's route: **obey the convention the repo already uses.** Never invent a
 new top-level structure to hold something you are about to delete.
@@ -100,10 +91,8 @@ new top-level structure to hold something you are about to delete.
 | **A repo exists** | beside what it prototypes, on a **throwaway branch**, never on the main line |
 | **No repo yet** | wherever it can run. There is no branch, and nothing to sit beside |
 
-The second row is not an edge case. A prototype question often has to be answered *before*
-the repo exists — mapping an effort runs ahead of scaffolding one.
-
-**Do not create the repo to hold the prototype.** Scaffolding is its own stage with its own
+The second row is not an edge case — mapping an effort runs ahead of scaffolding one. **Do
+not create the repo to hold the prototype:** scaffolding is its own stage with its own
 report, and a repo conjured early makes that report lie about what it found. Only the answer
 has to survive, and the answer lives on the ticket.
 
@@ -117,10 +106,9 @@ has to survive, and the answer lives on the ticket.
 3. **Point at the prototype; do not paste it.** Where a repo exists, commit it to the
    throwaway branch and leave a context pointer to that branch on the ticket. The main line
    keeps only the validated decision.
-4. **Write no memory.** A prototype verdict is a step inside a larger unit and the unit banks
-   once, at its end — one memory per map when charting closes, one per ticket at APPROVE in
-   the pipeline. Banking here gives you a second copy free to drift from the first, and a
-   reversible one at that.
+4. **Write no memory.** A prototype verdict is a step inside a larger unit, and the unit
+   banks once at its end. Banking here gives you a second copy, free to drift from the
+   first and reversible besides.
 
 ## Stop condition
 

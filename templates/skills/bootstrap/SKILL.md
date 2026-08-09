@@ -18,10 +18,6 @@ built. You make it real, prove it, and hand over a report.
 > The stage is **the bootstrap**. The output is a **report**. The stage can finish while
 > the report is red.
 
-The reader-facing explanation of *why* the steps are in this order lives in
-`docs/solo/04-the-bootstrap.md`. **This file is the mechanics.** Where the two overlap,
-this one says *what you do*; that one says *why it works*. Do not re-argue it here.
-
 **Decide nothing.** Every choice this stage needs was made one stage earlier. If you find
 something that genuinely needs deciding, **stop and say so** — that is the backwards step,
 and it is the human's to take.
@@ -252,14 +248,10 @@ the disk and skips itself. Nothing records where you stopped; you re-derive it b
 | 7 | Write the two memories | the two memories |
 | 8 | Run every check, report | the commit — **green only** |
 
-**Step 6 is the only step that writes nothing, and it is simply redone.** It is one read of
-`~/.claude/tracker.md`, so detecting that it already happened would cost more than doing it.
-
 **Do not write a progress file.** Not `.claude/bootstrap-progress.md`, not a marker line in
 `CLAUDE.md`, not anything else. It is a second copy of what the disk already says, and it
-can be wrong while the disk is right — which is exactly the failure nothing would catch.
+can be wrong while the disk is right.
 
 **The report is not written anywhere either** — a file for it is the progress file under
-another name. Green leaves the commit as the durable tell that stage 3 finished; red leaves
-nothing, because red commits nothing. To find out whether stage 3 finished, run it again:
-every step skips itself, every check runs, and the report prints.
+another name. To find out whether stage 3 finished, run it again: every step skips itself,
+every check runs, and the report prints.

@@ -62,8 +62,8 @@ lied, and it will be believed.
 
 For each finding, propose: a title, the `Type:` it should carry, and one line of why.
 **You do not create tickets and you do not write to the tracker.** The walker creates them,
-the frontier refills, and the map does not close this round. That is charting's fog rule
-working, not a failure of the review.
+the frontier refills, and the map does not close this round — which is the design, not a
+failure of the review. Never soften a finding to let a map close.
 
 ## Output
 
@@ -96,8 +96,5 @@ Write `reviews/map-review.md` in the chart folder:
 
 ## Never
 
-- Never read whole diffs to form an opinion; chase symbols instead.
-- Never judge acceptance criteria from the map's copy. Fetch them.
-- Never create a ticket, transition one, or write to the tracker.
 - Never edit production code. You comment; others fix.
 - Never accept "no consumers found" from a quiet grep — that claim needs a symbol lookup.

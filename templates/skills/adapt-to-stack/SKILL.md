@@ -18,10 +18,6 @@ into the agent files and skill files the pipeline dispatches to.
 > chain gains a layer. The first run happens on a repo that has just been scaffolded; the
 > second may be months later.
 
-The reader-facing explanation of *why the output looks like this* lives in
-`docs/shared/11-adapting-to-your-stack.md`. **This file is the mechanics.** Where the two
-overlap, this one says *what you do*; that one says *why it works*. Do not re-argue it here.
-
 **Choose nothing.** Every fact you write into a generated file is already written down one
 file away. If you find yourself deciding what a layer is, where it lives, what it builds
 with, or which model it should run on, you are reading the wrong file — **stop and say so.**
@@ -169,9 +165,8 @@ git check-ignore -v .claude/agents .claude/skills
 A blanket `.claude/` ignore line hides them. If it does, add the two exceptions beside the
 existing line — `!.claude/agents/` and `!.claude/skills/` — and change nothing else.
 
-**Two mechanisms sit on one directory**: a hook blocks the staging *command*, and
-`.gitignore` makes the file invisible to it. These files are meant to be committed, so both
-have to sort the same way — and a file that is merely invisible produces no error at all.
+These files are meant to be committed, and an ignored file produces **no error at all** —
+which is why you ask git rather than assume.
 
 ### 5 — Report, and stop
 
@@ -203,11 +198,10 @@ not among them. The files are on disk and every check that reads the disk passes
 does not work is the *dispatch*, in this session, which is the one failure a report whose
 every row says **created** would otherwise hide.
 
-**The four rows sit on two axes, and that is not a re-labelling — it is what makes the
-report true.** *Created* and *skipped* are what **you did** and are exclusive; *disagrees*
-and *still a scaffold* are what **you found** and are orthogonal to both. A standards skill
-generated one minute ago is *created* **and** *still a scaffold*, every time, and a report
-forced to pick one of those would have to hide the fact the step exists to be honest about.
+**The four rows sit on two axes.** *Created* and *skipped* are what **you did** and are
+exclusive; *disagrees* and *still a scaffold* are what **you found** and are orthogonal to
+both. A standards skill generated one minute ago is *created* **and** *still a scaffold*,
+every time.
 
 | Row | What it means |
 |---|---|
@@ -235,10 +229,9 @@ layer is added generates one specialist and one standards skill and touches noth
 Change the test command in `CLAUDE.md` and nothing changes automatically — it lands in the
 report as *disagrees*, and there it stops.
 
-Diff-and-patch is not an option, and neither is regenerating over the top. Once real rules
-are written by hand there is no reliable boundary between the template's lines and
-someone's own, so a patcher that guesses wrong **destroys hand-written standards silently**
-— the failure you would least notice, in the files you would least want to lose.
+Diff-and-patch is not an option, and neither is regenerating over the top: once real rules
+are written by hand there is no reliable boundary between the template's lines and someone's
+own, so a patcher that guesses wrong **destroys hand-written standards silently**.
 
 ## Two things generated, three refused
 

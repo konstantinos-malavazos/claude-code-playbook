@@ -17,13 +17,8 @@ repo is real. You turn one sentence into a backlog, hand it over, and stop.
 
 > The stage is **cutting**. The artifact is **the backlog**. They never share a name.
 
-> Prior art: `/to-spec` and `/to-tickets`. This is a re-derivation, not a copy — and it is
-> **one command, not two**. `/to-spec` existed to write a spec first; after a cleared map a
-> spec is mostly transcription, and it becomes a second place the decisions live.
-
-The reader-facing explanation of *why the units are shaped this way* lives in
-`docs/solo/05-cutting.md`. **This file is the mechanics.** Where the two overlap, this one
-says *what you do*; that one says *why it works*. Do not re-argue it here.
+> Prior art: `/to-spec` and `/to-tickets`. This is a re-derivation, not a copy, and it is
+> **one command, not two**.
 
 **Decide nothing.** Every choice this stage needs was made in charting. **Nothing on the map
 is reopened here** — if cutting turns up a decision that was wrong, say so and stop. That is
@@ -98,14 +93,11 @@ the wrong artifact — go back to the sentence.
 
 The test is the end of the ticket, not the start: **when this is done, what can the app do
 that it could not do before?** If the answer is *"nothing yet, but the next one will be
-easier"*, it is not a unit — the two-tier review at the end of `/start-ticket` has no
-behaviour to review, and the mistake surfaces two tickets later.
+easier"*, it is not a unit.
 
 **Do not apply the pipeline's usual size bar** — *touches 2+ files, or needs a decision the
-codebase does not encode.* On a day-one repo it returns *yes* to everything: the codebase
-encodes nothing, and a stub with one empty folder per layer guarantees the first ticket
-touches several. A bar that cannot return *no* is not a bar. The rule above is this stage's
-own.
+codebase does not encode.* On a day-one repo it returns *yes* to everything, and a bar that
+cannot return *no* is not a bar. The rule above is this stage's own.
 
 ### 3 — Order them, and write each dependency down
 
@@ -119,8 +111,7 @@ Only real ones. *Would be nicer to do this first* is not a dependency; **cannot 
 until that exists** is.
 
 The line names **which ticket**, never whether that ticket is finished — open-or-closed is
-looked up live, every time. That is why a line in a body is safe here and nowhere else on
-this path.
+looked up live, every time.
 
 ### 4 — Trace every unit to a phrase
 
@@ -167,10 +158,9 @@ otherwise invites the human to reference a number that will not survive.
 > first one *"to get started"*, and do not treat a nod at the plan as approval of the board.
 > Wait for it.
 
-Two reasons, and the second is the one that generalises. Editing a board is free while
-editing a dozen filed issues is a dozen edits, a dozen deletions and a re-order. And **the
-tracker is a surface you write to only after agreeing what belongs on it** — creating a
-dozen issues unattended is the wrong default anywhere, on any tracker, however private.
+Editing a board is free; editing a dozen filed issues is a dozen edits and a re-order. And
+**the tracker is a surface you write to only after agreeing what belongs on it** — however
+private it is.
 
 Loop here as long as the human keeps editing. Re-render the whole board after each change,
 including the traces — a merge or a split changes what points at what.
@@ -209,9 +199,6 @@ Where this came from
 - Single screen — decision #11
 ```
 
-The dependency line can name `#6` because unit 1 was created first. That is the whole reason
-for the rule above.
-
 | | |
 |---|---|
 | **The title** | the unit, short |
@@ -220,19 +207,14 @@ for the rule above.
 | **The constraints, copied in** | the decisions that bind **this** unit |
 | **`Where this came from`, at the bottom** | the map, and which decision each constraint came from |
 
-**Why the constraints are copied rather than linked.** The consumer decides this:
-`@ticket-analyzer` is the first agent in the pipeline and it does **no** code and **no**
-memory lookups — it reads the ticket and nothing else. A link to decision #7 is a door it
-never opens. Copying normally means drift, and here it cannot, because **the map is closed
-and frozen before this stage runs** — only one of the two copies can still change. That is
-the rule worth carrying: *duplication is dangerous when both copies can change*, not merely
-because there are two of them.
+**The constraints are copied, not linked**, because `@ticket-analyzer` reads the ticket and
+nothing else — a link to decision #7 is a door it never opens. Copying is safe here and
+nowhere else on this path: the map is **closed and frozen** before this stage runs, so only
+one of the two copies can still change.
 
-**Why the trace section sits at the bottom.** The analyzer parses the top. Everything above
-the rule is working content it must act on; `Where this came from` is provenance for a human
-reading the ticket six weeks later, and it earns its place by making a copied constraint
-**falsifiable** — without it, *"Storage: SQLite"* is either a decision or a typo and nothing
-on the page says which.
+**The trace section sits below the rule** because everything above it is working content the
+analyzer acts on. It earns its place by making a copied constraint **falsifiable** — without
+it, *"Storage: SQLite"* is either a decision or a typo and nothing on the page says which.
 
 **One line, `From map #1`, and no parent link.** The history stays recoverable; the map's
 tooling still does not see them.
@@ -253,7 +235,7 @@ Then draw it:
 > `!.claude/skills/` beside it**, and open it — one command, and never on ticket-close.**
 
 The page's own header comment carries the data-slot schema and the two rules that fail
-silently. Do not restate them here; read them there.
+silently. Read them there.
 
 Four things about a backlog in particular:
 
@@ -261,13 +243,10 @@ Four things about a backlog in particular:
   parent, **or a named set of tickets** — and a backlog has no parent, which is step 6's
   whole point. Ask for the graph over **the ids in hand**. That is the contract's second
   scoping, not a workaround for a gap in it.
-- **Ask the tracker even though you already hold every field.** You created these units one
-  step ago; a picture drawn from your own notes would cost nothing, and that is exactly why
-  it is worth nothing. **A fetch is a read-back.** Drawn from the session's notes the picture
-  shows what you *meant* to create; drawn from the tracker it shows what **landed**. Let the
-  fourth create of four fail and the remembered picture still draws four boxes while the
-  fetched one draws three — a create that silently failed becomes a **missing box rather
-  than an invisible one**, in the single artifact you were going to open anyway.
+- **Ask the tracker even though you already hold every field. A fetch is a read-back.** Drawn
+  from the session's notes the picture shows what you *meant* to create; drawn from the
+  tracker it shows what **landed**. Let the fourth create of four fail and the remembered
+  picture still draws four boxes while the fetched one draws three.
 - **It gets the legend only.** The sidebar's *Not yet specified* and *Out of scope* sections
   belong to a map. The page omits them when they are absent — nothing to configure.
 - **`blockedBy` comes from the ticket bodies, not from the tracker.** The page consumes a

@@ -72,9 +72,7 @@ is the step most easily skipped without anything appearing to break.
 Load the `grilling` skill. Fan out across the whole space rather than deep on one thread:
 what has to be decided, what could be started today, what nobody knows yet.
 
-**If no fog surfaces, say so and stop.** The way is already clear, the effort fits one
-session, and `/start-ticket` is the right command. A map you did not need costs more than the
-work.
+Charting's no-fog exit applies, and on this path the fallback is named: `/start-ticket`.
 
 ## 5. Write the map
 
@@ -96,16 +94,12 @@ The commit messages do **not** create branches. The first make ticket for a repo
 
 ## 6. Write the tickets, then wire the edges
 
-One file per question you can state **precisely now** — sharpness, not answerability. Fog you
-cannot phrase that sharply stays in *Not yet specified*; do not pre-slice it.
+One file per question, per charting's fog-or-ticket test. Type comes from its table — and for
+the makes the label **is** the dispatch: `make:<layer>` → `@<layer>-specialist`, where the
+layers are the implementation chain in the repo's `CLAUDE.md`. Nobody decides afterwards.
 
-Type comes from the charting skill's table. For the makes the label **is** the dispatch:
-`make:<layer>` → `@<layer>-specialist`, where the layers are the implementation chain in the
-repo's `CLAUDE.md`. Nobody decides afterwards.
-
-**Wire `Blocked by:` in a second pass**, once every ticket has a number. Cross-layer ordering
-is expressed here as blocking edges — never as a hardcoded chain, because on a given map it
-often is not one.
+Wire `Blocked by:` in the second pass. Cross-layer ordering is expressed here as blocking
+edges — never as a hardcoded chain, because on a given map it often is not one.
 
 ## 7. Ask before firing research agents
 
@@ -119,9 +113,6 @@ findings pasted in.
 **Claim each ticket to the agent as you dispatch it.** Left unclaimed it stays on the
 frontier and the next session fires a second agent at the same question.
 
-Research is the one thing allowed to run alongside the rest, because it runs in its own
-context.
-
 ## 8. Stop, and hand back
 
 Print, for the user to paste into the tracker themselves:
@@ -133,6 +124,4 @@ Blocked on someone else: <ticket — who owns the blocker>.
 Not yet specified: <one line each>.
 ```
 
-Then say the next command is `/resume-massive $ARGUMENTS`, and **stop**. Charting
-hand-resolves nothing — sizing the map is a whole session's work, and claiming the first
-ticket here would spend the context that ticket needs.
+Then say the next command is `/resume-massive $ARGUMENTS`, and **stop**.

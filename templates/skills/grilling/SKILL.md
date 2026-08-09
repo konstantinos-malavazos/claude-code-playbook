@@ -38,15 +38,10 @@ for it. Everything else in the tree is still askable now.
 
 Map the plan as a tree: **every decision branches into the decisions that hang off it.**
 
-Some questions can be asked now — their prerequisites are already settled. Others cannot,
-because their answer depends on a question still open. **A question whose answer depends on
-an open question is a later question, not this one.** Asking it early forces the user to
-guess at an answer they have not given yet.
-
-So the shape of a session is: ask what is askable, and each answer pushes the boundary
-outward and unblocks the questions that were waiting behind it. Re-derive what is askable
-after every answer — a single answer can add branches, close branches, or make a planned
-question meaningless.
+**A question whose answer depends on an open question is a later question, not this one.**
+Asking it early forces the user to guess at an answer they have not given yet. So: ask what
+is askable, and **re-derive what is askable after every answer** — one answer can add
+branches, close branches, or make a planned question meaningless.
 
 ## One question is ~8 lines. Count them
 
@@ -85,9 +80,8 @@ Post the shape of the whole thing before asking anything.
 time, and numbering alone does not fix it — the user wants to see how much is left before
 they answer any of it.
 
-**Ask one at a time and wait.** Upstream asks the whole round in one message; this pipeline
-does not. The list up front already gives the user the shape, and a wall of simultaneous
-questions is what they have to decode instead of answer.
+**Ask one at a time and wait.** The list up front already gives the user the shape, and a
+wall of simultaneous questions is what they have to decode instead of answer.
 
 **The count is allowed to grow — say so out loud when it does.** If a sub-question turns out
 to be a real decision, announce *"the plan grew to 8, and here is why"*. Silently asking a
@@ -99,8 +93,8 @@ question. The running record of what is decided so far is part of the countdown,
 bookkeeping you keep to yourself.
 
 **When they say they did not understand, do not rephrase — re-explain from the concrete
-thing.** Point at the actual artifact: the file, the map section, the line. Restating an
-abstraction in different words fails twice.
+thing:** the file, the map section, the line. Same move as
+[`/wait-what`](../wait-what/SKILL.md), which they can also type at you.
 
 ## Push until it is implementable
 
@@ -130,5 +124,4 @@ Stop when every question in the tree is either answered or deferred-with-a-plan,
 user has confirmed you have reached a shared understanding. **A plan with three well-managed
 deferrals is finished; a plan with one silent assumption is not.**
 
-Do not act on the plan until that confirmation. The write-up is where the depth goes — the
-reasons you held back, the evidence you found, the branches you ruled out.
+Do not act on the plan until that confirmation.

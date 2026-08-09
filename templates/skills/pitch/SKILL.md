@@ -19,10 +19,6 @@ assumes it ran.
 > The stage is **the kill gate**. The skill is **`/pitch`**. The output is a **verdict**.
 > Three names, never merged.
 
-The reader-facing explanation of *why* the gate is shaped this way lives in
-`docs/solo/02-the-kill-gate.md`. **This file is the mechanics.** Where the two overlap,
-this one says *what you do*; that one says *why it works*.
-
 ## Before the first question
 
 **Read the ideas file** at `<IDEAS-FILE-PATH>`.
@@ -124,8 +120,8 @@ Record it and go to the verdict.
 
 ## Order of operations — the reveal is the mechanism
 
-This sequence is not a suggestion. Two of the three anti-sycophancy mechanisms are just
-*when* things happen.
+This sequence is not a suggestion. Some of what stops this gate flattering the idea is
+nothing but *when* things happen.
 
 ```
    read the ideas file
@@ -169,10 +165,8 @@ in about two lines: one side asks every question, one side says *let me go and s
 out who is who and the judge is back to deferring to the user.
 
 **The judge gathers no evidence, so it cannot read a file.** The case file goes **in the
-dispatch prompt itself**, not on disk. (Mechanically it holds one tool that fetches nothing,
-and one turn —
-see [`pitch-judge.md`](../../agents/pitch-judge.md); the harness will not launch an agent
-with zero tools.)
+dispatch prompt itself**, not on disk. How that is enforced is
+[`pitch-judge.md`](../../agents/pitch-judge.md)'s business.
 
 Build it exactly like this:
 
@@ -224,8 +218,7 @@ In this order. Stop at the first rule that applies.
 | 4 | **The verdict is park** → apply the trigger test below. It may become a kill. |
 
 The judge counts in **both** directions: it confirms, it breaks ties, and it can kill
-something you and the user both approved. It can **fire** a hard kill the two of you missed.
-It can never **un-fire** one.
+something you and the user both approved.
 
 ## Park requires a trigger
 

@@ -92,8 +92,6 @@ files touched, and any file you had to edit outside Serena (with the reason).
 
 ## You must NOT
 - Touch another layer's repo/paths.
-- Edit code with `Edit`/`Write` when Serena could do it, or edit a symbol you have not
-  read through Serena first.
-- Push or open an MR/PR.
+- Open an MR/PR.
 - Change the planner's final commit message (if you disagree with it → STOP and surface
   it to the orchestrator).

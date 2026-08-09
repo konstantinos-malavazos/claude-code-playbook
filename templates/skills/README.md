@@ -54,19 +54,12 @@ than the two above:
   existed at startup are picked up live; a `.claude/skills/` or `.claude/agents/` folder
   that did not exist when the session began needs a restart before anything can load from
   it. This is exactly the state `/adapt-to-stack` leaves behind on its first run.
-- **Auto-loaded** skills fire on intent (e.g. "commit" → `commit-conventions`). This is the
-  default: any skill without `disable-model-invocation: true` can be loaded by Claude.
-- **User-invoked** skills run when you type `/skill-name`. **A description that says "use
-  when the user says…" does not make a skill user-invoked** — it is a hint, not a
-  constraint. Set `disable-model-invocation: true` if it must never fire on its own.
-  **Four of these skills do** — `bootstrap`, `cut-backlog`, `wait-what` and
-  `to-questionnaire`. The rule that sorts the first two is below, and it is
-  `PHILOSOPHY.md`'s, not a local invention.
+- **A description that says "use when the user says…" does not make a skill user-invoked**
+  — it is a hint, not a constraint. Only `disable-model-invocation: true` stops a skill
+  firing on intent; the section below decides which ones get it.
 - Keep the front `description` tight and trigger-focused; put the detail in the body.
 - Skills can bundle extra files (templates, checklists) the body points to —
   progressive disclosure keeps the base cost low.
-- **Live reload**: editing a `SKILL.md` takes effect in the current session. Agents do
-  **not** work this way — see the agents README.
 
 ## The set
 
@@ -93,15 +86,11 @@ The **solo** / **team** columns say which entrance needs each template. `pitch`,
 and `cut-backlog` are the ones that claim a single column: they are stages of the solo
 front-end, which the agile path does not have. Everything above them is shared by both.
 
-**`charting` used to sit with them and no longer does.** It is stage 2 of the solo path
-*and* the engine behind the massive-ticket flow, which runs it against a mature multi-repo
-codebase — see [03-massive-tickets.md](../../docs/team/03-massive-tickets.md). Same skill,
-opposite situation. The solo front-end is four stages but only three solo-only skills.
-
-**That flow is team-only and this skill is not** — the `✓ ✓` above is load-bearing, not
-leftover. The three `*-massive` commands are what went team-only; charting a codebase that
-already exists did not. Solo, you point `/charting` at your own repo and hand each make to
-`/start-ticket`. Delete this skill from a solo install and you take stage 2 with it.
+**`charting`'s `✓ ✓` is load-bearing, not leftover.** It is stage 2 of the solo path *and*
+the engine behind the massive-ticket flow ([03-massive-tickets.md](../../docs/team/03-massive-tickets.md));
+the three `*-massive` commands went team-only, charting an existing codebase did not. Solo,
+you point `/charting` at your own repo and hand each make to `/start-ticket`. Delete this
+skill from a solo install and you take stage 2 with it.
 
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
@@ -125,11 +114,10 @@ Conversation skills — `charting`, `pitch`, `grilling`, `diagnose` — delibera
 unset. A conversation that starts a turn early costs you one redirect.
 
 **The veto: a skill something else dispatches to cannot carry the field**, whatever the tests
-return. It does not merely stop autoloading — it blocks the Skill tool ([Extend Claude with
-skills](https://code.claude.com/docs/en/skills)), so the dispatch fails and the flow stops
-mid-run and asks you to type the thing. `prototype` writes files and still gets no field,
-because `charting`'s ticket-types table names `/prototype` as what backs a `prototype`
-ticket; `bootstrap` step 5's *Run `/adapt-to-stack`* is why `adapt-to-stack` has none either.
+return — the field blocks the Skill tool, so the dispatch fails and the flow stops mid-run
+and asks you to type the thing. `prototype` writes files and still gets no field, because
+`charting`'s ticket-types table names `/prototype` as what backs a `prototype` ticket;
+`bootstrap` step 5's *Run `/adapt-to-stack`* is why `adapt-to-stack` has none either.
 
 **When the veto and a test conflict, test the test first.** A skill that must be dispatched to
 and looks too dangerous to dispatch is usually holding a side effect that belongs to its

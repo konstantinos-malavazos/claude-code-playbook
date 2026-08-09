@@ -204,7 +204,7 @@ and it is the sharpest example of what that setting is for and what it costs.
 
 This is the part that is genuinely new, and the part with a real failure mode. Charting says
 a `grilling` is *"a judgement only the human can make"*
-([charting/SKILL.md:207](../../templates/skills/charting/SKILL.md)). This mode does not
+([charting/SKILL.md](../../templates/skills/charting/SKILL.md)). This mode does not
 pretend otherwise — it makes the judgement **attributable** instead of silent.
 
 Two roles, two contexts, never the same agent:
@@ -402,7 +402,7 @@ for: which answers were guessed, and on what basis.
 ## Why this does not contradict *HITL never resolves without the human*
 
 It is stated most flatly at
-[charting/SKILL.md:230](../../templates/skills/charting/SKILL.md): *an agent that answers its
+[charting/SKILL.md](../../templates/skills/charting/SKILL.md): *an agent that answers its
 own grilling question has broken the ticket, not finished it.* Read cold beside this doc that
 is a contradiction — and on this repo a contradiction is a defect, because an agent loads
 both files at once and has no tiebreak.

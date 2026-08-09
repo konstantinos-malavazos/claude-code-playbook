@@ -15,9 +15,7 @@ An idea arrives too big for one session and wrapped in fog: you can see the
 the route down as a **map** on the issue tracker and then walks it, one ticket per
 session, until nothing is left to decide.
 
-> Prior art: the `wayfinder` skill. This is a re-derivation, not a copy — it swaps native
-> tracker edges for adapter verbs, the claim-as-lock for an advisory claim, and the
-> hand-appended decision list for a generated one.
+> Prior art: the `wayfinder` skill. This is a re-derivation, not a copy.
 
 **The stage is charting. The artifact is the map. They never share a name.**
 
@@ -37,19 +35,16 @@ downstream depends on it.
 > Every ticket is a **decision** or a **make**. A decision ticket writes no files. A make
 > ticket decides nothing new — if it finds a real decision, it **stops and opens one**.
 
-They fail differently, which is why they cannot share a ticket. A decision ends when the
-human and the agent agree, and nobody can predict when that is. A make ends when the file
-is on disk, and you can see it coming. Put both in one ticket and the unpredictable half
-eats the context the predictable half needed.
+They cannot share a ticket because they end differently: a decision ends when the human and
+the agent agree, which nobody can predict, and a make ends when the file is on disk. Put both
+in one ticket and the unpredictable half eats the context the predictable half needed.
 
-A decision ticket normally spawns its make ticket on close. That is the system working,
-not a ticket that ran long.
+A decision ticket normally spawns its make ticket on close. That is the system working, not
+a ticket that ran long.
 
-**Charting charts; it does not execute.** Whether a map is mostly decisions or mostly
-makes depends on how much fog it started in. A map drawn from a written spec is mostly
-makes. A map drawn from a vague idea is mostly decisions. The rule that does not vary:
-the pull to go and do the work *while inside a decision ticket* means you have reached the
-edge of the map, so open a make ticket and hand off.
+**Charting charts; it does not execute.** The pull to go and do the work *while inside a
+decision ticket* means you have reached the edge of the map — open a make ticket and hand
+off.
 
 ## Talk to the tracker in verbs, never in commands
 
@@ -62,29 +57,16 @@ answers it. One tracker in context, never four.
 | **Small** | create · read · list · comment · close · reopen · edit body · link child to parent · label · claim · mark blocked · *is this blocked?* · retitle · delete a ticket |
 | **Composed** | *the frontier* — the open, unblocked, unclaimed children of a map<br>*the whole graph* — every child with its state, claim, blockers, body and comments |
 
-**`read` includes the ticket's comments.** On a closed ticket the body is the *question* and
-the answer is in the resolution comment — so a read that returns the body alone hands you
-the one half you already had. Ask for a read; the adapter makes however many calls that
-takes.
-
 **Blocking is a question, not an edge.** Ask *"can I start this ticket right now?"* and let
 the adapter go and check. A `Blocked by:` line is a claim about the past — it still says
-*blocked* after the blocker resolves. Demanding the edge accepts a rotten answer;
-demanding the answer forces a check.
+*blocked* after the blocker resolves.
 
-**Identity is the id; the title is decoration.** Retitling is normal while mapping and must
-never break a link — which is why `retitle` is a verb and not something you improvise. On an
-adapter whose links carry the title rather than the id, retitling breaks them, and the
-adapter is the thing that has to say so.
-
-**`delete a ticket` is a verb because trackers disagree about it.** On some it removes the
-ticket; on others there is no delete at all and the nearest thing is a close. Ask for the
-verb and let the adapter reconcile it. Never reuse a deleted ticket's number.
+**Retitling is normal while mapping.** Ask for the `retitle` verb rather than improvising it,
+and never reuse a deleted ticket's number.
 
 **`claim` names whoever holds the ticket now — not only this session.** A ticket handed to a
 person outside the session, or to a background agent, is claimed *to them*. That is what
-keeps it off the frontier while it is in someone else's hands; see *Stop condition* for what
-goes wrong when it stays unclaimed.
+keeps it off the frontier while it is in someone else's hands.
 
 ## The map
 
@@ -129,17 +111,14 @@ frontier.
 | **Decisions so far** | **generated — rebuilt from the closed children, never hand-appended** |
 | Not yet specified / Out of scope | authored, edited constantly, derived from nothing |
 
-Regeneration is the rule because no tracker has optimistic concurrency on a body edit:
-two sessions appending an hour apart silently lose one of the writes. Rebuilding from the
-closed children turns that data loss into a shrug.
+Regeneration is the rule because no tracker has optimistic concurrency on a body edit: two
+sessions appending an hour apart silently lose one of the writes.
 
-**Rebuild it by asking for *the whole graph*, not by reading twenty tickets one at a time.**
-That is the verb's reason for existing: every closed child's leading gist, in whatever the
-cheapest number of calls is on the tracker you happen to be on.
+**Rebuild it by asking for *the whole graph*, not by reading twenty tickets one at a time** —
+every closed child's leading gist, in one verb.
 
 **The authored sections get a rule instead of a lock:** *re-read the map body immediately
-before editing it — never edit from the copy you loaded at session start.* Nothing
-stronger is available; no shipped tracker can honour a lock.
+before editing it — never edit from the copy you loaded at session start.*
 
 ### The picture
 
@@ -148,8 +127,7 @@ whole graph, fill that page's data slot, write the result to `.claude/dependency
 in the repo being worked on, ensure `.claude/` is in that repo's `.gitignore` **with
 `!.claude/agents/` and `!.claude/skills/` beside it**, and open it — one command, and never
 on ticket-close. The page's own header comment carries the schema and the two rules that
-fail silently. It is for the human, not for you: a tracker that cannot draw its own
-dependencies leaves *what is takeable now* as a question answered by hand.
+fail silently. It is for the human, not for you.
 
 **One repo is the default, not the only case.** An effort with no single owning repo has no
 `.gitignore` to edit and nowhere obvious to write — so where the adapter says the map lives,
@@ -158,21 +136,17 @@ override; absent it, use the paths above.
 
 **If the template is not installed, say so once — then ask for *the whole graph* and print
 the same facts as text**: the destination in one line, the frontier by number and name, what
-is blocked and on what, and the closed count. Nothing else depends on the picture, and no
-tracker owes you a substitute for it — the fallback is this paragraph, not an artifact.
-Print it; never write it to a file, which would be a second store going stale from the
-moment it lands.
+is blocked and on what, and the closed count. **Print it; never write it to a file** — that
+would be a second store, stale from the moment it lands.
 
 ## The leading-gist rule
 
 > **Every resolution comment opens with a one-line gist.** The rest may run as long as it
 > needs to.
 
-This is **contract, not style** — the single line the rest of the map rests on. Without it,
-"rebuild from the closed children" means re-reading twenty long comments and
-re-summarising each: expensive *and* non-deterministic, a different answer every run. With
-it, rebuilding is a mechanical concatenation of twenty first lines — free, and identical
-every time.
+This is **contract, not style**: it is what makes "rebuild from the closed children" a
+concatenation of first lines rather than twenty re-summarisations, which would be expensive
+*and* give a different answer every run.
 
 The gist must be recoverable **from the ticket**, not only from the map.
 
@@ -182,8 +156,8 @@ Maps and tickets are issues, so each has a title. In everything the human reads 
 narration, the map's decision list — use that title. A wall of `#42, #43, #44` is
 illegible; names read at a glance.
 
-**The link target is the id; the link text is the title.** That is how a stable id and a
-human-readable name coexist, and it is why retitling never breaks anything.
+**The link target is the id; the link text is the title.** Identity is the id and the title
+is decoration, which is why retitling never breaks anything.
 
 ## Tickets
 
@@ -213,8 +187,7 @@ for the `make:*` types it is also the dispatch:
 whatever your repo's `CLAUDE.md` declares as its implementation chain — the same source
 `/adapt-to-stack` generates the specialists from. A chain of `schema → service → consumer`
 gives you `make:schema`, `make:service`, `make:consumer`, dispatching to
-`@schema-specialist` and its siblings. Adding a layer to the chain adds a ticket type for
-free; nothing here needs editing.
+`@schema-specialist` and its siblings.
 
 **No declared chain means no `make:<layer>`, and that row is simply off the table.** A map
 charted before its repo is scaffolded has no `CLAUDE.md` to read a chain from and no
@@ -228,11 +201,8 @@ expressed as blocking edges between tickets, never as a hardcoded chain: on a gi
 chain order often is not the order the tickets have to run in.
 
 **HITL types never resolve without the human.** An agent that answers its own grilling
-questions has broken the ticket, not finished it — and the break is not that an agent
-*answered*. It is that a decision got made with **nobody owning it and nothing recording on
-what basis**. Both halves have to be false before this rule stops applying, and on this
-skill they never are: charting is shared by both entrances, and on one of them the owner is
-not in the room.
+question has broken the ticket, not finished it. The break is not that an agent *answered* —
+it is that a decision got made with **nobody owning it and nothing recording on what basis**.
 
 > **One driver is excepted** — [I'm feeling
 > lucky](../../../docs/solo/08-feeling-lucky.md), and only while it is driving. That doc owns
@@ -246,8 +216,7 @@ account, an access grant, a file moved — whose only purpose is to unblock a de
 
 Write a name down when it is **contested, or when a newcomer would read it wrong**. Two
 words for one thing costs a mapping to explain in every later session — and a word read the
-wrong way costs more, because nobody notices. *Seam* is the case that sets the trigger:
-nobody argued about it, and everywhere else it means a place you inject a test double.
+wrong way costs more, because nobody notices.
 
 A settled name then lives in **two homes, in sequence**:
 
@@ -257,10 +226,8 @@ A settled name then lives in **two homes, in sequence**:
 | Once the repo has a `CLAUDE.md` | the repo's **`CLAUDE.md`** | greenfield, the bootstrap step that writes that file; on an existing repo the file is already there, so the copy is part of closing the map |
 
 **Write inline, prune at the tail.** Only the session that settled a name knows why *that*
-word won, and a resolution comment often never says. So it goes into Notes while the session
-still holds it, and the last pass before the hand-off is **subtractive only** — delete the
-names that died, never invent one. A folder renamed three tickets later is what that pass
-exists to catch: copy without pruning and every future session reads a path that is gone.
+word won, so it goes into Notes while that session still holds it. The last pass before the
+hand-off is **subtractive only** — delete the names that died, never invent one.
 
 **No number.** A name earns its line only if it stops a wrong turn, which is the ruler
 `CLAUDE.md` is already priced by.
@@ -309,9 +276,8 @@ Read code through Serena, never with whole-file reads or a grep sweep.
 
 **And if nothing is indexed yet, say so and stop looking. Never fall back to globbing the
 tree.** Charting is general, so it meets both worlds: on a day-one repo an empty index is
-**correct**, not broken, and an agent that concludes Serena is down will burn a third of
-its context proving it. On an existing codebase a sparse index is a real finding — report
-it and stop. Either way the answer is stop, but say which situation you are in.
+**correct**, not broken; on an existing codebase a sparse index is a real finding. Either way
+the answer is stop — but say which situation you are in.
 
 ## The two modes
 
@@ -369,12 +335,11 @@ it and stop. Either way the answer is stop, but say which situation you are in.
    and when. This is not politeness; see below.
 
 **A handed-off ticket that stays unclaimed makes the map unfinishable.** A `task` waiting on
-a person is open, unclaimed, and has no blocking edge — so it sits on the frontier and every
+a person is open, unclaimed, and has no blocking edge — so it sits on the frontier, and every
 later session picks it up and asks for the same thing again. The frontier never empties, so
-the *stalled* ending below can never be reached and the map can neither stall nor close.
-Claiming it to its holder takes it off the frontier, which is the only way the frontier
-empties. The same applies to a `research` ticket left unclaimed: the next session sees it
-takeable and fires a second agent at a question already being answered.
+the map can neither stall nor close. The same trap catches an unclaimed `research` ticket:
+the next session sees it takeable and fires a second agent at a question already being
+answered.
 
 **One ticket per session — research is the only exception**, because research runs AFK in
 subagent contexts and does not spend the session's own.
@@ -385,11 +350,9 @@ cleared by hand, not a jam.
 
 ## When a session ends mid-ticket
 
-**Post a progress comment, and keep the claim.**
-
-Charting is the only thing that knows the session is ending, and handoff files
-auto-delete — the tracker is the only durable surface left. Keeping the claim is safe
-precisely because the claim was never a lock.
+**Post a progress comment, and keep the claim.** The tracker is the only durable surface
+left — handoff files auto-delete — and keeping the claim is safe precisely because the claim
+was never a lock.
 
 ## When the map closes — one memory per map, not one per ticket
 
@@ -400,9 +363,8 @@ Aim for **one** memory. Split only when one cannot hold it: memories have a size
 a map spanning several repos has a different conclusion for each. Then write a **hub**
 memory carrying the effort's conclusion plus **one per repo**, and cross-link them.
 
-**Never one per ticket.** A per-ticket memory is a second copy of something the tracker
-already holds, free to drift from the first — and twenty of them arrive downstream as
-noise. The tickets are the record; the memory is the conclusion.
+**Never one per ticket.** That is a second copy of what the tracker already holds, free to
+drift from the first. The tickets are the record; the memory is the conclusion.
 
 ## Stop condition
 

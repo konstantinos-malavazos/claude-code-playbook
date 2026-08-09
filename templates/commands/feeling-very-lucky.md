@@ -95,19 +95,13 @@ Waiting on: <ticket — the thing, and who owns it>
 Progress: <n> of <m> resolved.
 ```
 
-That first block is the whole reason this command's output looks different from its
-sibling's. Those are the decisions the owner would have been asked about, taken without them,
-on something a ticket cannot undo. Burying them under a count of closed tickets is the one
-formatting choice here that could actually cost a map.
+That first block holds the decisions the owner would have been asked about, taken without
+them, on something a ticket cannot undo. Burying them under a count of closed tickets is the
+one formatting choice here that could actually cost a map.
 
 ## Never
 
-- Never run on a shared tracker.
-- Never let `@decision-steward` hold a tool, see the repo, or see this conversation.
-- Never record an answer without its basis — least of all here.
-- Never skip the citation check on a `grounded` answer. It is the only thing standing between
-  this command and a night of confident invention.
-- Never run past the breaker or the cap.
-- Never stamp a map abandoned, and never report a stalled map as finished.
-- Never force-push, amend a pushed commit, or rebase what is already on the remote.
-- Never commit AI-infra files. Explicit paths in `git add`, never `-A`, never `.`.
+`/feeling-lucky`'s prohibitions all hold here unchanged. One of them changes weight:
+
+- **Never skip the citation check on a `grounded` answer.** Nothing downstream halts, so this
+  check is the only thing standing between this command and a night of confident invention.

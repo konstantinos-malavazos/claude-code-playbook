@@ -53,12 +53,8 @@ foreground or background, removing `AskUserQuestion`, `EndConversation`, `EnterP
 they are listed. Every list in this directory has been checked against both and is clean —
 but a tool you add later may not be.
 
-**Appearing in that list is not proof the tool resolves.** `TodoWrite` is in it, and has been
-**disabled by default since v2.1.142** in favour of `TaskCreate`, `TaskGet`, `TaskList` and
-`TaskUpdate` — so on a stock install the name does not resolve, an agent listing it alone
-resolves to nothing, and the harness refuses to launch it. The docs answer *is this name
-real?*; the question you need answered is *is this tool switched on in the install the reader
-has?* Only spawning the agent answers the second one.
+**Appearing in that list is not proof the tool resolves** — `TodoWrite` is in it and is
+disabled by default. Spawn the agent; see [`../README.md`](../README.md), check 2b.
 
 ## Conventions used across these templates
 
@@ -75,13 +71,9 @@ has?* Only spawning the agent answers the second one.
   be acted on whatever ends up in the pool. **Today that tool is `TaskStop`**, and it is the
   only candidate: everything else in the subset reads, fetches, writes to disk, publishes, or
   reaches another session. Run the test again after a release rather than trusting this
-  sentence — the previous answer to it was `TodoWrite`, and it stopped resolving without a
-  single file in this directory changing. `pitch-judge` and `decision-steward` are the worked
-  examples.
-- **Describe an agent by what it must not *accomplish*, not by the frontmatter you think
-  expresses it.** "Gathers no evidence" stays true across harness versions; "has no tools"
-  was a mechanism claim, and it silently became false. Write the capability in the prose and
-  let the frontmatter be the mechanism that happens to enforce it today.
+  sentence: the previous answer stopped resolving without a single file in this directory
+  changing. `pitch-judge` and `decision-steward` are the worked examples — and the reason
+  their prose says *gathers no evidence* rather than *has no tools*.
 - **Pin exact model ids.** The `model` field accepts an alias, a full id, or `inherit`, and
   **defaults to `inherit`** — so leaving it off is a real choice, not an oversight, and it
   is the right one when an agent should track whatever the session is on. These templates
@@ -89,12 +81,9 @@ has?* Only spawning the agent answers the second one.
   session's model. Use a fast/cheap model for mechanical, bounded work and a stronger model
   for design, judgement, and cross-repo reasoning.
   **The one exception is the layer specialist** — the template and every file generated from
-  it omit the field, unless the
-  repo's `CLAUDE.md` names one per layer — on a day-one repo nobody knows yet which layer is
-  mechanical, deriving it from the layer's *name* is the artifact guessing, and a pinned id
-  written into N generated files is N files to change the day it rots. Pinning is advice to
-  a human who knows the agent; it is not advice a generator can follow.
-  See [`../../docs/shared/11-adapting-to-your-stack.md`](../../docs/shared/11-adapting-to-your-stack.md).
+  it omit the field unless the repo's `CLAUDE.md` names one per layer, because pinning is
+  advice to a human who knows the agent and not advice a generator can follow. Why, in full:
+  [`../../docs/shared/11-adapting-to-your-stack.md`](../../docs/shared/11-adapting-to-your-stack.md).
 - **An agent that dispatches another agent needs `Agent` in its `tools` list.** Nesting is
   on by default (three layers below the main conversation), but an explicit allowlist still
   wins: leave `Agent` out and the dispatch simply cannot happen. `repo-reviewer` is the one
@@ -106,41 +95,24 @@ has?* Only spawning the agent answers the second one.
   never writes to memory." These negative constraints are as important as the positive
   steps.
 - **Replace `<memory-read-tools>` / `<tracker-read-tools>`** with your actual MCP tool
-  names once you know them (e.g. Forgetful's `query_memory`).
-- **Serena is NOT a placeholder.** Its tools are named outright in every code-touching
-  agent, and each carries a *Code access protocol* block. See below.
+  names once you know them (e.g. Forgetful's `query_memory`) — but **Serena is not a
+  placeholder**, see below.
 
 ## Serena is mandatory, not preferred
 
-Every agent that touches code carries a **Code access protocol (MANDATORY)** block. The
-rule, in one line: **Serena is the only sanctioned way an agent reads code, and the only
-sanctioned way an agent changes it.**
-
-- **Reading** — symbols, references, implementations, declarations and file shape come
-  from `find_symbol`, `find_referencing_symbols`, `find_implementations`,
-  `find_declaration`, `get_symbols_overview`. `Read`/`Grep`/`Glob` stay in the tool list
-  because agents must read handoffs, docs and config — **not** as a code path.
-- **Writing** — `replace_symbol_body`, `insert_after_symbol` / `insert_before_symbol`,
-  `rename_symbol`, `safe_delete_symbol`, `create_text_file`, and `replace_content` for
-  non-symbol text inside a code file. `Edit`/`Write` on code are a protocol violation
-  outside the escapes below.
-- **Verifying** — `get_diagnostics_for_file` on every file touched, before the build.
-- **The only escapes**, and the agent must name which one it used: (a) the language/file
-  isn't indexed by Serena, (b) the target is a non-symbol string (try `search_for_pattern`
-  first), (c) Serena errors on the path. For a write, an unusable Serena means **STOP and
-  surface it** — never a silent downgrade to `Edit`.
-- **Evidence discipline** — a symbol in a plan, a finding in a review, or a cleared
-  consumer in a blast-radius report must trace to a Serena result with `file:line`. "Grep
-  found nothing" is not evidence of absence; `find_referencing_symbols` returning nothing
-  is.
+Every agent that touches code carries a **Code access protocol (MANDATORY)** block stating
+the reading, writing, verifying and escape rules for that agent's own job. **Do not strip
+it when you copy the file**, and do not treat `Read`/`Grep`/`Glob` in a `tools:` list as
+permission to read code with them. The doctrine those blocks encode:
+[`../../docs/shared/04-serena.md`](../../docs/shared/04-serena.md).
 
 ### Tool-name prefix
 
-The templates use `mcp__serena__<tool>`. Your actual prefix depends on how Serena is
-registered — a plugin install shows up as e.g. `mcp__plugin_serena_serena__find_symbol`.
-Check with `/mcp`, then search-and-replace `mcp__serena__` across the agent files. A
-prefix that doesn't resolve means the agent silently has **no** code tools and will fall
-back to reading files — verify one agent before you trust the set.
+The templates use `mcp__serena__<tool>`, which is a **literal, not a placeholder** — but a
+plugin install registers as `mcp__plugin_serena_serena__` instead, and a name that doesn't
+resolve leaves the agent silently with no code tools. Check with `/mcp` and rewrite the
+prefix across the agent files before you trust any of them:
+[`../../docs/shared/03-setup.md`](../../docs/shared/03-setup.md#then-find-your-tool-prefix--this-bites).
 
 ## The set
 
@@ -156,27 +128,17 @@ back to reading files — verify one agent before you trust the set.
 | `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | | ✓ |
 | `decision-steward.md` | one grilling question on an unattended walk → an answer **plus a basis** (**gathers no evidence**) | ✓ | |
 
-The **solo** / **team** columns say which entrance needs each template. Three claim a single
-column, for three different reasons. `pitch-judge` belongs to the solo path's kill gate, which
-the agile path does not have. `decision-steward` stands in for the person whose decision it
-is, which is only defensible when that person is the one who started the walk — see
-[08-feeling-lucky.md](../../docs/solo/08-feeling-lucky.md). `map-reviewer` is dispatched by
-[`/resume-massive`](../commands/README.md) and by nothing else, and that flow is team-only
-([03-massive-tickets.md](../../docs/team/03-massive-tickets.md)); a solo builder charting an
-existing repo with `/charting` closes the map without it.
+The **solo** / **team** columns say which entrance needs each template. The three that claim
+a single column each have exactly one flow that dispatches them, and are dead weight without
+it: `pitch-judge` by the [`pitch` skill](../skills/README.md), `decision-steward` by
+[`/feeling-lucky`](../commands/feeling-lucky.md), `map-reviewer` by
+[`/resume-massive`](../commands/README.md) — that last one team-only
+([03-massive-tickets.md](../../docs/team/03-massive-tickets.md)), so a solo builder charting
+an existing repo with `/charting` closes the map without it.
 
-**`pitch-judge` and `decision-steward` are the two agents here that read no handoff file and
-touch no code.** Both **gather no evidence**: the entire input arrives in the prompt.
-Mechanically that is `tools: TaskStop` plus `maxTurns: 1` — the floor rule above, and the
-reason that rule exists. Each is dispatched by one flow and is meaningless without it —
-`pitch-judge` by the [`pitch` skill](../skills/README.md), `decision-steward` by
-[`/feeling-lucky`](../commands/feeling-lucky.md).
-
-**They are starved for the same reason, and it is worth naming once.** Give either one
-search tools and its verdict stops being a judgement about a fixed record and becomes a
-function of what it happened to find — `pitch-judge` becomes a third search pass, and
-`decision-steward` can manufacture `grounded` on demand by turning up *some* line to point
-at. **A restricted input is the only thing that makes either label mean anything.**
+`pitch-judge` and `decision-steward` are the two that read no handoff file and touch no
+code — the floor rule above is written for them. Each file argues its own starvation in its
+own terms; do not widen either `tools` list on the way past.
 
 Decompose-path agents (`aligner`, `integrator`, `integration-tester`, `slice-*`) follow
 the same anatomy; add them only if you use the decompose path (docs/shared/09).

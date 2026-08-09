@@ -70,11 +70,8 @@ it has sat.
 | `task` | the human does it — an account, an access grant, a file moved. Done inside this session? Record what they report and what it now unblocks. **Still outstanding when the session ends? Claim it to them** and comment what was asked and when |
 
 **Claiming a handed-off ticket is not bookkeeping politeness — it is what lets the map
-finish.** A `task` waiting on a person and a `research` running in the background are both
-still `open` with no `Blocked by:` edge, so an unclaimed one stays on the frontier: the next
-session picks it up and asks for the same thing again, and the one after that does too. The
-frontier never empties, so step 7 never runs and the map can neither stall nor close. Leaving
-`research` unclaimed also fires a second agent at a question already being answered.
+finish.** An unclaimed handoff is open with no `Blocked by:` edge, so it never leaves the
+frontier, so step 7 never runs.
 
 If `/build-chart-ticket` came back with a **decision report** instead of a resolution
 comment, it hit a real decision and stopped. It wrote nothing — filing it is yours:
@@ -96,10 +93,9 @@ run was asked for.
    **and why** — the why is what the next session cannot reconstruct.
 2. **Close** the ticket, and clear the claim.
 3. **Regenerate `Decisions so far`.** Ask for *the whole graph*, take every **closed**
-   ticket's first line, in number order, and rewrite the section whole. Never append — two
-   sessions appending an hour apart silently lose one of the writes, and rebuilding turns that
-   into a shrug. **Re-read `map.md` immediately before editing it**, never from the copy you
-   loaded at session start.
+   ticket's first line, in number order, and rewrite the section whole. Never append.
+   **Re-read `map.md` immediately before editing it**, never from the copy you loaded at
+   session start.
 4. **A ticket closed as out of scope is not a decision.** It gets its line under *Out of
    scope* and stays out of *Decisions so far*, which records the route actually walked.
 
@@ -150,9 +146,6 @@ In this order. Do not skip step 2 because step 1 came back clean.
    the prompt that the range is `origin/<main>..<branch>`**, a branch and not a tag, and give
    it the output path `reviews/<repo>-release.md`.
 
-   This exists because the first repo reviewed got its verdict on day 3, before the consumers
-   written on day 9 existed, and nothing has looked at it since.
-
 2. **`@map-reviewer`**, once, after all of them finish. It judges the Destination and the
    ticket's acceptance criteria and writes `reviews/map-review.md`.
 
@@ -164,9 +157,9 @@ In this order. Do not skip step 2 because step 1 came back clean.
    escalate to the human.** A third round means the map is wrong, not the code.
 
 5. **Bank the memories.** Aim for one. When one cannot hold the effort, write a **hub** plus
-   **one per repo**, and cross-link them. Never one per ticket: twenty arrive downstream as
-   noise, and the tickets already are the record. Tag by functionality and lifecycle; **the
-   ticket id goes in the title, the content or the keywords, never in a tag.**
+   **one per repo**, and cross-link them. Never one per ticket. Tag by functionality and
+   lifecycle; **the ticket id goes in the title, the content or the keywords, never in a
+   tag.**
 
 6. **Hand `@map-reviewer`'s unproven criteria to `/test-ticket`.** Anything artifact-shaped —
    a field order, a timezone bucketing — was never provable by reading code, and the map must
@@ -200,17 +193,10 @@ Say the next command is `/resume-massive <KEY>`, and stop.
 
 ## When the session ends mid-ticket
 
-**Post a progress comment on the ticket, and keep the claim.** You are the only thing that
-knows the session is ending, handoff files are gone by morning, and the chart is the only
-durable surface left. Keeping the claim is safe precisely because it was never a lock.
+**Post a progress comment on the ticket, and keep the claim.** The chart is the only durable
+surface left, and keeping the claim is safe precisely because it was never a lock.
 
-## Never
+## Git, whenever you touch it
 
-- Never write to the tracker — the development ticket, not the chart. Map writes are step 5's
-  whole job.
-- Never close a ticket without its leading gist — the decision list is rebuilt from those
-  first lines, and a blank one is a hole in the map's history.
-- Never hand-append to `Decisions so far`. Regenerate it.
-- Never take a second ticket after resolving one, research aside.
 - Push the branch where the allowlist permits; never merge, and never push the trunk.
 - Never commit AI-infra files.

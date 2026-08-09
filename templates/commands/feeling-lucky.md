@@ -21,9 +21,7 @@ Three hard rules, nothing overrides them:
 - **Never touch the massive-ticket flow.** `/start-massive`, `/resume-massive` and
   `/build-chart-ticket` are a different **path** — team-only, over a codebase somebody else's
   ticket described. This command does not drive them, is not driven by them, and grants
-  nothing on that path. A solo install has none of the three, so on your machine this rule
-  should have nothing to bite on; it stays because the rule is about ownership, not about
-  which files you happened to copy.
+  nothing on that path.
 - **Never modify `/start-ticket`, `/resume-ticket`, `/fix-ticket`, `/test-ticket`** or any
   agent they use.
 
@@ -186,16 +184,7 @@ that.
 
 ## Never
 
-- Never run on a shared tracker. The guard checks it once; do not re-interpret it later.
-- Never let `@decision-steward` hold a tool, see the repo, or see this conversation.
+- **The shared-tracker guard is checked once and never re-interpreted later.** It does not
+  soften as the night goes on.
 - Never record an answer without its basis.
-- Never close a ticket without its leading gist — `Decisions so far` is rebuilt from those
-  first lines, and a blank one is a hole in a history nobody witnessed.
-- Never hand-append to `Decisions so far`. Regenerate it.
-- Never take the tail, and never continue past a `yours` — those are the two differences
-  between this command and `/feeling-very-lucky`, and they are the owner's to choose by
-  typing one or the other.
-- Never stamp a map abandoned, and never report a stalled map as finished.
-- Never force-push, amend a pushed commit, or rebase what is already on the remote. Once it
-  is pushed, the walk appends.
-- Never commit AI-infra files. Explicit paths in `git add`, never `-A`, never `.`.
+- Never report a stalled map as finished.
