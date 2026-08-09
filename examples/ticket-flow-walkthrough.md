@@ -40,8 +40,20 @@ Reads both briefs, does a pinpoint read of `formatFeedTime`, writes `planner.md`
 - Cuts the branch `PROJ-482_display-timezone` (fetch → main → pull --rebase → branch).
 
 ### 3b. Grilling gate
-> Planner asks you: *"Default timezone when the user's region is unknown — UTC, or the
-> server's local zone?"* You answer **UTC**. (Cheap to reverse; no deferral needed.)
+The planner surfaced one open question, so the gate is one question long — it still opens
+with what is being decided, in the `grilling` skill's shape:
+
+> **We are deciding one thing: what timezone the feed uses before we know where the user is.**
+> There is 1 question.
+>
+> ❓ **Q1 of 1** — **Fallback timezone**: what do we show when the user's region is unknown?
+>
+> UTC — same for everyone, and obviously "not personalised" when someone spots it.
+> The server's local zone — right for most users today, wrong and invisible for the rest.
+>
+> ➡️ UTC, because a wrong-but-plausible time is harder to notice than a neutral one.
+
+You answer **UTC**. Cheap to reverse — one default in one function — so no deferral needed.
 
 ### 4. Layer specialists, in order
 - **data-model specialist:** adds the `timezone` column via a migration; handoff records

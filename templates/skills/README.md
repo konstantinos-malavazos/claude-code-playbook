@@ -59,8 +59,9 @@ than the two above:
 - **User-invoked** skills run when you type `/skill-name`. **A description that says "use
   when the user says…" does not make a skill user-invoked** — it is a hint, not a
   constraint. Set `disable-model-invocation: true` if it must never fire on its own.
-  **Two of these skills do** — `bootstrap` and `cut-backlog`; the rule that sorts them is
-  below, and it is `PHILOSOPHY.md`'s, not a local invention.
+  **Four of these skills do** — `bootstrap`, `cut-backlog`, `wait-what` and
+  `to-questionnaire`. The rule that sorts the first two is below, and it is
+  `PHILOSOPHY.md`'s, not a local invention.
 - Keep the front `description` tight and trigger-focused; put the detail in the body.
 - Skills can bundle extra files (templates, checklists) the body points to —
   progressive disclosure keeps the base cost low.
@@ -77,8 +78,11 @@ than the two above:
 | `tdd` | test-first feature/bug work (red-green-refactor) | ✓ | ✓ |
 | `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
+| `wait-what` | **you type it** — the last message did not land, so it gets re-pitched simply | ✓ | ✓ |
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
+| `to-questionnaire` | **you type it** — a decision blocked on a fact another **person** holds; writes the document you send them | ✓ | ✓ |
+| `wizard` | manual work only a human can do — writes a bash script that walks them through it stage by stage. **Ships `template.sh`; copy both or neither** | ✓ | ✓ |
 | `prototype` | a design question nobody can settle on paper — throwaway code built to be reacted to and then deleted | ✓ | ✓ |
 | `charting` | an effort too big for one session and too foggy to plan — maps it into tickets on the tracker | ✓ | ✓ |
 | `pitch` | a raw idea with no repo — the one-hour kill gate that ends in build, kill or park | ✓ | |
@@ -102,7 +106,7 @@ already exists did not. Solo, you point `/charting` at your own repo and hand ea
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
 
-## On `disable-model-invocation` — two skills set it, and the rule is `PHILOSOPHY.md`'s
+## On `disable-model-invocation` — three skills set it, for two different reasons
 
 Four of these are **conversations** — `charting`, `pitch`, `grilling`, `diagnose` — and none
 of them sets `disable-model-invocation: true`, so Claude may load any of them on its own.
@@ -121,6 +125,15 @@ already two tests and already sorts these skills correctly:
 | `bootstrap` | **yes** — writes memory, ends in a commit | no | **set** |
 | `cut-backlog` | no | **yes** — files a dozen issues where other people may see them | **set** |
 | `adapt-to-stack` | no — you `rm` the generated files | no | **not set** |
+| `wait-what` | no — it writes nothing | no | **set anyway**, see below |
+| `to-questionnaire` | no — one Markdown file you delete | no | **set anyway**, see below |
+
+**Two skills set it for a reason this test does not produce**, and the test is not wrong — it
+answers a different question. It asks whether a *run* needs confirming. Neither of these is a
+run the model can decide to start: `wait-what` is *you* saying the last message did not land,
+and `to-questionnaire` needs a recipient only *you* know exists. The field is what makes them
+typed-only rather than confirmation gates. **A second reason to set the field, not a second
+reading of the first.**
 
 **`adapt-to-stack` used to set it, and the earlier version of this rule is why.** This
 README once said the field earns its place on skills with *"side effects or timing you own"*
@@ -134,7 +147,8 @@ is add files you delete. Settled in
 **Do not re-derive a rule the repo already states.** A local version drifts, and this one
 drifted into a wrong answer before anybody noticed.
 
-The shape all three share is **each one's output is somebody else's input** — the bootstrap's
+The shape `bootstrap`, `cut-backlog` and `adapt-to-stack` share is **each one's output is
+somebody else's input** — the bootstrap's
 report is read at the seam, the backlog by `/start-ticket`, and the generated specialists are
 what `/start-ticket` dispatches **to**. Worth naming, and **not the test**: it is true of
 `adapt-to-stack`, which gets no field.
