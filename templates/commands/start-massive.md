@@ -14,7 +14,8 @@ Charting owns the method; the adapter owns what each verb means on disk. This fi
 them to your workspace. Where they disagree with something below, they win — except on the
 three hard rules, which nothing overrides:
 
-- **Zero tracker writes.** Read-only, always. The session ends with text for you to paste.
+- **Zero tracker writes.** The development ticket is read-only, always; the session ends with
+  text for you to paste. Writing the chart is a **map write** and is not the same act.
 - **Chart state lives where the adapter says**, never in the handoffs directory — that
   auto-deletes at session end and a map runs for weeks.
 - **Never modify `/start-ticket`, `/resume-ticket`, `/fix-ticket`, `/test-ticket`** or any

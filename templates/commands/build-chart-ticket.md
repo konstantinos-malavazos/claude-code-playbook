@@ -1,7 +1,6 @@
 ---
-description: Implement ONE make ticket from a chart - context delta → planner → the single layer specialist the label names → review, but only if that repo has no other make tickets left. Guards hard on "claimed and open" and fails loudly. Stops and opens a grilling ticket if the planner meets a real decision. Never closes the ticket.
+description: Implement ONE make ticket from a chart - context delta → planner → the single layer specialist the label names → review, but only if that repo has no other make tickets left. Guards hard on "claimed and open" and fails loudly. Stops and hands the question back if the planner meets a real decision. Writes nothing to the map and never closes the ticket.
 argument-hint: <TICKET-ID>#<NN>
-disable-model-invocation: true
 ---
 
 # Build Chart Ticket — $ARGUMENTS
@@ -18,6 +17,12 @@ You can call it by hand, but the guards do not relax when you do.
 
 **Read your tracker adapter first** — it says what these tickets are on disk. The `charting`
 skill is not needed here: charting decided; this executes.
+
+**Two words, and they are not the same thing.** A **map write** creates, edits, comments on
+or closes one of *this chart's* tickets, wherever the adapter puts them. A **tracker write**
+touches the development ticket the whole effort hangs off. The flow does map writes all day
+and never a tracker write — and where the adapter puts the chart on a shared tracker, a map
+write is still visible to everyone, which is why this command makes **none of either**.
 
 ## 0. Guards — fail loudly, never work around
 
@@ -36,6 +41,10 @@ Stop with a plain sentence if any of these is false. Do **not** fix them on the 
 **Check them in that order.** `Type:` is intrinsic to the ticket and `Claim:` is transient,
 so an unclaimed `grilling` should be refused as *not a make* — the answer that tells the
 caller something — rather than as *unclaimed*, which they could fix and still be wrong.
+
+**The `Claim:` guard is what makes this command safe to dispatch**, now that it carries no
+`disable-model-invocation`. A run nobody asked for lands on a ticket nobody claimed, and
+stops here. Never relax it to *claim it yourself and carry on* — that is the guard.
 
 ## 1. Read the brief — it already exists
 
@@ -70,19 +79,21 @@ The planner will end with open design questions. Take each one and **try to answ
 the code yourself** with a pinpoint symbol lookup. Record what the code settles, with
 `file:line`.
 
-**Whatever survives that is a real decision, and it ends the session.** In order:
+**Whatever survives that is a real decision, and it ends the session.** You do not write it
+down anywhere. You hand it back:
 
-1. Create a `grilling` ticket on the map with the question, at the next free number.
-2. Add that number to this ticket's `Blocked by:`.
-3. Leave the claim in place and post a progress comment saying how far you got.
-4. **End the session.** Say which ticket now needs the human.
+1. Return a **decision report** to the caller — the question phrased so a human can answer
+   it, and how far the implementation got before you stopped.
+2. **End the session.** Say that the question now needs the human.
+
+`/resume-massive` is what files the `grilling` ticket, adds it to this ticket's `Blocked by:`,
+posts the progress comment and leaves the claim on. **This command makes no map writes at
+all**: claiming, filing, gisting, closing and regenerating every one of them belong to the
+caller, and this step used to be the exception that proved nothing.
 
 This is charting's own rule, not a special case: a make decides nothing new — if it finds a
 decision, it opens one. Answering it here would spend the context the implementation needed,
 and the answer would be buried in a make ticket where nobody looks for it.
-
-These two writes are the **only** tracker writes this command makes. Claiming, gisting,
-closing and regenerating all belong to `/resume-massive`.
 
 ## 4. The branch — one per repo, for the whole map
 
@@ -138,7 +149,9 @@ The verdict is not the last word on that repo. When the map closes, a release-mo
 
 ## 7. Hand back — do not close the ticket
 
-Return to the caller with a **draft resolution comment**, and let `/resume-massive` post it:
+**There are two ways out of this command and both of them are text handed to the caller.**
+Step 3's decision report is the short one. This is the other: the work landed, so return a
+**draft resolution comment** and let `/resume-massive` post it:
 
 ```markdown
 <one-line gist — what this ticket settled or delivered. This line is contract.>

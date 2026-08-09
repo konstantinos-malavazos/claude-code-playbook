@@ -14,7 +14,11 @@ bookkeeping, which is yours alone.
 
 Three hard rules, nothing overrides them:
 
-- **Zero tracker writes.** The session ends with text for the user to paste.
+- **Zero tracker writes.** The development ticket the effort hangs off is read-only; the
+  session ends with text for the user to paste. **Map writes are yours and nobody else's** —
+  creating, claiming, commenting on and closing *this chart's* tickets is most of step 5, and
+  no command you dispatch does any of it. The two words are not interchangeable; where the
+  adapter puts the chart on a shared tracker, a map write is still seen by everyone.
 - **One ticket per session** — `research` is the only exception, because it runs in a
   background context and does not spend this one.
 - **Never modify `/start-ticket`, `/resume-ticket`, `/fix-ticket`, `/test-ticket`** or any
@@ -72,10 +76,18 @@ session picks it up and asks for the same thing again, and the one after that do
 frontier never empties, so step 7 never runs and the map can neither stall nor close. Leaving
 `research` unclaimed also fires a second agent at a question already being answered.
 
-If `/build-chart-ticket` came back saying it hit a real decision: it has already opened the
-`grilling` ticket and blocked this one. **Leave the claim on, post its progress comment, and
-end the session.** Do not close anything, do not start the grilling ticket — that is next
-session's one ticket.
+If `/build-chart-ticket` came back with a **decision report** instead of a resolution
+comment, it hit a real decision and stopped. It wrote nothing — filing it is yours:
+
+1. Create a `grilling` ticket on the map with its question, at the next free number.
+2. Add that number to the make ticket's `Blocked by:`.
+3. Post the progress comment, and **leave the claim on**.
+4. **End the session.** Do not close anything, and do not start the grilling ticket — that is
+   next session's one ticket.
+
+**Every write in that list is a map write, which is why it sits here and not there.** A
+command dispatched mid-session cannot be trusted with the map: it does not know whether the
+run was asked for.
 
 ## 5. Record it — this is the part only you do
 
@@ -194,7 +206,8 @@ durable surface left. Keeping the claim is safe precisely because it was never a
 
 ## Never
 
-- Never write to the tracker.
+- Never write to the tracker — the development ticket, not the chart. Map writes are step 5's
+  whole job.
 - Never close a ticket without its leading gist — the decision list is rebuilt from those
   first lines, and a blank one is a hole in the map's history.
 - Never hand-append to `Decisions so far`. Regenerate it.

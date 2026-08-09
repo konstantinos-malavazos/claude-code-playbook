@@ -106,7 +106,7 @@ already exists did not. Solo, you point `/charting` at your own repo and hand ea
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
 
-## On `disable-model-invocation` — three skills set it, for two different reasons
+## On `disable-model-invocation` — four skills set it, for two different reasons
 
 Four of these are **conversations** — `charting`, `pitch`, `grilling`, `diagnose` — and none
 of them sets `disable-model-invocation: true`, so Claude may load any of them on its own.
@@ -175,13 +175,26 @@ something else dispatches to cannot carry the field, whatever the test above ret
 - **`bootstrap` step 5 says *Run `/adapt-to-stack`***, which is the second reason the field
   came off it. Here the veto and the test agreed, so #49 never had to rank them.
 
-**They do not always agree, and this repo ships the case where they do not.**
+**They looked like they disagreed once, and checking the disagreement dissolved it.**
 `/resume-massive:63` dispatches to `/build-chart-ticket`, which commits, amends, **pushes**
-and writes to the tracker — so it fails *both* halves of the test and earns the field, and it
-is dispatched to and so cannot have it. Filed as
-[#53](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/53). **Do not
-read the veto as *dispatch always wins*** — where they conflict, something about the shape of
-the two skills has to change, not the frontmatter.
+and used to write to the map — so it appeared to fail *both* halves of the test and earn the
+field, while being dispatched to and so unable to have it.
+[#53](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/53) found neither
+half survived contact with the tree:
+
+- **Committing and pushing never earned it.** `block-dangerous-git.sh` denies `git push`
+  unless the repo is in `~/.claude/repo-allowlist`, and `/start-ticket:39` does the same
+  commit-and-push with no field, saying why — *"the hook is the authority, and this flow no
+  longer adds a second, invisible no."* A commit is local and you undo it.
+- **The writes were in the wrong file anyway.** `build-chart-ticket:85` already said
+  claiming, gisting, closing and regenerating belong to `/resume-massive`; step 3 was the one
+  exception, and it moved to the caller. The field came off once it wrote nothing.
+
+**So the lesson is not a ranking, it is an order of operations.** When the veto and the test
+conflict, **test the test first** — a skill that must be dispatched to and looks too dangerous
+to dispatch is usually a skill holding a side effect that belongs to its caller. Move the side
+effect and the conflict goes with it. Only if it genuinely cannot move does the shape of the
+two skills have to change.
 
 **The harness does not fail silently, which is why this hid through three tickets.** It
 blocks the call and *"instructs it not to reproduce the deploy steps another way, so expect
