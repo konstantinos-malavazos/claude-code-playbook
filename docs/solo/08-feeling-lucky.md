@@ -226,8 +226,8 @@ The steward gets a pack, not a transcript, and not the repo: the map's **Destina
 
 Restricting it is the whole mechanism. Give the steward the run of the repo and `grounded`
 becomes trivial to manufacture — it will always find *some* line to point at. The same
-reasoning gives [`@pitch-judge`](../../templates/agents/pitch-judge.md) one inert tool and
-one turn: the case file arrives in the prompt, and there is nothing to fetch.
+reasoning gives [`@pitch-judge`](../../templates/agents/pitch-judge.md) one tool that fetches
+nothing, and one turn: the case file arrives in the prompt, and there is nothing to fetch.
 
 ### Every answer carries a basis
 

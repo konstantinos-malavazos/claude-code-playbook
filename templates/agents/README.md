@@ -47,8 +47,18 @@ built-ins**: `Read`, `Grep`, `Glob`, `Bash`, `PowerShell`, `Edit`, `Write`, `Not
 `WebFetch`, `WebSearch`, `TodoWrite`, `Skill`, `ToolSearch`, `EnterWorktree`, `ExitWorktree`,
 `Monitor`, `TaskStop`, `SendMessage`, `Artifact`. Anything else in a `tools:` list is
 **stripped at runtime with no error**. (`Agent` is exempt from this filter and survives
-anywhere, up to the nesting depth limit.) Every list in this directory has been checked
-against that set and is clean — but a tool you add later may not be.
+anywhere, up to the nesting depth limit.) A second, narrower filter runs on *every* subagent
+foreground or background, removing `AskUserQuestion`, `EndConversation`, `EnterPlanMode`,
+`ExitPlanMode`, `ScheduleWakeup`, `TaskOutput`, `WaitForMcpServers` and `Workflow` even when
+they are listed. Every list in this directory has been checked against both and is clean —
+but a tool you add later may not be.
+
+**Appearing in that list is not proof the tool resolves.** `TodoWrite` is in it, and has been
+**disabled by default since v2.1.142** in favour of `TaskCreate`, `TaskGet`, `TaskList` and
+`TaskUpdate` — so on a stock install the name does not resolve, an agent listing it alone
+resolves to nothing, and the harness refuses to launch it. The docs answer *is this name
+real?*; the question you need answered is *is this tool switched on in the install the reader
+has?* Only spawning the agent answers the second one.
 
 ## Conventions used across these templates
 
@@ -56,12 +66,18 @@ against that set and is clean — but a tool you add later may not be.
   + test-run but no edit. Least privilege makes agents cheap *and* safe.
 - **Least privilege has a floor, and the floor is one tool.** You cannot scope an agent to
   zero: Claude Code **refuses to launch** one whose `tools` list resolves to nothing
-  (*"subagents require at least one tool to function"*), and omitting `tools` does the
+  (*"would be spawned with zero tools — refusing"*), and omitting `tools` does the
   opposite — it inherits **everything**, MCP servers included. So `tools: []` is not "no
-  tools", it is one of those two failures depending on your version. For an agent that must
-  only **weigh**, never fetch, the idiom is `tools: TodoWrite` plus `maxTurns: 1`:
-  `TodoWrite` cannot read, fetch or execute, and a single agentic turn means no tool result
-  can be acted on. `pitch-judge` is the worked example.
+  tools", it is one of those two failures depending on your version.
+- **For an agent that must only weigh, never fetch, the floor is a test, not a tool name.**
+  Take the **one tool in the background subset above that gathers no evidence** — cannot
+  read, fetch, write or execute — and pair it with `maxTurns: 1`, so that no tool result can
+  be acted on whatever ends up in the pool. **Today that tool is `TaskStop`**, and it is the
+  only candidate: everything else in the subset reads, fetches, writes to disk, publishes, or
+  reaches another session. Run the test again after a release rather than trusting this
+  sentence — the previous answer to it was `TodoWrite`, and it stopped resolving without a
+  single file in this directory changing. `pitch-judge` and `decision-steward` are the worked
+  examples.
 - **Describe an agent by what it must not *accomplish*, not by the frontmatter you think
   expresses it.** "Gathers no evidence" stays true across harness versions; "has no tools"
   was a mechanism claim, and it silently became false. Write the capability in the prose and
@@ -151,7 +167,7 @@ existing repo with `/charting` closes the map without it.
 
 **`pitch-judge` and `decision-steward` are the two agents here that read no handoff file and
 touch no code.** Both **gather no evidence**: the entire input arrives in the prompt.
-Mechanically that is `tools: TodoWrite` plus `maxTurns: 1` — the floor rule above, and the
+Mechanically that is `tools: TaskStop` plus `maxTurns: 1` — the floor rule above, and the
 reason that rule exists. Each is dispatched by one flow and is meaningless without it —
 `pitch-judge` by the [`pitch` skill](../skills/README.md), `decision-steward` by
 [`/feeling-lucky`](../commands/feeling-lucky.md).

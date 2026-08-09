@@ -123,7 +123,7 @@ Each iteration is a **fresh context**. Repeat until step 5 halts you.
    [`decision-steward.md`](../agents/decision-steward.md): the map's Destination, Decisions
    so far, Not yet specified, Out of scope and Notes; the ticket's Question and Comments; and
    whatever memories exist. **That pack is the whole of what it sees** — no repo, no
-   transcript, no tools.
+   transcript, and nothing it can fetch with.
 3. **Invoke `@decision-steward`**, once, with the pack.
 4. **Check the citation resolves.** On a `grounded` answer, open the thing it cited and
    confirm it says what it was quoted as saying. **An invented or unquotable citation is a

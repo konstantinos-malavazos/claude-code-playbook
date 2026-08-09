@@ -169,7 +169,8 @@ in about two lines: one side asks every question, one side says *let me go and s
 out who is who and the judge is back to deferring to the user.
 
 **The judge gathers no evidence, so it cannot read a file.** The case file goes **in the
-dispatch prompt itself**, not on disk. (Mechanically it holds one inert tool and one turn —
+dispatch prompt itself**, not on disk. (Mechanically it holds one tool that fetches nothing,
+and one turn —
 see [`pitch-judge.md`](../../agents/pitch-judge.md); the harness will not launch an agent
 with zero tools.)
 
