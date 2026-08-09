@@ -160,6 +160,17 @@ comments, because this adapter keeps them all in one file per ticket.
 **The named set is the cheapest scoping here, not a harder one.** A parentless graph — a
 backlog of work units — names its tickets, and naming them only narrows the files you open.
 
+**Return each blocker with its `State:`, not just its number — and on a named set that
+means opening files outside the set.** `Blocked by: 03, 04` is the claim about the past
+this adapter already warns you about, and handing it over unanswered pushes the same rotten
+claim to the caller. So the whole graph resolves it the way *is this blocked?* does: read
+each listed file and take its `State:`. Under the parent scoping those files are already
+open — every blocker of a child is another child. Under a named set a blocker can be a
+ticket nobody named, and it is the one that gets left `open` by default, which draws a
+takeable ticket as blocked. **Open the named files, then any file they name as a blocker.**
+Still one directory, and the blockers you pull in this way are read for their `State:` line
+alone — they are not members of the graph and get no box.
+
 **That is why the missing-comments defect never surfaced here.** On a hosted tracker the
 body and the comments are separate fetches, and a `read` that made only the first one
 looked like it worked. Cheapest adapter for this verb, and the one that hid the bug in it.

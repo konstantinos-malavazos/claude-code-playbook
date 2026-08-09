@@ -79,6 +79,16 @@ Jira is comfortable here: `issuelinks` returns the linked issues' **keys**, so a
 drawing the graph gets real edges. GitHub's REST payload returns a count instead, which is
 why its whole graph goes through GraphQL — the same verb, a different amount of trouble.
 
+**Return each blocker's status with its key.** On the parent scoping you can work it out
+from the result — every blocker of a child is another child, so its status is already
+there. On a named set you cannot: `key in (…)` returns exactly the keys you named, a
+blocker outside that list is simply absent, and a caller that treats an absent blocker as
+still open draws a ticket blocked by something that closed weeks ago. Jira's own
+`issuelinks` carries the linked issue's `fields.status`, but **whether your MCP server
+passes that through is a `/mcp` check, not an assumption** — where it does not, read the
+status of each blocker the search did not return. Same client-side finish the frontier
+already does here, and invisible to the caller for the same reason.
+
 Comments are the part that varies. **If your server exposes the search's fields or expand
 argument, ask for `comment` and the whole graph is a single call** — Jira returns comments
 inline with the issue, which no other tracker here does. If it does not, you are down to

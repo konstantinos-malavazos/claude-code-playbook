@@ -57,7 +57,7 @@ gh api graphql -f query='
         number title state url body
         assignees(first:5){ nodes { login } }
         labels(first:10){ nodes { name } }
-        blockedBy(first:20){ nodes { number } }
+        blockedBy(first:20){ nodes { number state } }
         comments(first:100){ nodes { author { login } createdAt body } }
       } } } } }'
 ```
@@ -72,7 +72,7 @@ gh api graphql -f query='
     i2: issue(number:2) { number title state url body
       assignees(first:5){ nodes { login } }
       labels(first:10){ nodes { name } }
-      blockedBy(first:20){ nodes { number } }
+      blockedBy(first:20){ nodes { number state } }
       comments(first:100){ nodes { author { login } createdAt body } } }
     i3: issue(number:3) { … }
     i4: issue(number:4) { … }
@@ -84,6 +84,16 @@ Verified live on this repo: three issues, every field including the `blockedBy` 
 `…/dependencies/blocked_by` per unit — because `issue_dependencies_summary` is counts —
 which is **about 36 requests against one.** The alias keys are yours; the caller reshapes
 with `--jq` as it would for the parent-scoped form.
+
+**`blockedBy` asks for `state`, not just `number`, and that is not decoration.** A caller
+drawing the graph has to know whether each blocker has closed. Under the parent scoping it
+could work that out from the graph itself — every blocker of a child is another child, so
+it is already in the payload. **Under the named set it cannot**: a blocker can sit outside
+the named ids, and a caller that assumes an unfound blocker is still open draws a ticket as
+blocked long after its last blocker closed. Verified on this repo — issue #29's only
+blocker, #58, has closed, and without `state` the picture said blocked while REST said
+`blocked_by: 0`. Asking for `state` costs nothing: **same one request**, one more field,
+and the answer travels with the edge instead of being reconstructed from it.
 
 **REST cannot answer this verb, and it fails by looking like it has.** The
 `…/sub_issues` payload carries `issue_dependencies_summary`, which is **four counts** —
