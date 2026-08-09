@@ -1,28 +1,17 @@
-// Snippet for ~/.claude/settings.json — model/effort + env + the hooks wiring.
-// These leading // lines are NOT valid JSON — drop them when you merge.
-// The "hooks" block below is the same content as hooks/settings-hooks.snippet.json;
-// merge whichever hooks you actually installed.
 {
   "model": "<your-model-id>",
-  "effortLevel": "high",          // "low" | "medium" | "high" | "xhigh"
-
-  // "theme" could NOT be confirmed in the settings key reference — set your theme with
-  // /config instead. An unrecognised key here is ignored silently, so a line that does
-  // nothing looks exactly like one that works. Deleted rather than left as a guess.
-
-  // Env vars available to MCP config (${VAR}) and hooks. Never inline secrets.
+  "effortLevel": "high",
   "env": {
     "WORKSPACE_HANDOFFS_ROOT": "<workspace>/.claude/handoffs"
-    // Tokens should come from your real environment, not be written here.
   },
-
   "hooks": {
     "PreToolUse": [
       {
         "matcher": "Bash|PowerShell",
         "hooks": [
           { "type": "command", "command": "~/.claude/hooks/block-dangerous-git.sh" },
-          { "type": "command", "command": "~/.claude/hooks/block-infra-staging.sh" }
+          { "type": "command", "command": "~/.claude/hooks/block-infra-staging.sh" },
+          { "type": "command", "command": "~/.claude/hooks/block-secret-staging.sh" }
         ]
       },
       {

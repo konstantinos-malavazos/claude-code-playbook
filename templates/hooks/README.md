@@ -2,7 +2,12 @@
 
 Hooks are scripts the **harness** runs on tool events — deterministic guardrails the
 model cannot talk its way around. Copy into `~/.claude/hooks/`, make them executable, and
-wire them in `~/.claude/settings.json` (see `settings-hooks.snippet.json`).
+wire them in `~/.claude/settings.json`.
+
+[`settings-hooks.snippet.json`](settings-hooks.snippet.json) is that wiring — **valid JSON
+with no comments in it**, so merge its `hooks` object into your settings file as-is. Two
+things in it are yours to adjust: keep only the hooks you actually installed, and point the
+`mcp__…` matchers at the servers you actually run.
 
 ## How a hook works
 

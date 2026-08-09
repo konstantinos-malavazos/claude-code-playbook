@@ -71,7 +71,9 @@ See [`../../templates/skills/`](../../templates/skills/).
 - **`/end-of-day`** harvests any other durable conclusions from the day.
 - **`/garden-memory`** periodically evaluates retrieval quality and prunes cruft.
 
-Config snippet: [`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet).
+Config snippet: [`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet)
+— paste it as-is; what each entry means is in
+[`../../templates/mcp/README.md`](../../templates/mcp/README.md).
 
 ---
 
