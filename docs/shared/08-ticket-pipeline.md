@@ -56,15 +56,11 @@ onto the branch this repo ships from). The planner
 ## Step 3b — Grilling gate (human)
 
 Before implementation, the planner surfaces only what the **code and briefs cannot
-answer** — genuine product/spec decisions. For each, you either answer or **defer**:
-
-- name **who owns** the answer (a person / a spec page / a future ticket),
-- note **how expensive it is to reverse** if you guess wrong,
-- let the planner proceed with a **sensible default or a placeholder** so dependent work
-  isn't blocked.
-
-Deferred questions are recorded in the durable ticket state so `/resume-ticket` can pick
-them up when the answer arrives.
+answer** — genuine product/spec decisions. For each, you either answer or **defer**, and a
+deferral has to be managed rather than forgotten before the planner may proceed.
+[`templates/skills/grilling/`](../../templates/skills/grilling/SKILL.md) owns what that
+requires — including recording the open question in the durable ticket state, which is how
+`/resume-ticket` picks it up when the answer arrives.
 
 ## Step 4 — Implement (layer specialists, in chain order)
 

@@ -138,11 +138,11 @@ it banked last time, checks nothing moved, and runs it.
 ## Deferred decisions (the grilling gate)
 
 Real tickets have open questions that only a human (or a spec that doesn't exist yet)
-can answer. Rather than block, the grilling gate lets you **defer**: for each open
-question, note who owns the answer and how expensive it is to reverse later, then plan
-around it with a sensible default or a placeholder so dependent work isn't blocked. The
-open questions are written into the durable ticket state so `/resume-ticket` can pick
-them up days later when the answer lands. See [08-ticket-pipeline.md](08-ticket-pipeline.md).
+can answer. Rather than block, the grilling gate lets you **defer** — managed, not
+forgotten, so dependent work proceeds and `/resume-ticket` can pick the question up days
+later when the answer lands. What *managed* requires is owned by
+[`templates/skills/grilling/`](../../templates/skills/grilling/SKILL.md); where the gate
+sits in the pipeline is [08-ticket-pipeline.md](08-ticket-pipeline.md).
 
 ---
 

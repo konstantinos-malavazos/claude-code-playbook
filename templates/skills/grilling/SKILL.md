@@ -48,10 +48,6 @@ outward and unblocks the questions that were waiting behind it. Re-derive what i
 after every answer — a single answer can add branches, close branches, or make a planned
 question meaningless.
 
-> **"Askable now" is not [`charting`](../charting/SKILL.md)'s frontier.** That frontier is
-> tickets on a map with no open blockers. This one is questions in a conversation. The two
-> load in the same session — `charting` step 2 runs this skill — so say which you mean.
-
 ## One question is ~8 lines. Count them
 
 This is a hard limit, not a target. A question that runs long is the failure mode here, and

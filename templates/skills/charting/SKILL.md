@@ -234,21 +234,9 @@ what basis**. Both halves have to be false before this rule stops applying, and 
 skill they never are: charting is shared by both entrances, and on one of them the owner is
 not in the room.
 
-> **The single documented exception** is [I'm feeling
-> lucky](../../../docs/solo/08-feeling-lucky.md), which drives **solo stage 2 charting**
-> unattended and nothing else. It satisfies the ownership half by construction — solo, the
-> driver owns the product, the repo and the tracker — and buys the recording half with a
-> mandatory basis on every answer plus a ledger of every guess.
->
-> **It does not reach the [massive-ticket flow](../../../docs/team/03-massive-tickets.md)**,
-> which runs this same skill over a codebase somebody else's ticket described. Same skill,
-> different path, and the ownership half is the half that cannot be bought.
->
-> **The exception is scoped to solo stage 2, not to solo.** That flow being team-only does not
-> widen it by one ticket: a solo builder charting an existing repo with `/charting` is still
-> outside it, and their `grilling` tickets still need them in the room.
->
-> **If you are not running that mode, this rule is flat.**
+> **One driver is excepted** — [I'm feeling
+> lucky](../../../docs/solo/08-feeling-lucky.md), and only while it is driving. That doc owns
+> the exception and states what buys it. If it is not driving, this rule is flat.
 
 `task` and the makes both *do* rather than decide, and they are not the same thing. A make
 delivers a piece of the destination. A `task` delivers something outside the codebase — an
@@ -279,6 +267,11 @@ exists to catch: copy without pruning and every future session reads a path that
 
 **Never memory.** `CLAUDE.md` is loaded and memory is searched — and you cannot search for a
 name you do not know you have the wrong way round.
+
+**One collision is already live in your own session.** Step 2 runs
+[`grilling`](../grilling/SKILL.md), whose *askable now* is questions in a conversation, while
+the **frontier** here is tickets on a map with no open blockers. Both are loaded at once, so
+say which you mean.
 
 ## Fog of war
 

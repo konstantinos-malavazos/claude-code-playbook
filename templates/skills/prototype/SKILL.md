@@ -62,11 +62,9 @@ Build it, run it, show it, and stop. If the human is not around, say the prototy
 and name what to look at, then leave a progress note on the ticket and keep the claim. A
 prototype nobody looked at settles nothing, however good it is.
 
-**This is the one HITL type with no exception anywhere, including
-[unattended walks](../../../docs/solo/08-feeling-lucky.md), which halt on it.** A grilling
-can be answered from the record, because a record is the kind of thing a decision can be
-grounded in. *Reacting* is not — the reaction **is** the ticket, and there is nothing to
-stand in for it.
+**This is the one HITL type with no exception anywhere.** A grilling can be answered from the
+record, because a record is the kind of thing a decision can be grounded in. *Reacting* is
+not — the reaction **is** the ticket, and there is nothing to stand in for it.
 
 ## Rules that hold for both branches
 

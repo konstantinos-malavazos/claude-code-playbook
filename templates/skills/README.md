@@ -106,102 +106,31 @@ already exists did not. Solo, you point `/charting` at your own repo and hand ea
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
 
-## On `disable-model-invocation` — four skills set it, for two different reasons
+## On `disable-model-invocation`
 
-Four of these are **conversations** — `charting`, `pitch`, `grilling`, `diagnose` — and none
-of them sets `disable-model-invocation: true`, so Claude may load any of them on its own.
-That is left as-is on purpose: a conversation that starts a turn early costs you one
-redirect.
+`bootstrap`, `cut-backlog`, `to-questionnaire` and `wait-what` set it. Two tests decide it,
+and a veto overrides both.
 
-**The test is not local to this directory.** It is `PHILOSOPHY.md`'s rule of thumb, which is
-already two tests and already sorts these skills correctly:
+**Test 1 — [`PHILOSOPHY.md`](../../PHILOSOPHY.md) §5:** *if it's hard to reverse **or**
+leaves your machine, a human confirms it.* `bootstrap` writes memory and ends in a commit;
+`cut-backlog` files a dozen issues where other people may see them. `adapt-to-stack` gets no
+field — it never overwrites, so the worst an unasked run does is add files you delete.
 
-> *if it's hard to reverse **or** leaves your machine, a human confirms it.*
->
-> — [`PHILOSOPHY.md`](../../PHILOSOPHY.md) §5
+**Test 2 — the run is not the model's to start.** `wait-what` is *you* saying the last
+message did not land; `to-questionnaire` needs a recipient only you know exists. Neither is a
+run the model can decide to begin, so the field makes them typed-only rather than
+confirmation gates.
 
-| Skill | Hard to reverse? | Leaves your machine? | Field |
-|---|---|---|---|
-| `bootstrap` | **yes** — writes memory, ends in a commit | no | **set** |
-| `cut-backlog` | no | **yes** — files a dozen issues where other people may see them | **set** |
-| `adapt-to-stack` | no — you `rm` the generated files | no | **not set** |
-| `wait-what` | no — it writes nothing | no | **set anyway**, see below |
-| `to-questionnaire` | no — one Markdown file you delete | no | **set anyway**, see below |
+Conversation skills — `charting`, `pitch`, `grilling`, `diagnose` — deliberately leave it
+unset. A conversation that starts a turn early costs you one redirect.
 
-**Two skills set it for a reason this test does not produce**, and the test is not wrong — it
-answers a different question. It asks whether a *run* needs confirming. Neither of these is a
-run the model can decide to start: `wait-what` is *you* saying the last message did not land,
-and `to-questionnaire` needs a recipient only *you* know exists. The field is what makes them
-typed-only rather than confirmation gates. **A second reason to set the field, not a second
-reading of the first.**
+**The veto: a skill something else dispatches to cannot carry the field**, whatever the tests
+return. It does not merely stop autoloading — it blocks the Skill tool ([Extend Claude with
+skills](https://code.claude.com/docs/en/skills)), so the dispatch fails and the flow stops
+mid-run and asks you to type the thing. `prototype` writes files and still gets no field,
+because `charting`'s ticket-types table names `/prototype` as what backs a `prototype`
+ticket; `bootstrap` step 5's *Run `/adapt-to-stack`* is why `adapt-to-stack` has none either.
 
-**`adapt-to-stack` used to set it, and the earlier version of this rule is why.** This
-README once said the field earns its place on skills with *"side effects or timing you own"*
-— and `adapt-to-stack` writes files, so that test returned **set it**. It was the wrong
-question: writing a file is a side effect whatever else is true of it, so the test could
-only ever answer yes. *Hard to reverse* asks the thing that decides, and it returns **no**
-for a skill whose whole contract is that it never overwrites — the worst an unasked run does
-is add files you delete. Settled in
-[#49](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/49).
-
-**Do not re-derive a rule the repo already states.** A local version drifts, and this one
-drifted into a wrong answer before anybody noticed.
-
-The shape `bootstrap`, `cut-backlog` and `adapt-to-stack` share is **each one's output is
-somebody else's input** — the bootstrap's
-report is read at the seam, the backlog by `/start-ticket`, and the generated specialists are
-what `/start-ticket` dispatches **to**. Worth naming, and **not the test**: it is true of
-`adapt-to-stack`, which gets no field.
-
-### The mechanical veto: nothing else may dispatch to it
-
-The test above is a judgement. This is not. The field does not merely stop autoloading — it
-blocks the Skill tool:
-
-> The `user-invocable` field only controls menu visibility, not Skill tool access. Use
-> `disable-model-invocation: true` to block programmatic invocation.
->
-> **Hide individual skills** by adding `disable-model-invocation: true` to their frontmatter.
-> This removes the skill from Claude's context entirely.
->
-> — [Extend Claude with skills](https://code.claude.com/docs/en/skills)
-
-**A skill body that says *run `/other-skill`* is a programmatic invocation**, so a skill
-something else dispatches to cannot carry the field, whatever the test above returns:
-
-- **`prototype` writes files and still gets none.** `charting`'s ticket-types table names
-  `/prototype` as what backs a `prototype` ticket; the field would make that row a dead
-  pointer — unreachable from the only thing that dispatches to it.
-- **`bootstrap` step 5 says *Run `/adapt-to-stack`***, which is the second reason the field
-  came off it. Here the veto and the test agreed, so #49 never had to rank them.
-
-**They looked like they disagreed once, and checking the disagreement dissolved it.**
-`/resume-massive:63` dispatches to `/build-chart-ticket`, which commits, amends, **pushes**
-and used to write to the map — so it appeared to fail *both* halves of the test and earn the
-field, while being dispatched to and so unable to have it.
-[#53](https://github.com/konstantinos-malavazos/claude-code-playbook/issues/53) found neither
-half survived contact with the tree:
-
-- **Committing and pushing never earned it.** `block-dangerous-git.sh` denies `git push`
-  unless the repo is in `~/.claude/repo-allowlist`, and `/start-ticket:39` does the same
-  commit-and-push with no field, saying why — *"the hook is the authority, and this flow no
-  longer adds a second, invisible no."* A commit is local and you undo it.
-- **The writes were in the wrong file anyway.** `build-chart-ticket:85` already said
-  claiming, gisting, closing and regenerating belong to `/resume-massive`; step 3 was the one
-  exception, and it moved to the caller. The field came off once it wrote nothing.
-
-**So the lesson is not a ranking, it is an order of operations.** When the veto and the test
-conflict, **test the test first** — a skill that must be dispatched to and looks too dangerous
-to dispatch is usually a skill holding a side effect that belongs to its caller. Move the side
-effect and the conflict goes with it. Only if it genuinely cannot move does the shape of the
-two skills have to change.
-
-**The harness does not fail silently, which is why this hid through three tickets.** It
-blocks the call and *"instructs it not to reproduce the deploy steps another way, so expect
-Claude to suggest running `/deploy` yourself"* — so a broken dispatch surfaces as a flow
-stopping mid-run and asking you to type the thing. Survivable, and therefore easy to walk
-past.
-
-`pitch` is the closest remaining call, since it dispatches subagents and spends real time.
-Watch it; if it ever fires unasked, that is the signal to set the field rather than reword
-the description.
+**When the veto and a test conflict, test the test first.** A skill that must be dispatched to
+and looks too dangerous to dispatch is usually holding a side effect that belongs to its
+caller. Move the side effect and the conflict goes with it.

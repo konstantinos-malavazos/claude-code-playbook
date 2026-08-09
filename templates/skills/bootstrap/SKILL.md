@@ -259,16 +259,7 @@ the disk and skips itself. Nothing records where you stopped; you re-derive it b
 `CLAUDE.md`, not anything else. It is a second copy of what the disk already says, and it
 can be wrong while the disk is right — which is exactly the failure nothing would catch.
 
-### The report has no home, and does not need one
-
-*Stop condition* says the stage is done when the report exists. **The report is not written
-anywhere.**
-
-| The report was | What survives the session |
-|---|---|
-| **Green** | The **commit**. That is the durable tell that stage 3 finished. |
-| **Red** | **Nothing.** Red commits nothing, and the report goes with the session. |
-
-That is the same answer rather than a gap: **if you want to know whether stage 3 finished,
-run it again.** Every step skips itself, every check runs, and the report prints. Giving the
-report a file would be the progress file under another name.
+**The report is not written anywhere either** — a file for it is the progress file under
+another name. Green leaves the commit as the durable tell that stage 3 finished; red leaves
+nothing, because red commits nothing. To find out whether stage 3 finished, run it again:
+every step skips itself, every check runs, and the report prints.
