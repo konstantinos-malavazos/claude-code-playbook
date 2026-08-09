@@ -2,7 +2,8 @@
 
 Install at `~/.claude/tracker.md`. Tickets are Jira issues, reached through the Jira MCP
 server registered in
-[`../mcp/global.claude.json.snippet`](../mcp/global.claude.json.snippet).
+[`../mcp/global.claude.json.snippet`](../mcp/global.claude.json.snippet) (what each entry
+means: [`../mcp/README.md`](../mcp/README.md)).
 
 **Is this a shared place?** **Yes** — corporate Jira is the case the audience rule was
 written for. Every write needs explicit approval, with the exact payload shown first. This
@@ -10,8 +11,9 @@ is also enforced at the tool layer by
 [`../hooks/block-mcp-writes.sh`](../hooks/block-mcp-writes.sh).
 
 > **Tool names depend on which Jira MCP server you installed.** They are written below as
-> `mcp__tracker__<verb>`, which assumes you named the server key `tracker` as the MCP
-> snippet advises — the guardrail hooks match on that prefix. The **verb halves** are the
+> `mcp__tracker__<verb>`, which assumes you named the server key `tracker` as
+> [`../mcp/README.md`](../mcp/README.md) requires — the guardrail hooks match on that
+> prefix. The **verb halves** are the
 > part that varies by server. Confirm the real names with `/mcp` before trusting any of
 > them: a wrong tool name fails the same silent way a wrong Serena prefix does.
 

@@ -23,6 +23,11 @@ Install the CLI (or desktop/IDE), authenticate, and run it once in a scratch fol
 confirm it starts. Pick your model and effort level in `~/.claude/settings.json` (see
 [`../../templates/mcp/settings.json.snippet`](../../templates/mcp/settings.json.snippet)).
 
+**Every snippet under `templates/mcp/` is valid JSON with no comments in it** — paste the
+body straight in. What each key and entry means lives in
+[`../../templates/mcp/README.md`](../../templates/mcp/README.md), and `claude mcp list` is
+the check after each edit.
+
 ## Step 2 — Stand up Serena (eyes)
 
 Serena is **mandatory** in this playbook, for reading code *and* for editing it
@@ -69,7 +74,8 @@ The templates ship with **`mcp__serena__`**. On Route A, search-and-replace
 1. Bring up the memory server and its PostgreSQL + pgvector backend (Docker is the easy
    path; use local embeddings so content stays on the host).
 2. Register it as a **global** server in `~/.claude.json`
-   ([`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet)).
+   ([`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet);
+   the snippet ships a `tracker` entry too — delete it if you don't run one).
 3. Verify: create one test memory, then query it by meaning and confirm it comes back.
 
 ## Step 4 — Lay down the CLAUDE.md layers

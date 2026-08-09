@@ -80,6 +80,8 @@ protocol block; the specialists' *edits* go through it too. Combined with Forget
 often *which symbols matter*), the loop is: memory says "look at `ToBetFeesModel`" →
 Serena jumps straight to it → surgical edit. No file spelunking.
 
-Config snippet: [`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet).
+Config snippet: [`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet)
+— paste it as-is; the plugin-vs-entry choice and the tool-prefix trap are in
+[`../../templates/mcp/README.md`](../../templates/mcp/README.md).
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

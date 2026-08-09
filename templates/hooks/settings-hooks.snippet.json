@@ -1,18 +1,3 @@
-// Merge into the "hooks" object of ~/.claude/settings.json.
-// These leading // lines are NOT valid JSON — drop them when you merge.
-//
-// A matcher is an exact string (or a |-separated list of them) unless it contains a
-// character outside [A-Za-z0-9_- ,|], in which case it is an unanchored JS regex.
-// So "Bash|PowerShell" is two exact names; "mcp__tracker__.*" is a regex, and the
-// trailing .* is REQUIRED to match a server's tools.
-//
-// PowerShell is a SEPARATE tool from Bash. A git guardrail matched only on "Bash"
-// silently stops guarding the moment the model uses PowerShell — keep both names.
-// Adjust MCP prefixes to the servers you run.
-//
-// block-dangerous-git.sh and block-infra-staging.sh both read ~/.claude/repo-allowlist.
-// Create it (empty) from repo-allowlist.sample — with no file, every repo answers no to
-// both questions, which is the safe default and the behaviour these hooks had before.
 {
   "hooks": {
     "PreToolUse": [

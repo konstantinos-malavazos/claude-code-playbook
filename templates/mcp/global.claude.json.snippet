@@ -1,30 +1,9 @@
-// Snippet for ~/.claude.json — GLOBAL MCP servers (available in every project).
-// Merge the "mcpServers" entries into your existing file; keep secrets in env vars.
-// These leading // lines are NOT valid JSON — drop them when you merge.
-//
-// "type" is REQUIRED: stdio | http | sse | ws. An entry with a "url" and no "type" is
-// read as a stdio server and skipped with an error naming it.
-//
-// ${VAR} expands from your environment. If the variable is UNSET and has no :-default,
-// the config still loads and the literal "${VAR}" text is used — the server starts with
-// a garbage token and only `claude mcp list` warns. Use ${VAR:-default} where a fallback
-// makes sense, and check `claude mcp list` after first install.
-//
-// Global scope = servers that aren't tied to one working copy:
-//   - forgetful (memory) is global — your knowledge spans projects.
-//   - the tracker MCP is global — same tracker across projects.
-// Serena is PROJECT scope instead (see project.mcp.json.snippet) because it indexes a
-// working copy.
 {
   "mcpServers": {
     "forgetful": {
       "type": "http",
       "url": "http://localhost:8020/mcp"
     },
-
-    // Name the key "tracker", not after your vendor — the guardrail hooks match on
-    // mcp__tracker__* and the adapter at ~/.claude/tracker.md is what knows the vendor.
-    // Omit this server entirely if your tracker is local markdown files.
     "tracker": {
       "type": "stdio",
       "command": "<your-tracker-mcp-binary-or-npx-package>",
@@ -34,8 +13,5 @@
         "TRACKER_TOKEN": "${TRACKER_TOKEN}"
       }
     }
-
-    // Optional: a read-only staging DB MCP for data sampling.
-    // "db": { "type": "stdio", "command": "...", "env": { "CONN": "${STG_DB_CONN}" } }
   }
 }

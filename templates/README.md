@@ -11,7 +11,7 @@ touches. Each subdirectory has its own README covering what it holds and how to 
 | [`skills/`](skills/README.md) | auto-loading knowledge and user-invoked procedures |
 | [`commands/`](commands/README.md) | slash commands that orchestrate agents in order |
 | [`hooks/`](hooks/README.md) | harness-enforced guardrails |
-| [`mcp/`](mcp/) | MCP server config + settings snippets |
+| [`mcp/`](mcp/README.md) | MCP server config + settings snippets |
 | [`trackers/`](trackers/README.md) | one adapter installed at `~/.claude/tracker.md` |
 | [`views/`](views/README.md) | pages a skill fills with data and **you** open in a browser |
 
@@ -62,6 +62,7 @@ actually gets run.
 | 6b | **`bash hooks/test-hooks.sh` passes.** Run it — do not read it. A green run only covers the cases it has: **every pattern in a hook's list needs its own case**, or the untested one is free to fail open | the suite itself |
 | 7 | The **anatomy blocks** in `agents/README.md` and `skills/README.md` still list every documented field | both field tables |
 | 8 | The `mcp__serena__` **prefix** still matches your install (`/mcp`) — a plugin install is `mcp__plugin_serena_serena__` | your machine |
+| 9 | **Every snippet file parses as JSON, unmodified.** `python -c "import json,sys; [json.load(open(p)) for p in sys.argv[1:]]" mcp/*.snippet hooks/*.snippet.json` — a snippet is a body meant to be pasted, so anything a reader would have to strip first is a defect | the parser |
 
 Checks 3, 4 and 6 are the ones that fail silently and matter most. Check 8 is per-machine
 rather than per-version and is worth doing on every fresh install.
@@ -108,4 +109,6 @@ against the whole directory rather than asserted per file.
 ---
 > **Last verified against:** Claude Code `2.1.220` — August 2026
 > Checks 1–7 were run against the live published docs on 2 August 2026. Check 8 is
-> per-install and was not run.
+> per-install and was not run. Check 9 was run on 9 August 2026 — all four snippets parse,
+> and `project.mcp.json.snippet` was additionally pasted into a scratch project and loaded
+> by `claude mcp list` on `2.1.226`.
