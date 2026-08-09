@@ -249,9 +249,13 @@ Four things about a backlog in particular:
   picture still draws four boxes while the fetched one draws three.
 - **It gets the legend only.** The sidebar's *Not yet specified* and *Out of scope* sections
   belong to a map. The page omits them when they are absent — nothing to configure.
-- **`blockedBy` comes from the ticket bodies, not from the tracker.** The page consumes a
-  list of ticket numbers and does not care who derived them. That is the data slot doing its
-  job, and it is what keeps the body the truth.
+- **The `blockedBy` *edges* come from the ticket bodies. The *states* on them come from the
+  tracker.** Which unit needs which is a `needs #…` line you wrote, and the page does not
+  care who derived it — that is the data slot doing its job, and it is what keeps the body
+  the truth. But each blocker also carries `"state"`, and a body line cannot know that: it
+  is a sentence, not a reading. Take it from the graph you just fetched. Here every unit is
+  minutes old and every state is `open`, which is exactly why this is easy to fill in from
+  memory and be right — until someone regenerates the picture later and is quietly wrong.
 
 ## Where you stop
 

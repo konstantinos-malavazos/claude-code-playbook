@@ -42,7 +42,8 @@
         "url":       "...",
         "claimedBy": "login, or null when unclaimed",
         "labels":    ["wayfinder:task"],
-        "blockedBy": [36, 37],          // ticket NUMBERS, not database ids
+        "blockedBy": [ {"number": 36, "state": "closed"},   // NUMBERS, not database ids —
+                       {"number": 37, "state": "open"} ],   // and each blocker's own state
         "body":      "markdown — the question",
         "comments":  [ {"author": "...", "createdAt": "...", "body": "markdown"} ]
       }
@@ -52,6 +53,20 @@
       "outOfScope":      "markdown, verbatim from the map body"
     }
   }
+
+  ── WHY A BLOCKER CARRIES ITS OWN STATE ────────────────────────────────────────
+  Because this page cannot look it up. It used to: a blocker was a bare number, and the
+  page found that number among the tickets to see whether it had closed. A PARENT-scoped
+  graph is closed under blocking — every blocker of a child is another child — so the
+  lookup always landed. A NAMED SET is not. Its blockers can sit outside it, the lookup
+  missed, a missing blocker counted as open, and a ticket whose only blocker had CLOSED
+  was drawn blocked. Verified on this repo's own tickets.
+
+  So the edge now carries the answer, not just the edge — the same rule the tracker
+  contract states for  is this blocked?  Ask the adapter for the whole graph and its
+  query returns each blocker's state; you are copying a field across, not resolving one.
+  A bare number in this slot stops the page with a message rather than drawing a wrong
+  picture. Lowercase "open" / "closed", as everywhere else in the slot.
 
   ── TWO RULES THE GENERATOR MUST FOLLOW ────────────────────────────────────────
   * Escape  </  as  <\/  everywhere in the JSON. A ticket body containing the
@@ -330,17 +345,36 @@
     return;
   }
 
+  /* Every blocker must arrive as {number, state}. A bare number — the old shape — would
+     draw as blocked every ticket whose blocker sits outside the graph, however long ago
+     that blocker closed. Silently, and on the tickets you most wanted to see. So stop. */
+  var stale = [];
+  tickets.forEach(function (t) {
+    var bad = (t.blockedBy || []).some(function (b) {
+      return !b || typeof b !== "object" || typeof b.number !== "number" ||
+             (b.state !== "open" && b.state !== "closed");
+    });
+    if (bad) stale.push("#" + t.number);
+  });
+  if (stale.length) {
+    el("canvas").innerHTML = '<div class="empty"><b>The <code>blockedBy</code> entries are ' +
+      'not the shape this page reads.</b><br><br>Each blocker must be ' +
+      '<code>{"number": 36, "state": "open"}</code> — a bare number is the old shape and ' +
+      'cannot be resolved here, because a blocker may sit outside this graph and one that ' +
+      'closed long ago would draw its ticket as blocked. Ask the tracker adapter for ' +
+      '<i>the whole graph</i> again; its query returns each blocker\'s state. Affected: ' +
+      esc(stale.join(", ")) + '.</div>';
+    return;
+  }
+
   var byNum = {};
   tickets.forEach(function (t) { byNum[t.number] = t; });
 
-  function blockers(t) { return (t.blockedBy || []).filter(function (n) { return n !== t.number; }); }
+  function blockers(t) { return (t.blockedBy || []).filter(function (b) { return b.number !== t.number; }); }
 
   function stateOf(t) {
     if (t.state === "closed") return "closed";
-    var open = blockers(t).filter(function (n) {
-      var b = byNum[n];
-      return !b || b.state !== "closed";   // a blocker outside this graph counts as open
-    });
+    var open = blockers(t).filter(function (b) { return b.state !== "closed"; });
     if (open.length) return "blocked";
     return t.claimedBy ? "claimed" : "frontier";
   }
@@ -352,9 +386,9 @@
     if (rank[n] !== undefined) return rank[n];
     if (busy[n]) return 0;                 // cycle guard — a cycle is a tracker bug, not a crash
     busy[n] = 1;
-    var deps = blockers(byNum[n] || {}).filter(function (d) { return byNum[d]; });
+    var deps = blockers(byNum[n] || {}).filter(function (b) { return byNum[b.number]; });
     var r = 0;
-    deps.forEach(function (d) { r = Math.max(r, rankOf(d) + 1); });
+    deps.forEach(function (b) { r = Math.max(r, rankOf(b.number) + 1); });
     busy[n] = 0;
     return (rank[n] = r);
   }
@@ -416,8 +450,8 @@
   svg.appendChild(edgeLayer); svg.appendChild(nodeLayer);
 
   tickets.forEach(function (t) {
-    blockers(t).forEach(function (n) {
-      var from = pos[n], to = pos[t.number];
+    blockers(t).forEach(function (b) {
+      var from = pos[b.number], to = pos[t.number];
       if (!from || !to) return;                    // blocker outside the graph: no arrow to draw
       var x1 = from.x + from.w, y1 = from.y + from.h / 2;
       var x2 = to.x, y2 = to.y + to.h / 2;
@@ -444,7 +478,9 @@
     meta.className = "meta";
     meta.textContent = stateOf(t) + (t.claimedBy ? " · claimed by " + t.claimedBy : "") +
       ((t.labels || []).length ? " · " + t.labels.join(", ") : "") +
-      (blockers(t).length ? " · blocked by " + blockers(t).map(function (n) { return "#" + n; }).join(", ") : "");
+      (blockers(t).length ? " · blocked by " + blockers(t).map(function (b) {
+        return "#" + b.number + (b.state === "closed" ? " (closed)" : "");
+      }).join(", ") : "");
     if (t.url) {
       var link = document.createElement("a");
       link.href = t.url; link.textContent = " · open in tracker";

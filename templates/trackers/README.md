@@ -70,6 +70,17 @@ payload offers only a count, which is enough for *is this blocked?* and useless 
 drawing the graph — so the two verbs need different endpoints on the same tracker. Whoever
 writes an adapter answers *by what?*, never just *how many?*
 
+**And each blocker comes back with its state, because an edge alone is the rotten answer
+this contract already refuses.** *Blocking is a question, not an edge* — see below — and a
+whole graph that hands over `blocked by: 58` has handed over the edge and left the question
+open. Under the parent scoping the caller could still answer it, by accident: every blocker
+of a child is another child, so the graph is closed under blocking and the blocker's state
+is already in the payload. **A named set is not closed under blocking.** Its blockers can
+sit outside it, the lookup finds nothing, and the caller's only safe default — treat what
+you cannot find as open — draws a ticket blocked by something that closed long ago.
+Verified on this playbook's own tickets, where the picture said *blocked* and the tracker
+said takeable. **So the answer travels with the edge, on both scopings.**
+
 ### One definition — `read` means the ticket *and* its comments
 
 **The answer to a closed ticket is not in its body.** The body holds the question; the

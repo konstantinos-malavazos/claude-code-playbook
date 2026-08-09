@@ -75,6 +75,15 @@ check two things against your instance:
   count — enough for *is this blocked?* and useless for drawing the graph, which is what
   sends its whole graph to GraphQL. A count here would mean a request per blocked issue.
   Ask *by what?*, never *how many?*
+- **Do they come back with each blocker's state?** Ask *by what, and is it done?* — one
+  question, because the second half is the only half a caller can act on. Under the parent
+  scoping you can skip it: every blocker of a child is another child, so its state is
+  already in the result. **Under a named set you cannot** — a blocker can sit outside the
+  ids you named, and a caller that assumes an absent blocker is still open draws a takeable
+  ticket as blocked. If the link payload omits the state, read it, and never hand the bare
+  edge to the caller. Note this is the fallback path's problem too: trap 1 leaves Free-tier
+  instances with a `Blocked by: #<n>` line in the description, which is a claim about the
+  past and says nothing about now.
 
 Neither answer changes the verb. They change whether it is affordable to call it often,
 which is the whole reason it is a verb.

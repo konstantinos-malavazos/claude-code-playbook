@@ -115,6 +115,15 @@ follow, both of which fail silently:
   inside a JSON string, so the escape is always safe.
 - **Emit every comment.** See above.
 
+**Each blocker carries its own state — `{"number": 36, "state": "open"}`, not `36`.** The
+page cannot look it up. It used to try, and on a **map** that worked by accident: every
+blocker of a child is another child, so the blocker was always in the picture. A **backlog**
+is a named set of tickets, its blockers can sit outside it, the lookup missed, and a
+ticket whose last blocker had closed was drawn **blocked** — a red box on the very ticket
+the picture exists to surface as takeable. So the edge now carries the answer, which is
+what the [tracker contract](../trackers/README.md) demands of *is this blocked?* anyway. A
+bare number stops the page with a message; it does not draw a wrong picture.
+
 ## What this directory claims
 
 `templates/README.md` says every file there is a claim about the **harness**. This one is
