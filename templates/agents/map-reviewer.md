@@ -44,6 +44,22 @@ Then **chase suspicions symbol by symbol.** Your cost scales with how many thing
 not with how much changed. A suspicion is worth a `find_symbol` and a
 `find_referencing_symbols`; it is not worth a file dump.
 
+**Check you have the tools for both, before you start.** They are named in your frontmatter,
+but a name that does not resolve — wrong `mcp__` prefix, a placeholder nobody filled in — is
+stripped when you launch, with **no error and no notice to you**. Two of them are
+load-bearing here and each fails its own way:
+
+- **No `find_symbol`** → you cannot chase a suspicion, only read files, which is the one
+  thing this section forbids. **Halt.** Write `HALTED — no Serena tools`, list the tools you
+  do have, and return no verdict.
+- **No tracker tool** → you cannot fetch the criteria fresh, and the map's cached copy is
+  exactly what question 2 exists to avoid. Check `~/.claude/tracker.md` first — on a
+  local-markdown adapter `Read`/`Glob` *are* the tracker and nothing is missing. If the tool
+  that adapter names really is gone, **halt on question 2** specifically: judge the
+  Destination if you can, and record the criteria as `UNJUDGED — tracker unreachable`. Never
+  fall back to a cached criterion; a stale criterion judged as current is the failure this
+  agent was built to prevent.
+
 **Standing mandate: a verdict that smells wrong is a lead to chase, never a conclusion to
 accept.** The per-repo reviewers were each right about their own repo and blind to the other
 two. Where two of their verdicts cannot both be true, that contradiction is your best finding

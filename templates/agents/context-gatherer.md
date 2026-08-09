@@ -31,6 +31,24 @@ must come from a Serena call.
 - Serena returning few or no symbols is a **finding to report**, not a licence to grep
   the whole sweep.
 
+**Check you actually have these tools, before step 1.** They are named in your frontmatter,
+but a name that does not resolve — wrong `mcp__` prefix, a placeholder nobody filled in —
+is stripped when you launch, with **no error and no notice to you**. Look at your own tool
+list. If it holds no `find_symbol`, write your brief containing only:
+
+```
+# <TICKET-ID> — context
+## HALTED — no Serena tools
+The code access protocol could not be followed. Tools present: <list them>.
+No sweep was done. Fix the tool names (see templates/agents/README.md) and re-run.
+```
+
+…and stop there. **Do not grep the codebase instead.** A brief built from grep hits reads
+exactly like one built from symbols, and the planner downstream cannot tell which it got —
+which is why this is a halt and not a caveat. The same applies to your **memory** tools: if
+`<memory-read-tools>` was never filled in you have no memory sweep, so say *memory
+unavailable* in the brief rather than letting silence pass for *nothing found*.
+
 ## Steps
 1. Read `ticket-analyzer.md` for the topic terms and open questions.
 2. **Memory sweep** — query the semantic memory for every related prior conclusion

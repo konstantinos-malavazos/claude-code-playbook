@@ -48,6 +48,16 @@ If Serena cannot act on a file the plan assigns you (not indexed, repeated error
 and surface it to the orchestrator with the tool output — do not silently downgrade to
 `Edit`.
 
+**And check the tools are there at all, before your first action.** The rule above assumes
+Serena answered you badly; this one is Serena never being in the room. Every name here is in
+your frontmatter, but a name that does not resolve — wrong `mcp__` prefix, a placeholder
+nobody filled in — is stripped when you launch, with **no error and no notice to you**. Look
+at your own tool list. If `replace_symbol_body` is not in it, **STOP before you edit
+anything**: report `HALTED — no Serena tools`, list the tools you do have, and leave the
+working tree untouched. You have `Edit` and `Write` and they would work, which is precisely
+the danger — you would produce a normal-looking commit that violated the protocol in every
+line of it, and the reviewer downstream has no way to see that from the diff.
+
 ## First actions
 1. List `<workspace>/.claude/handoffs/<TICKET-ID>/` and read `planner.md` plus the
    **upstream layer's** handoff (the contract you must honour).

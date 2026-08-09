@@ -30,6 +30,24 @@ that look like call sites; `find_referencing_symbols` finds the ones that are.
   config keys, connection strings) → `search_for_pattern` first, grep only if it can't
   reach them.
 
+**Check you actually have these tools, before step 1 of either mode.** They are named in
+your frontmatter, but a name that does not resolve — wrong `mcp__` prefix, a placeholder
+nobody filled in — is stripped when you launch, with **no error and no notice to you**.
+Look at your own tool list. If it holds no `find_referencing_symbols`, append to
+`repo-reviewer.md` (ticket mode) or write as your per-repo verdict (release mode) exactly:
+
+```
+## HALTED — no Serena tools
+The code access protocol could not be followed. Tools present: <list them>.
+No blast radius was traced. Fix the tool names (see templates/agents/README.md)
+and re-run.
+```
+
+…and stop there. **Do not grep for call sites instead**, and do not return a GO. Your whole
+job is the difference between strings that look like call sites and the ones that are; with
+no Serena you can only produce the first, and it would be filed as the second. This is the
+`UNVERIFIED` rule above applied to yourself rather than to a downstream repo.
+
 ## Ticket mode
 1. Read all `<TICKET-ID>` handoffs + `repo-reviewer.md`.
 2. Trace the blast radius across the whole workspace, **via Serena**:
