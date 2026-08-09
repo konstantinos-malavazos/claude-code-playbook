@@ -229,6 +229,8 @@ Your memory store, handoffs, Serena's index and generated views fail it and neve
 [PHILOSOPHY.md §5](PHILOSOPHY.md) and, for the solo case,
 [docs/solo/07-guardrails-when-solo.md](docs/solo/07-guardrails-when-solo.md).
 
-> **The hooks need `jq` on `PATH`.** Without it they exit `127` — a *non-blocking* error —
-> and the tool call proceeds with no guardrail and no warning. Check it in the same shell
-> Claude Code uses, not just your usual terminal.
+> **The hooks need python on `PATH`** (`python3` or `python`, standard library only) to
+> parse their payload. Without it the four blocking hooks **exit `2` and block** rather
+> than waving the call through — a guard that cannot read the command stops it. Loud beats
+> silent, but it does mean a missing python turns into blocked tool calls, so check it in
+> the same shell Claude Code uses, not just your usual terminal.

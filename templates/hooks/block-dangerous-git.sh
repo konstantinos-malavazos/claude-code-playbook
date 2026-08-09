@@ -6,17 +6,50 @@
 
 set -euo pipefail
 
-# The harness passes the tool call as JSON on stdin.
+block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
+
+# --- Reading the payload, and failing CLOSED ------------------------------------
+# The harness passes the tool call as JSON on stdin. python parses it, not jq. jq is
+# absent from most machines, and hand-rolling the two filters with sed/grep is not the
+# cheap option it looks like: a real command arrives with its line breaks encoded as the
+# two characters \n, and decoding those by hand re-opens the multi-line flatten bug this
+# directory has already shipped once. The dependency is swapped, not removed — python is
+# a dependency too, and it wins on being present and on being a real JSON reader.
+#
+# python3 first, then python. On Windows the Microsoft Store `python` stub resolves but
+# is not python: it fails the parse, which blocks — correct on purpose, not by luck.
+#
+# NO PARSER, OR A PARSE THAT ERRORS, IS A BLOCK. Claude Code treats every exit code
+# other than 2 as a non-blocking error and lets the tool call through, so 127 is not a
+# near-miss of 2 — it is the same class as success, and a hook that cannot read the
+# command would allow it. A prompt was considered and rejected: `permissionDecision:
+# "ask"` needs no parser and is the honest verdict, but "yes, and don't ask again" makes
+# the approval durable, so one keystroke turns the guard off for good. A prompt is not a
+# guardrail; it is trust with an extra keystroke. See README.md.
+PY="$(command -v python3 || command -v python || true)"
+[ -n "$PY" ] || block "no python3 or python on PATH — this hook cannot read the command it exists to check."
+
 payload="$(cat)"
-cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // .tool_input.script // ""')"
+
+parse() { # <command|cwd> — prints the field; non-zero if the payload will not parse
+    printf '%s' "$payload" | "$PY" -c '
+import json, sys
+d = json.load(sys.stdin)
+if sys.argv[1] == "cwd":
+    sys.stdout.write(d.get("cwd") or "")
+else:
+    ti = d.get("tool_input") or {}
+    sys.stdout.write(ti.get("command") or ti.get("script") or "")
+' "$1" 2>/dev/null
+}
+
+cmd="$(parse command)" || block "the payload did not parse as JSON — refusing to guess what this command does."
 
 # Normalize for matching. Newlines become ';' because a separate LINE is a separate
 # command: collapsing it to a space hides `git push` on every line after the first, since
 # the patterns below anchor on a start-of-string or a [;&|] separator. \r is mapped too so
 # a CRLF payload behaves the same.
 norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
-
-block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
 
 # --- The allowlist -------------------------------------------------------------
 # ~/.claude/repo-allowlist answers two questions per repo, keyed by REMOTE URL, both
@@ -27,8 +60,10 @@ block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
 allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
     local field="$1" file="$HOME/.claude/repo-allowlist" dir remote key push own
     [ -r "$file" ] || return 1
-    # Prefer the payload's cwd if the harness sends one; fall back to ours.
-    dir="$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null || true)"
+    # Prefer the payload's cwd if the harness sends one; fall back to ours. A payload
+    # that PARSES and simply carries no cwd is the fallback case; a payload that will
+    # not parse at all is the fail-closed case, same rule as the command above.
+    dir="$(parse cwd)" || block "the payload did not parse as JSON — refusing to guess which repo this is."
     [ -n "$dir" ] && [ -d "$dir" ] || dir="$PWD"
     remote="$(git -C "$dir" config --get remote.origin.url 2>/dev/null || true)"
     [ -n "$remote" ] || return 1

@@ -17,11 +17,21 @@
 
 set -euo pipefail
 
-payload="$(cat)"
-cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // .tool_input.script // ""')"
-norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
-
 block() { echo "BLOCKED by block-secret-staging: $1" >&2; exit 2; }
+
+# python parses the payload and a payload it cannot read is a BLOCK, never a pass.
+# Duplicated from block-dangerous-git.sh, deliberately — the reasoning is in the note
+# there. This hook needs one filter, so it has no `parse` helper.
+PY="$(command -v python3 || command -v python || true)"
+[ -n "$PY" ] || block "no python3 or python on PATH — this hook cannot read the command it exists to check."
+
+payload="$(cat)"
+cmd="$(printf '%s' "$payload" | "$PY" -c '
+import json, sys
+ti = json.load(sys.stdin).get("tool_input") or {}
+sys.stdout.write(ti.get("command") or ti.get("script") or "")
+' 2>/dev/null)" || block "the payload did not parse as JSON — refusing to guess whether this command carries a credential."
+norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
 
 # Token literals: blocked wherever they appear, including on a read command. A live key
 # on a command line has already leaked — into shell history and into the transcript —

@@ -12,20 +12,41 @@
 
 set -euo pipefail
 
+block() { echo "BLOCKED by block-infra-staging: $1" >&2; exit 2; }
+
+# python parses the payload and a payload it cannot read is a BLOCK, never a pass.
+# Duplicated verbatim from block-dangerous-git.sh, deliberately — the full reasoning for
+# both halves (why python and not jq or sed, why 127 is the same class as success, and
+# why a permission prompt was rejected) is in the note there.
+PY="$(command -v python3 || command -v python || true)"
+[ -n "$PY" ] || block "no python3 or python on PATH — this hook cannot read the command it exists to check."
+
 payload="$(cat)"
-cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // .tool_input.script // ""')"
+
+parse() { # <command|cwd> — prints the field; non-zero if the payload will not parse
+    printf '%s' "$payload" | "$PY" -c '
+import json, sys
+d = json.load(sys.stdin)
+if sys.argv[1] == "cwd":
+    sys.stdout.write(d.get("cwd") or "")
+else:
+    ti = d.get("tool_input") or {}
+    sys.stdout.write(ti.get("command") or ti.get("script") or "")
+' "$1" 2>/dev/null
+}
+
+cmd="$(parse command)" || block "the payload did not parse as JSON — refusing to guess what this command stages."
+
 # Newlines become ';' — see block-dangerous-git.sh. A separate line is a separate command,
 # and `git add .` on any line but the first would otherwise slip past the pattern below.
 norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
-
-block() { echo "BLOCKED by block-infra-staging: $1" >&2; exit 2; }
 
 # --- The allowlist -------------------------------------------------------------
 # Duplicated verbatim from block-dangerous-git.sh, deliberately — see the note there.
 allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
     local field="$1" file="$HOME/.claude/repo-allowlist" dir remote key push own
     [ -r "$file" ] || return 1
-    dir="$(printf '%s' "$payload" | jq -r '.cwd // ""' 2>/dev/null || true)"
+    dir="$(parse cwd)" || block "the payload did not parse as JSON — refusing to guess which repo this is."
     [ -n "$dir" ] && [ -d "$dir" ] || dir="$PWD"
     remote="$(git -C "$dir" config --get remote.origin.url 2>/dev/null || true)"
     [ -n "$remote" ] || return 1

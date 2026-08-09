@@ -129,8 +129,18 @@ Copy the hooks you want from `templates/hooks/` into `~/.claude/hooks/` and wire
 with no entries every repo answers **no** to both its questions, which is the safe default.
 You add a line the first time a project asks you for one — the bootstrap's step 1 asks.
 
-**Verify each hook fires** before you trust it (try a `git push` in a scratch repo and
-confirm it's blocked), or run `bash templates/hooks/test-hooks.sh`, which does it for you.
+**Verify each hook fires, live, before you trust it.** In a scratch repo, feed each
+blocking hook a command it must refuse and confirm Claude Code *blocks* it — a `git push`,
+a `git add -A`, a `git add .env`, and a write-class call on your tracker MCP. You are
+checking the **wiring**, and this is the only step that can: a hook can be perfectly
+written, executable, and simply not referenced by your `settings.json`, in which case
+nothing happens and nothing complains.
+
+**`bash templates/hooks/test-hooks.sh` is not a substitute for this and cannot be.** It
+runs the scripts standalone and never sees your `settings.json`, so it answers *are the
+patterns right and do the hooks fail closed?* — a different question, and worth running
+after you edit a hook. The one thing it structurally cannot tell you is whether any of
+them is wired in.
 
 ## Step 8 — Add the flows, one at a time
 

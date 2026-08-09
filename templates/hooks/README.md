@@ -26,18 +26,48 @@ unanchored**, the moment any other character appears. So `Bash` matches only `Ba
 `mcp__tracker__.*` is a regex. Matching every tool from an MCP server **requires** the `.*`
 suffix; the bare server prefix matches nothing.
 
-> These templates are written for a POSIX shell (Git Bash on Windows works). Adjust the
-> JSON parsing to your environment; `jq` is assumed. Test each hook in a scratch repo
-> before trusting it.
+> These templates are written for a POSIX shell (Git Bash on Windows works). They parse
+> their payload with **python** (`python3`, then `python`) using only the standard
+> library. Test each hook in a scratch repo before trusting it.
 
-> **`jq` is a hard dependency, and missing it fails the way the box above warns about.**
-> Every blocking hook here starts by parsing the payload with `jq`. With no `jq` on the
-> hook's `PATH` the script dies at that line and exits **127** — not 2 — so the tool call
-> **proceeds** and the guardrail is not there. Nothing errors visibly.
-> **The suite cannot tell you this**, and says so: it shims the parse with python and
-> prints a NOTE, because its job is the matching logic. A green run means the patterns are
-> right, **not** that the hook will run on your machine. Confirm with `jq --version` in the
-> same shell Claude Code launches hooks in.
+### Failing closed, and the three layers it is one of
+
+**A guard cannot be its own witness.** Every mechanism that keeps these hooks honest is
+blind to exactly one failure, so the answer is layered rather than picked:
+
+| Layer | What it does | What it structurally cannot see |
+|---|---|---|
+| Pick the parser most likely to be present | python, not `jq` | a machine with no python either |
+| **Fail closed** | the hook exits **2** when it cannot parse | the script never running at all |
+| Check the wiring at setup | run a hook live and confirm it blocks | anything that changes afterwards |
+
+**The four blocking hooks exit `2` when they cannot read their payload** — no parser on
+`PATH`, or a payload that will not parse. This matters because of the box above: Claude
+Code treats every exit code other than `2` as a *non-blocking* error and runs the tool
+call anyway, so **`127` is not a near-miss of `2` — it is the same class as success.** A
+hook that dies on its parse and exits `127` is a guardrail that has silently stopped
+guarding, which is exactly what this directory used to ship.
+
+**Why not a permission prompt.** The harness offers `permissionDecision: "ask"`, and it
+needs no parser at all — it is a fixed string, so a blind hook could degrade to *"I can't
+read this, you decide."* That is the **honest** verdict, and it is still rejected: the
+prompt offers *"yes, and don't ask again"*, so one keystroke makes the approval **durable**
+and turns the guard off for good, silently, wearing the appearance of a decision rather
+than a bug. A prompt is not a guardrail; it is trust with an extra keystroke.
+
+**`format-on-edit.sh` and `cleanup-handoffs.sh` cannot fail closed, and are not made to
+try.** The split is the harness's, not a judgement about which guards deserve to be
+strict: `PostToolUse` fires *after* the edit it would object to, and `SessionEnd` ignores
+the exit code entirely. Both say so in the file. They fail **soft** instead — no parser
+means they do nothing and print why on stderr, and `cleanup-handoffs.sh` fails in the
+direction that keeps data, since without the reason it cannot tell a resume from a real
+end.
+
+**The dependency is swapped, not removed.** python is a dependency too. It wins on being
+present where `jq` is not, on being a real JSON reader, and on precedent — the suite has
+refused to run without it since it was written. `sed`/`grep` was rejected: a real command
+arrives with its line breaks encoded as the two characters `\n`, and hand-decoding them
+re-opens the multi-line flatten bug this directory has already shipped once.
 
 ## Run the suite
 
@@ -45,11 +75,19 @@ suffix; the bare server prefix matches nothing.
 bash templates/hooks/test-hooks.sh
 ```
 
-66 cases across all three blocking hooks: what must be blocked, what must be allowed, `Bash`
+84 cases across all four blocking hooks: what must be blocked, what must be allowed, `Bash`
 and `PowerShell` payloads, multi-line commands, and **both sides of every conditional
-line** — a listed repo and an unlisted one, `.claude/agents/` and `.claude/handoffs/`. Exit
-0 means every case behaved; exit 1 means a guardrail is not guarding. It shims the JSON
-parse if `jq` is missing, and says so rather than skipping quietly.
+line** — a listed repo and an unlisted one, `.claude/agents/` and `.claude/handoffs/`.
+
+**A green run now means two things, and it needs both:** the patterns match, **and** every
+blocking hook fails closed. The second half is its own section — each blocking hook is
+invoked once with a payload that will not parse, and once with a `PATH` that resolves no
+python — because failing closed is new code in every one of those scripts, and this
+directory has twice shipped a guardrail whose new code was never run. If the suite cannot
+strip python off `PATH` it reports a **FAIL**, not a skip: a suite that quietly drops the
+cases it could not set up is the green run that means less than it looks like.
+
+Exit 0 means every case behaved; exit 1 means a guardrail is not guarding.
 
 **The allowlist cases build their own scratch repo** with a known remote and two throwaway
 `HOME`s, rather than keying on this repo's remote. A test that passes only in the clone it
@@ -59,10 +97,17 @@ was written in is a test that reports success somewhere it never ran.
 multi-line gap below survived a full audit that checked every claim against the official
 docs, because the docs were not the thing that was wrong.
 
+**What it still cannot tell you: whether the hooks are wired in.** The suite invokes the
+scripts directly and never sees your `settings.json`, so a fully green run is compatible
+with no hook firing on your machine at all. That is layer 3 in the table above, and it is
+answered by the live check in [`docs/shared/03-setup.md`](../../docs/shared/03-setup.md) —
+by that, and only by that.
+
 ### The multi-line gap, and why it is worth knowing
 
-All three blocking hooks flatten the command before matching. They used to turn newlines into
-**spaces**, and the patterns anchor on start-of-string or a `[;&|]` separator — so in
+The three command-reading blocking hooks flatten the command before matching. They used to
+turn newlines into **spaces**, and the patterns anchor on start-of-string or a `[;&|]`
+separator — so in
 
 ```
 git add -p
@@ -89,7 +134,7 @@ the pattern depends on.** Worth checking in any guardrail that normalises before
 | `cleanup-handoffs.sh` | SessionEnd | delete the ephemeral handoff dirs | ✓ | ✓ |
 | `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited | ✓ | ✓ |
 | `repo-allowlist.sample` | — | the per-repo answers the two git hooks read; install **empty** at `~/.claude/repo-allowlist` | ✓ | |
-| `test-hooks.sh` | — | regression suite for the three blocking hooks; run it, don't read it | ✓ | ✓ |
+| `test-hooks.sh` | — | regression suite for the four blocking hooks; run it, don't read it | ✓ | ✓ |
 
 The **solo** / **team** columns say which entrance needs each template. The allowlist is the
 first row to claim one column: on the team path the driver does not own the repo, so both

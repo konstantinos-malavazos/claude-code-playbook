@@ -7,6 +7,17 @@
 #
 #   bash templates/hooks/test-hooks.sh
 #
+# A GREEN RUN MEANS TWO THINGS, and it needs both: the patterns match what they should
+# match, AND every blocking hook stops the call when it cannot read the payload. The
+# second half is why the no-parser section at the bottom exists. Failing closed is new
+# code in every one of those scripts, and this directory has twice shipped a guardrail
+# whose new code was never run.
+#
+# WHAT IT STILL CANNOT TELL YOU: whether the hooks are wired into your settings.json.
+# The suite invokes the scripts directly and never sees your Claude Code config, so a
+# fully green run is compatible with no hook firing on your machine at all. That question
+# is answered by the live check in docs/shared/03-setup.md, and only by it.
+#
 # Exit 0 = every case behaved. Exit 1 = at least one guardrail is not guarding.
 
 set -uo pipefail
@@ -15,43 +26,22 @@ cd "$(dirname "$0")"
 GIT_HOOK=./block-dangerous-git.sh
 INFRA_HOOK=./block-infra-staging.sh
 SECRET_HOOK=./block-secret-staging.sh
+MCP_HOOK=./block-mcp-writes.sh
 
-# --- jq ------------------------------------------------------------------------
-# The hooks parse their payload with jq. If it is missing we shim the one filter they
-# use, so the suite still exercises the matching logic — and we say so, because a green
-# run that silently skipped the real parser would be its own kind of lie.
-SHIM_DIR=""
-if ! command -v jq >/dev/null 2>&1; then
-    if ! command -v python >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; then
-        echo "SKIP: neither jq nor python is available — cannot run the suite." >&2
-        exit 1
-    fi
-    PY=$(command -v python3 || command -v python)
-    SHIM_DIR="$(mktemp -d)"
-    cat > "$SHIM_DIR/jq" <<SHIM
-#!/usr/bin/env bash
-# Stand-in for the two filters the hooks use:
-#   -r '.tool_input.command // .tool_input.script // ""'
-#   -r '.cwd // ""'
-"$PY" -c "
-import sys, json
-args = sys.argv[1:]
-d = json.load(sys.stdin)
-if any('cwd' in a for a in args):
-    print(d.get('cwd') or '')
-else:
-    ti = d.get('tool_input', {})
-    print(ti.get('command') or ti.get('script') or '')
-" "\$@"
-SHIM
-    chmod +x "$SHIM_DIR/jq"
-    PATH="$SHIM_DIR:$PATH"
-    echo "NOTE: jq not found — using a python shim for the payload parse."
-    echo "      The matching logic below is still the real thing."
-    echo ""
+# --- python ---------------------------------------------------------------------
+# The hooks parse their payload with python, and so does this suite when it builds one.
+# There is nothing left to shim: when the parser is missing the hooks are SUPPOSED to
+# block, which is a case the suite tests rather than papers over.
+PY=$(command -v python3 || command -v python)
+if [ -z "$PY" ]; then
+    echo "SKIP: no python3 or python available — cannot run the suite." >&2
+    exit 1
 fi
 
-PY=$(command -v python3 || command -v python)
+# bash by absolute path, because the no-parser cases run hooks under a stripped PATH and
+# a PATH assignment governs the lookup of the command it prefixes.
+BASH_BIN=$(command -v bash)
+
 fail=0
 
 # --- the allowlist, both ways --------------------------------------------------
@@ -62,7 +52,7 @@ fail=0
 # It does NOT key on this playbook's own remote. A test that passes only in the clone
 # it was written in is a test that reports success somewhere it never ran.
 SCRATCH="$(mktemp -d)"
-trap '[ -n "$SHIM_DIR" ] && rm -rf "$SHIM_DIR"; rm -rf "$SCRATCH"' EXIT
+trap 'rm -rf "$SCRATCH"' EXIT
 
 REPO="$SCRATCH/repo"
 mkdir -p "$REPO"
@@ -81,13 +71,14 @@ ALLOWLIST
 
 HOOK_HOME="$DENY_HOME"   # every case runs unlisted unless it says otherwise
 HOOK_CWD="$REPO"
+HOOK_PATH="$PATH"        # the no-parser section swaps this for one with no python
 
 run() { # <script> <tool-name> <command> <expected-exit>
     local payload
     payload=$(printf '{"tool_name":"%s","cwd":%s,"tool_input":{"command":%s}}' "$2" \
         "$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$HOOK_CWD")" \
         "$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$3")")
-    printf '%s' "$payload" | HOME="$HOOK_HOME" bash "$1" >/dev/null 2>&1
+    printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" >/dev/null 2>&1
     local got=$?
     local shown
     shown=$(printf '%s' "$3" | tr '\n' '~' | tr '\r' '^')
@@ -95,6 +86,17 @@ run() { # <script> <tool-name> <command> <expected-exit>
         printf '  ok   [%s] %s\n' "$2" "$shown"
     else
         printf '  FAIL [%s] exit=%s want=%s  %s\n' "$2" "$got" "$4" "$shown"
+        fail=$((fail + 1))
+    fi
+}
+
+run_raw() { # <script> <label> <raw-payload> <expected-exit>
+    printf '%s' "$3" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" >/dev/null 2>&1
+    local got=$?
+    if [ "$got" = "$4" ]; then
+        printf '  ok   [%s]\n' "$2"
+    else
+        printf '  FAIL [%s] exit=%s want=%s\n' "$2" "$got" "$4"
         fail=$((fail + 1))
     fi
 }
@@ -210,9 +212,66 @@ run $SECRET_HOOK Bash     "git add docs/environment.md"                    0
 run $SECRET_HOOK Bash     "npm test"                                       0
 run $SECRET_HOOK Bash     "git commit -m 'feat: read config from environment'" 0
 
+echo "block-mcp-writes.sh — the read-only veto (the command is ignored; the NAME is the input)"
+run $MCP_HOOK mcp__tracker__get_issue        "" 0
+run $MCP_HOOK mcp__github__list_issues       "" 0
+run $MCP_HOOK mcp__tracker__search_issues    "" 0
+run $MCP_HOOK mcp__tracker__create_issue     "" 2
+run $MCP_HOOK mcp__gitlab__update_issue      "" 2
+run $MCP_HOOK mcp__github__add_issue_comment "" 2
+# Not a policed server: not this hook's business, whatever the verb.
+run $MCP_HOOK mcp__serena__replace_symbol_body "" 0
+run $MCP_HOOK Bash                             "" 0
+# The second fail-open: a parse that SUCCEEDS and returns nothing used to fall through
+# the case to exit 0, allowing the call on the strength of a name nobody read.
+run $MCP_HOOK "" "" 2
+
+echo "every blocking hook — an unreadable payload must BLOCK (exit 2)"
+# The other half of failing closed: the parser is present and the payload defeats it.
+# Same verdict as no parser at all, for the same reason — the hook did not find out what
+# it was being asked to clear, so it does not clear it.
+run_raw $GIT_HOOK    "not JSON at all"          'not json at all'  2
+run_raw $INFRA_HOOK  "truncated JSON"           '{"tool_input":'   2
+run_raw $SECRET_HOOK "empty payload"            ''                 2
+run_raw $MCP_HOOK    "valid JSON, wrong shape"  '[]'               2
+
+echo "every blocking hook — no parser on PATH must BLOCK (exit 2)"
+# The layer no code inside a hook can test for itself: what happens when the thing the
+# hook parses with is not there. A hook that exits 127 is not a near-miss of 2 — Claude
+# Code treats every code but 2 as a non-blocking error and runs the tool call anyway, so
+# these five cases are the difference between a guardrail and a decoration.
+#
+# The stripped PATH is the real PATH minus every directory holding a python, rather than
+# an empty one: the hooks still need cat, grep and tr to reach the point of refusing.
+NOPY_PATH=""
+while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    for p in python python3 python.exe python3.exe; do
+        [ -x "$d/$p" ] && continue 2
+    done
+    NOPY_PATH="${NOPY_PATH:+$NOPY_PATH:}$d"
+done <<< "$(printf '%s' "$PATH" | tr ':' '\n')"
+
+if PATH="$NOPY_PATH" command -v python >/dev/null 2>&1 || PATH="$NOPY_PATH" command -v python3 >/dev/null 2>&1; then
+    # Not a skip. A suite that quietly drops the cases it cannot set up is the green run
+    # that means less than it looks like — the thing this file exists to prevent.
+    printf '  FAIL [setup] python is still reachable after stripping PATH — the no-parser cases did not run\n'
+    fail=$((fail + 1))
+else
+    HOOK_PATH="$NOPY_PATH"
+    run $GIT_HOOK    Bash "git status"                    2
+    run $INFRA_HOOK  Bash "git add src/main.py"           2
+    run $SECRET_HOOK Bash "git add src/main.py"           2
+    run $MCP_HOOK    mcp__tracker__get_issue          "" 2
+    # Even a command the hook would have waved through is blocked: the point is that it
+    # never found out which kind it was.
+    run $GIT_HOOK    Bash "npm test"                      2
+    HOOK_PATH="$PATH"
+fi
+
 echo ""
 if [ "$fail" -eq 0 ]; then
-    echo "All cases behaved."
+    echo "All cases behaved: the patterns match, and every blocking hook fails closed."
     exit 0
 fi
 echo "$fail case(s) FAILED — a guardrail is not guarding."

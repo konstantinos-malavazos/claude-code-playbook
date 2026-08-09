@@ -5,8 +5,25 @@
 
 set -euo pipefail
 
+block() { echo "BLOCKED by block-mcp-writes: $1" >&2; exit 2; }
+
+# python parses the payload and a payload it cannot read is a BLOCK, never a pass.
+# Duplicated from block-dangerous-git.sh, deliberately — the reasoning is in the note
+# there.
+PY="$(command -v python3 || command -v python || true)"
+[ -n "$PY" ] || block "no python3 or python on PATH — this hook cannot read the tool name it exists to check."
+
 payload="$(cat)"
-tool="$(printf '%s' "$payload" | jq -r '.tool_name // ""')"
+tool="$(printf '%s' "$payload" | "$PY" -c '
+import json, sys
+sys.stdout.write(json.load(sys.stdin).get("tool_name") or "")
+' 2>/dev/null)" || block "the payload did not parse as JSON — refusing to guess which tool this is."
+
+# An EMPTY tool name is the second way this hook used to fail open: a parse that
+# succeeded and returned nothing fell through the `case` below to `exit 0`, so the call
+# was allowed on the strength of a name nobody had read. Same rule as an unreadable
+# payload — if the name is not there, the call does not go.
+[ -n "$tool" ] || block "the payload carried no tool_name — a call with no name is not a call this hook can clear."
 
 # Only police the MCP servers that must stay read-only. Adjust the prefixes to yours.
 # NEVER add Serena's prefix here: Serena's write tools (replace_symbol_body,
@@ -23,5 +40,4 @@ if printf '%s' "$tool" | grep -Eiq '__(get|list|search|read|download|whoami|heal
     exit 0
 fi
 
-echo "BLOCKED by block-mcp-writes: '$tool' is a write-class MCP call. The tracker/git-host are read-only by policy — do writes manually with explicit approval." >&2
-exit 2
+block "'$tool' is a write-class MCP call. The tracker/git-host are read-only by policy — do writes manually with explicit approval."
