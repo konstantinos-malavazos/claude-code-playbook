@@ -84,6 +84,12 @@ Blocked by: 03, 04
 `Blocked by:` is a fourth line and is **not** a status — it is a claim about the past. See
 *is this blocked?*.
 
+**An em dash is how both lines say *nothing*.** `Claim: —` is unclaimed and `Blocked by: —`
+is unblocked; neither line is ever left blank and neither is ever omitted. Every field is
+present on every ticket, so a scan reads the same four lines whatever state the ticket is
+in. Say the dash, never *"empty"* — a scan written against an empty string matches nothing
+and returns an empty frontier, which is indistinguishable from a stalled map.
+
 Older versions of this adapter overloaded one `Status:` line between `/triage`'s role
 strings and charting's `claimed`/`resolved`, which made a ticket unable to be both
 `ready-for-agent` **and** claimed. It has to be both. Keep them separate.
@@ -131,8 +137,8 @@ contract exists to absorb.
 
 ## The frontier
 
-Scan `issues/` for files with `State: open`, an empty `Claim:`, and every number in
-`Blocked by:` now `resolved`. First by number wins.
+Scan `issues/` for files with `State: open`, `Claim: —`, and every number in `Blocked by:`
+now `resolved`. First by number wins.
 
 **Frontier empty does not mean done.** It can go empty while tickets remain open and waiting
 on someone outside this workspace. That is a distinct outcome — the charting skill names it

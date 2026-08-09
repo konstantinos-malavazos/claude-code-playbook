@@ -64,6 +64,7 @@ actually gets run.
 | 8 | The `mcp__serena__` **prefix** still matches your install (`/mcp`) — a plugin install is `mcp__plugin_serena_serena__` | your machine |
 | 9 | **Every snippet file parses as JSON, unmodified.** `python -c "import json,sys; [json.load(open(p)) for p in sys.argv[1:]]" mcp/*.snippet hooks/*.snippet.json` — a snippet is a body meant to be pasted, so anything a reader would have to strip first is a defect | the parser |
 | 10 | **No *installed* agent or skill still has a `<placeholder>` in `name:`, `model:` or `tools:`.** `grep -rnE '^(name\|model\|tools):.*<[a-z][a-z-]*>' ~/.claude/agents/ ~/.claude/skills/ <repo>/.claude/` — the templates carry them on purpose, so run this against the copies, never against this directory | your install |
+| 11 | **An auto-loading skill still fires on its own trigger, and still does not fire on an unrelated prompt.** `claude -p --output-format stream-json --verbose "<prompt>"`, then look for a `Skill` tool call. Both halves need a transcript, so **`--output-format json` cannot answer either** — it returns the final result and no tool calls, and a negative test read off a silent result proves nothing | the transcript |
 
 Checks 3, 4 and 6 are the ones that fail silently and matter most. Check 8 is per-machine
 rather than per-version and is worth doing on every fresh install; so is check 10, which
