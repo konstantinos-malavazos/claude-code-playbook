@@ -47,7 +47,11 @@ for pat in \
     'AIza[0-9A-Za-z_-]{30,}' \
     '-----BEGIN [A-Z ]*PRIVATE KEY-----'
 do
-    if printf '%s' "$norm" | grep -Eq "$pat"; then
+    # -e is load-bearing: without it a pattern starting with `-` is parsed as options and
+    # grep exits 2 on usage, which this `if` reads as "no match" and waves the command
+    # through. The PRIVATE KEY pattern below is exactly that shape, and it failed open for
+    # as long as it has existed. Found by running the hook, not by reading it.
+    if printf '%s' "$norm" | grep -Eq -e "$pat"; then
         block "a credential literal matching /$pat/ is in this command — do not put it on a command line at all."
     fi
 done
@@ -69,7 +73,7 @@ if printf '%s' "$norm" | grep -Eiq 'git +(add|commit|stage)'; then
         '\.pypirc\b' \
         '\.netrc\b'
     do
-        if printf '%s' "$scan" | grep -Eiq "$pat"; then
+        if printf '%s' "$scan" | grep -Eiq -e "$pat"; then
             block "attempt to stage a credential-shaped path matching /$pat/ — put it in .gitignore instead."
         fi
     done

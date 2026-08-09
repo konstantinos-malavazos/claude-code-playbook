@@ -204,6 +204,18 @@ git add .env"                                                              2
 # Literals go wherever they appear — a key on a command line has already leaked.
 run $SECRET_HOOK Bash     "echo AKIAIOSFODNN7EXAMPLE > .env"               2
 run $SECRET_HOOK PowerShell "\$k = 'ghp_0123456789abcdefghijklmnopqrstuvwx'" 2
+# Every literal in the list gets a case, because the list is not checked uniformly: the
+# PRIVATE KEY pattern is the one that starts with `-`, and grep read it as options and
+# exited 2, which the caller's `if` treats as "no match". It failed open on the single
+# most valuable credential a repo can leak while this suite ran green — the suite only
+# ever exercised .pem by PATH, which the separate path rule catches. One case per pattern.
+run $SECRET_HOOK Bash     "echo -----BEGIN RSA PRIVATE KEY----- > k.txt"   2
+run $SECRET_HOOK Bash     "echo -----BEGIN OPENSSH PRIVATE KEY----- > k"   2
+run $SECRET_HOOK Bash     "echo -----BEGIN PRIVATE KEY----- > k"           2
+run $SECRET_HOOK Bash     "echo sk-0123456789abcdefghijklmnop"             2
+run $SECRET_HOOK Bash     "echo github_pat_0123456789abcdefghijklmnop"     2
+run $SECRET_HOOK Bash     "echo xoxb-0123456789abcdef"                     2
+run $SECRET_HOOK Bash     "echo AIzaSyA0123456789abcdefghijklmnopqrstuvw"  2
 
 echo "block-secret-staging.sh — must ALLOW (exit 0)"
 run $SECRET_HOOK Bash     "git add src/main.py"                            0

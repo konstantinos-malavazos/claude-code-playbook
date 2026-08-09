@@ -59,7 +59,7 @@ actually gets run.
 | 4 | Any agent whose body says it **dispatches** another still has `Agent` in its `tools` list | [nesting](https://code.claude.com/docs/en/sub-agents#let-subagents-spawn-their-own-subagents) |
 | 5 | Hook **event names** are still real, and every blocking hook exits **exactly 2** | [hooks](https://code.claude.com/docs/en/hooks) |
 | 6 | Hook **matchers** cover every tool that can do the thing being blocked — shell guardrails need `Bash\|PowerShell`, MCP matchers need the `.*` suffix | [hooks](https://code.claude.com/docs/en/hooks) |
-| 6b | **`bash hooks/test-hooks.sh` passes.** Run it — do not read it | the suite itself |
+| 6b | **`bash hooks/test-hooks.sh` passes.** Run it — do not read it. A green run only covers the cases it has: **every pattern in a hook's list needs its own case**, or the untested one is free to fail open | the suite itself |
 | 7 | The **anatomy blocks** in `agents/README.md` and `skills/README.md` still list every documented field | both field tables |
 | 8 | The `mcp__serena__` **prefix** still matches your install (`/mcp`) — a plugin install is `mcp__plugin_serena_serena__` | your machine |
 
@@ -73,6 +73,17 @@ and passed. Then the hooks were actually run, and both git guardrails turned out
 agent writes, and the most common shape a human writes by hand. Nothing in the docs was
 wrong; the scripts simply did not do what they said. **Where a claim can be executed,
 execute it.**
+
+**A green suite is not a guarded repo, and #29 found the gap by running the hook rather than
+the suite.** `block-secret-staging.sh` iterates a list of credential literals and greps for
+each with `grep -Eq "$pat"`. One of those patterns — the PEM private-key header — starts with
+`-`, so grep read it as options, exited on a usage error, and the caller's `if` took that for
+*no match*. **The single most valuable credential a repo can leak was waved through for as
+long as the pattern existed**, while the suite ran green: the suite reached `.pem` by *path*,
+which a different rule catches, and never once put a key header on a command line. The list
+had seven patterns and two cases. It now has one case per pattern, and every such loop passes
+`-e`. **A loop over patterns is only as tested as its least-tested pattern** — the same defect
+shape as the multi-line gap below, one level further in.
 
 **2b was added the same way, one release later, and it is the harder case.** `pitch-judge`
 passed checks 2 and 3 as written — its one tool was a real name and it was inside the

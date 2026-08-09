@@ -66,7 +66,7 @@ if printf '%s' "$norm" | grep -Eiq 'git +(add|commit|stage)'; then
 
     # Never, whatever the allowlist says: your machine, not the project.
     for pat in '\.serena' '\.forgetful' 'MEMORY\.md'; do
-        if printf '%s' "$norm" | grep -Eiq "$pat"; then
+        if printf '%s' "$norm" | grep -Eiq -e "$pat"; then
             block "attempt to stage AI-infra path matching /$pat/ — a fresh clone never needs it."
         fi
     done
