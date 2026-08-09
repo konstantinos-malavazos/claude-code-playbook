@@ -194,8 +194,9 @@ grep -rn "Last verified" docs/ PHILOSOPHY.md
 
 **Templates carry no footer, by design.** A template is copied and edited, so a footer
 would date your copy rather than the claim. They are covered instead by the
-[re-verification check](templates/README.md#the-re-verification-check) — eight items, run
-against the whole directory.
+[re-verification check](templates/README.md#the-re-verification-check), run against the
+whole directory. **No count here** — the list grows every time something turns out to need
+running rather than reading, and a number in the front door goes stale the moment it does.
 
 **Things most likely to drift:** MCP server configuration format, hook API,
 `settings.json` schema, agent/skill frontmatter fields, and the directory layout under
