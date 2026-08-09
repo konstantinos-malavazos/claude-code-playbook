@@ -78,6 +78,14 @@ registrations means two tool namespaces, which means confusion.
 A prefix that doesn't resolve fails **silently**: the agent gets no code tools and falls
 back to reading whole files. Verify with `/mcp`.
 
+**The rule is wider than the prefix.** *Any* unresolvable name in a `tools:` list is
+stripped at launch with no error — a wrong `mcp__` prefix, a server you never registered,
+and an unfilled `<memory-read-tools>` / `<tracker-read-tools>` placeholder all land in the
+same place. Confirmed by execution on `2.1.226`: `repo-reviewer` declares roughly twenty
+tools and launched with seven, saying nothing. So this warning applies to the placeholders
+in the agent templates too, not only to the Serena prefix —
+[`../agents/README.md`](../agents/README.md#an-unfilled-placeholder-is-not-an-error).
+
 ### `gitlab` / `github`
 
 Pick ONE git host, or keep both if your org uses both. The snippet ships `gitlab`; the

@@ -59,7 +59,9 @@ The templates ship with **`mcp__serena__`**. On Route A, search-and-replace
 > **A wrong prefix fails silently.** An unresolvable name in a `tools:` list doesn't
 > error — the agent simply has *no* code tools and quietly reads whole files instead,
 > which is the exact behaviour the mandate exists to prevent. Confirm the real names with
-> `/mcp` before trusting a copied agent.
+> `/mcp` before trusting a copied agent. Measured on `2.1.226`: `repo-reviewer` declares
+> roughly twenty tools and launched with **seven**. **An unfilled `<placeholder>` in a
+> `tools:` list disappears the same way** — see step 8.
 
 ### Verify
 1. Ask Claude for "a symbols overview of `<some file>`" — confirm you get symbols, not a
@@ -157,6 +159,21 @@ codebase, so they live in that repo's own `.claude/agents/` and are generated fr
 `CLAUDE.md` ([11-adapting-to-your-stack.md](11-adapting-to-your-stack.md)), not copied here
 by hand. Run it on a small real ticket. Once that's smooth, add
 `/fix-ticket`, `/test-ticket`, `/end-of-day`, `/garden-memory` as the need arises.
+
+**Fill or delete every `<placeholder>` in the copied agents first, and then grep to prove
+you did.** The harness accepts an unfilled one and fails three different ways, none of them
+at install time: a placeholder in `tools:` is stripped in silence and the agent runs
+anyway; one in `model:` fails on first dispatch; one in `name:` registers the agent under
+the literal placeholder and then refuses to dispatch it. One line catches all three:
+
+```bash
+grep -rnE '^(name|model|tools):.*<[a-z][a-z-]*>' ~/.claude/agents/ ~/.claude/skills/
+```
+
+Expect no output. `<TICKET-ID>` and `<workspace>` inside a `description:` or a body are
+meant to stay — the grep only reads those three keys. Delete rather than fill a
+`<memory-read-tools>` or `<tracker-read-tools>` you have no server for. Full table:
+[`../../templates/agents/README.md`](../../templates/agents/README.md#an-unfilled-placeholder-is-not-an-error).
 
 **The three `*-massive` commands are team-only, come later, and only together.**
 `/start-massive`, `/resume-massive` and `/build-chart-ticket` are one flow for tickets too

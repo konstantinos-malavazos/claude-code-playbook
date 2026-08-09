@@ -54,7 +54,7 @@ actually gets run.
 |---|---|---|
 | 1 | Every frontmatter **key** in `agents/*.md` and `skills/*/SKILL.md` still appears in the field table | [sub-agents](https://code.claude.com/docs/en/sub-agents#supported-frontmatter-fields) · [skills](https://code.claude.com/docs/en/skills#frontmatter-reference) |
 | 2 | Every **tool name** inside a `tools:` list still **resolves** — the name exists *and* the tool is enabled by default. The same row that proves the name is real is where a switched-off default is recorded | [tools reference](https://code.claude.com/docs/en/tools-reference) |
-| 2b | **The two evidence-free agents still launch.** Spawn `pitch-judge` and `decision-steward` on a two-line case file and confirm each returns a verdict. Run them — their `tools:` line cannot tell you whether the tool behind it is switched on | the agents themselves |
+| 2b | **The two evidence-free agents still launch.** Spawn `pitch-judge` and `decision-steward` on a two-line case file and confirm each returns a verdict. Run them — their `tools:` line cannot tell you whether the tool behind it is switched on. **Substitute a real model id first**: both ship `model: <strong-model-id>`, and an unfilled one fails at dispatch with an API error, so the check would report a broken floor that is fine | the agents themselves |
 | 3 | Every tool in a `tools:` list survives the **background subagent filter** — subagents run in the background by default and anything outside that subset is stripped with no error | [available tools](https://code.claude.com/docs/en/sub-agents#available-tools) |
 | 4 | Any agent whose body says it **dispatches** another still has `Agent` in its `tools` list | [nesting](https://code.claude.com/docs/en/sub-agents#let-subagents-spawn-their-own-subagents) |
 | 5 | Hook **event names** are still real, and every blocking hook exits **exactly 2** | [hooks](https://code.claude.com/docs/en/hooks) |
@@ -63,12 +63,26 @@ actually gets run.
 | 7 | The **anatomy blocks** in `agents/README.md` and `skills/README.md` still list every documented field | both field tables |
 | 8 | The `mcp__serena__` **prefix** still matches your install (`/mcp`) — a plugin install is `mcp__plugin_serena_serena__` | your machine |
 | 9 | **Every snippet file parses as JSON, unmodified.** `python -c "import json,sys; [json.load(open(p)) for p in sys.argv[1:]]" mcp/*.snippet hooks/*.snippet.json` — a snippet is a body meant to be pasted, so anything a reader would have to strip first is a defect | the parser |
+| 10 | **No *installed* agent or skill still has a `<placeholder>` in `name:`, `model:` or `tools:`.** `grep -rnE '^(name\|model\|tools):.*<[a-z][a-z-]*>' ~/.claude/agents/ ~/.claude/skills/ <repo>/.claude/` — the templates carry them on purpose, so run this against the copies, never against this directory | your install |
 
 Checks 3, 4 and 6 are the ones that fail silently and matter most. Check 8 is per-machine
-rather than per-version and is worth doing on every fresh install.
+rather than per-version and is worth doing on every fresh install; so is check 10, which
+catches a filling-in mistake rather than a version drift.
 
-**Checks 2b and 6b are the only ones that execute anything, and both are here because reading
-was not enough.** The first pass through this list verified every hook claim against the docs
+**Check 10 is the only defect here a *reading* check can settle, and the three fields fail
+three different ways.** An unfilled `tools:` name is **stripped at launch in silence** —
+the agent runs, declares nothing wrong, and works without the tools its own body calls
+mandatory. An unfilled `model:` registers and dies on first dispatch. An unfilled `name:`
+registers, appears in the available-agents list, and then cannot be dispatched by the name
+that list is printing. Only the second and third announce themselves; the first is the one
+worth grepping for. Full table, with the transcripts:
+[`agents/README.md`](agents/README.md#an-unfilled-placeholder-is-not-an-error). Note what
+check 10 cannot see: a name that is filled in and still does not resolve — a
+`mcp__serena__` prefix on a plugin install strips exactly the same way and reads clean.
+That is check 8, and beyond it the agents' own halt rule.
+
+**Checks 2b and 6b are the only ones that run the artifact itself rather than a tool over
+it, and both are here because reading was not enough.** The first pass through this list verified every hook claim against the docs
 and passed. Then the hooks were actually run, and both git guardrails turned out to ignore
 `git push` on any line but the first — a multi-line command is the most common shape an
 agent writes, and the most common shape a human writes by hand. Nothing in the docs was
@@ -111,4 +125,6 @@ against the whole directory rather than asserted per file.
 > Checks 1–7 were run against the live published docs on 2 August 2026. Check 8 is
 > per-install and was not run. Check 9 was run on 9 August 2026 — all four snippets parse,
 > and `project.mcp.json.snippet` was additionally pasted into a scratch project and loaded
-> by `claude mcp list` on `2.1.226`.
+> by `claude mcp list` on `2.1.226`. Check 10 was added on 9 August 2026 from execution on
+> `2.1.226`: eight agents were installed unfilled and dispatched, and all three placeholder
+> fields were observed failing — separately, and none of them at install time.

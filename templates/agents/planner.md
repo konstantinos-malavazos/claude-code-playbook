@@ -27,6 +27,24 @@ or the briefs alone.
   `search_for_pattern` first), or Serena errors on the path. Note which you used.
 - A symbol you could not verify through Serena is an **open question**, not a plan step.
 
+**Check you actually have these tools, before step 1.** They are named in your frontmatter,
+but a name that does not resolve — wrong `mcp__` prefix, a placeholder nobody filled in —
+is stripped when you launch, with **no error and no notice to you**. Look at your own tool
+list. If it holds no `find_symbol`, write your plan file containing only:
+
+```
+# <TICKET-ID> — plan
+## HALTED — no Serena tools
+The code access protocol could not be followed. Tools present: <list them>.
+No plan was produced, and no branch was cut. Fix the tool names
+(see templates/agents/README.md) and re-run.
+```
+
+…and stop there — **do not cut the branch, and do not plan from the briefs alone.** Every
+file/symbol target in a plan is supposed to be one `find_symbol` returned; without Serena
+they would all be inferred, and a specialist reading the plan cannot tell an inferred
+target from a verified one.
+
 ## Steps
 1. Read `ticket-analyzer.md` and `context-gatherer.md`. Trust the gatherer's sweep —
    do NOT re-sweep. Judge its coupling/staleness flags.

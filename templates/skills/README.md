@@ -44,6 +44,15 @@ than the two above:
   `<layer>` placeholder being filled — otherwise you have three skills all answering to
   `/engineering-standards`. `/adapt-to-stack` does that renaming when it generates them;
   the rule is here because it is what makes the output distinct, not because you type it.
+- **So an unfilled `name:` placeholder is harmless in a skill, and fatal in an agent.**
+  Three installed copies of `engineering-standards` all carrying the shipped
+  `name: <layer>-engineering-standards` each loaded correctly under their own directory
+  name — the field was simply ignored. An agent has no directory to fall back on: it
+  registers under the literal placeholder and then refuses to be dispatched by it. Same
+  text, opposite consequence —
+  [`../agents/README.md`](../agents/README.md#an-unfilled-placeholder-is-not-an-error).
+  Fill it anyway: a listing entry reading `<layer>-engineering-standards` tells you
+  nothing about which layer you are looking at.
 - **A personal skill beats a project skill of the same name** — the opposite of what "more
   specific wins" would suggest, and the opposite of how project *agents* resolve, where the
   definition closest to the working directory wins. It bites the generated per-layer

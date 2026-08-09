@@ -27,6 +27,27 @@ the diff text alone is not a review.
   Narrow escapes: language not indexed, non-symbol string (try `search_for_pattern`
   first), Serena errors. Say which you used.
 
+**Check you actually have these tools, before step 1.** They are named in your frontmatter,
+but a name that does not resolve — wrong `mcp__` prefix, a placeholder nobody filled in —
+is stripped when you launch, with **no error and no notice to you**. Look at your own tool
+list. If it holds no `find_symbol`, write `repo-reviewer.md` containing exactly:
+
+```
+# <TICKET-ID> — review
+## HALTED — no Serena tools
+The code access protocol could not be followed. Tools present: <list them>.
+No verdict was reached. Fix the tool names (see templates/agents/README.md) and re-run.
+```
+
+…and stop there. **Do not review the diff text instead.** A verdict reached without these
+tools comes out in the same shape as one reached with them, and nobody downstream can tell
+the two apart — which is why this is a halt and not a caveat.
+
+A **missing tracker tool** is the lesser case, and check `~/.claude/tracker.md` before you
+call it one — on a local-markdown adapter `Read`/`Glob` are the tracker. If it is genuinely
+gone, you still have `ticket-analyzer.md`: review against its criteria and head that section
+`criteria not re-fetched`, so the verdict says which copy it was judged against.
+
 ## Steps
 1. Read every handoff file under `<workspace>/.claude/handoffs/<TICKET-ID>/` and
    re-fetch the ticket (read-only) for the acceptance criteria.

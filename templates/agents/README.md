@@ -56,6 +56,44 @@ but a tool you add later may not be.
 **Appearing in that list is not proof the tool resolves** — `TodoWrite` is in it and is
 disabled by default. Spawn the agent; see [`../README.md`](../README.md), check 2b.
 
+## An unfilled placeholder is not an error
+
+Every `<placeholder>` in these files is filled in by a human, and **the harness does not
+check that you did.** Verified by execution on `2.1.226`, one field at a time. The three
+failure modes are all different, and not one of them is *the file is rejected*:
+
+| Left unfilled | What the harness does | When you find out |
+|---|---|---|
+| `tools: … <memory-read-tools>` | **strips the name at launch, silently** — exactly like a wrong `mcp__` prefix. The agent launches and runs | never, unless you ask the agent to list its own tools |
+| `model: <strong-model-id>` | **registers fine**, then dies on dispatch: *"There's an issue with the selected model (`<strong-model-id>`)"* | first dispatch |
+| `name: <layer>-specialist` | **registers and cannot be dispatched** — *"Agent type `<layer>-specialist` not found. Available agents: `<layer>-specialist`, …"*, refusing the name it is printing | first dispatch |
+
+**The first row is the dangerous one, and it is the row these templates lean on hardest.**
+`repo-reviewer` declares roughly twenty tools; dispatched straight from the template on a
+plugin install it launched with **seven** — every `mcp__serena__*` name gone, both
+`<…-read-tools>` gone, no error and no degraded-mode notice. Its own body opens by calling
+Serena mandatory. It reviewed the diff text alone and returned a verdict in the normal
+shape. `context-gatherer`, `map-reviewer`, `planner` and `release-reviewer` strip the same
+way. The other two rows are loud by comparison: they fail on first dispatch, and they name
+the placeholder while doing it.
+
+So **fill or delete every placeholder before you dispatch anything** — deleting is the
+right move for a `<memory-read-tools>` you have no server for — and use
+[`../README.md`](../README.md) check 10, the one grep that catches all three rows.
+
+**And every body that calls a tool set mandatory now checks it has that set, and halts if
+it does not** — which is the only defence here that does not depend on someone running a
+grep, and the only one that still holds when the next release renames a prefix. It is the
+paragraph at the bottom of each `Code access protocol` block. The halt is deliberately
+loud: an agent that produced a normal-shaped verdict without its tools is worse than one
+that produced nothing, because nothing downstream can tell the two apart.
+
+**A skill behaves the opposite way on `name:`.** There the *directory* is authoritative and
+`name:` is a display label, so three installed copies of `engineering-standards` all
+shipping `name: <layer>-engineering-standards` each loaded correctly under their own
+directory name. Same placeholder, opposite consequence:
+[`../skills/README.md`](../skills/README.md).
+
 ## Conventions used across these templates
 
 - **Scope tools tightly.** An analyzer gets read-only tracker tools; a reviewer gets read
@@ -95,7 +133,8 @@ disabled by default. Spawn the agent; see [`../README.md`](../README.md), check 
   never writes to memory." These negative constraints are as important as the positive
   steps.
 - **Replace `<memory-read-tools>` / `<tracker-read-tools>`** with your actual MCP tool
-  names once you know them (e.g. Forgetful's `query_memory`) — but **Serena is not a
+  names (e.g. Forgetful's `query_memory`), or **delete them** if you run no such server.
+  Left in place they are stripped at launch without a word — see above. **Serena is not a
   placeholder**, see below.
 
 ## Serena is mandatory, not preferred
@@ -110,9 +149,13 @@ permission to read code with them. The doctrine those blocks encode:
 
 The templates use `mcp__serena__<tool>`, which is a **literal, not a placeholder** — but a
 plugin install registers as `mcp__plugin_serena_serena__` instead, and a name that doesn't
-resolve leaves the agent silently with no code tools. Check with `/mcp` and rewrite the
-prefix across the agent files before you trust any of them:
+resolve leaves the agent silently with no code tools. It is the same silent strip an
+unfilled `<memory-read-tools>` gets, and on a plugin install it takes **all ten** Serena
+names at once. Check with `/mcp` and rewrite the prefix across the agent files before you
+trust any of them:
 [`../../docs/shared/03-setup.md`](../../docs/shared/03-setup.md#then-find-your-tool-prefix--this-bites).
+
+If you get it wrong anyway, the halt rule above is what catches it.
 
 ## The set
 
