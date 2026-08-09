@@ -125,6 +125,9 @@ anywhere else:
   feature branch. It is a fact about this codebase, so this is where it lives, whichever
   shape you are in. (With sibling repos the workspace table indexes it too; see rule 5 —
   an index is not a second owner.)
+- **The names this project settled** — the ones that are contested, or that a newcomer
+  would read wrong. A glossary is a canonical mapping, so rule 5 below already puts it in
+  exactly one layer, and this is it. Empty is a valid state.
 - Local conventions that differ from the default.
 - Repo-specific gotchas ("this service consumes topic X; don't change the payload
   without updating consumer Y").

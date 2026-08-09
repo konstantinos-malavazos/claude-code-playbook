@@ -256,8 +256,29 @@ account, an access grant, a file moved — whose only purpose is to unblock a de
 
 ### One name per thing
 
-When a term turns out to be contested, settle it and **record it in the map's Notes**. Two
-words for one thing costs a mapping to explain in every later session.
+Write a name down when it is **contested, or when a newcomer would read it wrong**. Two
+words for one thing costs a mapping to explain in every later session — and a word read the
+wrong way costs more, because nobody notices. *Seam* is the case that sets the trigger:
+nobody argued about it, and everywhere else it means a place you inject a test double.
+
+A settled name then lives in **two homes, in sequence**:
+
+| When | Home | Written by |
+|---|---|---|
+| Charting | the map's **Notes** | the session that settles it, **inline** |
+| Once the repo has a `CLAUDE.md` | the repo's **`CLAUDE.md`** | greenfield, the bootstrap step that writes that file; on an existing repo the file is already there, so the copy is part of closing the map |
+
+**Write inline, prune at the tail.** Only the session that settled a name knows why *that*
+word won, and a resolution comment often never says. So it goes into Notes while the session
+still holds it, and the last pass before the hand-off is **subtractive only** — delete the
+names that died, never invent one. A folder renamed three tickets later is what that pass
+exists to catch: copy without pruning and every future session reads a path that is gone.
+
+**No number.** A name earns its line only if it stops a wrong turn, which is the ruler
+`CLAUDE.md` is already priced by.
+
+**Never memory.** `CLAUDE.md` is loaded and memory is searched — and you cannot search for a
+name you do not know you have the wrong way round.
 
 ## Fog of war
 

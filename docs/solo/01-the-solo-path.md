@@ -111,7 +111,7 @@ where both entrances are visible at once. When all eight hold, the front-end is 
 |---|---|---|
 | 1 | **The stack is named** | Written down, not in your head. |
 | 2 | **The stub builds and runs** | Not the app — there is no app. The framework's skeleton compiles and starts. *A green test command is optional here; the tail's second ticket decides whether this stack gates on one.* |
-| 3 | **The layer chain is declared** | It is in the repo's `CLAUDE.md`. See [06-claude-md-layers.md](../shared/06-claude-md-layers.md). |
+| 3 | **The layer chain and the settled names are declared** | Both are in the repo's `CLAUDE.md`. The names are a **comparison**: every name left on the map's `Notes` appears in `CLAUDE.md`. An effort that settled none passes — zero matches zero. See [06-claude-md-layers.md](../shared/06-claude-md-layers.md). |
 | 4 | **Serena matches the verdict** | You look this up; you do not decide it here. The tail decided it and the repo's `CLAUDE.md` records it. *Verdict **yes**: Serena is indexed — a symbol search returns **real results**, not empty. Verdict **no**: Serena is not required here, and `CLAUDE.md` says why.* See [04-serena.md](../shared/04-serena.md), and [12-when-not-to-use.md](../shared/12-when-not-to-use.md#unfamiliar-codebase) for the one case where a sparse index is not a *stop*. |
 | 5 | **The tracker adapter is installed** | Exactly one adapter, at the fixed path the global `CLAUDE.md` points at. |
 | 6 | **The backlog exists** | Units are in the tracker, ordered, and **you approved them**. |

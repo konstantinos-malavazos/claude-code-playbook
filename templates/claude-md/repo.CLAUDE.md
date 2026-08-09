@@ -13,6 +13,13 @@
 ## What this repo is
 <One or two sentences: stack, and what it's responsible for in the workspace.>
 
+## Settled names
+<The words this project uses for things — one line each, copied from the map's Notes and
+already pruned of the ones that died. A name earns a line only if it is contested, or if a
+newcomer would read it wrong. DELETE the example and leave the section empty if the effort
+settled none — empty is a valid answer, not a gap.>
+- **<name>** — <what it means here; and what it is NOT, where the ordinary reading differs.>
+
 ## Build / test / run
 ```
 # install:   <command>

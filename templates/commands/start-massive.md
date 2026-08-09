@@ -86,7 +86,10 @@ work.
   message here; the walker asks for one when that happens.
 - **`Development ticket: <id>`** — only when the map's own key is not that ticket. Omit it
   otherwise; the folder name already is the id.
-- **Any term the grilling found contested**, settled, one line each.
+- **Any term the grilling found contested — or that a newcomer would read wrong**, settled,
+  one line each. Notes is the *first* home, not the last: charting's *One name per thing*
+  graduates what survives the tail prune into the repo's `CLAUDE.md`. On this path that file
+  already exists, so the copy happens as the map closes, into the repo the name is about.
 
 The commit messages do **not** create branches. The first make ticket for a repo creates it.
 

@@ -110,7 +110,7 @@ Run the framework's own generator. Then create **one empty folder per layer of t
 
 ### 3 — Write the repo's `CLAUDE.md`
 
-From `templates/claude-md/repo.CLAUDE.md`. Five things must land in it:
+From `templates/claude-md/repo.CLAUDE.md`. Six things must land in it:
 
 | | |
 |---|---|
@@ -119,6 +119,7 @@ From `templates/claude-md/repo.CLAUDE.md`. Five things must land in it:
 | **The branch this repo ships from** | **detect** it — `git symbolic-ref refs/remotes/origin/HEAD` — do not ask. This is the only place it lives; the global `CLAUDE.md` holds the workflow that reads it |
 | The layer chain | you are **copying** it, not choosing it |
 | **The Serena verdict**, and one line of why | this is the only place it lives |
+| **The settled names** | **copy** them from the map's Notes, which charting pruned at the tail. This is the second and final home — see *One name per thing* in the `charting` skill. **None is a valid answer**: an effort that settled no names leaves the section empty, and the seam still passes |
 
 Keep it lean — the facts that stop a wrong turn, not a description of the repo. Step 5
 reads the chain back out of this file, and the seam reads the verdict out of it.
@@ -194,7 +195,7 @@ Produce **one** report, in this shape:
 |---|---|---|---|
 | 1 | The stack is named | pass | `CLAUDE.md` line N |
 | 2 | The stub builds and runs | pass / FAIL | the command, and its output |
-| 3 | The layer chain is declared | pass | `CLAUDE.md` line N |
+| 3 | The layer chain and the settled names are declared | pass | `CLAUDE.md` line N, and the names on the map's Notes matched against it |
 | 4 | Serena matches the verdict | pass / skipped — verdict no / FAIL | the symbol query, and what came back |
 | 5 | The tracker adapter matches this project | pass / FAIL | which adapter is installed |
 | 7 | Two memories exist | pass / FAIL | their titles |

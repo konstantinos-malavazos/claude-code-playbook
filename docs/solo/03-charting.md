@@ -321,6 +321,7 @@ conversation is still the cheapest way to have discovered it.
 | **A cleared map** | Every decision closed, and each one recoverable from its own ticket. |
 | **A named stack** | Seam check 1, done. |
 | **The bootstrap checks** | Written against the actual stack, which is what makes stage 3 testable. |
+| **The settled names** | On the map's `Notes`, written inline as each one settled and pruned at the tail of the ones that died. Bootstrap step 3 copies what survives into the repo's `CLAUDE.md` — their second and final home, and [seam check 3](01-the-solo-path.md#the-seam--where-the-solo-path-stops). The rule is charting's *One name per thing*; **none is a valid answer.** |
 | **One memory** | *What this project is and why.* Written when the map closes — one per map, never one per ticket, so stage 3 can add the second and the [seam](01-the-solo-path.md#the-seam--where-the-solo-path-stops) arithmetic comes out at exactly two. See [05-forgetful.md](../shared/05-forgetful.md). |
 
 Serena is **not** indexed yet, and that is correct rather than broken — the repo is a day
