@@ -109,5 +109,9 @@ consolidates them into the **final verdict**.
 - **Reviewers can't edit** so review stays honest.
 - **One commit per branch** so a ticket is one reviewable, revertable unit.
 - **Human owns push/MR** so the irreversible outward step always has a person on it.
+
+[`examples/ticket-flow-walkthrough.md`](../../examples/ticket-flow-walkthrough.md) narrates
+one invented ticket through all seven steps.
+
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

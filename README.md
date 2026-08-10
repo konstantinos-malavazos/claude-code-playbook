@@ -136,7 +136,9 @@ claude-code-playbook/
 │       └── 03-massive-tickets.md   The *-massive flow: a map over an existing codebase,
 │                                   walked over weeks. Solo charts the same case with
 │                                   /charting and none of these three commands
-├── examples/                       A worked walkthrough of one ticket, end to end
+├── examples/                       Two worked walkthroughs, narrated end to end
+│   ├── solo-path-walkthrough.md    An idea through all four solo stages to the seam
+│   └── ticket-flow-walkthrough.md  One ticket through /start-ticket
 └── templates/
     ├── claude-md/    global · workspace · per-repo CLAUDE.md skeletons
     ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · map-reviewer · decision-steward · …
