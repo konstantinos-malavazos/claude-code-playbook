@@ -65,6 +65,7 @@ actually gets run.
 | 9 | **Every snippet file parses as JSON, unmodified.** `python -c "import json,sys; [json.load(open(p)) for p in sys.argv[1:]]" mcp/*.snippet hooks/*.snippet.json` — a snippet is a body meant to be pasted, so anything a reader would have to strip first is a defect | the parser |
 | 10 | **No *installed* agent or skill still has a `<placeholder>` in `name:`, `model:` or `tools:`.** `grep -rnE '^(name\|model\|tools):.*<[a-z][a-z-]*>' ~/.claude/agents/ ~/.claude/skills/ <repo>/.claude/` — the templates carry them on purpose, so run this against the copies, never against this directory | your install |
 | 11 | **An auto-loading skill still fires on its own trigger, and still does not fire on an unrelated prompt.** `claude -p --output-format stream-json --verbose "<prompt>"`, then look for a `Skill` tool call. Both halves need a transcript, so **`--output-format json` cannot answer either** — it returns the final result and no tool calls, and a negative test read off a silent result proves nothing | the transcript |
+| 12 | **A `disable-model-invocation: true` template is still refused to the model and still typeable by you.** Force the call — `claude -p 'Call the Skill tool with skill="<name>". Make the call. Do not reason about it first.'` — and expect an error that names the field; then type `/<name>` in a real session, **filtering by name rather than scrolling the menu**, and confirm it is offered. Ask the model whether it *could* and it will answer without trying. **Check which copy answered**: a personal skill beats a project one of the same name, so a project-scoped rig can test your own skills instead of the templates | the harness |
 
 Checks 3, 4 and 6 are the ones that fail silently and matter most. Check 8 is per-machine
 rather than per-version and is worth doing on every fresh install; so is check 10, which
@@ -107,6 +108,22 @@ background subset — and the agent still could not launch, because that tool is
 default. The docs were not wrong and the file was not wrong; the check was. **A check that
 reads a list can only tell you a name is spellable.** Spawning the agent is two minutes and
 it is the only thing that distinguishes a tool that exists from a tool you have.
+
+**Check 12 is that lesson once more, failing a new way: the check can be answered by the
+thing under test.** Asked whether it could reach a `disable-model-invocation` skill, the
+model replied `CANNOT-REACH` and never made the call — the right answer, arrived at by
+belief rather than by the harness. Forcing the call returned the harness's own refusal,
+which names the field and tells the model to ask the human instead. **A check that reads a
+list can only tell you a name is spellable; a check that asks can only tell you what the
+model expects.** Make it act.
+
+**And the same run turned up the trap that can void a whole verification sitting: a
+personal skill beats a project one of the same name.** Proven by invoking `tdd` inside a
+project-scoped rig and watching it load from `~/.claude/skills/tdd`. Seven of the sixteen
+skill templates collided with something already installed on the machine that ran this —
+these templates are re-derivations of widely-installed skills, so collision is the normal
+case, not bad luck. A rig can verify your own skills for an afternoon and report a clean
+pass. **Check which copy answered before you record an outcome.**
 
 **A note on scope.** These are claims about the *harness*. Claims about the *prose* — stale
 footer values, dead links, drift between a doc and what it describes — are a different sweep
