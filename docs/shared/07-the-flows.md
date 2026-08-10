@@ -18,12 +18,12 @@ re-driving the same ten steps by hand.
 - **Handoffs are files, not chat.** Agents pass context through
   `<workspace>/.claude/handoffs/<TICKET>/<agent>.md`, which **auto-delete at session
   end**. In-flight noise never pollutes durable memory.
-- **Two-tier review.** `@repo-reviewer` works in-repo (diff, acceptance criteria, tests);
+- **Two-tier review.** `@repo-reviewer` works in-repo (diff, acceptance criteria, tests).
   `@release-reviewer` checks cross-repo blast radius (contract/payload coupling,
   downstream consumers, schema collisions).
 - **One commit per branch per repo.** Amend-as-you-go; the reviewer asserts it.
-- **Guardrails are hooks, not trust.** Push is blocked unless the repo is allowlisted; the
-  tracker is read-only; AI-infra files are never committed **except the repo's own
+- **Guardrails are hooks, not trust.** Push is blocked unless the repo is allowlisted. The
+  tracker is read-only. AI-infra files are never committed, **except the repo's own
   `CLAUDE.md` and the generated `.claude/agents/` and `.claude/skills/`, which a fresh
   clone needs**.
 
@@ -65,12 +65,12 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 
 ### Three things to notice while it runs
 
-1. **Retrieval is offloaded** — the gatherer's expensive context is discarded; the
-   planner only sees the brief.
-2. **Models are matched to work** — a cheaper/faster model for mechanical, bounded tracks
-   (analyzer, per-layer implementers); a stronger model for design, judgement, and
-   review. Pin exact model *ids* so an alias doesn't silently downgrade you.
-3. **Handoffs are files** — inspect them under `…/handoffs/<TICKET>/` while it runs; they
+1. **Retrieval is offloaded.** The gatherer's expensive context is discarded. The planner
+   only sees the brief.
+2. **Models are matched to work.** Use a cheaper, faster model for mechanical, bounded
+   tracks (analyzer, per-layer implementers). Use a stronger model for design, judgement
+   and review. Pin exact model *ids* so an alias does not silently downgrade you.
+3. **Handoffs are files.** Inspect them under `…/handoffs/<TICKET>/` while it runs. They
    vanish at session end.
 
 ---
@@ -80,7 +80,7 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 | Flow | What it does | Why it exists |
 |---|---|---|
 | **`/start-ticket`** | ticket id → reviewed single-commit branch (the flagship) | the default path for ~95% of tickets |
-| **`/pitch`** *(solo)* | raw idea → a **verdict**: build, kill or park. Six questions in about an hour, two cold search subagents, and an anonymised `pitch-judge` | the furthest upstream thing here — it runs before a repo exists. Stops ideas that should never reach a pipeline at all. [solo 02](../solo/02-the-kill-gate.md) |
+| **`/pitch`** *(solo)* | raw idea → a **verdict**: build, kill or park. Six questions in about an hour, two cold search subagents, and an anonymised `pitch-judge` | the furthest upstream thing here, because it runs before a repo exists. Stops ideas that should never reach a pipeline at all. [solo 02](../solo/02-the-kill-gate.md) |
 | **`/charting`** | foggy effort → a **map** of tickets on the tracker, resolved one per session until nothing is left to decide. Generates the **dependency picture** on demand | upstream of everything here: work too big for one session and too foggy to plan. Hands off to `/start-ticket` once the route is clear. **Both entrances run it.** [solo 03](../solo/03-charting.md) is stage 2 on a greenfield repo; run it directly on a codebase that already exists, which is also what [team 03](../team/03-massive-tickets.md) wraps its three commands around |
 | **`/bootstrap`** *(solo)* | decided-but-empty repo → a **scaffolded one**, plus one report: seven checks, evidence per row, no classification | the only flow that runs **once per project**. It makes `/start-ticket`'s preconditions true — including the layer specialists, which it calls `/adapt-to-stack` to generate. [solo 04](../solo/04-the-bootstrap.md) |
 | **`/cut-backlog`** *(solo)* | closed map + scaffolded repo → an ordered **backlog** of work units, approved on a board before anything is created, then the same **dependency picture** over the tickets that now exist | the last stage of the solo path, and where it stops. Units are cut from the **smallest version**, not from the map's decisions — one unit = one thing the app can now do. [solo 05](../solo/05-cutting.md) |
@@ -99,38 +99,38 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 | **`/confirm-deployment`** | **release gate** (not ticket-scoped): review a tag-to-tag delta across repos before a production deploy — code review + deploy-risk scan (migrations, queues, config/secrets) → GO/NO-GO | a last read-only safety net before prod |
 | ad-hoc: **investigation** | read-only forensic agent: writes parametrised queries, proves root cause from returned data only, no prod writes | drift/discrepancy analysis without risk |
 
-You don't need all of these. Start with `/start-ticket`; add the others as the pain they
+You don't need all of these. Start with `/start-ticket`. Add the others as the pain they
 solve shows up.
 
-**`(solo)` / `(team)` marks a flow only one entrance installs**; unmarked means both. The
-template READMEs carry the same split per file —
+**`(solo)` / `(team)` marks a flow only one entrance installs.** Unmarked means both. The
+template READMEs carry the same split per file:
 [commands](../../templates/commands/README.md), [agents](../../templates/agents/README.md),
-[skills](../../templates/skills/README.md) — and they are the authority on what to copy.
-Note `/charting` is deliberately unmarked while all three `*-massive` flows are team: the
-skill is shared, the flow wrapped around it is not.
+[skills](../../templates/skills/README.md). They are the authority on what to copy.
+Note `/charting` is deliberately unmarked while all three `*-massive` flows are team. The
+skill is shared, but the flow wrapped around it is not.
 
-**The dependency picture has no row of its own because it is not a flow** — no command, no
-agents. It is a page ([`templates/views/`](../../templates/views/README.md)) that two of
-the flows above fill with data and open, for the trackers that cannot draw their own
-dependencies.
+**The dependency picture has no row of its own because it is not a flow.** It has no
+command and no agents. It is a page ([`templates/views/`](../../templates/views/README.md))
+that two of the flows above fill with data and open, for the trackers that cannot draw
+their own dependencies.
 
 ---
 
 ## The standout feature: `/test-ticket` *learns*
 
-The hardest part of an end-to-end test is figuring out **how to produce the event**
+The hardest part of an end-to-end test is working out **how to produce the event**
 (which message / API call, in what order, for that specific scenario). The first time
-`/test-ticket` tests a `(scenario × event)` combination, it traces that path once and
+`/test-ticket` tests a `(scenario × event)` combination, it traces that path once. It then
 **banks it in memory as a reusable recipe**. Every future test of that scenario **reuses
 the banked recipe instead of re-deriving it**.
 
 To stop the recipe silently rotting, each recipe stores a **fingerprint** of the flow it
 was derived from (e.g. the ordered acceptance-test steps). On every reuse the planner
-re-pulls the source and diffs the fingerprint — if the process changed, the recipe is
+re-pulls the source and diffs the fingerprint. If the process changed, the recipe is
 marked stale and re-derived. Memory that self-checks.
 
-This is the compounding loop (PHILOSOPHY §4) applied to **testing**: the second time you
-E2E-test a scenario, the agent doesn't re-learn how to produce it — it pulls the recipe
+This is the compounding loop (PHILOSOPHY §4) applied to **testing**. The second time you
+E2E-test a scenario, the agent does not re-learn how to produce it. It pulls the recipe
 it banked last time, checks nothing moved, and runs it.
 
 ---
@@ -138,25 +138,25 @@ it banked last time, checks nothing moved, and runs it.
 ## Deferred decisions (the grilling gate)
 
 Real tickets have open questions that only a human (or a spec that doesn't exist yet)
-can answer. Rather than block, the grilling gate lets you **defer** — managed, not
-forgotten, so dependent work proceeds and `/resume-ticket` can pick the question up days
-later when the answer lands. What *managed* requires is owned by
-[`templates/skills/grilling/`](../../templates/skills/grilling/SKILL.md); where the gate
+can answer. Rather than block, the grilling gate lets you **defer**. A deferred question
+is managed, not forgotten, so dependent work proceeds. `/resume-ticket` can pick it up
+days later when the answer lands. What *managed* requires is owned by
+[`templates/skills/grilling/`](../../templates/skills/grilling/SKILL.md). Where the gate
 sits in the pipeline is [08-ticket-pipeline.md](08-ticket-pipeline.md).
 
 ---
 
 ## Hand-built flows vs dynamic workflows
 
-A **dynamic workflow** is a different built-in mechanism: a JavaScript script Claude
-writes for the task you describe, which a runtime executes in the background — fanning
-work across subagents while your session stays responsive. Intermediate results live in
-the script's variables, not the model's context.
+A **dynamic workflow** is a different built-in mechanism. Claude writes a JavaScript
+script for the task you describe, and a runtime executes it in the background. The script
+fans work across subagents while your session stays responsive. Intermediate results live
+in the script's variables, not the model's context.
 
-The flows in this playbook are **hand-drawn topology** — you choose the agents, the
-order, and the handoffs, and every hook in `templates/hooks/` fires at each step. A
-dynamic workflow is **generated topology** — you describe the goal and Claude writes the
-plan, so the shape can differ run to run.
+The flows in this playbook are **hand-drawn topology**. You choose the agents, the order
+and the handoffs, and every hook in `templates/hooks/` fires at each step. A dynamic
+workflow is **generated topology**. You describe the goal and Claude writes the plan, so
+the shape can differ run to run.
 
 **Decide between them like this:**
 
@@ -169,8 +169,8 @@ plan, so the shape can differ run to run.
 
 **Verified constraints** (see the [workflows docs](https://code.claude.com/docs/en/workflows)):
 
-- Requires Claude Code v2.1.154+; available on all paid plans. On Pro, enable it via the
-  "Dynamic workflows" row in `/config`. On by default for Max, Team, and Enterprise; an
+- Requires Claude Code v2.1.154+. Available on all paid plans. On Pro, enable it via the
+  "Dynamic workflows" row in `/config`. On by default for Max, Team and Enterprise, but an
   org can disable it via managed settings.
 - Trigger with the keyword `ultracode` in your prompt, or plain phrasing like "use a
   workflow" / "run a workflow." (Before v2.1.160 the literal keyword was `workflow`;
@@ -183,38 +183,38 @@ plan, so the shape can differ run to run.
   session. To start a session already in it, `claude --effort ultracode` — **v2.1.203+**.
 - Runtime caps: 16 concurrent agents (fewer on low-core machines), 1000 agents total per
   run. These are hard caps.
-- The "Dynamic workflow size" guideline needs **v2.1.202+**; before that there was no
+- The "Dynamic workflow size" guideline needs **v2.1.202+**. Before that there was no
   guideline and the effective behaviour was `unrestricted`. Values map to agent counts —
   `small` <5, `medium` <15, `large` <50, `unrestricted` none. **As of v2.1.219 the default
-  is `medium`**; earlier versions still defaulted to `unrestricted`. It's advisory, not a
-  cap — a prompt calling for a different scale overrides it. Set it from any settings file
-  with the `workflowSizeGuideline` key, the form worth templating; the `/config` row hides
-  once one is set.
+  is `medium`**. Earlier versions still defaulted to `unrestricted`. It's advisory, not a
+  cap, because a prompt calling for a different scale overrides it. Set it from any
+  settings file with the `workflowSizeGuideline` key, the form worth templating. The
+  `/config` row hides once one is set.
 - A run that grows unusually large gets a **`Large workflow` warning** on its progress
   line — more than 25 agents scheduled, or a projected token total past 1.5M
   (**v2.1.203+**). It is advisory: it does not pause or cap the run. Choosing a size
   guideline replaces the 25-agent threshold with that guideline's count, and sessions with
   ultracode on never show it.
 - **"No mid-run user input" is narrower than it sounds.** The *script* cannot ask you
-  anything, and it has no direct filesystem or shell access — agents do the reading,
+  anything, and it has no direct filesystem or shell access. Agents do the reading,
   writing and running. But **agent permission prompts still interrupt**: a shell command,
   web fetch or MCP call outside your allowlist prompts you mid-run. Allowlist what the
   agents need *before* a long run, or it will stop and wait for you. For genuine sign-off
   between stages, run each stage as its own workflow.
 - **The spawned subagents always run in `acceptEdits`, whatever the session's permission
-  mode**, and inherit your tool allowlist. File edits are auto-approved inside a run —
-  worth knowing before pointing one at a repo you care about.
-- Monitor a run with `/workflows`; press `s` on a finished run to save its script as a
+  mode**, and inherit your tool allowlist. File edits are auto-approved inside a run. Know
+  that before you point one at a repo you care about.
+- Monitor a run with `/workflows`. Press `s` on a finished run to save its script as a
   command, to `.claude/workflows/` (project, shared) or `~/.claude/workflows/` (personal).
-- Resume only works within the same session — exiting Claude Code restarts the workflow
+- Resume only works within the same session. Exiting Claude Code restarts the workflow
   next session.
-- `/deep-research` is the bundled workflow — the cheapest way to see the machinery before
-  writing your own; since v2.1.218 it only runs when you invoke it.
+- `/deep-research` is the bundled workflow, and the cheapest way to see the machinery
+  before writing your own. Since v2.1.218 it only runs when you invoke it.
 
 ### Where the guardrails stop
 
-Agents spawned inside a workflow always run in `acceptEdits` mode and inherit the
-session's tool allowlist regardless of the session's own permission mode — file edits are
+Agents spawned inside a workflow always run in `acceptEdits` mode, whatever the session's
+own permission mode is. They inherit the session's tool allowlist, and file edits are
 auto-approved. The hooks in `templates/hooks/` are **not** a step-level gate inside a
 workflow, and there is no mid-run intervention once it starts.
 

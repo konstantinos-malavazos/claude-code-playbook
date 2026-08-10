@@ -2,7 +2,7 @@
 
 **What it is:** an MCP server that wraps a Language Server (the engine behind "Go to
 definition" in your IDE). Claude asks for a *symbol* and gets back exactly that symbol
-with its precise `file:line` — instead of reading the whole file and guessing names.
+with its precise `file:line`, instead of reading the whole file and guessing names.
 
 Serena is open-source and language-agnostic (it speaks the Language Server Protocol, so
 any language with an LSP is covered: TypeScript, Python, Go, Rust, C#, Java, …).
@@ -18,8 +18,8 @@ any language with an LSP is covered: TypeScript, Python, Go, Rust, C#, Java, …
 | "Who calls this function?" | grep the string, sift false positives | `find_referencing_symbols` → the real call sites, semantically |
 | Editing | hunt for the line range by eye | exact `start_line`/`end_line` for a surgical edit |
 
-The typical result is **several times fewer tokens for a better answer**, plus it kills
-the guess-the-name round trip — Serena tells you the symbol is *actually* called
+The typical result is **several times fewer tokens for a better answer**. It also kills
+the guess-the-name round trip. Serena tells you the symbol is *actually* called
 `KnownCompaniesRtbc`, not `KnownCompanies`.
 
 ---
@@ -44,7 +44,7 @@ In this playbook Serena is **not** a "reach for it first" nicety. The rule is:
 > **Serena is the only sanctioned way to read code, and the only sanctioned way to change
 > it.**
 
-Both directions matter. Reading by symbol is what makes the agent accurate; *writing* by
+Both directions matter. Reading by symbol is what makes the agent accurate. *Writing* by
 symbol (`replace_symbol_body`, `insert_after_symbol`, `rename_symbol`,
 `safe_delete_symbol`) is what stops the classic failure modes — an `Edit` applied to a
 stale line range, a find/replace rename that misses a call site or hits a comment, a
@@ -61,8 +61,8 @@ An agent taking an escape must **say which one**. For a write, an unusable Seren
 **stop and surface it** — never a silent downgrade to `Edit`. And sparse Serena results
 are a finding about your index, not permission to go back to file spelunking.
 
-`Read`/`Grep`/`Glob` stay in every agent's tool list — agents must read handoffs, docs and
-config. They just aren't a code path.
+`Read`/`Grep`/`Glob` stay in every agent's tool list, because agents must read handoffs,
+docs and config. They just aren't a code path.
 
 Where this is encoded: the **Serena is MANDATORY** section of
 [`../../templates/claude-md/global.CLAUDE.md`](../../templates/claude-md/global.CLAUDE.md), and
@@ -76,12 +76,12 @@ a *Code access protocol (MANDATORY)* block in every code-touching agent under
 Serena is **project-scoped** (`<workspace>/.mcp.json`) because it indexes a working
 copy. Every agent that touches code — the gatherer, the planner, the specialists, the
 reviewers — names Serena's tools outright in its frontmatter and carries the mandatory
-protocol block; the specialists' *edits* go through it too. Combined with Forgetful (which recalls *what/why* and
-often *which symbols matter*), the loop is: memory says "look at `ToBetFeesModel`" →
+protocol block. The specialists' *edits* go through it too. Forgetful recalls *what/why*
+and often *which symbols matter*, so the loop is: memory says "look at `ToBetFeesModel`" →
 Serena jumps straight to it → surgical edit. No file spelunking.
 
 Config snippet: [`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet)
-— paste it as-is; the plugin-vs-entry choice and the tool-prefix trap are in
+— paste it as-is. The plugin-vs-entry choice and the tool-prefix trap are in
 [`../../templates/mcp/README.md`](../../templates/mcp/README.md).
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

@@ -39,25 +39,25 @@ There are **four layers** of configuration, each with one clear job:
 | **Hooks** | `~/.claude/settings.json` + `~/.claude/hooks/*` | Deterministic guardrails (block dangerous git) + metrics + cleanup. The *harness* runs these, not the model. |
 
 Skills and agents are just markdown. Hooks are just scripts. MCP config is just JSON.
-Nothing here is magic — it's a disciplined layout of plain files.
+Nothing here is magic. It is a disciplined layout of plain files.
 
 ---
 
 ## Where each layer earns its keep
 
 - **MCP = capability.** Without Serena, the agent reads whole files. Without Forgetful,
-  it forgets. These two are the foundation; the git-host / tracker / DB servers are
+  it forgets. These two are the foundation. The git-host / tracker / DB servers are
   conveniences on top.
 - **Agents = separation of concerns + cost control.** A scoped agent runs in its own
   context window, so a heavy read sweep doesn't pollute the planner's context. Give each
-  agent only the tools it needs — an analyzer that can't edit code cannot accidentally
+  agent only the tools it needs. An analyzer that can't edit code cannot accidentally
   edit code.
 - **Skills = reusable judgement.** A skill is a recipe you'd otherwise re-explain every
   session ("here's how we write commit messages", "here's the review standard"). It
   loads *on intent*, so it costs nothing until it's relevant.
 - **Hooks = guarantees.** Anything you must *never* allow (a `git push`, a write to the
   ticket tracker) belongs in a hook, because the harness enforces it deterministically.
-  A CLAUDE.md line is a request; a hook is a guarantee.
+  A CLAUDE.md line is a request. A hook is a guarantee.
 
 ---
 
@@ -71,8 +71,8 @@ Almost everything can live at **global** (`~/.claude/`) or **project**
 - **Project** — facts specific to the codebase you're in: which branch ships to
   production, project-scoped MCP servers (Serena is per-project because it indexes a
   working copy), project permissions. Where that scope's `CLAUDE.md` sits depends on how
-  many repos you have — the repo's own for one, plus a workspace file above it for
-  siblings, which is where *which repos exist* then lives. See
+  many repos you have. One repo uses the repo's own file. Sibling repos add a workspace
+  file above it, and that is where *which repos exist* then lives. See
   [06-claude-md-layers.md](06-claude-md-layers.md).
 
 Rule of thumb: *behaviour* is global, *facts about this codebase* are project-scoped.
@@ -82,8 +82,8 @@ Rule of thumb: *behaviour* is global, *facts about this codebase* are project-sc
 ## The dominant change pattern: a sequential chain
 
 Most real changes propagate through your stack in a fixed order. In a data-heavy
-backend that's often `schema → service → downstream/consumers`; in a product app it
-might be `API → backend → frontend`. Whatever yours is, name it once — the ticket
+backend that is often `schema → service → downstream/consumers`. In a product app it
+might be `API → backend → frontend`. Whatever yours is, name it once. The ticket
 pipeline is built around executing that chain in order, one specialist per layer.
 
 This chain is the single thing you **must** adapt to your own stack. See
