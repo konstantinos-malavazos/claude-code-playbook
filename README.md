@@ -171,7 +171,7 @@ step 4 forks.
 3. **Global `CLAUDE.md`, one tracker adapter, the guardrail hooks** — setup steps 4, 5
    and 7. The adapter stops every later flow from having to know which tracker you use.
    The hooks are wired globally, so they are per-machine rather than per-project.
-4. **Then take your door.** This is the only step that forks.
+4. **Then take your door.**
 
    **The agile path** — you hold a ticket someone else wrote.
 
