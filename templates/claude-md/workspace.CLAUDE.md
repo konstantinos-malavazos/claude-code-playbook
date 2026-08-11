@@ -11,7 +11,7 @@
 # <WORKSPACE NAME> — workspace atlas
 
 You are inside a multi-repo workspace. Each subfolder is an independent git repo with its
-own `CLAUDE.md`. Cross-repo edits are normal and ALLOWED — the sequential chain below is
+own `CLAUDE.md`. Cross-repo edits are normal and ALLOWED. The sequential chain below is
 the dominant change pattern.
 
 ## Repo map
@@ -60,7 +60,7 @@ Single-layer tickets skip the chain (only the relevant specialist runs).
 ## Cross-repo rules
 
 Cross-repo search/exploration is ALLOWED when tracing a contract across repos. Default to
-the active repo when scope is ambiguous; widen on demand.
+the active repo when scope is ambiguous. Widen on demand.
 
 ## Canonical mappings (source of truth)
 

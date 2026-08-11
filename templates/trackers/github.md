@@ -1,11 +1,11 @@
 # Tracker adapter: GitHub
 
-Install at `~/.claude/tracker.md`. Tickets are GitHub issues; the `gh` CLI does the work.
+Install at `~/.claude/tracker.md`. Tickets are GitHub issues. The `gh` CLI does the work.
 `gh` infers the repo from `git remote -v` when run inside a clone.
 
 **Is this a shared place?** `<yes for any repo other people can see — including a PUBLIC
 personal repo | no for a private solo repo>`. This answer decides whether writes need
-approval; see the audience rule in [`README.md`](README.md).
+approval. See the audience rule in [`README.md`](README.md).
 
 ---
 
@@ -26,7 +26,7 @@ approval; see the audience rule in [`README.md`](README.md).
 | mark blocked | `gh api repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -X POST -F issue_id=<blocker-db-id>` |
 | is this blocked? | `gh api repos/<owner>/<repo>/issues/<n> --jq '.issue_dependencies_summary.blocked_by == 0'` — `true` means takeable |
 | retitle | `gh issue edit <n> --title "..."` — sub-issue and dependency links are by id, so retitling never breaks one |
-| delete a ticket | `gh issue delete <n>` — **needs admin on the repo and cannot be undone.** Leave a line on the map saying the number existed and why it is gone; GitHub never reuses it |
+| delete a ticket | `gh issue delete <n>` — **needs admin on the repo and cannot be undone.** Leave a line on the map saying the number existed and why it is gone. GitHub never reuses it |
 
 **`<db-id>` is the issue's numeric database id, never its `#number`.** Get it with
 `gh api repos/<owner>/<repo>/issues/<n> --jq .id`.
@@ -43,8 +43,8 @@ gh api repos/<owner>/<repo>/issues/<map>/sub_issues --paginate \
 
 ## The whole graph
 
-Every child with its state, claim, blockers, body **and** comments — what a generated view,
-an audit, or a rebuild of the map's decision list needs. **Two scopings, one verb: the
+Every child with its state, claim, blockers, body **and** comments. A generated view,
+an audit, or a rebuild of the map's decision list needs it. **Two scopings, one verb: the
 children of a parent, or a named set of tickets.** Both are **one GraphQL call. Not REST:**
 
 **Scoped by parent** — a map and its children:
@@ -82,7 +82,7 @@ gh api graphql -f query='
 Verified live on this repo: three issues, every field including the `blockedBy` edges, in
 **0.545 s, one request.** The plain way for a dozen units is `read` twice each plus one
 `…/dependencies/blocked_by` per unit — because `issue_dependencies_summary` is counts —
-which is **about 36 requests against one.** The alias keys are yours; the caller reshapes
+which is **about 36 requests against one.** The alias keys are yours. The caller reshapes
 with `--jq` as it would for the parent-scoped form.
 
 **`blockedBy` asks for `state`, not just `number`, and that is not decoration.** A caller
@@ -98,23 +98,23 @@ and the answer travels with the edge instead of being reconstructed from it.
 **REST cannot answer this verb, and it fails by looking like it has.** The
 `…/sub_issues` payload carries `issue_dependencies_summary`, which is **four counts** —
 `blocked_by`, `blocking`, `total_blocked_by`, `total_blocking`. Counts answer *is this
-blocked?* and nothing else: they never say **which** tickets, so a caller drawing arrows
-gets a graph with no edges, and one that tries anyway is back to a
+blocked?* and nothing else. They never say **which** tickets, so a caller drawing arrows
+gets a graph with no edges. One that tries anyway is back to a
 `…/issues/<n>/dependencies/blocked_by` request per ticket. GraphQL exposes `blockedBy` as
 a real connection, which is what makes one call enough.
 
 Verified live on a 35-child map: **1.3 s, ~520 KB, 48 comments, 16 blocked-by edges, one
-request.** The REST shape is 2 calls for bodies and comments plus one per blocked child,
-and the naive shape — read each ticket, then read its comments — is 70.
+request.** The REST shape is 2 calls for bodies and comments plus one per blocked child.
+The naive shape — read each ticket, then read its comments — is 70.
 
 **The `first:` arguments are caps, not pagination.** They are set above the sizes any map
-here reaches; ask for `totalCount` beside any connection you suspect of overflowing, and
+here reaches. Ask for `totalCount` beside any connection you suspect of overflowing, and
 page it if it does. A silently truncated graph is the one failure this call can still have.
 
 `gh api` takes a `--jq` filter, so a caller that wants the answer in its own shape — a
 generated view's data slot, say — gets the fetch *and* the reshape in this one call.
 
-Two REST calls remain useful when you want comments and **no** graph — the repo-wide
+Two REST calls remain useful when you want comments and **no** graph. The repo-wide
 `gh api repos/<owner>/<repo>/issues/comments --paginate` endpoint returns every comment in
 the repo in one paginated call, joined on `issue_url`.
 
@@ -137,7 +137,7 @@ the repo in one paginated call, joined on `issue_url`.
 
 **Blocking is native here, and that is worth using.** GitHub renders issue dependencies in
 its own UI, so the frontier is visible to a human who never opens the map. This is the one
-tracker where the blocking edge is both stored *and* trustworthy — but the verb is still
+tracker where the blocking edge is both stored *and* trustworthy, but the verb is still
 *is this blocked?*, so skills stay portable.
 
 **The claim is still advisory.** GitHub silently ignores an assignee write from a caller

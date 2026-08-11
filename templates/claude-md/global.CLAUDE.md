@@ -42,7 +42,7 @@ nothing" is not evidence of absence.
 
 ## Forgetful (semantic memory) — on by default
 
-On for every non-trivial conversation; I should not have to ask. If the message mentions
+On for every non-trivial conversation. I should not have to ask. If the message mentions
 code, a symbol, a ticket id, a service/component, an investigation, or anything beyond
 trivial chat → **first action is a memory query** for related prior context.
 
@@ -62,20 +62,20 @@ Serena opt-out.
 ## The tracker
 
 **One adapter is installed, at `~/.claude/tracker.md`.** Never name a tracker or write a
-raw tracker command — state the intent (*read this ticket*, *give me the frontier*, *is
+raw tracker command. State the intent (*read this ticket*, *give me the frontier*, *is
 this blocked?*) and let that file answer it.
 
 **Ask before writing anywhere other people can see it.** The adapter declares whether its
 tracker is a shared place. Where it is, every write (comments, transitions, field edits,
-assignments) needs my **explicit** approval, with the exact payload shown first — also
-enforced by the `block-mcp-writes` hook. Where it is not — a private repo nobody else
+assignments) needs my **explicit** approval, with the exact payload shown first. This is
+also enforced by the `block-mcp-writes` hook. Where it is not — a private repo nobody else
 reads — write freely. A **public** personal repo counts as shared.
 
 ## Git rules
 
 - **Never `git push`** unless this repo has a `push: yes` line in
-  `~/.claude/repo-allowlist`. Not listed means no, and the hook enforces it — do not read
-  the file and reason about it, just try the push and believe the hook.
+  `~/.claude/repo-allowlist`. Not listed means no, and the hook enforces it. Do not read
+  the file and reason about it. Just try the push and believe the hook.
 - Never `--force`, `--no-verify`, amend a pushed commit, `reset --hard`, or delete
   branches without asking.
 - **New-branch workflow (MANDATORY)** — inside the target repo, never skipped, never
@@ -105,7 +105,7 @@ reads — write freely. A **public** personal repo counts as shared.
 ## Handoff protocol (ephemeral pipeline state)
 
 In-flight pipeline state lives in `<workspace>/.claude/handoffs/<TICKET-ID>/<agent>.md` —
-`.gitignore`d and auto-cleared at session end. Durable knowledge goes to memory; ephemeral
+`.gitignore`d and auto-cleared at session end. Durable knowledge goes to memory. Ephemeral
 state goes to handoff files. Never write in-flight chatter to memory.
 
 ## End-of-session writeback
