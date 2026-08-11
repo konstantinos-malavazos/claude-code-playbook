@@ -119,7 +119,7 @@ is still open.
 
 **Stalled — frontier empty, tickets still open.** Every one of them is waiting on somebody
 outside this session. **This is not done, and never report it as finished.** Name each
-waiting ticket, and who owns the thing it waits on — **that owner is the ticket's `Claim:`**,
+waiting ticket, and who owns the thing it waits on. **That owner is the ticket's `Claim:`**,
 which is why step 4 writes one. Offer to open **one** `grilling` ticket — *proceed without X,
 or wait?* — because answering that refills the frontier.
 
@@ -141,7 +141,7 @@ is nothing to review.
 
 In this order. Do not skip step 2 because step 1 came back clean.
 
-1. **One `@release-reviewer` per repo the map touched, RELEASE MODE, in parallel, fresh
+1. **One `@release-reviewer` per repo the map touched, release mode, in parallel, fresh
    contexts.** Its file describes release mode over a tag-to-tag delta. **Say explicitly in
    the prompt that the range is `origin/<main>..<branch>`**, a branch and not a tag, and give
    it the output path `reviews/<repo>-release.md`.

@@ -166,7 +166,7 @@ Three properties, all of them the point:
 - **Some things it never unlocks.** `git add -A` / `git add .`, and everything under
   `.claude/` that is not `agents/` or `skills/`, plus `.serena`, `.forgetful`, `MEMORY.md`.
 
-**A bash script cannot judge provenance; you can.** The human declares it once and the hook
+**A bash script cannot judge provenance. You can.** The human declares it once and the hook
 obeys — worth stating plainly rather than pretending the script got smarter. The reasoning
 behind each answer is in
 [`docs/solo/07-guardrails-when-solo.md`](../../docs/solo/07-guardrails-when-solo.md).

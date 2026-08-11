@@ -212,7 +212,7 @@ every time.
 
 **"Still a scaffold" costs no state.** No timestamps, no ledger, no marker file. You detect
 it by reading the file for angle brackets. The convention that makes a template fillable is
-what makes un-filled-ness visible.
+what makes un-filled-ness detectable.
 
 **Every row carries evidence** — the bracket count, the path that disagrees, the layer it
 belongs to. A row with nothing beside it is an opinion.

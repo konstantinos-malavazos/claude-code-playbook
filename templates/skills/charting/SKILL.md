@@ -72,7 +72,7 @@ keeps it off the frontier while it is in someone else's hands.
 
 One issue labelled `<LABEL-PREFIX>:map`. Its tickets are its child issues. The map is an
 **index, not a store**. A decision lives in exactly one place, its own ticket, and the map
-only gists it and links.
+only gists it and links to it.
 
 ```markdown
 ## Destination
@@ -376,7 +376,7 @@ the thing.
 
 **Stalled.** The frontier is empty but tickets are still open, because every one of them is
 blocked on something outside this session. This is **not** done. Name each blocked ticket
-and who owns the thing it waits on — that owner is the ticket's claim, which is why you
+and who owns the thing it waits on. That owner is the ticket's claim, which is why you
 wrote one. Never report a stalled map as finished, and never stamp it closed: the day the
 blocker clears it has to be pickable again.
 

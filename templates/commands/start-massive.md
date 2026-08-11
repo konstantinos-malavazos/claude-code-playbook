@@ -80,7 +80,7 @@ Charting's no-fog exit applies, and on this path the fallback is named: `/start-
 
 - **One final commit message per repo the map will touch**, in your `commit-conventions`
   format. These are authored **now**, at chart time, because one branch per repo carries one
-  commit, and a child's planner runs days before its siblings exist — it cannot describe
+  commit, and a child's planner runs days before its siblings exist, so it cannot describe
   their work. A repo whose first make ticket only graduates out of the fog later has no
   message here; the walker asks for one when that happens.
 - **`Development ticket: <id>`**, only when the map's own key is not that ticket. Omit it

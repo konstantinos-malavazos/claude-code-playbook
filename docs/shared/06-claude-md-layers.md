@@ -134,7 +134,7 @@ anywhere else:
 - Where the important code lives (a pointer, not a paste — let Serena find the details).
 
 Keep it **lean**. A per-repo CLAUDE.md that restates the whole architecture is a
-maintenance liability. It should be the 20 facts that save the agent a wrong turn.
+maintenance liability. It should be the 20 facts that stop a wrong turn.
 
 Template: [`../../templates/claude-md/repo.CLAUDE.md`](../../templates/claude-md/repo.CLAUDE.md)
 

@@ -50,7 +50,7 @@ Charting itself stops well short of the horizon, at the last decision.
 
 The map is a single issue on the repo's tracker — issue #1, created by the gate. Its
 tickets are its child issues, one question each, sized to a single agent session. The map
-is an **index, not a store**: a decision lives in exactly one place, its own ticket, and
+is an **index, not a store**. A decision lives in exactly one place, its own ticket, and
 the map only gists it and links to it.
 
 You never talk to the tracker directly. Charting states an intent — *create*, *close*,
