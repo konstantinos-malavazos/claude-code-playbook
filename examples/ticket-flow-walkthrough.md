@@ -1,8 +1,8 @@
 # Example — a `/start-ticket` run, narrated
 
-A generic, sanitized walkthrough so you can picture the flow before you build it. The
-ticket, stack, and names are invented; substitute your own. Assume a three-layer chain:
-**data model → backend API → frontend**.
+A generic, sanitized walkthrough, so you can picture the flow before you build it. The
+ticket, the stack and the names are invented. Substitute your own. Assume a three-layer
+chain: data model → backend API → frontend.
 
 ---
 
@@ -40,7 +40,7 @@ Reads both briefs, does a pinpoint read of `formatFeedTime`, writes `planner.md`
 - Cuts the branch `PROJ-482_display-timezone` (fetch → main → pull --rebase → branch).
 
 ### 3b. Grilling gate
-The planner surfaced one open question, so the gate is one question long — it still opens
+The planner surfaced one open question, so the gate is one question long. It still opens
 with what is being decided, in the `grilling` skill's shape:
 
 > **We are deciding one thing: what timezone the feed uses before we know where the user is.**
@@ -53,38 +53,38 @@ with what is being decided, in the `grilling` skill's shape:
 >
 > ➡️ UTC, because a wrong-but-plausible time is harder to notice than a neutral one.
 
-You answer **UTC**. Cheap to reverse — one default in one function — so no deferral needed.
+You answer UTC. It is cheap to reverse: one default in one function, so no deferral is needed.
 
 ### 4. Layer specialists, in order
-- **data-model specialist:** adds the `timezone` column via a migration; handoff records
+- **data-model specialist:** adds the `timezone` column via a migration. The handoff records
   *"column `timezone` (string, IANA name, nullable, default NULL → treat as UTC)."*
   Amends → 1 commit. Tests green.
-- **backend specialist:** reads that contract; exposes `timezone` on the prefs endpoint;
-  threads it into `formatFeedTime(ts, tz)`. Handoff records the API field name. Amends.
-- **frontend specialist:** adds the settings dropdown; passes the saved value through.
+- **backend specialist:** reads that contract, exposes `timezone` on the prefs endpoint, and
+  threads it into `formatFeedTime(ts, tz)`. The handoff records the API field name. Amends.
+- **frontend specialist:** adds the settings dropdown, then passes the saved value through.
   Amends.
 - **alignment check** (3 layers touched): column `timezone` ↔ API field `timezone` ↔ UI
   binding all agree. ✅
 
 ### 5–6. Review
-- `@repo-reviewer`: all ACs met, tests pass, branch is **1 commit**, convention OK. Drafts the
+- `@repo-reviewer`: all ACs met, tests pass, branch is 1 commit, convention OK. Drafts the
   PR description. Provisional: APPROVE.
-- `@release-reviewer`: checks consumers of `formatFeedTime` across repos — the change is
+- `@release-reviewer`: checks consumers of `formatFeedTime` across repos. The change is
   backward-compatible (tz optional). No downstream break. Appends: APPROVE.
-- Final verdict: **APPROVE**.
+- Final verdict: APPROVE.
 
 ### 7. Land
-- Orchestrator consolidates one durable memory: *"Per-user timezone lives on `User.timezone`
+- The orchestrator consolidates one durable memory: *"Per-user timezone lives on `User.timezone`
   (IANA, null=UTC); feed formatting stays centralized in `formatFeedTime(ts, tz)`; default
   unknown-region = UTC (decided PROJ-482)."*
 - Handoff files evaporate at session end.
-- The agent pushes the branch (this repo is allowlisted); **you** open the PR.
+- The agent pushes the branch, because this repo is allowlisted. **You** open the PR.
 
 ---
 
 ### What to notice
-- The **memory hit in step 2** stopped a whole class of mistake (formatting in
-  components) before design even started.
-- The **planner never touched code or memory**; the **reviewers never touched code**.
-- The branch is **one commit**; the only durable artifact besides the code is **one
-  memory** — which will answer the *next* timezone question in one query.
+- The memory hit in step 2 stopped a whole class of mistake (formatting in components)
+  before design even started.
+- The planner never touched code or memory. The reviewers never touched code.
+- The branch is one commit. Besides the code, the only durable artifact is one memory, and
+  it will answer the *next* timezone question in one query.
