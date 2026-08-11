@@ -10,9 +10,9 @@ description: >-
 
 ## The loop
 1. **Red** — write a test that expresses the desired behaviour and **fails** for the
-   right reason. Run it; confirm it fails.
+   right reason. Run it. Confirm it fails.
 2. **Green** — write the **minimum** code to make it pass. No more.
-3. **Refactor** — clean up with the test as a safety net. Re-run; stay green.
+3. **Refactor** — clean up with the test as a safety net. Re-run. Stay green.
 
 ## For bug fixes specifically
 - First write a test that **reproduces the bug** (fails on current code). This proves you
@@ -21,12 +21,12 @@ description: >-
 - "Fix the bug" → "write a failing test that reproduces it, then make it pass."
 
 ## Rules
-- Test **behaviour through public interfaces**, not private internals — tests shouldn't
+- Test **behaviour through public interfaces**, not private internals. Tests shouldn't
   break when you refactor without changing behaviour.
 - One behaviour per test; a clear name that states the expectation.
 - Don't test the framework, generated code, or impossible states.
 - Keep the arrange/act/assert structure obvious.
 
 ## When NOT to force it
-Exploratory spikes and throwaway prototypes don't need TDD — but the moment code is
+Exploratory spikes and throwaway prototypes don't need TDD, but the moment code is
 meant to survive, back it with tests.

@@ -17,7 +17,7 @@ description: >-
 <the recipe: the steps / rules / templates the model should follow when this loads.>
 ```
 
-**Every field is optional; only `description` is recommended.** The harness supports more
+**Every field is optional. Only `description` is recommended.** The harness supports more
 than the two above:
 
 | Field | What it does |
@@ -27,7 +27,7 @@ than the two above:
 | `when_to_use` | Extra trigger phrases, appended to `description` and sharing that cap |
 | `argument-hint` | Autocomplete hint, e.g. `[ticket-id]` |
 | `arguments` | Named positional args for `$name` substitution |
-| `disable-model-invocation` | `true` = only you can invoke it. **This is what makes a skill user-invoked** — and it blocks the Skill tool too, so **no other skill can dispatch to it** |
+| `disable-model-invocation` | `true` = only you can invoke it. **This is what makes a skill user-invoked.** It also blocks the Skill tool, so **no other skill can dispatch to it** |
 | `user-invocable` | `false` hides it from the `/` menu. Does *not* block the Skill tool |
 | `allowed-tools` | Pre-approved for the invoking turn only — not a restriction |
 | `disallowed-tools` | Removed from the pool while active |
@@ -38,37 +38,37 @@ than the two above:
 | `shell` | `bash` (default) or `powershell` for inline `` !`cmd` `` blocks |
 
 - **The directory name is what you type**, not the `name` field. `name` only changes the
-  label in listings — so a skill in `foo/` is always `/foo`, however the frontmatter reads.
-  **`engineering-standards` is the one template where this matters**: there is one per
-  layer, so the *directory* is named `backend-standards` (or whatever) as well as the
-  `<layer>` placeholder being filled — otherwise you have three skills all answering to
-  `/engineering-standards`. `/adapt-to-stack` does that renaming when it generates them;
-  the rule is here because it is what makes the output distinct, not because you type it.
+  label in listings, so a skill in `foo/` is always `/foo`, however the frontmatter reads.
+  **`engineering-standards` is the one template where this matters.** There is one skill
+  per layer, so the *directory* must be named `backend-standards` (or whatever) as well as
+  the `<layer>` placeholder being filled. Otherwise you have three skills all answering to
+  `/engineering-standards`. `/adapt-to-stack` does that renaming when it generates them.
+  The rule is here because it is what makes the output distinct, not because you type it.
 - **So an unfilled `name:` placeholder is harmless in a skill, and fatal in an agent.**
   Three installed copies of `engineering-standards` all carrying the shipped
   `name: <layer>-engineering-standards` each loaded correctly under their own directory
-  name — the field was simply ignored. An agent has no directory to fall back on: it
+  name. The field was simply ignored. An agent has no directory to fall back on: it
   registers under the literal placeholder and then refuses to be dispatched by it. Same
   text, opposite consequence —
   [`../agents/README.md`](../agents/README.md#an-unfilled-placeholder-is-not-an-error).
   Fill it anyway: a listing entry reading `<layer>-engineering-standards` tells you
   nothing about which layer you are looking at.
-- **A personal skill beats a project skill of the same name** — the opposite of what "more
-  specific wins" would suggest, and the opposite of how project *agents* resolve, where the
-  definition closest to the working directory wins. It bites the generated per-layer
+- **A personal skill beats a project skill of the same name.** That is the opposite of what
+  "more specific wins" would suggest, and the opposite of how project *agents* resolve,
+  where the definition closest to the working directory wins. It bites the generated per-layer
   standards skills, which live in a repo's own `.claude/skills/`: one stray
   `backend-standards` in `~/.claude/skills/` shadows every repo's generated one, silently
   and everywhere. Keep layer names out of `~/.claude/skills/`.
 - **A `.claude/` directory created mid-session is not watched.** Edits to skills that
-  existed at startup are picked up live; a `.claude/skills/` or `.claude/agents/` folder
+  existed at startup are picked up live. A `.claude/skills/` or `.claude/agents/` folder
   that did not exist when the session began needs a restart before anything can load from
   it. This is exactly the state `/adapt-to-stack` leaves behind on its first run.
-- **A description that says "use when the user says…" does not make a skill user-invoked**
-  — it is a hint, not a constraint. Only `disable-model-invocation: true` stops a skill
-  firing on intent; the section below decides which ones get it.
-- Keep the front `description` tight and trigger-focused; put the detail in the body.
-- Skills can bundle extra files (templates, checklists) the body points to —
-  progressive disclosure keeps the base cost low.
+- **A description that says "use when the user says…" does not make a skill user-invoked.**
+  It is a hint, not a constraint. Only `disable-model-invocation: true` stops a skill
+  firing on intent. The section below decides which ones get it.
+- Keep the front `description` tight and trigger-focused. Put the detail in the body.
+- Skills can bundle extra files (templates, checklists) the body points to.
+  Progressive disclosure keeps the base cost low.
 
 ## The set
 
@@ -96,8 +96,8 @@ and `cut-backlog` are the ones that claim a single column: they are stages of th
 front-end, which the agile path does not have. Everything above them is shared by both.
 
 **`charting`'s `✓ ✓` is load-bearing, not leftover.** It is stage 2 of the solo path *and*
-the engine behind the massive-ticket flow ([03-massive-tickets.md](../../docs/team/03-massive-tickets.md));
-the three `*-massive` commands went team-only, charting an existing codebase did not. Solo,
+the engine behind the massive-ticket flow ([03-massive-tickets.md](../../docs/team/03-massive-tickets.md)).
+The three `*-massive` commands went team-only, charting an existing codebase did not. Solo,
 you point `/charting` at your own repo and hand each make to `/start-ticket`. Delete this
 skill from a solo install and you take stage 2 with it.
 
@@ -110,22 +110,22 @@ skill from a solo install and you take stage 2 with it.
 and a veto overrides both.
 
 **Test 1 — [`PHILOSOPHY.md`](../../PHILOSOPHY.md) §5:** *if it's hard to reverse **or**
-leaves your machine, a human confirms it.* `bootstrap` writes memory and ends in a commit;
+leaves your machine, a human confirms it.* `bootstrap` writes memory and ends in a commit.
 `cut-backlog` files a dozen issues where other people may see them. `adapt-to-stack` gets no
-field — it never overwrites, so the worst an unasked run does is add files you delete.
+field because it never overwrites. The worst an unasked run does is add files you delete.
 
 **Test 2 — the run is not the model's to start.** `wait-what` is *you* saying the last
-message did not land; `to-questionnaire` needs a recipient only you know exists. Neither is a
-run the model can decide to begin, so the field makes them typed-only rather than
+message did not land. `to-questionnaire` needs a recipient only you know exists. Neither is
+a run the model can decide to begin, so the field makes them typed-only rather than
 confirmation gates.
 
 Conversation skills — `charting`, `pitch`, `grilling`, `diagnose` — deliberately leave it
 unset. A conversation that starts a turn early costs you one redirect.
 
 **The veto: a skill something else dispatches to cannot carry the field**, whatever the tests
-return — the field blocks the Skill tool, so the dispatch fails and the flow stops mid-run
-and asks you to type the thing. `prototype` writes files and still gets no field, because
-`charting`'s ticket-types table names `/prototype` as what backs a `prototype` ticket;
+return. The field blocks the Skill tool. So the dispatch fails, the flow stops mid-run, and
+it asks you to type the thing. `prototype` writes files and still gets no field, because
+`charting`'s ticket-types table names `/prototype` as what backs a `prototype` ticket.
 `bootstrap` step 5's *Run `/adapt-to-stack`* is why `adapt-to-stack` has none either.
 
 **When the veto and a test conflict, test the test first.** A skill that must be dispatched to

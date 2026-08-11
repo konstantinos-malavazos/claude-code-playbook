@@ -17,7 +17,7 @@ into a cited fact somebody can decide on.
 
 ## Know which tool owns the question
 
-Getting this wrong is the expensive mistake — it burns a background agent rediscovering
+Getting this wrong is the expensive mistake. It burns a background agent rediscovering
 something you already own.
 
 | The question is about | Use | Not |
@@ -34,7 +34,7 @@ is the exact cost the memory pillar exists to avoid.
 ## Dispatch it to the background
 
 Hand the question to a background agent and keep working. Research is read-heavy and
-context-hungry; it belongs in a throwaway context, like the gatherer's sweep. Give the
+context-hungry. It belongs in a throwaway context, like the gatherer's sweep. Give the
 agent the **question**, not a topic — "does provider X's webhook retry on a 500, and with
 what backoff?" not "look into webhooks".
 
@@ -46,7 +46,7 @@ what backoff?" not "look into webhooks".
 2. **Cite every claim** with a link, and where the source is versioned, the version it
    was read at. A fact with no citation is a guess wearing a suit.
 3. **Write one Markdown file** and say where it went. Match whatever convention the repo
-   already uses for notes; if there is none, put it next to the ticket's handoffs and
+   already uses for notes. If there is none, put it next to the ticket's handoffs and
    name the path in the report.
 4. **Report the negative result too.** "The docs do not say" and "X is not supported" are
    findings, and they are the ones most expensive to rediscover.
@@ -57,14 +57,14 @@ what backoff?" not "look into webhooks".
   them.
 - **Durable** → a conclusion that will matter again (a rate limit, an auth quirk, a
   ruled-out approach) gets banked as a memory on APPROVE, tagged by
-  topic/component — **never** by ticket id.
+  topic/component, **never** by ticket id.
 
 Findings are **inputs to a decision, not the decision**. Hand them back to whoever owns
-the call; don't let the research agent quietly settle the design on the way past.
+the call. Don't let the research agent quietly settle the design on the way past.
 
 ## Stop condition
 
 Stop when the question is answered from a primary source with a citation, or when the
-agent can state precisely *why* the source doesn't answer it — and what it would take to
+agent can state precisely *why* the source doesn't answer it, and what it would take to
 find out (a spike, a support ticket, a paid tier). "I couldn't find anything" without
 that second half is not a finished research task.

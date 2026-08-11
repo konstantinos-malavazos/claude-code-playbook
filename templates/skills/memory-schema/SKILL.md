@@ -23,7 +23,7 @@ description: >-
 - `<field>` — enum, one of `<...>`. Do NOT invent values.
 
 ## Tagging rules
-- Tag **by functionality** (topic / component / symbol) — **never by ticket id**.
+- Tag **by functionality** (topic / component / symbol), **never by ticket id**.
   (Put the ticket id in the content for provenance if you want it.)
 - Include your scope/project tag so `/garden-memory` can find untagged strays.
 - Respect the tag cap (`<N>` tags max) and the locked vocabulary if you have one.
@@ -32,9 +32,9 @@ description: >-
 - One atomic fact/conclusion per memory. State **what** and **why**.
 - Link related memories so one query returns the whole chain
   (root cause → fix → blast radius → recipe).
-- For recipes/hypotheses, set a **confidence** and a **validated** marker; flip
+- For recipes/hypotheses, set a **confidence** and a **validated** marker. Flip
   `validated` only after a real (e.g. staging) run confirms it.
 
 ## When to write
 - Durable conclusions only, at ticket APPROVE or via `/end-of-day`. Never write in-flight
-  chatter — that's what handoff files are for.
+  chatter. That's what handoff files are for.

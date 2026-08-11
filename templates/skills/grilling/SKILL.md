@@ -13,7 +13,7 @@ description: >-
 Your job is to find the decisions the plan is silently assuming and force each one into
 the open.
 
-> Prior art: Matt Pocock's `grilling` skill (MIT). This is a re-derivation, not a copy — it
+> Prior art: Matt Pocock's `grilling` skill (MIT). This is a re-derivation, not a copy. It
 > keeps the upstream's decision tree and its question format, replaces the ask-the-whole-round
 > rhythm with one question per turn (see [Running the round](#running-the-round)), and adds
 > the defer gate this pipeline needs.
@@ -40,13 +40,13 @@ Map the plan as a tree: **every decision branches into the decisions that hang o
 
 **A question whose answer depends on an open question is a later question, not this one.**
 Asking it early forces the user to guess at an answer they have not given yet. So: ask what
-is askable, and **re-derive what is askable after every answer** — one answer can add
+is askable, and **re-derive what is askable after every answer**: one answer can add
 branches, close branches, or make a planned question meaningless.
 
 ## One question is ~8 lines. Count them
 
 This is a hard limit, not a target. A question that runs long is the failure mode here, and
-plain words do not save it — **15 plain lines lose the room exactly as fast as jargon does.**
+plain words do not save it. **15 plain lines lose the room exactly as fast as jargon does.**
 
 ```
 ❓ **Q3 of 7** — **<short title>**: <one line naming the decision in ordinary words.>
@@ -60,7 +60,7 @@ plain words do not save it — **15 plain lines lose the room exactly as fast as
 - **One idea per sentence.** Name the thing in ordinary words before using the repo's term
   for it, and never use a term the design has not defined yet.
 - **Two or three options**, one line of consequence each. Not a trade-off table.
-- **One reason for the recommendation.** Reasons stack invisibly — three good ones read as
+- **One reason for the recommendation.** Reasons stack invisibly. Three good ones read as
   a wall. Hold the rest for the write-up.
 - **One question per turn.** Never tack a second question onto the end of the first.
 - **Evidence you found while researching is not preamble.** It belongs in the resolution
@@ -77,13 +77,13 @@ Post the shape of the whole thing before asking anything.
 3. **Then Q1**, and wait.
 
 **Never open with Q1.** A first question that lands cold gets *"what are we deciding?"* every
-time, and numbering alone does not fix it — the user wants to see how much is left before
+time, and numbering alone does not fix it. The user wants to see how much is left before
 they answer any of it.
 
 **Ask one at a time and wait.** The list up front already gives the user the shape, and a
 wall of simultaneous questions is what they have to decode instead of answer.
 
-**The count is allowed to grow — say so out loud when it does.** If a sub-question turns out
+**The count is allowed to grow. Say so out loud when it does.** If a sub-question turns out
 to be a real decision, announce *"the plan grew to 8, and here is why"*. Silently asking a
 question you did not promise is what breaks the countdown.
 
@@ -107,7 +107,7 @@ Then resolve the question to one of two things — **answered**, or **deferred**
 ## The standing "defer" option
 
 Real decisions sometimes belong to a person or a spec that does not exist yet. Deferring is
-legitimate — but it must be *managed*, not forgotten:
+legitimate, but it must be *managed*, not forgotten:
 
 - **Own it** — name who or what answers it: a person, a spec page, a future ticket.
 - **Price it** — how expensive is it to reverse if we guess wrong now? Cheap → take a
@@ -122,6 +122,6 @@ legitimate — but it must be *managed*, not forgotten:
 
 Stop when every question in the tree is either answered or deferred-with-a-plan, and the
 user has confirmed you have reached a shared understanding. **A plan with three well-managed
-deferrals is finished; a plan with one silent assumption is not.**
+deferrals is finished. A plan with one silent assumption is not.**
 
 Do not act on the plan until that confirmation.

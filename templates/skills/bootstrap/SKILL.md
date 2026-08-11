@@ -19,7 +19,7 @@ built. You make it real, prove it, and hand over a report.
 > the report is red.
 
 **Decide nothing.** Every choice this stage needs was made one stage earlier. If you find
-something that genuinely needs deciding, **stop and say so** — that is the backwards step,
+something that genuinely needs deciding, **stop and say so**. That is the backwards step,
 and it is the human's to take.
 
 ## Before the first step
@@ -34,7 +34,7 @@ Five things must already exist. Check all five before touching anything.
 | The Serena verdict | charting's tail, ticket 1 | Stop. Do not assume *yes*. |
 | The bootstrap checks — build, run, test, symbol | charting's tail, ticket 2 | Stop. You have nothing to prove anything with. |
 
-**Do not fill a gap by choosing.** A missing stack is not an invitation to suggest one; it
+**Do not fill a gap by choosing.** A missing stack is not an invitation to suggest one. It
 means the stage before this one has not finished. Say which of the five is missing and stop.
 
 ## The line — where you work alone, and where you stop
@@ -48,7 +48,7 @@ You work **alone inside the repo**. You **stop** for everything else.
 > - **Anywhere else** → **stop.** Show what you are about to write and where, and wait.
 
 Apply the test to the path in front of you, every time. **Do not carry a list of known
-crossings** — a list is right until something new starts writing somewhere new, and then it
+crossings.** A list is right until something new starts writing somewhere new, and then it
 is silently wrong.
 
 Two clarifications that make the test decidable:
@@ -64,8 +64,8 @@ The reason, in one sentence: **everything inside a fresh git repo is undoable wi
 
 ## The eight steps
 
-In order. Steps 2–8 each need something the one before them produced. Step 1 does not —
-it is first because it is the only one that is not yours to do.
+In order. Steps 2–8 each need something the one before them produced. Step 1 does not.
+It is first because it is the only one that is not yours to do.
 
 | # | Step |
 |---|---|
@@ -90,9 +90,9 @@ answer.** Do not add a line on their behalf, and do not read the file and assume
 | **Is this repo's `CLAUDE.md` its own — would a fresh clone need it?** | Step 3 writes that file and step 8's commit stages it. Unanswered, the stage cannot finish. |
 
 **Ask before you scaffold, not when you hit the wall.** Everything after this step runs
-unattended; stopping in the middle of it to ask is worse than asking first.
+unattended. Stopping in the middle of it to ask is worse than asking first.
 
-If the answers are *no*, that is a valid outcome, not a failure — you carry on and the
+If the answers are *no*, that is a valid outcome, not a failure. You carry on, and the
 final commit stages neither `CLAUDE.md` nor the generated agents. Say so in the report.
 
 ### 2 — Scaffold the stub
@@ -102,7 +102,7 @@ Run the framework's own generator. Then create **one empty folder per layer of t
 - **Write no application code.** There is no application. A generator skeleton that builds
   and starts is the whole deliverable of this step.
 - The folders are placeholders that step 5 will point agent files at. Getting one wrong
-  costs a `git mv`; leaving it out costs a specialist that names a path which does not exist.
+  costs a `git mv`. Leaving it out costs a specialist that names a path which does not exist.
 
 ### 3 — Write the repo's `CLAUDE.md`
 
@@ -112,12 +112,12 @@ From `templates/claude-md/repo.CLAUDE.md`. Six things must land in it:
 |---|---|
 | The stack | as named by the tail |
 | Build / test / run commands | as written by the tail |
-| **The branch this repo ships from** | **detect** it — `git symbolic-ref refs/remotes/origin/HEAD` — do not ask. This is the only place it lives; the global `CLAUDE.md` holds the workflow that reads it |
+| **The branch this repo ships from** | **detect** it — `git symbolic-ref refs/remotes/origin/HEAD` — do not ask. This is the only place it lives. The global `CLAUDE.md` holds the workflow that reads it |
 | The layer chain | you are **copying** it, not choosing it |
 | **The Serena verdict**, and one line of why | this is the only place it lives |
 | **The settled names** | **copy** them from the map's Notes, which charting pruned at the tail. This is the second and final home — see *One name per thing* in the `charting` skill. **None is a valid answer**: an effort that settled no names leaves the section empty, and the seam still passes |
 
-Keep it lean — the facts that stop a wrong turn, not a description of the repo. Step 5
+Keep it lean: the facts that stop a wrong turn, not a description of the repo. Step 5
 reads the chain back out of this file, and the seam reads the verdict out of it.
 
 ### 4 — Index Serena, if the verdict says yes
@@ -136,12 +136,12 @@ fall back to globbing the tree or reading whole files to compensate.
 ### 5 — Generate the layer specialists and the stack skills
 
 One specialist agent per layer of the chain, plus the stack's skills. **Run
-`/adapt-to-stack`**; it reads the `CLAUDE.md` step 3 just wrote and generates both, and
+`/adapt-to-stack`.** It reads the `CLAUDE.md` step 3 just wrote and generates both, and
 each specialist names the folder step 2 created for its layer.
 
-- **Call the generation flow; do not reimplement it.** How these files are written is not
-  this stage's business. This stage owns *when* — here, after the chain exists and the
-  folders are on disk.
+- **Call the generation flow. Do not reimplement it.** How these files are written is not
+  this stage's business. This stage owns *when*: after the chain exists and the folders
+  are on disk.
 - **If the generated files land outside the repo, the line applies.** Show them and wait.
 
 ### 6 — Verify the tracker adapter
@@ -149,7 +149,7 @@ each specialist names the folder step 2 created for its layer.
 Read `~/.claude/tracker.md` and confirm it is the adapter for **this project's** tracker.
 
 > **Verify, never install.** Installing an adapter is a global setup act, and it already
-> happened — the kill gate wrote a map into a tracker a whole stage before you ran.
+> happened. The kill gate wrote a map into a tracker a whole stage before you ran.
 
 The failure this catches is silent and normal: work on one tracker, home projects on
 another. If the installed adapter is the wrong one, or missing, that is a **red check**.
@@ -171,14 +171,14 @@ Memory is outside the line. **Show both memories before writing them, and wait.*
 ### 8 — Run every check, report once, stop
 
 The last step is the exit test, below. **On an all-green report, and only then, make one
-commit** — explicit paths, never `git add .`. Red commits nothing: on day one the recovery
+commit**: explicit paths, never `git add .`. Red commits nothing: on day one the recovery
 is to delete the folder and start again, and there is nothing worth keeping in history.
 
 ## The exit test
 
 Run **every** check the tail wrote. All of them. Every time.
 
-> **Do not stop at the first red.** This is deliberate, not an oversight, and it is the one
+> **Do not stop at the first red.** This is deliberate, not an oversight. It is the one
 > instruction here most likely to get "helpfully" corrected: **the human classifies the
 > failure by counting the reds**, and they cannot count what you did not run.
 
@@ -203,12 +203,12 @@ Produce **one** report, in this shape:
 **Seven rows, not eight. Item 6 — *the backlog exists* — is stage 4's**, and this report
 cannot speak to it.
 
-**Every row carries evidence.** A `pass` with nothing beside it is an opinion; the whole
+**Every row carries evidence.** A `pass` with nothing beside it is an opinion. The whole
 value of the report is that the human can check it without re-running anything.
 
 **Then classify nothing and stop.** A red check is either a wrong check or a wrong stack,
-and which one it is decides whether the map gets reopened. That judgement is the human's,
-it is the most expensive one on this path, and it is not yours to pre-empt — not even as a
+and which one it is decides whether the map gets reopened. That judgement is the human's.
+It is the most expensive one on this path, and it is not yours to pre-empt, not even as a
 suggestion at the bottom of the report.
 
 ## Where you stop
@@ -225,11 +225,11 @@ Five stops, and none of them is a failure of the stage:
 
 ## Stop condition
 
-**The stage is done when the report exists** — plus one commit if it is green. Not when
+**The stage is done when the report exists**, plus one commit if it is green. Not when
 every check is green.
 
 A red report is a *finished* stage. This stage's job is to produce the verdict, not to
-guarantee it is a good one — and a stage that keeps working until everything passes is a
+guarantee it is a good one. A stage that keeps working until everything passes is a
 stage that will quietly change a decision to get there.
 
 ## Safe to re-run
@@ -252,6 +252,6 @@ the disk and skips itself. Nothing records where you stopped; you re-derive it b
 `CLAUDE.md`, not anything else. It is a second copy of what the disk already says, and it
 can be wrong while the disk is right.
 
-**The report is not written anywhere either** — a file for it is the progress file under
+**The report is not written anywhere either**: a file for it is the progress file under
 another name. To find out whether stage 3 finished, run it again: every step skips itself,
 every check runs, and the report prints.

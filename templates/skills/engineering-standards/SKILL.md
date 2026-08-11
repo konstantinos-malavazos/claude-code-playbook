@@ -12,8 +12,8 @@ description: >-
 # <LAYER/LANGUAGE> engineering standards
 
 > Keep each layer's standards scoped to that layer only. A schema specialist should not
-> carry frontend rules; a frontend specialist should not carry SQL index rules. Scope by
-> language/layer — do not trim content, split it.
+> carry frontend rules. A frontend specialist should not carry SQL index rules. Scope by
+> language/layer: do not trim content, split it.
 
 ## Severity model (shared across all layers)
 - `[BLOCKER]` — must fix before merge (correctness, security, data loss).
