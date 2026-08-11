@@ -1,10 +1,10 @@
 # Hook templates
 
-Hooks are scripts the **harness** runs on tool events — deterministic guardrails the
-model cannot talk its way around. Copy into `~/.claude/hooks/`, make them executable, and
-wire them in `~/.claude/settings.json`.
+Hooks are scripts the **harness** runs on tool events. They are deterministic guardrails
+the model cannot talk its way around. Copy into `~/.claude/hooks/`, make them executable,
+and wire them in `~/.claude/settings.json`.
 
-[`settings-hooks.snippet.json`](settings-hooks.snippet.json) is that wiring — **valid JSON
+[`settings-hooks.snippet.json`](settings-hooks.snippet.json) is that wiring: **valid JSON
 with no comments in it**, so merge its `hooks` object into your settings file as-is. Two
 things in it are yours to adjust: keep only the hooks you actually installed, and point the
 `mcp__…` matchers at the servers you actually run.
@@ -19,17 +19,17 @@ things in it are yours to adjust: keep only the hooks you actually installed, an
 - **SessionEnd** / **PostToolUse** hooks run for side effects (cleanup, formatting) and
   don't block. `SessionEnd` ignores the exit code entirely.
 
-> **Only exit 2 blocks. Every other non-zero code is a *non-blocking* error** — the
-> transcript shows a hook-error notice and **the tool call proceeds anyway**. So a guardrail
+> **Only exit 2 blocks. Every other non-zero code is a *non-blocking* error.** The
+> transcript shows a hook-error notice, and **the tool call proceeds anyway**. So a guardrail
 > that ends in `exit 1` looks like it is guarding, logs like it is guarding, and guards
-> nothing. Every blocking hook here exits `2` on purpose; keep it that way if you edit one.
+> nothing. Every blocking hook here exits `2` on purpose. Keep it that way if you edit one.
 > (`WorktreeCreate` is the lone exception where any non-zero code aborts.)
 
 **Matchers** are exact strings when they contain only letters, digits, `_`, `-`, spaces,
-`,` and `|` — with `|` or `,` separating alternatives — and a **JavaScript regex,
+`,` and `|` — with `|` or `,` separating alternatives. They become a **JavaScript regex,
 unanchored**, the moment any other character appears. So `Bash` matches only `Bash`, while
 `mcp__tracker__.*` is a regex. Matching every tool from an MCP server **requires** the `.*`
-suffix; the bare server prefix matches nothing.
+suffix. The bare server prefix matches nothing.
 
 > These templates are written for a POSIX shell (Git Bash on Windows works). They parse
 > their payload with **python** (`python3`, then `python`) using only the standard
@@ -46,24 +46,24 @@ blind to exactly one failure, so the answer is layered rather than picked:
 | **Fail closed** | the hook exits **2** when it cannot parse | the script never running at all |
 | Check the wiring at setup | run a hook live and confirm it blocks | anything that changes afterwards |
 
-**The four blocking hooks exit `2` when they cannot read their payload** — no parser on
+**The four blocking hooks exit `2` when they cannot read their payload**: no parser on
 `PATH`, or a payload that will not parse. This matters because of the box above: Claude
 Code treats every exit code other than `2` as a *non-blocking* error and runs the tool
 call anyway, so **`127` is not a near-miss of `2` — it is the same class as success.** A
 hook that dies on its parse and exits `127` is a guardrail that has silently stopped
-guarding, which is exactly what this directory used to ship.
+guarding. That is exactly what this directory used to ship.
 
-**Why not a permission prompt.** The harness offers `permissionDecision: "ask"`, and it
+**Why not a permission prompt.** The harness offers `permissionDecision: "ask"`. It
 needs no parser at all — it is a fixed string, so a blind hook could degrade to *"I can't
-read this, you decide."* That is the **honest** verdict, and it is still rejected: the
+read this, you decide."* That is the **honest** verdict. It is still rejected: the
 prompt offers *"yes, and don't ask again"*, so one keystroke makes the approval **durable**
 and turns the guard off for good, silently, wearing the appearance of a decision rather
 than a bug. A prompt is not a guardrail; it is trust with an extra keystroke.
 
-**`format-on-edit.sh` and `cleanup-handoffs.sh` cannot fail closed, and are not made to
+**`format-on-edit.sh` and `cleanup-handoffs.sh` cannot fail closed. They are not made to
 try.** The split is the harness's, not a judgement about which guards deserve to be
 strict: `PostToolUse` fires *after* the edit it would object to, and `SessionEnd` ignores
-the exit code entirely. Both say so in the file. They fail **soft** instead — no parser
+the exit code entirely. Both say so in the file. They fail **soft** instead. No parser
 means they do nothing and print why on stderr, and `cleanup-handoffs.sh` fails in the
 direction that keeps data, since without the reason it cannot tell a resume from a real
 end.
@@ -82,7 +82,7 @@ bash templates/hooks/test-hooks.sh
 
 84 cases across all four blocking hooks: what must be blocked, what must be allowed, `Bash`
 and `PowerShell` payloads, multi-line commands, and **both sides of every conditional
-line** — a listed repo and an unlisted one, `.claude/agents/` and `.claude/handoffs/`.
+line**: a listed repo and an unlisted one, `.claude/agents/` and `.claude/handoffs/`.
 
 **A green run now means two things, and it needs both:** the patterns match, **and** every
 blocking hook fails closed. The second half is its own section — each blocking hook is
@@ -92,13 +92,13 @@ directory has twice shipped a guardrail whose new code was never run. If the sui
 strip python off `PATH` it reports a **FAIL**, not a skip: a suite that quietly drops the
 cases it could not set up is the green run that means less than it looks like.
 
-Exit 0 means every case behaved; exit 1 means a guardrail is not guarding.
+Exit 0 means every case behaved. Exit 1 means a guardrail is not guarding.
 
 **The allowlist cases build their own scratch repo** with a known remote and two throwaway
 `HOME`s, rather than keying on this repo's remote. A test that passes only in the clone it
 was written in is a test that reports success somewhere it never ran.
 
-**Run it after editing any hook.** These scripts cannot be verified by reading them — the
+**Run it after editing any hook.** These scripts cannot be verified by reading them. The
 multi-line gap below survived a full audit that checked every claim against the official
 docs, because the docs were not the thing that was wrong.
 
@@ -121,7 +121,7 @@ git push origin main
 ```
 
 the `git push` was preceded by a space, matched nothing, and **sailed through**. `cd /tmp &&
-git push` was caught; the far more common multi-line form was not. Newlines now become `;`,
+git push` was caught. The far more common multi-line form was not. Newlines now become `;`,
 because a separate line is a separate command. `\r` maps too, so a CRLF payload behaves the
 same.
 
@@ -148,7 +148,7 @@ of its questions have one permanent answer and there is nothing to list.
 ## The allowlist — one file, outside every repo
 
 Two of the hooks above ask a question a bash script cannot answer: **is this repo mine?**
-`~/.claude/repo-allowlist` holds the answers — one line per repo, keyed by **remote URL**,
+`~/.claude/repo-allowlist` holds the answers: one line per repo, keyed by **remote URL**,
 two answers per entry, **both defaulting to no**.
 
 | Question | Read by |
@@ -162,7 +162,7 @@ Three properties, all of them the point:
   project stays safe by omission rather than by being remembered. With no file at all, both
   hooks behave exactly as they did before the allowlist existed.
 - **It lives outside every repo.** Inside the project the agent could write it and unblock
-  itself, and §5's headline is *enforced by the harness, not by trust*.
+  itself. §5's headline is *enforced by the harness, not by trust*.
 - **Some things it never unlocks.** `git add -A` / `git add .`, and everything under
   `.claude/` that is not `agents/` or `skills/`, plus `.serena`, `.forgetful`, `MEMORY.md`.
 
@@ -175,7 +175,7 @@ behind each answer is in
 > copy turns a guardrail into one that silently stops guarding — the exact failure this
 > directory exists to prevent. Duplication is loud; a missing include is not.
 
-**The hook and `.gitignore` have to sort the same way.** The hook blocks the *command*;
+**The hook and `.gitignore` have to sort the same way.** The hook blocks the *command*.
 `.gitignore` makes the file invisible to it. A blanket `.claude/` ignore line hides the
 generated specialists that are supposed to be committed, so whatever writes that line
 writes the `!.claude/agents/` and `!.claude/skills/` exceptions with it. Two mechanisms, one
@@ -183,12 +183,12 @@ directory — moving one and not the other buys nothing.
 
 ## `Bash` is not the only shell
 
-**`PowerShell` is a separate tool from `Bash`**, and a matcher of `Bash` does not see it.
+**`PowerShell` is a separate tool from `Bash`.** A matcher of `Bash` does not see it.
 On Windows it can be enabled automatically (no Git Bash) or arrive through a progressive
-rollout (with Git Bash); elsewhere it is opt-in via `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`. A
+rollout (with Git Bash). Elsewhere it is opt-in via `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`. A
 git guardrail matched only on `Bash` therefore stops nothing the moment the model reaches
-for PowerShell — the worst failure shape a guardrail has, since it keeps reporting success.
-The shipped matcher is `Bash|PowerShell` for that reason.
+for PowerShell. That is the worst failure shape a guardrail has, since it keeps reporting
+success. The shipped matcher is `Bash|PowerShell` for that reason.
 
 The three blocking scripts parse `.tool_input.command`, which both tools populate, so they
 work unchanged for either. **Their command patterns are POSIX-flavoured**, though: verify

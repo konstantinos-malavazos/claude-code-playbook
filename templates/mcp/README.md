@@ -1,8 +1,8 @@
 # MCP config snippets
 
-Three files, three destinations. **Each snippet is valid JSON with no comments in it** —
-copy the body straight into your file, nothing to strip. Everything that used to be a `//`
-line lives here, under the entry it explains.
+Three files, three destinations. **Each snippet is valid JSON with no comments in it.**
+Copy the body straight into your file. Nothing needs to be stripped. Everything that used
+to be a `//` line lives here, under the entry it explains.
 
 | Snippet | Merge into | Scope |
 |---|---|---|
@@ -15,18 +15,18 @@ secrets in environment variables.
 
 ## Rules for every server entry
 
-**`"type"` is REQUIRED** — `stdio` | `http` | `sse` | `ws`. An entry with a `url` and no
+**`"type"` is REQUIRED**: `stdio` | `http` | `sse` | `ws`. An entry with a `url` and no
 `type` is read as a **stdio** server and skipped with an error naming it.
 
 **`${VAR}` expands from your environment.** If the variable is UNSET and has no
-`:-default`, the config still loads and the literal `${VAR}` text is used — the server
-starts with a garbage token and only `claude mcp list` warns. Use `${VAR:-default}` where a
+`:-default`, the config still loads and the literal `${VAR}` text is used. The server
+starts with a garbage token, and only `claude mcp list` warns. Use `${VAR:-default}` where a
 fallback makes sense.
 
 **Run `claude mcp list` after every edit.** It names each config file and its state, so it
 catches both halves of what goes wrong here: a file that doesn't parse is reported as
 `[Failed to parse]` with its path, and an unexpanded `${VAR}` draws a warning. It does
-**not** validate `~/.claude/settings.json` — that file's own check is a real session.
+**not** validate `~/.claude/settings.json`. That file's own check is a real session.
 
 ---
 
@@ -42,7 +42,7 @@ Serena is **project** scope instead (below), because it indexes a working copy.
 ### `tracker`
 
 **Name the key `tracker`, not after your vendor.** The guardrail hooks match on
-`mcp__tracker__*`, and the adapter at `~/.claude/tracker.md` is what knows the vendor.
+`mcp__tracker__*`. The adapter at `~/.claude/tracker.md` is what knows the vendor.
 Omit this server entirely if your tracker is local markdown files.
 
 ### `db` — optional, not in the snippet
@@ -65,7 +65,7 @@ These are tied to THIS working copy. Enable them in
 
 **Only needed if you did NOT install the `serena` plugin** (see
 [`docs/shared/03-setup.md`](../../docs/shared/03-setup.md) step 2). The plugin route is
-simpler and is the recommended default; if you use it, **delete this entry** — two
+simpler and is the recommended default. If you use it, **delete this entry**: two
 registrations means two tool namespaces, which means confusion.
 
 **Tool prefix — this must match what your agents' `tools:` lists say:**
@@ -79,7 +79,7 @@ A prefix that doesn't resolve fails **silently**: the agent gets no code tools a
 back to reading whole files. Verify with `/mcp`.
 
 **The rule is wider than the prefix.** *Any* unresolvable name in a `tools:` list is
-stripped at launch with no error — a wrong `mcp__` prefix, a server you never registered,
+stripped at launch with no error: a wrong `mcp__` prefix, a server you never registered,
 and an unfilled `<memory-read-tools>` / `<tracker-read-tools>` placeholder all land in the
 same place. Confirmed by execution on `2.1.226`: `repo-reviewer` declares roughly twenty
 tools and launched with seven, saying nothing. So this warning applies to the placeholders
@@ -109,7 +109,7 @@ GitHub equivalent is:
 `effortLevel` takes `"low"` | `"medium"` | `"high"` | `"xhigh"`.
 
 **There is no `theme` key in this snippet, on purpose.** It could not be confirmed in the
-settings key reference, and an unrecognised key here is ignored **silently** — a line that
+settings key reference, and an unrecognised key here is ignored **silently**. A line that
 does nothing looks exactly like one that works. Set your theme with `/config` instead.
 
 ### `env`
@@ -121,5 +121,5 @@ secrets** — tokens should come from your real environment, not be written here
 
 The `hooks` block in the snippet is the same content as
 [`../hooks/settings-hooks.snippet.json`](../hooks/settings-hooks.snippet.json). Keep only
-the hooks you actually installed into `~/.claude/hooks/`; what each one does is in
+the hooks you actually installed into `~/.claude/hooks/`. What each one does is in
 [`../hooks/README.md`](../hooks/README.md).
