@@ -23,7 +23,7 @@ session, until nothing is left to decide.
 
 Charting does not know what you are building. **Whoever invokes it supplies the
 destination**, every time — a spec to hand off, a decision to lock before planning
-starts, a change made in place. The map is domain-agnostic; it charts a docs effort as
+starts, a change made in place. The map is domain-agnostic. It charts a docs effort as
 readily as a migration.
 
 If no destination was supplied, that is the first thing to settle, and it is settled with
@@ -33,17 +33,17 @@ downstream depends on it.
 ## Decide or make — one or the other, never both
 
 > Every ticket is a **decision** or a **make**. A decision ticket writes no files. A make
-> ticket decides nothing new — if it finds a real decision, it **stops and opens one**.
+> ticket decides nothing new. If it finds a real decision, it **stops and opens one**.
 
-They cannot share a ticket because they end differently: a decision ends when the human and
-the agent agree, which nobody can predict, and a make ends when the file is on disk. Put both
+They cannot share a ticket because they end differently. A decision ends when the human and
+the agent agree, which nobody can predict. A make ends when the file is on disk. Put both
 in one ticket and the unpredictable half eats the context the predictable half needed.
 
 A decision ticket normally spawns its make ticket on close. That is the system working, not
 a ticket that ran long.
 
 **Charting charts; it does not execute.** The pull to go and do the work *while inside a
-decision ticket* means you have reached the edge of the map — open a make ticket and hand
+decision ticket* means you have reached the edge of the map. Open a make ticket and hand
 off.
 
 ## Talk to the tracker in verbs, never in commands
@@ -64,15 +64,15 @@ the adapter go and check. A `Blocked by:` line is a claim about the past — it 
 **Retitling is normal while mapping.** Ask for the `retitle` verb rather than improvising it,
 and never reuse a deleted ticket's number.
 
-**`claim` names whoever holds the ticket now — not only this session.** A ticket handed to a
+**`claim` names whoever holds the ticket now, not only this session.** A ticket handed to a
 person outside the session, or to a background agent, is claimed *to them*. That is what
 keeps it off the frontier while it is in someone else's hands.
 
 ## The map
 
 One issue labelled `<LABEL-PREFIX>:map`. Its tickets are its child issues. The map is an
-**index, not a store** — a decision lives in exactly one place, its own ticket, and the map
-only gists it and links.
+**index, not a store**. A decision lives in exactly one place, its own ticket, and the map
+only gists it and links to it.
 
 ```markdown
 ## Destination
@@ -118,7 +118,7 @@ sessions appending an hour apart silently lose one of the writes.
 every closed child's leading gist, in one verb.
 
 **The authored sections get a rule instead of a lock:** *re-read the map body immediately
-before editing it — never edit from the copy you loaded at session start.*
+before editing it. Never edit from the copy you loaded at session start.*
 
 ### The picture
 
@@ -134,9 +134,9 @@ fail silently. It is for the human, not for you.
 the picture lives beside it, and the two gitignore rules do not apply. That is the only
 override; absent it, use the paths above.
 
-**If the template is not installed, say so once — then ask for *the whole graph* and print
+**If the template is not installed, say so once, then ask for *the whole graph* and print
 the same facts as text**: the destination in one line, the frontier by number and name, what
-is blocked and on what, and the closed count. **Print it; never write it to a file** — that
+is blocked and on what, and the closed count. **Print it; never write it to a file.** That
 would be a second store, stale from the moment it lands.
 
 ## The leading-gist rule
@@ -169,7 +169,7 @@ A child issue of the map, sized to one agent session:
 <the decision or investigation this ticket resolves>
 ```
 
-The answer is **not** in the body — it is posted as a resolution comment on close. Assets
+The answer is **not** in the body. It is posted as a resolution comment on close. Assets
 made along the way are linked, never pasted in.
 
 Each ticket carries one `<LABEL-PREFIX>:<type>` label. **A type is a session shape**, and
@@ -191,18 +191,18 @@ gives you `make:schema`, `make:service`, `make:consumer`, dispatching to
 
 **No declared chain means no `make:<layer>`, and that row is simply off the table.** A map
 charted before its repo is scaffolded has no `CLAUDE.md` to read a chain from and no
-specialists to dispatch to — `/adapt-to-stack` has not run yet. Do not invent layer names
+specialists to dispatch to. `/adapt-to-stack` has not run yet. Do not invent layer names
 to fill the gap. A make ticket on such a map carries no layer, dispatches to nobody, and
 should be rare enough to be worth a sentence in the map's Notes explaining why it is there.
 
 **The `make:<layer>` label IS the dispatch.** There is no separate track-allocation step and
-no planner deciding who implements it — the label already said. Cross-layer ordering is
+no planner deciding who implements it. The label already said. Cross-layer ordering is
 expressed as blocking edges between tickets, never as a hardcoded chain: on a given map the
 chain order often is not the order the tickets have to run in.
 
 **HITL types never resolve without the human.** An agent that answers its own grilling
-question has broken the ticket, not finished it. The break is not that an agent *answered* —
-it is that a decision got made with **nobody owning it and nothing recording on what basis**.
+question has broken the ticket, not finished it. The break is not that an agent *answered*,
+but that a decision got made with **nobody owning it and nothing recording on what basis**.
 
 > **One driver is excepted** — [I'm feeling
 > lucky](../../../docs/solo/08-feeling-lucky.md), and only while it is driving. That doc owns
@@ -215,7 +215,7 @@ account, an access grant, a file moved — whose only purpose is to unblock a de
 ### One name per thing
 
 Write a name down when it is **contested, or when a newcomer would read it wrong**. Two
-words for one thing costs a mapping to explain in every later session — and a word read the
+words for one thing costs a mapping to explain in every later session, and a word read the
 wrong way costs more, because nobody notices.
 
 A settled name then lives in **two homes, in sequence**:
@@ -227,12 +227,12 @@ A settled name then lives in **two homes, in sequence**:
 
 **Write inline, prune at the tail.** Only the session that settled a name knows why *that*
 word won, so it goes into Notes while that session still holds it. The last pass before the
-hand-off is **subtractive only** — delete the names that died, never invent one.
+hand-off is **subtractive only**. Delete the names that died, never invent one.
 
 **No number.** A name earns its line only if it stops a wrong turn, which is the ruler
 `CLAUDE.md` is already priced by.
 
-**Never memory.** `CLAUDE.md` is loaded and memory is searched — and you cannot search for a
+**Never memory.** `CLAUDE.md` is loaded and memory is searched. And you cannot search for a
 name you do not know you have the wrong way round.
 
 **One collision is already live in your own session.** Step 2 runs
@@ -244,7 +244,7 @@ say which you mean.
 
 The map is *deliberately* incomplete. Do not chart what you cannot yet see.
 
-**The test is whether you can state the question precisely now — not whether you can
+**The test is whether you can state the question precisely now, not whether you can
 answer it now.**
 
 - **Ticket it** when the question is already sharp, even if it is blocked and you cannot
@@ -259,8 +259,8 @@ exactly one place.
 
 ## Out of scope
 
-Fog only ever gathers *toward* the destination. Work beyond the destination is not fog —
-it is out of scope, and it gets its own section. Scope, not sharpness, lands it there.
+Fog only ever gathers *toward* the destination. Work beyond the destination is not fog.
+It is out of scope, and it gets its own section. Scope, not sharpness, lands it there.
 
 Out-of-scope work never graduates. It returns only if the destination is redrawn, and then
 as a fresh effort, not a resumption.
@@ -277,7 +277,7 @@ Read code through Serena, never with whole-file reads or a grep sweep.
 **And if nothing is indexed yet, say so and stop looking. Never fall back to globbing the
 tree.** Charting is general, so it meets both worlds: on a day-one repo an empty index is
 **correct**, not broken; on an existing codebase a sparse index is a real finding. Either way
-the answer is stop — but say which situation you are in.
+the answer is stop, but say which situation you are in.
 
 ## The two modes
 
@@ -311,7 +311,7 @@ the answer is stop — but say which situation you are in.
    sketched into Not yet specified.
 4. **Create the tickets you can specify now**, then wire the blocking edges in a **second
    pass** — issues need ids before they can reference each other.
-5. **Fire the research subagents** for every `research` ticket, in parallel — but **name
+5. **Fire the research subagents** for every `research` ticket, in parallel, but **name
    the list and get the human's nod first**, since each one spends a background context.
    Claim each to the agent as you dispatch it.
 6. **Stop.** Charting hand-resolves nothing. Sizing the map is one session's work.
@@ -335,7 +335,7 @@ the answer is stop — but say which situation you are in.
    and when. This is not politeness; see below.
 
 **A handed-off ticket that stays unclaimed makes the map unfinishable.** A `task` waiting on
-a person is open, unclaimed, and has no blocking edge — so it sits on the frontier, and every
+a person is open, unclaimed, and has no blocking edge, so it sits on the frontier, and every
 later session picks it up and asks for the same thing again. The frontier never empties, so
 the map can neither stall nor close. The same trap catches an unclaimed `research` ticket:
 the next session sees it takeable and fires a second agent at a question already being
@@ -345,7 +345,7 @@ answered.
 subagent contexts and does not spend the session's own.
 
 Expect other sessions to be editing the tracker concurrently. The claim is **advisory, a
-note to others, not a lock** — no tracker can give you one. A stale claim is a nuisance
+note to others, not a lock**. No tracker can give you one. A stale claim is a nuisance
 cleared by hand, not a jam.
 
 ## When a session ends mid-ticket
@@ -376,7 +376,7 @@ the thing.
 
 **Stalled.** The frontier is empty but tickets are still open, because every one of them is
 blocked on something outside this session. This is **not** done. Name each blocked ticket
-and who owns the thing it waits on — that owner is the ticket's claim, which is why you
+and who owns the thing it waits on. That owner is the ticket's claim, which is why you
 wrote one. Never report a stalled map as finished, and never stamp it closed: the day the
 blocker clears it has to be pickable again.
 

@@ -6,7 +6,7 @@ It is answered outside the adapter, by the caller: the dependency-graph page if 
 is installed, and the whole graph printed as text if it is not. The adapter's job is to make
 both cheap, which [the whole graph](#the-whole-graph) does in one directory read.
 
-**Is this a shared place?** Same answer as the repo it lives in — these files are
+**Is this a shared place?** Same answer as the repo it lives in. These files are
 committed, so a public repo makes them public. `<yes | no>`.
 
 ---
@@ -49,8 +49,8 @@ being able to exist at all. Two rules come with it:
 > **On `PHILOSOPHY.md` §5.** §5 sorts AI-infra files by *provenance*, not by path: **would
 > a fresh clone need this file?** Ticket files pass it outright — they are records the
 > project would want in its history even if every AI tool vanished tomorrow, not plumbing.
-> Commit them. (The old wording was a path list, and ticket files were kept off it by hand;
-> the test answers the question directly instead.)
+> Commit them. (The old wording was a path list, and ticket files were kept off it by hand.
+> The test answers the question directly instead.)
 
 ## Ticket file
 
@@ -85,9 +85,9 @@ Blocked by: 03, 04
 *is this blocked?*.
 
 **An em dash is how both lines say *nothing*.** `Claim: —` is unclaimed and `Blocked by: —`
-is unblocked; neither line is ever left blank and neither is ever omitted. Every field is
+is unblocked. Neither line is ever left blank and neither is ever omitted. Every field is
 present on every ticket, so a scan reads the same four lines whatever state the ticket is
-in. Say the dash, never *"empty"* — a scan written against an empty string matches nothing
+in. Say the dash, never *"empty"*. A scan written against an empty string matches nothing
 and returns an empty frontier, which is indistinguishable from a stalled map.
 
 Older versions of this adapter overloaded one `Status:` line between `/triage`'s role
@@ -101,7 +101,7 @@ on the number, so renaming never breaks one.** Never renumber a file: numbers ar
 once and never reused, even after a ticket is deleted.
 
 The next free number is one past the highest that has **ever** existed, which equals one past
-the highest on disk only when nothing has been deleted. When in doubt read `map.md` — a
+the highest on disk only when nothing has been deleted. When in doubt read `map.md`. A
 deleted ticket leaves its number behind in the Decisions or Out-of-scope prose.
 
 ---
@@ -122,17 +122,17 @@ deleted ticket leaves its number behind in the Decisions or Out-of-scope prose.
 | claim | set `Claim:` to the holder's name — yours, a person's, an agent's — save, then **read it back**. A claim that silently failed to write looks exactly like one that worked |
 | mark blocked | add the number to `Blocked by:` |
 | is this blocked? | **read each listed file and check its `State:`** — never trust the line alone |
-| retitle | edit the `# NN — <title>` heading; optionally rename the slug. **Never touch the number.** Blocking edges resolve on the number and survive. **But `map.md`'s links are file paths carrying the slug, so renaming it kills them** — regenerate `Decisions so far` (it rebuilds links from disk) and fix any hand-authored link under *Out of scope* |
+| retitle | edit the `# NN — <title>` heading. Optionally rename the slug. **Never touch the number.** Blocking edges resolve on the number and survive. **But `map.md`'s links are file paths carrying the slug, so renaming it kills them.** Regenerate `Decisions so far` (it rebuilds links from disk) and fix any hand-authored link under *Out of scope* |
 | delete a ticket | `rm` the file. Leave one line in `map.md` — under *Out of scope*, or in the invalidating decision's gist — saying the number existed and why it is gone. The number is burned |
 
 **`is this blocked?` is the whole reason blocking is a question.** `Blocked by: 03` is a
-claim about the past; it still reads *blocked* long after `03` resolved. The answer requires
+claim about the past. It still reads *blocked* long after `03` resolved. The answer requires
 going and looking.
 
 **On `delete a ticket` — this verb does not generalise, and that is the point of having
-it.** Here it is literally `rm`. On Jira there is no delete at all; the nearest thing is a
+it.** Here it is literally `rm`. On Jira there is no delete at all. The nearest thing is a
 close. The same charting sentence — *"delete or rewrite tickets the decision invalidated"* —
-means two different operations depending on the adapter, which is exactly what a verb
+means two different operations depending on the adapter. That is exactly what a verb
 contract exists to absorb.
 
 ## The frontier
@@ -146,8 +146,8 @@ on someone outside this workspace. That is a distinct outcome — the charting s
 
 **A handed-off ticket carries its holder's name in `Claim:` and is off the frontier by
 construction. That is the only way the frontier can empty.** A ticket waiting on a person or
-a background agent has no `Blocked by:` edge to hide behind, so left unclaimed it stays
-takeable, every later session picks it up again, and the frontier never empties — which
+a background agent has no `Blocked by:` edge to hide behind. Left unclaimed, it stays
+takeable. Every later session picks it up again, and the frontier never empties. That
 makes *stalled* unreachable and the map unfinishable.
 
 ## The whole graph
@@ -168,7 +168,7 @@ each listed file and take its `State:`. Under the parent scoping those files are
 open — every blocker of a child is another child. Under a named set a blocker can be a
 ticket nobody named, and it is the one that gets left `open` by default, which draws a
 takeable ticket as blocked. **Open the named files, then any file they name as a blocker.**
-Still one directory, and the blockers you pull in this way are read for their `State:` line
+Still one directory. The blockers you pull in this way are read for their `State:` line
 alone — they are not members of the graph and get no box.
 
 **That is why the missing-comments defect never surfaced here.** On a hosted tracker the
@@ -179,4 +179,4 @@ looked like it worked. Cheapest adapter for this verb, and the one that hid the 
 
 This adapter is for **one session at a time.** A claim written in one worktree is invisible
 from another — there is no shared surface to publish it on — so the advisory claim is not
-merely weak here, it is unobservable. If you want parallel sessions, use a hosted tracker.
+merely weak here. It is unobservable. If you want parallel sessions, use a hosted tracker.

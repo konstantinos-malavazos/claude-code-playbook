@@ -10,8 +10,8 @@ For any engineer, any stack, any tracker, any company.*
 
 ## Two entrances — pick yours
 
-This playbook has **two front doors**, and which one is yours depends on one thing: **does
-the work already exist as a ticket somebody else wrote?**
+This playbook has **two front doors**. Which one is yours depends on one thing: **does the
+work already exist as a ticket somebody else wrote?**
 
 | If you are… | You enter at | And you start with |
 |---|---|---|
@@ -30,28 +30,28 @@ the work already exist as a ticket somebody else wrote?**
 ```
 
 **The solo path is a front-end, not a second playbook.** It stops at a
-[seam](docs/solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) — eight checks
-that say a repo is ready — and hands over to exactly the same pipeline the agile path
+[seam](docs/solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops): eight checks
+that say a repo is ready. Then it hands over to exactly the same pipeline the agile path
 runs. Everything downstream of that seam is shared. If you arrive with a ticket, you were
 already past the seam and never needed the front-end.
 
 **One case reaches both doors: fog.** An effort on a codebase that already exists, whose
-destination is clear but whose *route* is not. It is not a raw idea, and it is not something
-`/start-ticket` can plan in one pass — so it charts first and walks the resulting map over
-weeks. The discriminator is fog, not size.
+destination is clear but whose *route* is not. It is not a raw idea, and `/start-ticket`
+cannot plan it in one pass. So it charts first and walks the resulting map over weeks.
+The discriminator is fog, not size.
 
-**Both doors chart it; only one wraps a flow around the charting.** The skill is
+**Both doors chart it. Only one wraps a flow around the charting.** The skill is
 [`charting`](templates/skills/charting/SKILL.md), and it is shared:
 
 | | How you chart it |
 |---|---|
-| **Solo**, on a repo you already shipped | Run **`/charting`** against it directly, one ticket per session, and hand each make to `/start-ticket`. Nothing extra to install |
+| **Solo**, on a repo you already shipped | Run `/charting` against it directly, one ticket per session, and hand each make to `/start-ticket`. Nothing extra to install |
 | **On a team**, on a ticket you didn't write, spanning repos none of which owns the effort | The same skill behind three commands — a chart folder outside any repo, a dispatch to the layer specialists, a per-repo closing review. [docs/team/03-massive-tickets.md](docs/team/03-massive-tickets.md) |
 
 The flow is team-only. **Charting a codebase that already exists is not.**
 
 > If you have 5 minutes and want the *why*: read [PHILOSOPHY.md](PHILOSOPHY.md).
-> It is path-neutral — the mindset is the same through both doors.
+> It is path-neutral: the mindset is the same through both doors.
 
 ---
 
@@ -68,13 +68,13 @@ giant chat doing everything, no guardrails). This playbook fixes all three:
 3. **Flows** — multi-agent pipelines behind slash commands that turn a tracker ticket into
    a reviewed, single-commit branch, with hook-enforced guardrails.
 
-Eyes + memory are the *capabilities*; the flows are the *way of working* built on top.
-The three **compound**: remember → locate → edit → remember.
+Eyes + memory are the *capabilities*. The flows are the *way of working* built on top.
+The three compound: remember → locate → edit → remember.
 
 **No flow ever names your tracker.** Each one states its intent in abstract verbs — *read
 this ticket*, *what is on the frontier?* — and exactly one
 [adapter](templates/trackers/README.md) answers them. GitHub, Jira and local markdown
-files ship as working adapters; swapping tracker is a one-file change.
+files ship as working adapters. Swapping tracker is a one-file change.
 
 ---
 
@@ -99,9 +99,9 @@ and [docs/shared/07-the-flows.md](docs/shared/07-the-flows.md).
 
 ## Repo layout
 
-`docs/` splits three ways: **`shared/`** is the trunk both entrances converge on,
-**`solo/`** is the front-end, **`team/`** is what only makes sense with other people in
-the room. Templates stay flat — each `README.md` there says which path needs the file.
+`docs/` splits three ways. **`shared/`** is the trunk both entrances converge on.
+**`solo/`** is the front-end. **`team/`** is what only makes sense with other people in
+the room. Templates stay flat. Each `README.md` there says which path needs the file.
 
 ```
 claude-code-playbook/
@@ -154,7 +154,7 @@ claude-code-playbook/
 
 ## How to use this playbook
 
-**Steps 1–3 are the same through both doors.** Everything machine-level is shared; only
+**Steps 1–3 are the same through both doors.** Everything machine-level is shared. Only
 step 4 forks.
 
 1. **Understand the mindset** — [PHILOSOPHY.md](PHILOSOPHY.md) +
@@ -163,29 +163,29 @@ step 4 forks.
    ([docs/shared/02-prerequisites.md](docs/shared/02-prerequisites.md) →
    [docs/shared/03-setup.md](docs/shared/03-setup.md), steps 1–3).
 3. **Global `CLAUDE.md`, one tracker adapter, the guardrail hooks** — setup steps 4, 5
-   and 7. The adapter is what stops every later flow having to know which tracker you
-   use; the hooks are wired globally, so they are per-machine rather than per-project.
+   and 7. The adapter stops every later flow from having to know which tracker you use.
+   The hooks are wired globally, so they are per-machine rather than per-project.
 4. **Then take your door:**
 
 | | The agile path | The solo path |
 |---|---|---|
-| **Next** | Fill in the `CLAUDE.md` layers your repo count calls for — the repo's own on one repo, plus the workspace atlas on siblings ([06](docs/shared/06-claude-md-layers.md)) — then adapt the layer-chain to your stack ([11](docs/shared/11-adapting-to-your-stack.md)) — the single most important adaptation | Read [the spine](docs/solo/01-the-solo-path.md), then run `/pitch` on the idea. Do **not** create a repo first — a *build* verdict creates it for you |
-| **Then** | Copy the agents/skills/commands you want and add the flows one at a time — start with `/start-ticket` | Work the map one ticket per session, then `/bootstrap`, then `/cut-backlog`. The stack, the layer chain, the repo's own `CLAUDE.md` and the specialists are all decided and generated on the way — you write none of them by hand |
-| **You know you're done when** | `/start-ticket` runs cleanly on a small real ticket | All eight [seam checks](docs/solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) hold — at which point you are standing where the agile path starts |
+| **Next** | Fill in the `CLAUDE.md` layers your repo count calls for: the repo's own on one repo, plus the workspace atlas on siblings ([06](docs/shared/06-claude-md-layers.md)). Then adapt the layer-chain to your stack ([11](docs/shared/11-adapting-to-your-stack.md)). This is the single most important adaptation | Read [the spine](docs/solo/01-the-solo-path.md), then run `/pitch` on the idea. Do **not** create a repo first. A *build* verdict creates it for you |
+| **Then** | Copy the agents/skills/commands you want and add the flows one at a time. Start with `/start-ticket` | Work the map one ticket per session, then `/bootstrap`, then `/cut-backlog`. The stack, the layer chain, the repo's own `CLAUDE.md` and the specialists are all decided and generated on the way. You write none of them by hand |
+| **You know you're done when** | `/start-ticket` runs cleanly on a small real ticket | All eight [seam checks](docs/solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) hold. Then you are standing where the agile path starts |
 
 You do **not** need everything on day one.
 
 - **Agile path minimum:** Serena + Forgetful + a global CLAUDE.md + one `/start-ticket`
   command. Everything else is additive.
 - **Solo path minimum:** the same, plus `/pitch`. The gate runs before a repo exists, so
-  it is the one thing you cannot defer — and it is the cheapest hour on the path.
+  it is the one thing you cannot defer. It is also the cheapest hour on the path.
 
 ---
 
 ## Keeping this playbook fresh
 
 Claude Code ships frequently. Templates and docs encoding current behaviour can
-rot silently. Each doc carries a "Last verified against" line at the end — when you
+rot silently. Each doc carries a "Last verified against" line at the end. When you
 upgrade Claude Code, run:
 
 ```bash
@@ -197,7 +197,7 @@ grep -rn "Last verified" docs/ PHILOSOPHY.md
 **Templates carry no footer, by design.** A template is copied and edited, so a footer
 would date your copy rather than the claim. They are covered instead by the
 [re-verification check](templates/README.md#the-re-verification-check), run against the
-whole directory. **No count here** — the list grows every time something turns out to need
+whole directory. **No count here.** The list grows every time something turns out to need
 running rather than reading, and a number in the front door goes stale the moment it does.
 
 **Things most likely to drift:** MCP server configuration format, hook API,
@@ -208,7 +208,7 @@ running rather than reading, and a number in the front door goes stale the momen
 
 ## ⚠️ Before you commit any of this to a real repo
 
-Two different rules, often confused. **One is about secrets. One is about provenance.**
+Two different rules, often confused. One is about secrets. One is about provenance.
 
 **Secrets — never, in any repo, on any path.**
 
@@ -234,6 +234,6 @@ Your memory store, handoffs, Serena's index and generated views fail it and neve
 
 > **The hooks need python on `PATH`** (`python3` or `python`, standard library only) to
 > parse their payload. Without it the four blocking hooks **exit `2` and block** rather
-> than waving the call through — a guard that cannot read the command stops it. Loud beats
-> silent, but it does mean a missing python turns into blocked tool calls, so check it in
-> the same shell Claude Code uses, not just your usual terminal.
+> than waving the call through. A guard that cannot read the command stops it. Loud beats
+> silent. But a missing python does turn into blocked tool calls, so check it in the same
+> shell Claude Code uses, not just your usual terminal.

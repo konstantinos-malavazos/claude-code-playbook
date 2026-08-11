@@ -34,9 +34,9 @@ else
     git add <explicit-paths> && git commit --amend --no-edit
 fi
 ```
-- Review-fix loops also amend — no follow-up "address review" commits.
+- Review-fix loops also amend: no follow-up "address review" commits.
 - The reviewer asserts `git rev-list --count origin/<main>..HEAD` returns `1`.
-- Never silently rewrite the message; if you disagree mid-flight → STOP and surface it.
+- Never silently rewrite the message. If you disagree mid-flight → STOP and surface it.
 
 ## Never commit AI-infra files
 `.claude/`, MCP-state dirs, memory files. Use explicit paths in `git add` — never
@@ -44,7 +44,7 @@ fi
 
 **Three exceptions, decided by whether a fresh clone would need the file:**
 `.claude/agents/**` and `.claude/skills/**` are generated from this repo's `CLAUDE.md` and
-are product files; and the repo's own `CLAUDE.md` is committable where
+are product files. The repo's own `CLAUDE.md` is committable where
 `~/.claude/repo-allowlist` says so. Everything else under `.claude/` regenerates or belongs
 to your machine.
 

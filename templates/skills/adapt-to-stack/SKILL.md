@@ -15,12 +15,12 @@ A repo declares its layer chain once, in its own `CLAUDE.md`. This turns that de
 into the agent files and skill files the pipeline dispatches to.
 
 > **This is not a stage. It is one step**, and it runs again — unchanged — every time the
-> chain gains a layer. The first run happens on a repo that has just been scaffolded; the
+> chain gains a layer. The first run happens on a repo that has just been scaffolded. The
 > second may be months later.
 
 **Choose nothing.** Every fact you write into a generated file is already written down one
 file away. If you find yourself deciding what a layer is, where it lives, what it builds
-with, or which model it should run on, you are reading the wrong file — **stop and say so.**
+with, or which model it should run on, you are reading the wrong file. **Stop and say so.**
 
 ## The one input
 
@@ -60,8 +60,8 @@ Say which of the three it is, name the sections you need, and point at
 `templates/claude-md/repo.CLAUDE.md`.
 
 > **Do not write that file.** It is this step's input, and a flow that generates its own
-> input generates from itself. Do not offer to draft it, and do not fill a gap by asking —
-> a missing chain means someone has not yet decided what the layers are, and that is a
+> input generates from itself. Do not offer to draft it, and do not fill a gap by asking.
+> A missing chain means someone has not yet decided what the layers are, and that is a
 > decision, not a blank.
 
 ## The five steps
@@ -102,7 +102,7 @@ From `templates/agents/layer-specialist.md`, one file per layer, into the repo's
 
 **The template's description opens with a line about where the file comes from and how many
 of it there are. Replace it with the layer this file is for.** That opener is provenance,
-addressed to whoever is holding the template — and a description is what the harness reads
+addressed to whoever is holding the template. And a description is what the harness reads
 to decide whether to route work here, so on a generated file it is the one sentence that
 must say *which layer*.
 
@@ -133,7 +133,7 @@ From `templates/skills/engineering-standards/SKILL.md`, one directory per layer,
 repo's `.claude/skills/`.
 
 > **Name the directory `<layer>-standards`, not `engineering-standards`.** The directory
-> name is what gets typed and what makes the skill distinct — three layers copied into one
+> name is what gets typed and what makes the skill distinct. Three layers copied into one
 > directory name is three skills answering to the same one. Fill the `<layer>` and
 > `<language>` placeholders in the body to match.
 
@@ -150,7 +150,7 @@ reason as step 2.
 
 **You can fill in the layer and the language and no more, and that is the expected
 output.** The rules themselves are the human's to write as they learn what this codebase
-gets wrong. Generate the file anyway — the specialist in step 2 names it, and the
+gets wrong. Generate the file anyway. The specialist in step 2 names it, and the
 alternative is pointing an agent at a file that does not exist. Every one of these lands in
 the report as **still a scaffold**, on day one and honestly.
 
@@ -165,8 +165,8 @@ git check-ignore -v .claude/agents .claude/skills
 A blanket `.claude/` ignore line hides them. If it does, add the two exceptions beside the
 existing line — `!.claude/agents/` and `!.claude/skills/` — and change nothing else.
 
-These files are meant to be committed, and an ignored file produces **no error at all** —
-which is why you ask git rather than assume.
+These files are meant to be committed, and an ignored file produces **no error at all**.
+That is why you ask git rather than assume.
 
 ### 5 — Report, and stop
 
@@ -194,7 +194,7 @@ session before anything dispatches to these files.**
 
 **Say the restart line whenever you created either directory, and only then.** A running
 session watches the directories that existed when it started; one you have just created is
-not among them. The files are on disk and every check that reads the disk passes — what
+not among them. The files are on disk and every check that reads the disk passes. What
 does not work is the *dispatch*, in this session, which is the one failure a report whose
 every row says **created** would otherwise hide.
 
@@ -210,9 +210,9 @@ every time.
 | **disagrees with `CLAUDE.md`** | the file names a path, command or layer the chain no longer says |
 | **still a scaffold** | the file still carries the template's `<PLACEHOLDER>` angle brackets |
 
-**"Still a scaffold" costs no state.** No timestamps, no ledger, no marker file — you detect
+**"Still a scaffold" costs no state.** No timestamps, no ledger, no marker file. You detect
 it by reading the file for angle brackets. The convention that makes a template fillable is
-what makes un-filled-ness visible.
+what makes un-filled-ness detectable.
 
 **Every row carries evidence** — the bracket count, the path that disagrees, the layer it
 belongs to. A row with nothing beside it is an opinion.
@@ -226,7 +226,7 @@ belongs to. A row with nothing beside it is an opinion.
 
 **Create what is missing. Leave everything that exists exactly as it is.** A re-run after a
 layer is added generates one specialist and one standards skill and touches nothing else.
-Change the test command in `CLAUDE.md` and nothing changes automatically — it lands in the
+Change the test command in `CLAUDE.md` and nothing changes automatically. It lands in the
 report as *disagrees*, and there it stops.
 
 Diff-and-patch is not an option, and neither is regenerating over the top: once real rules
@@ -259,5 +259,5 @@ Five stops, and none of them is a failure of the step:
 ## Stop condition
 
 **The step is done when the report exists.** Not when every row says *created*, and not
-when the scaffolds are filled in — a report of six *skipped* rows is a complete, correct
+when the scaffolds are filled in. A report of six *skipped* rows is a complete, correct
 run on a repo that was already adapted.

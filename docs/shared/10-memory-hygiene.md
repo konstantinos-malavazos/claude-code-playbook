@@ -40,10 +40,10 @@ Run monthly (or when retrieval feels off). Two phases.
 ### Phase A — retrieval eval (golden queries)
 
 Keep a version-controlled set of **golden queries** with **content assertions** — "this
-question must retrieve a memory containing these facts." Crucially, assert on **content,
-never on memory ids** (ids churn; the knowledge shouldn't). Run them, log pass/fail, and
-surface **regressions vs last month** explicitly. Retrieval quality becomes a tracked
-number, not a vibe.
+question must retrieve a memory containing these facts." Assert on **content, never on
+memory ids**, because ids churn and the knowledge should not. Run the queries, log
+pass/fail, and surface **regressions vs last month** explicitly. Retrieval quality becomes
+a tracked number, not a vibe.
 
 ### Phase B — sweep
 
@@ -55,16 +55,16 @@ Look for:
 - tag-vocabulary violations,
 - low-confidence orphans (nothing links to them, low confidence).
 
-Propose fixes; apply **only what's approved**. **Never delete** silently, and never
+Propose fixes. Apply **only what's approved**. **Never delete** silently, and never
 auto-edit the golden set.
 
 ---
 
 ## Why this discipline pays off
 
-An un-gardened memory decays two ways: it fills with noise (retrieval returns junk), and
-it goes stale (returns confidently-wrong old conclusions). The daily gate stops the
-first; the periodic eval + sweep stops the second. Together they're the difference
+An un-gardened memory decays two ways. It fills with noise, so retrieval returns junk. It
+also goes stale, so it returns confidently-wrong old conclusions. The daily gate stops the
+first. The periodic eval and sweep stop the second. Together they're the difference
 between a memory you trust on ticket N+50 and one you've learned to ignore.
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

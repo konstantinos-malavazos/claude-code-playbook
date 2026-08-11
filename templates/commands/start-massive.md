@@ -10,20 +10,20 @@ Chart `$ARGUMENTS` into a map. **This session charts and stops.** It writes no p
 creates no branch, and does not claim the first ticket.
 
 **Load the `charting` skill and read your installed tracker adapter before anything else.**
-Charting owns the method; the adapter owns what each verb means on disk. This file only binds
-them to your workspace. Where they disagree with something below, they win — except on the
-three hard rules, which nothing overrides:
+Charting owns the method. The adapter owns what each verb means on disk. This file only binds
+them to your workspace. Where they disagree with something below, they win. The exception is
+the three hard rules, which nothing overrides:
 
-- **Zero tracker writes.** The development ticket is read-only, always; the session ends with
+- **Zero tracker writes.** The development ticket is read-only, always. The session ends with
   text for you to paste. Writing the chart is a **map write** and is not the same act.
 - **Chart state lives where the adapter says**, never in the handoffs directory — that
   auto-deletes at session end and a map runs for weeks.
 - **Never modify `/start-ticket`, `/resume-ticket`, `/fix-ticket`, `/test-ticket`** or any
-  agent they use. This flow borrows those agents; it does not edit them.
+  agent they use. This flow borrows those agents. It does not edit them.
 
 ## 0. Guard
 
-If the chart folder for `$ARGUMENTS` already exists, **stop and say so** — this effort is
+If the chart folder for `$ARGUMENTS` already exists, **stop and say so.** This effort is
 already charted, and `/resume-massive $ARGUMENTS` walks it. Never chart over an existing map.
 
 ## 1. Read the ticket, fresh
@@ -80,11 +80,11 @@ Charting's no-fog exit applies, and on this path the fallback is named: `/start-
 
 - **One final commit message per repo the map will touch**, in your `commit-conventions`
   format. These are authored **now**, at chart time, because one branch per repo carries one
-  commit, and a child's planner runs days before its siblings exist — it cannot describe
+  commit, and a child's planner runs days before its siblings exist, so it cannot describe
   their work. A repo whose first make ticket only graduates out of the fog later has no
   message here; the walker asks for one when that happens.
-- **`Development ticket: <id>`** — only when the map's own key is not that ticket. Omit it
-  otherwise; the folder name already is the id.
+- **`Development ticket: <id>`**, only when the map's own key is not that ticket. Omit it
+  otherwise. The folder name already is the id.
 - **Any term the grilling found contested — or that a newcomer would read wrong**, settled,
   one line each. Notes is the *first* home, not the last: charting's *One name per thing*
   graduates what survives the tail prune into the repo's `CLAUDE.md`. On this path that file
@@ -94,12 +94,12 @@ The commit messages do **not** create branches. The first make ticket for a repo
 
 ## 6. Write the tickets, then wire the edges
 
-One file per question, per charting's fog-or-ticket test. Type comes from its table — and for
+One file per question, per charting's fog-or-ticket test. Type comes from its table, and for
 the makes the label **is** the dispatch: `make:<layer>` → `@<layer>-specialist`, where the
 layers are the implementation chain in the repo's `CLAUDE.md`. Nobody decides afterwards.
 
 Wire `Blocked by:` in the second pass. Cross-layer ordering is expressed here as blocking
-edges — never as a hardcoded chain, because on a given map it often is not one.
+edges, never as a hardcoded chain, because on a given map it often is not one.
 
 ## 7. Ask before firing research agents
 
@@ -107,7 +107,7 @@ edges — never as a hardcoded chain, because on a given map it often is not one
 
 On a yes, dispatch one background agent per ticket with the `research` skill's discipline in
 its prompt: primary sources, cite every claim, findings to the chart's `research/` folder, a
-negative result is a result, and the ticket gets the one-line gist plus the path — never the
+negative result is a result, and the ticket gets the one-line gist plus the path, never the
 findings pasted in.
 
 **Claim each ticket to the agent as you dispatch it.** Left unclaimed it stays on the

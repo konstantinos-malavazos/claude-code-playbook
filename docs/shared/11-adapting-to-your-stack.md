@@ -1,9 +1,9 @@
 # 11 — Adapting the layer-chain to your stack
 
 This is the **one adaptation you must get right**. Everything else is defaults you can
-take as-is; this is the part that's specific to *your* codebase.
+take as-is. This is the part that's specific to *your* codebase.
 
-You do **one** thing by hand — name the chain. `/adapt-to-stack` generates the rest from
+You do **one** thing by hand: name the chain. `/adapt-to-stack` generates the rest from
 it. This doc is the *why* behind that flow: what it makes, what it refuses to make, and
 why it works that way.
 
@@ -12,8 +12,8 @@ why it works that way.
 ## The abstract idea
 
 A non-trivial change rarely lives in one place. It propagates through your stack in a
-**fixed order**, layer by layer, and each layer has a natural **specialist**. Name that
-ordered chain once and the whole pipeline falls out of it.
+**fixed order**, layer by layer. Each layer has a natural **specialist**. Name that
+ordered chain once, and the whole pipeline falls out of it.
 
 ```
    LAYER 1  ──►  LAYER 2  ──►  LAYER 3  ──►  …
@@ -25,7 +25,7 @@ ordered chain once and the whole pipeline falls out of it.
    agent 1        agent 2        agent 3
 ```
 
-The rule: **each layer depends on the ones before it**, so you implement them in order,
+The rule: **each layer depends on the ones before it**. So you implement them in order,
 and each layer hands the next a **contract** (the names/shapes it just created).
 
 ---
@@ -56,8 +56,8 @@ event contract / schema  ──►  producer service  ──►  consumer servic
 core types  ──►  public API surface  ──►  docs & examples
 ```
 
-If your change usually lives in one layer, that's fine — you have a one-link chain and a
-single specialist. The pipeline still works; it just skips the empty tracks.
+If your change usually lives in one layer, that's fine. You have a one-link chain and a
+single specialist. The pipeline still works. It just skips the empty tracks.
 
 ---
 
@@ -67,12 +67,12 @@ single specialist. The pipeline still works; it just skips the empty tracks.
 
 **`/adapt-to-stack` reads the repo's `CLAUDE.md` and nothing else.** No arguments, no
 prompts. That is deliberate: a prompt would state the stack a second time, and two copies
-can disagree — [06-claude-md-layers.md](06-claude-md-layers.md#rules-that-keep-the-layers-healthy)'s
-first rule, *one fact, one layer*, with the prompt as the second copy.
+can disagree. That second copy breaks *one fact, one layer*, the first rule in
+[06-claude-md-layers.md](06-claude-md-layers.md#rules-that-keep-the-layers-healthy).
 
 Which file carries the chain depends on how many repos you have, and
 [`../../templates/claude-md/repo.CLAUDE.md`](../../templates/claude-md/repo.CLAUDE.md)
-ships **both shapes** — keep one, delete the other:
+ships **both shapes**. Keep one and delete the other:
 
 | Your situation | Shape | What the repo's `CLAUDE.md` says |
 |---|---|---|
@@ -81,23 +81,23 @@ ships **both shapes** — keep one, delete the other:
 
 On shape B the cross-repo order also belongs in the workspace `CLAUDE.md`
 ([`../../templates/claude-md/workspace.CLAUDE.md`](../../templates/claude-md/workspace.CLAUDE.md)),
-under a *"sequential implementation chain (mandatory order)"* section — that is the file a
-human reads to see the whole picture. The flow never reads it: run inside a repo, it
+under a *"sequential implementation chain (mandatory order)"* section. That is the file a
+human reads to see the whole picture. The flow never reads it. Run inside a repo, it
 generates that repo's layer, from that repo's own file.
 
 **Optionally, name a model per layer.** The chain section takes an optional model id
 against each layer. If you state one, the flow writes it into that specialist's `model:`.
-If you leave it out — **the normal day-one answer** — the field is omitted entirely and
-the specialist inherits whatever you picked for the session. Three reasons to leave it out
-on a new repo:
+If you leave it out, the flow omits the field entirely and the specialist inherits
+whatever you picked for the session. Leaving it out is **the normal day-one answer**.
+Three reasons for that on a new repo:
 
 - On day one the repo is a stub. Knowing a layer is mechanical means having worked in it.
 - Deriving *schema is mechanical, frontend is design-heavy* from a layer's **name** is the
   artifact guessing.
-- **Model ids rot.** A written-in id is N files to update the day it changes; inheriting is
-  zero.
+- **Model ids rot.** A written-in id is N files to update the day it changes. Inheriting
+  is zero.
 
-State one when you genuinely know — which is usually months later, or on an existing
+State one when you genuinely know. That is usually months later, or on an existing
 codebase whose layers you have lived in.
 
 ### 2. One specialist agent per layer — generated
@@ -119,20 +119,20 @@ codebase* — its paths, its build command, its layer — and every one of those
 already written down one file away. Copying is transcription, and transcription drifts.
 
 They land in the **repo's own `.claude/agents/`, and they are committed.** Facts about the
-codebase are project-scoped ([01-architecture.md](01-architecture.md)); on a team, files in
-`~/.claude/` mean every engineer hand-copies them and they drift apart — which is the
-manual labour this flow exists to kill.
+codebase are project-scoped ([01-architecture.md](01-architecture.md)). On a team, files in
+`~/.claude/` mean every engineer hand-copies them and they drift apart. That is the manual
+labour this flow exists to kill.
 
 ### 3. One engineering-standards skill per layer — generated
 
 Split your engineering standards **by language/layer** so each specialist loads only what
 it needs (a schema specialist shouldn't carry frontend rules). The flow copies
 [`../../templates/skills/engineering-standards/SKILL.md`](../../templates/skills/engineering-standards/SKILL.md)
-per layer, into the repo's **`.claude/skills/`**, named for the layer so the specialist in
-step 2 can name the file it loads.
+per layer, into the repo's **`.claude/skills/`**. It names each file for its layer, so the
+specialist in step 2 can name the file it loads.
 
 **On day one these are mostly placeholders, and you should expect that.** The flow can fill
-in the language and the layer name and no more — the actual rules are yours to write as you
+in the language and the layer name and no more. The actual rules are yours to write as you
 learn what this codebase gets wrong. They are generated anyway, because the specialist
 loads that file and the alternative is pointing it at one that does not exist.
 
@@ -140,23 +140,23 @@ loads that file and the alternative is pointing it at one that does not exist.
 
 | Not generated | Why |
 |---|---|
-| `CLAUDE.md` | It is the flow's **input**. A flow that generates its own input generates from itself. If it is missing or short a section, the flow **stops**, names what it needs, and points you at [`repo.CLAUDE.md`](../../templates/claude-md/repo.CLAUDE.md) — it does not write the file for you. |
+| `CLAUDE.md` | It is the flow's **input**. A flow that generates its own input generates from itself. If it is missing or short a section, the flow **stops**, names what it needs, and points you at [`repo.CLAUDE.md`](../../templates/claude-md/repo.CLAUDE.md). It does not write the file for you. |
 | Serena setup | Owned by [the bootstrap](../solo/04-the-bootstrap.md), which has its own conditional verdict. Two steps owning one act is one too many. |
 | `commit-conventions` | **Not per-stack.** The branch format, the type/scope rule and the amend-as-you-go loop are identical whatever the language is — one `<scope>` placeholder and a main-branch name. It is a setup-time copy; generating it per repo makes N copies of a workspace-wide convention. |
 
 ### It never overwrites, and it tells you what it did
 
 A re-run creates what is missing and **leaves everything existing alone**. Add a fifth
-layer and you get one specialist and one standards skill; change the test command in
+layer and you get one specialist and one standards skill. Change the test command in
 `CLAUDE.md` and nothing changes automatically.
 
 Diff-and-patch was rejected on purpose. Once real rules are written by hand there is no
 reliable boundary between the template's lines and yours, so a patcher that guesses wrong
-**destroys hand-written standards silently** — the worst failure available here, because
-standards are the thing you would least notice going missing.
+**destroys hand-written standards silently**. That is the worst failure available here,
+because standards are the thing you would least notice going missing.
 
-The honest cost is drift the flow will never fix. So it ends with a report of four rows,
-and — like [the bootstrap's exit test](../solo/04-the-bootstrap.md#the-exit-test) — it
+The honest cost is drift the flow will never fix. So it ends with a report of four rows.
+Like [the bootstrap's exit test](../solo/04-the-bootstrap.md#the-exit-test), it
 **reports every row and classifies nothing**:
 
 | Row | What it means |
@@ -172,9 +172,9 @@ a template fillable is what makes un-filled-ness detectable.**
 ### 4. Wire the order into `/start-ticket`
 
 The planner allocates tracks and the orchestrator dispatches the specialists **in chain
-order**. The template command already does this generically —
-[`../../templates/commands/start-ticket.md`](../../templates/commands/start-ticket.md) — you
-just list your layers.
+order**. The template command
+[`../../templates/commands/start-ticket.md`](../../templates/commands/start-ticket.md)
+already does this generically. You just list your layers.
 
 ---
 
@@ -208,7 +208,7 @@ The first item is yours. The rest are read off the flow's report.
 
 ## Why this doc exists
 
-The flow tells you *what to run*. This tells you *why the output looks like that* — why
+The flow tells you *what to run*. This tells you *why the output looks like that*: why
 `CLAUDE.md` is the only input, why `model:` is usually absent, why a re-run refuses to
 touch what you have written, and why the day-one standards skills are almost empty.
 

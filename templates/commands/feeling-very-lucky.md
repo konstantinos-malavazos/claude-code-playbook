@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Walk the map until it ends. Do not stop for a decision.
 
-**Read [`docs/solo/08-feeling-lucky.md`](../../docs/solo/08-feeling-lucky.md) first — it owns
+**Read [`docs/solo/08-feeling-lucky.md`](../../docs/solo/08-feeling-lucky.md) first. It owns
 the method for both settings.** Then the `charting` skill and your tracker adapter.
 
 **The walk itself is identical to [`/feeling-lucky`](feeling-lucky.md).** Run its steps 0–4
@@ -65,7 +65,7 @@ unaccountable.
 
 **`prototype` still halts, and there is no flag for it.** A grilling can be answered from the
 record, because a record is the kind of thing a decision can be grounded in. *Reacting* is
-not — the reaction **is** the ticket.
+not. The reaction **is** the ticket.
 
 **The breaker and the cap fire here too, deliberately.** This command promises not to stop
 for a decision. It does **not** promise to keep running on a map that is broken or a budget

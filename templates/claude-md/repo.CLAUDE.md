@@ -30,7 +30,7 @@ settled none — empty is a valid answer, not a gap.>
 
 ## Main branch (prod target)
 - This repo ships from **`<main|develop|...>`**. Rebase onto it before cutting a feature
-  branch — the workflow itself is in the global `CLAUDE.md`; this line supplies the name.
+  branch. The workflow itself is in the global `CLAUDE.md`; this line supplies the name.
 - Detect rather than guess: `git symbolic-ref refs/remotes/origin/HEAD`.
 
 ## Serena

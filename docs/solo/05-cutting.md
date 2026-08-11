@@ -5,17 +5,17 @@ arrive holding a **closed map**, a **real repo** that builds and runs, and one p
 report from [the bootstrap](04-the-bootstrap.md) covering seven of the seam's eight items.
 
 The stage answers **cut it into work units the pipeline can run.** It ends when those units
-exist in the tracker, ordered, and **you have approved them** — seam **item 6**, the last one
-to come true — and hands over to [`/start-ticket`](../shared/08-ticket-pipeline.md).
+exist in the tracker, ordered, and **you have approved them**. That is seam **item 6**, the
+last one to come true. Cutting hands over to [`/start-ticket`](../shared/08-ticket-pipeline.md).
 
-The stage is **cutting**. The artifact is **the backlog**. Two names, kept distinct — and
+The stage is **cutting**. The artifact is **the backlog**. Two names, kept distinct, and
 this stage is why the rule is written down. It used to be called *the backlog* and it
 produced *the backlog*, sitting as the last row of a table in
 [the spine](01-the-solo-path.md#the-four-stages) whose very next line forbids exactly that.
 
 You run it with **`/cut-backlog`**, from
 [`templates/skills/cut-backlog/SKILL.md`](../../templates/skills/cut-backlog/SKILL.md).
-That template owns the mechanics; this doc owns *where the units come from and why they are
+That template owns the mechanics. This doc owns *where the units come from and why they are
 shaped this way*.
 
 ---
@@ -30,16 +30,15 @@ shaped this way*.
 | **One report** | Seven of the seam's eight items. [Item 6](01-the-solo-path.md#the-seam--where-the-solo-path-stops) — *the backlog exists* — is the one this stage makes true. |
 
 **Nothing on the map is reopened here.** If cutting turns up a decision that was wrong,
-that is [the backwards step](03-charting.md#one-backwards-step) — one step, deliberately
-taken — not a judgement you make while writing tickets.
+that is [the backwards step](03-charting.md#one-backwards-step): one step, deliberately
+taken. It is not a judgement you make while writing tickets.
 
 ---
 
 ## The units come from the smallest version, not from the decisions
 
 This is the whole stage in one line, and it is the opposite of what the shape suggests. You
-are standing on a pile of resolved decisions, so it looks like the job is converting them
-into work.
+stand on a pile of resolved decisions, so it looks like the job is turning them into work.
 
 **They do not convert.** A decision like *"seam item 4 becomes two branches"* is not
 something anyone can build. The buildable thing was *write the doc*, and that had to be
@@ -53,8 +52,8 @@ The scope was named **three stages earlier**:
 | **The map's decisions** | **How**, and **what not to do**. Constraints on every unit, never units themselves. | Each in its own closed ticket |
 
 That also closes a joint in the path. The gate's first hard kill is *you cannot say what
-the first version is* — and if stage 4 cuts from that sentence, then **stage 4 can only run
-because stage 1 passed.** The hard kill is not a mood about ambition; it is a precondition
+the first version is*. If stage 4 cuts from that sentence, then **stage 4 can only run
+because stage 1 passed.** The hard kill is not a mood about ambition. It is a precondition
 three stages downstream.
 
 **Two sources were considered and rejected**, and it is worth knowing why so you do not
@@ -62,20 +61,20 @@ reinvent them:
 
 | Rejected source | Why |
 |---|---|
-| **The decisions** | Produces a backlog shaped like your *thinking* rather than like the *product* — and tickets nobody can pick up and run. |
+| **The decisions** | Produces a backlog shaped like your *thinking* rather than like the *product*, and tickets nobody can pick up and run. |
 | **A fresh spec** (the [`/to-spec`](../shared/09-decompose-path.md) shape) | After a cleared map a spec is mostly transcription, and it becomes a **second place the decisions live**. |
 
 ---
 
-## One ticket = one thing the app can now do
+## One unit = one thing the app can now do
 
-> **One ticket = one thing the app can now do, all the way through the layers it needs.**
+> **One unit = one thing the app can now do, all the way through the layers it needs.**
 
-Plumbing-only tickets are **forbidden**. *"Set up the SQLite tables"* is not a unit — it
+Plumbing-only tickets are **forbidden**. *"Set up the SQLite tables"* is not a unit. It
 happens **inside** *"add a habit"*, the first unit that needs it.
 
 The reason is verification, not tidiness. A plumbing ticket finishes with **nothing to
-run**, so the two-tier review at the end of [`/start-ticket`](../shared/08-ticket-pipeline.md)
+run**. So the two-tier review at the end of [`/start-ticket`](../shared/08-ticket-pipeline.md)
 has no behaviour to review, and you find out it was wrong two tickets later. This is the
 vertical-slice argument [09-decompose-path.md](../shared/09-decompose-path.md) already makes
 about slices *inside* a ticket, applied one level up to the tickets themselves.
@@ -106,8 +105,8 @@ codebase and the wrong one here, which is why this stage states its own.
 
 ## Dependencies are real, and the ticket body holds the truth
 
-Order is a **fact about the work** — *"tick a habit off"* cannot come before *"add a
-habit"* — so it is written down as a dependency rather than implied by a position in a
+Order is a **fact about the work**. *"tick a habit off"* cannot come before *"add a
+habit"*. So it is written down as a dependency rather than implied by a position in a
 list.
 
 Dependencies show up in three places, and **exactly one of them is the truth**:
@@ -119,9 +118,9 @@ Dependencies show up in three places, and **exactly one of them is the truth**:
 | **A generated HTML view** — [`templates/views/`](../../templates/views/README.md) | **A picture of it.** So trackers with no native edges can still show you where you are. |
 
 The body wins because it is the only one that **needs no per-tracker answer**. Nominating
-the native edge would put the truth somewhere different on GitHub than on local files —
-exactly the branching [`templates/trackers/`](../../templates/trackers/README.md) exists to
-prevent.
+the native edge would put the truth in a different place on GitHub than on local files.
+That is exactly the branching [`templates/trackers/`](../../templates/trackers/README.md)
+exists to prevent.
 
 **A line in a body is normally a stale-data trap, and here it is not.** The map deliberately
 refuses to record blocking that way, because a map's graph churns for weeks as fog clears.
@@ -140,7 +139,7 @@ A backlog differs on both counts:
 Cutting renders the whole backlog as a **board you edit in place** — reorder, merge, split,
 drop, rewrite. When you approve it, **every ticket is created at once.**
 
-The alternative is to create them first and tidy up in the tracker, which means editing a
+The alternative is to create them first and tidy up in the tracker. That means editing a
 dozen real issues one at a time, deleting the ones you did not want, and writing to a shared
 surface before anyone has agreed what belongs on it.
 
@@ -149,7 +148,7 @@ surface before anyone has agreed what belongs on it.
 ## If the session dies mid-board
 
 **You lose the board, and nothing else.** Nothing is in the tracker until you approve, so
-there is no half-created backlog to clean up — which is the failure a create-first stage
+there is no half-created backlog to clean up. That is the failure a create-first stage
 would have handed you instead.
 
 Everything the board was built **from** is permanent, and none of it lives in the session:
@@ -162,12 +161,12 @@ Everything the board was built **from** is permanent, and none of it lives in th
 
 So you re-run **`/cut-backlog`** and it rebuilds. **What you actually pay for is your own
 editing** — the reordering, the merges, the splits, the rewrites — across three to ten
-units. Minutes, not evenings. That is the honest cost, and it is small enough that a draft
-file saved as you go is not worth what it would cost you.
+units. Minutes, not evenings. That is the honest cost. It is small enough that a draft file
+saved as you go is not worth what it would cost you.
 
 **Do not keep a `.claude/backlog-draft.md`.** It outlives the approval it was meant to
-survive, and then there are two backlogs — one in the tracker that is real, one on disk that
-is not, and nothing to say which you are reading.
+survive, and then there are two backlogs: one in the tracker that is real, one on disk that
+is not. Nothing tells you which you are reading.
 
 **A cut that cannot fit one sitting is a finding, not a resume problem.** Three to ten units
 *is* one sitting. If yours is not, that is
@@ -179,13 +178,13 @@ route: **the smallest version grew.** Fix that, not the session length.
 ## The scope check is a trace, not a count
 
 The obvious brake is a number: *more than about ten tickets, go back to the smallest
-version.* It does not work, and why it does not is more useful than the rule that replaces
+version.* It does not work. Why it does not work is more useful than the rule that replaces
 it.
 
 **The count cannot vary for two reasons.** The ticket count *is* the number of things the
 app can do, which is pinned by the smallest-version sentence. Three or four for *"add a
 habit and tick it off each day, on my phone."* To reach twenty you do not need the count to
-drift — **you need the sentence to have grown**, and there is exactly one place it can grow:
+drift. **You need the sentence to have grown.** There is exactly one place it can grow:
 charting, which runs for weeks and settles things like *habits can be archived* that were
 never in the sentence.
 
@@ -221,13 +220,13 @@ strictly worse than the question.
 **into the body**, not behind a link.
 
 **The consumer decides this.** [`08-ticket-pipeline.md`](../shared/08-ticket-pipeline.md)
-is explicit that `@ticket-analyzer` does **no** code or memory lookups — it reads the ticket
+is explicit that `@ticket-analyzer` does **no** code or memory lookups. It reads the ticket
 and nothing else. A link to decision #7 is a door the first agent in the pipeline never
 opens.
 
-Copying normally means drift, and here it cannot: **the map is closed and frozen before this
+Copying normally means drift, and here it cannot. **The map is closed and frozen before this
 stage runs**, so only one of the two copies can still change. That is the rule worth
-carrying — *duplication is dangerous when both copies can change*, not merely because there
+carrying: *duplication is dangerous when both copies can change*, not merely because there
 are two of them.
 
 ### And a *Where this came from* section at the bottom
@@ -244,8 +243,7 @@ Where this came from
 
 Only the decisions constraining **this** ticket. Without it a copied constraint is
 **unfalsifiable**: six weeks later *"Storage: SQLite"* is either a decision or a typo, and
-nothing on the page tells you which. This is what makes the copy safe rather than merely
-convenient.
+nothing on the page tells you which. That is what makes the copy safe, not merely convenient.
 
 **At the bottom**, below the working content, because the analyzer parses the top.
 
@@ -256,13 +254,13 @@ convenient.
 They are ordinary issues sitting **beside** the map, not under it.
 
 Charting's frontier query asks the tracker *which children of #1 are open?* If work units
-are children, that query starts returning **jobs** — and charting only knows how to resolve
+are children, that query starts returning **jobs**, and charting only knows how to resolve
 **questions**. A closed map with a dozen open children also reads, correctly, as a map that
 never finished.
 
-They still came from the map, and that has to be recoverable — so each body carries the one
-line **`From map #1`** and no parent link. The history survives; the map's tooling does not
-see them.
+They still came from the map, and that has to be recoverable. So each body carries the one
+line **`From map #1`** and no parent link. The history survives, and the map's tooling does
+not see them.
 
 ---
 
@@ -326,13 +324,13 @@ weeks of decisions and wondering what to do with them:
 - **The decisions are not the source of the work.** The smallest version is, and it was
   written three stages ago, before any of this existed.
 - **The size bar the rest of the playbook uses does not apply here**, and it fails in a way
-  that is invisible — it says *yes* to everything on a day-one repo.
+  that is invisible: it says *yes* to everything on a day-one repo.
 - **Dependencies live in the ticket body**, which everywhere else in this playbook would be
   a stale-data trap, and here is not.
-- **The scope check is a trace, not a count** — and the trace names the ticket that is
-  wrong, which is the thing a count never can.
+- **The scope check is a trace, not a count.** The trace names the ticket that is wrong,
+  which is the thing a count never can.
 - **Nothing is created until you approve the board**, because a tracker is a bad place to
-  change your mind — which is also why losing the board costs so little.
+  change your mind. That is also why losing the board costs so little.
 
 Read this before your first cut. Read [01-the-solo-path.md](01-the-solo-path.md) for the
 seam it completes, and [04-the-bootstrap.md](04-the-bootstrap.md) for the repo it is

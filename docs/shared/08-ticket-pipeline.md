@@ -1,6 +1,6 @@
 # 08 — The `/start-ticket` pipeline, step by step
 
-This is the flagship flow generalized. The tracker is never named — the installed adapter
+This is the flagship flow generalized. The tracker is never named. The installed adapter
 at `~/.claude/tracker.md` answers for it (see
 [`../../templates/trackers/README.md`](../../templates/trackers/README.md)). Substitute
 your layer specialists for the implementer steps, and your git host for "MR/PR".
@@ -24,7 +24,7 @@ Handoffs live in `<workspace>/.claude/handoffs/<TICKET>/` and evaporate at sessi
 
 Every step from 2 onward is bound by the same rule: **Serena is the only sanctioned way
 to read code, and the only sanctioned way to change it** (see
-[04](04-serena.md#mandatory-not-preferred)). Steps 2, 3, 5 and 6 read through it; step 4
+[04](04-serena.md#mandatory-not-preferred)). Steps 2, 3, 5 and 6 read through it. Step 4
 *writes* through it.
 
 ---
@@ -32,35 +32,34 @@ to read code, and the only sanctioned way to change it** (see
 ## Step 1 — Analyze (`@ticket-analyzer`)
 
 Fetch the ticket, parse summary + acceptance criteria + any linked spec. Write a
-structured brief. **No** code or memory lookups here — that's the gatherer's job, scoped
+structured brief. **No** code or memory lookups here. That's the gatherer's job, scoped
 to the terms this brief surfaces. Keeping analysis separate keeps each context focused.
 
 ## Step 2 — Gather context (`@context-gatherer`)
 
 The expensive step, done in a **throwaway context**. Query memory for everything related
-to the topic/component; use Serena (`find_symbol`, `find_referencing_symbols`) to map the
-blast radius (who consumes the thing you're about to change) — semantically, not by grep.
-First-pass detection of coupling and stale wiring. Distil it
-all into `context-gatherer.md` — the planner reads only this, not the raw sweep.
+to the topic/component. Use Serena (`find_symbol`, `find_referencing_symbols`) to map the
+blast radius (who consumes the thing you're about to change), semantically, not by grep.
+First-pass detection of coupling and stale wiring. Distil it all into
+`context-gatherer.md`. The planner reads only this, not the raw sweep.
 
 ## Step 3 — Plan (`@planner`)
 
-Consume both briefs. Do pinpoint Serena reads to finalize the design. Produce a
-step-by-step plan with **Serena-verified file/symbol targets** and a **risk assessment**, allocate work
-to layer specialists in chain order, decide **slice-count** (1 = sequential;
->1 = decompose — see [09](09-decompose-path.md)), write the **final commit message**, and
-create the feature branch (following the new-branch workflow in the global `CLAUDE.md`,
-onto the branch this repo ships from). The planner
-**cannot** write to memory — design only.
+Consume both briefs. Do pinpoint Serena reads to finalize the design. Produce a step-by-step
+plan with **Serena-verified file/symbol targets** and a **risk assessment**. Allocate work to
+layer specialists in chain order. Decide the **slice-count** (1 = sequential; >1 = decompose —
+see [09](09-decompose-path.md)). Write the **final commit message**. Then create the feature
+branch (following the new-branch workflow in the global `CLAUDE.md`, onto the branch this
+repo ships from). The planner **cannot** write to memory — design only.
 
 ## Step 3b — Grilling gate (human)
 
 Before implementation, the planner surfaces only what the **code and briefs cannot
-answer** — genuine product/spec decisions. For each, you either answer or **defer**, and a
-deferral has to be managed rather than forgotten before the planner may proceed.
-[`templates/skills/grilling/`](../../templates/skills/grilling/SKILL.md) owns what that
-requires — including recording the open question in the durable ticket state, which is how
-`/resume-ticket` picks it up when the answer arrives.
+answer**, which means genuine product/spec decisions. For each, you either answer or
+**defer**. A deferral has to be managed rather than forgotten before the planner may
+proceed. [`templates/skills/grilling/`](../../templates/skills/grilling/SKILL.md) owns what
+that requires, including recording the open question in the durable ticket state. That is
+how `/resume-ticket` picks it up when the answer arrives.
 
 ## Step 4 — Implement (layer specialists, in chain order)
 
@@ -74,8 +73,8 @@ Implementation is **Serena-only**: read the target symbol with `find_symbol` and
 callers with `find_referencing_symbols`, change it with `replace_symbol_body` /
 `insert_after_symbol` / `rename_symbol` / `safe_delete_symbol`, then clear
 `get_diagnostics_for_file` on every file touched *before* the build. `Edit`/`Write` on
-code are reserved for languages Serena doesn't index — and if Serena can't act on an
-assigned file, the specialist **stops and surfaces it** rather than downgrading.
+code are reserved for languages Serena doesn't index. If Serena can't act on an assigned
+file, the specialist **stops and surfaces it** rather than downgrading.
 
 ## Step 5 — Review (`@repo-reviewer`)
 
@@ -87,7 +86,7 @@ Comments only — never edits code.
 ## Step 6 — Release review (`@release-reviewer`)
 
 Cross-repo blast radius: contract/payload coupling, downstream consumers, schema
-collisions, anything the in-repo view can't see. Appends findings; the first reviewer
+collisions, anything the in-repo view can't see. Appends findings. The first reviewer
 consolidates them into the **final verdict**.
 
 ## Step 7 — Land
@@ -96,8 +95,8 @@ consolidates them into the **final verdict**.
 - **APPROVE** → consolidate the ticket's handoffs into **one durable memory** (root
   cause / design / blast radius / recipes), then **the agent pushes the branch** where
   `~/.claude/repo-allowlist` permits it and the **human opens the MR/PR**. The agent never
-  merges — push moves a branch, merge changes the trunk, and only the second one is the
-  step this pipeline keeps for a person.
+  merges. Push moves a branch. Merge changes the trunk. Only the second one is the step
+  this pipeline keeps for a person.
 
 ---
 

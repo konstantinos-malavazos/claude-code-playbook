@@ -1,15 +1,15 @@
 # 05 — Forgetful: a memory that survives (pillar two)
 
-**What it is:** a self-hosted, persistent semantic memory. Conclusions are stored as
-linked **memories** and retrieved by *meaning*, not keyword. Knowledge persists across
-sessions, machines, and weeks.
+**What it is:** a self-hosted, persistent semantic memory. It stores conclusions as
+linked **memories** and retrieves them by *meaning*, not keyword. Knowledge persists
+across sessions, machines, and weeks.
 
 Forgetful is open-source, ships a PostgreSQL + pgvector backend, speaks HTTP, and can
-embed locally — so memory content never has to leave the host, which matters in a
+embed locally. So memory content never has to leave the host, which matters in a
 regulated or privacy-sensitive environment.
 
 > Any semantic-memory MCP with create/query/link works here. This playbook uses Forgetful
-> as the reference implementation; the *pattern* is what matters.
+> as the reference implementation. The *pattern* is what matters.
 
 ---
 
@@ -47,15 +47,15 @@ Keep memories **atomic and tagged**:
 
 - **One fact/conclusion per memory**, with a short title and a body that states *what*
   and *why*.
-- **Tags by functionality**, not by ticket id — you'll search by topic/symbol/component
+- **Tags by functionality**, not by ticket id. You'll search by topic/symbol/component
   later, never by ticket number. (Put the ticket id in the body if you want provenance.)
 - **Links** between related memories, so one query returns the whole chain (root cause →
   fix → blast radius → test recipe).
 - A **confidence** and a **validated** marker where relevant (e.g. a test recipe that's
   "provisional" until a real staging run flips it to "validated").
 
-Your memory server will have its own exact call shape and field limits — capture those
-in a `memory-schema` skill so the agent uses the right shape and stops inventing fields.
+Your memory server has its own exact call shape and field limits. Capture those in a
+`memory-schema` skill, so the agent uses the right shape and stops inventing fields.
 See [`../../templates/skills/`](../../templates/skills/).
 
 ---
@@ -72,7 +72,7 @@ See [`../../templates/skills/`](../../templates/skills/).
 - **`/garden-memory`** periodically evaluates retrieval quality and prunes cruft.
 
 Config snippet: [`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet)
-— paste it as-is; what each entry means is in
+— paste it as-is. What each entry means is in
 [`../../templates/mcp/README.md`](../../templates/mcp/README.md).
 
 ---
@@ -82,11 +82,11 @@ Config snippet: [`../../templates/mcp/global.claude.json.snippet`](../../templat
 See [02-team-adoption.md](../team/02-team-adoption.md) for the team-wide governance discussion.
 
 Per-developer memory compounds for one person. The obvious next step is **one shared
-memory** the whole team contributes to and queries — a bug root-caused once becomes
-queryable by everyone, forever. That's feasible (Forgetful is built as a shared
-knowledge base) but the real gate is **governance**, not throughput: a shared store needs
+memory** the whole team contributes to and queries. A bug root-caused once becomes
+queryable by everyone, forever. That is feasible: Forgetful is built as a shared
+knowledge base. But the real gate is **governance**, not throughput. A shared store needs
 access gating, a strict **no-secrets / no-raw-PII** contribution policy, hosting on
-approved infrastructure, and a data-protection review before launch. Start personal;
-graduate to shared once the policy is in place.
+approved infrastructure, and a data-protection review before launch. Start personal.
+Graduate to shared once the policy is in place.
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

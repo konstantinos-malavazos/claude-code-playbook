@@ -20,7 +20,7 @@ one back.
 **One repo is the default, not the only case.** An effort with no single owning repo — a map
 spanning several, as in [03-massive-tickets.md](../../docs/team/03-massive-tickets.md) —
 has no repo to write into and no `.gitignore` to edit. There the page lands beside the chart
-wherever the [tracker adapter](../trackers/README.md) puts it, and the two `.gitignore` rules
+wherever the [tracker adapter](../trackers/README.md) puts it. The two `.gitignore` rules
 below simply do not apply. Absent that, use the row above.
 
 ## Why this directory is called `views`
@@ -29,7 +29,7 @@ Every other directory here is named for **what the harness turns the file into**
 `agents/`, `hooks/`, `skills/`, `commands/`. Nothing turns a view into anything. It is
 named for what it *is* to the reader, because that is the only role it has.
 
-It is deliberately **not** in `skills/`. A skill is a recipe Claude loads; this is a
+It is deliberately **not** in `skills/`. A skill is a recipe Claude loads. This is a
 ~550-line artifact a skill copies without reading. Filing it under `skills/` would put it
 in the loading path of a context that has no use for it.
 
@@ -55,11 +55,11 @@ tracker.
 | **Blocked** | dashed red | open, but something before it is not done |
 | **Closed** | thin grey, and smaller | done |
 
-Four **outlines**, not four colours — thick / dotted / dashed / thin-and-small keeps the
+Four **outlines**, not four colours: thick / dotted / dashed / thin-and-small keeps the
 states apart in greyscale and for a colourblind reader.
 
 **Closed tickets stay on the picture.** A graph with the finished work deleted shows *that*
-a ticket is takeable but not *why*, and the arrows that explain it point at nothing.
+a ticket is takeable but not *why*. The arrows that explain it point at nothing.
 
 **Arrows run blocker → blocked**, so following one reads *"this first, then that."*
 Columns are ranks: everything in the first column has nothing before it.
@@ -71,35 +71,35 @@ rather than partial.
 
 **Clicking a box opens the body and every comment**, embedded. On a closed ticket the body
 is the *question* and the answer is in a comment — measured on one real ticket, 2,224
-characters of question against 14,193 of answer — so a page that showed the body alone
+characters of question against 14,193 of answer. So a page that showed the body alone
 would hand back the half you already had. Every comment, never a heuristic guess at which
 one is the resolution.
 
 ### Where it lands, and when
 
 **`.claude/` in the repo being worked on, at a fixed filename.** `block-infra-staging.sh`
-refusing to stage it is the enforcement, not an obstacle — a generated view must never be
-committed. **The reader is what settles that**: this page is for **you**, it needs a browser,
+refusing to stage it is the enforcement, not an obstacle. A generated view must never be
+committed. **The reader is what settles that**: this page is for you, it needs a browser,
 and an agent gains nothing from parsing HTML. Nothing downstream reads it, so a committed
 copy would be stale weight in the history rather than a record anyone wanted.
 
 **Whatever generates it also ensures `.claude/` is in the repo's `.gitignore` — with
-`!.claude/agents/` and `!.claude/skills/` beside it.** The hook stops the file entering git;
-nothing stops it showing as untracked noise, and **nothing else adds that line during
-charting** — `/adapt-to-stack` patches the exceptions onto an existing line, but that runs at
+`!.claude/agents/` and `!.claude/skills/` beside it.** The hook stops the file entering git.
+Nothing stops it showing as untracked noise, and **nothing else adds that line during
+charting**: `/adapt-to-stack` patches the exceptions onto an existing line, but that runs at
 the bootstrap. On the solo path this page cannot wait for it: the page runs during charting, a
 full stage earlier, when the repo exists but has not been scaffolded. On a mature repo the
-line is usually already there — *usually* is not *always*, so check rather than assume.
+line is usually already there. *Usually* is not *always*, so check rather than assume.
 
-**The exceptions are not optional, and forgetting them is silent.** `block-infra-staging.sh`
-lets `.claude/agents/` and `.claude/skills/` through because a fresh clone needs them; a
+**The exceptions are not optional. Forgetting them is silent.** `block-infra-staging.sh`
+lets `.claude/agents/` and `.claude/skills/` through because a fresh clone needs them. A
 blanket ignore line hides those files from `git add` anyway. **Two mechanisms, one
 directory** — the hook blocks the *command*, `.gitignore` makes the file invisible to it —
 and moving one without the other buys nothing. See
 [`docs/solo/07-guardrails-when-solo.md`](../../docs/solo/07-guardrails-when-solo.md).
 
 **One command regenerates *and* opens.** There is no separate view step, so staleness stops
-being something to manage — looking at it *is* regenerating it. Deliberately **not**
+being something to manage. Looking at it *is* regenerating it. Deliberately **not**
 regenerated on ticket-close: auto-regeneration gives you a file that is *sometimes* fresh,
 which you end up trusting neither way. One rule you can hold: **it is current if you just
 ran it.** The visible *generated at* stamp closes the gap for a browser-refreshed copy.
@@ -107,7 +107,7 @@ ran it.** The visible *generated at* stamp closes the gap for a browser-refreshe
 ## Filling the slot
 
 The recipe lives in the comment at the top of `dependency-graph.html`, so it travels with
-the installed copy — `templates/` is not installed anywhere. Two rules the generator must
+the installed copy. `templates/` is not installed anywhere. Two rules the generator must
 follow, both of which fail silently:
 
 - **Escape `</` as `<\/` in the JSON.** A ticket body containing the literal text
@@ -116,20 +116,20 @@ follow, both of which fail silently:
 - **Emit every comment.** See above.
 
 **Each blocker carries its own state — `{"number": 36, "state": "open"}`, not `36`.** The
-page cannot look it up. It used to try, and on a **map** that worked by accident: every
+page cannot look it up. It used to try. On a **map** that worked by accident: every
 blocker of a child is another child, so the blocker was always in the picture. A **backlog**
-is a named set of tickets, its blockers can sit outside it, the lookup missed, and a
+is a named set of tickets. Its blockers can sit outside it. The lookup missed, and a
 ticket whose last blocker had closed was drawn **blocked** — a red box on the very ticket
 the picture exists to surface as takeable. So the edge now carries the answer, which is
 what the [tracker contract](../trackers/README.md) demands of *is this blocked?* anyway. A
-bare number stops the page with a message; it does not draw a wrong picture.
+bare number stops the page with a message. It does not draw a wrong picture.
 
 ## What this directory claims
 
 `templates/README.md` says every file there is a claim about the **harness**. This one is
 not. It claims a **browser** will open a ~480 KB self-contained page and that four box
 states stay apart at 35 boxes — which is checkable in the only way that counts: open it.
-The harness re-verification checklist does not apply here; nothing in this file has
+The harness re-verification checklist does not apply here. Nothing in this file has
 frontmatter, a matcher, or a tool name.
 
 Verified live on a 35-ticket map: page 480 KB, 48 embedded comments, one `gh api graphql`

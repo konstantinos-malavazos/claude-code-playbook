@@ -1,9 +1,9 @@
 # 06 — The CLAUDE.md layers
 
 `CLAUDE.md` is the always-on instruction file Claude Code loads automatically. Its power
-is that it comes in **layers** that stack via a parent-directory walk: Claude loads
+is that it comes in **layers** that stack via a parent-directory walk. Claude loads
 *every* `CLAUDE.md` from your home directory down to the folder you are working in. Each
-layer answers a different question — and **how many layers you get is not fixed**.
+layer answers a different question, and **how many layers you get is not fixed**.
 
 > This playbook gives you the **idea and structure** of each layer as templates in
 > [`../../templates/claude-md/`](../../templates/claude-md/) — not one team's content. Fill in
@@ -43,13 +43,13 @@ they share:
            (loaded only in that repo)
 ```
 
-They **compose**. The global file never repeats a codebase fact; where a workspace file
-exists, it never repeats a repo fact. Each fact lives in exactly one layer — the most
+They **compose**. The global file never repeats a codebase fact. Where a workspace file
+exists, it never repeats a repo fact. Each fact lives in exactly one layer: the most
 specific one that's still always true.
 
 **The numbers below name the three files, not a count.** Layer 2 is the one that comes
-and goes; layers 1 and 3 are always there. On the [solo path](../solo/01-the-solo-path.md)
-you get the two-layer shape — [the bootstrap](../solo/04-the-bootstrap.md) writes exactly
+and goes. Layers 1 and 3 are always there. On the [solo path](../solo/01-the-solo-path.md)
+you get the two-layer shape. [The bootstrap](../solo/04-the-bootstrap.md) writes exactly
 one `CLAUDE.md`, the repo's own, and that is not an omission.
 
 ---
@@ -88,8 +88,8 @@ Template: [`../../templates/claude-md/global.CLAUDE.md`](../../templates/claude-
 it?*
 
 **Skip this layer entirely if you have one repo.** Every item below is a fact *about the
-plurality*: with one repo each one either evaporates or belongs to a neighbouring layer,
-and a file that exists to say *"there is one repo"* is a file an agent loads for nothing.
+plurality*. With one repo each one either evaporates or belongs to a neighbouring layer.
+A file that exists to say *"there is one repo"* is a file an agent loads for nothing.
 
 If your work spans several repositories checked out side-by-side, this is the **map**.
 It's auto-loaded for *any* repo under the workspace via the parent-directory walk, so
@@ -98,7 +98,7 @@ it's the natural home for cross-repo facts:
 - **Repo map** — a table: path · stack · purpose · which specialist agent owns it.
 - **Main-branch-per-repo table** — the branch each repo ships to production from. This is
   an **index, not the owner**: each repo also states its own in layer 3. It earns its
-  place on a need one repo does not have — working in `recipes-api/`, you may need what
+  place on a need one repo does not have. Working in `recipes-api/`, you may need what
   `recipes-web/` ships from, and *that* repo's `CLAUDE.md` is not loaded.
 - **The sequential implementation chain** — the canonical order a multi-repo change
   follows (your `schema → service → consumer` equivalent). With one repo the chain is
@@ -107,7 +107,7 @@ it's the natural home for cross-repo facts:
 - **Cross-repo rules** — when cross-repo edits are allowed, how to widen scope.
 
 The **new-branch workflow** is not here. The sequence is identical in every repo, so it
-lives once in layer 1; this file supplies only the branch name it checks out.
+lives once in layer 1. This file supplies only the branch name it checks out.
 
 Template: [`../../templates/claude-md/workspace.CLAUDE.md`](../../templates/claude-md/workspace.CLAUDE.md)
 
@@ -123,7 +123,7 @@ anywhere else:
 - The repo's stack, entry points, and build/test commands.
 - **The branch this repo ships from** — the prod target you rebase onto before cutting a
   feature branch. It is a fact about this codebase, so this is where it lives, whichever
-  shape you are in. (With sibling repos the workspace table indexes it too; see rule 5 —
+  shape you are in. (With sibling repos the workspace table indexes it too. See rule 5:
   an index is not a second owner.)
 - **The names this project settled** — the ones that are contested, or that a newcomer
   would read wrong. A glossary is a canonical mapping, so rule 5 below already puts it in
@@ -134,7 +134,7 @@ anywhere else:
 - Where the important code lives (a pointer, not a paste — let Serena find the details).
 
 Keep it **lean**. A per-repo CLAUDE.md that restates the whole architecture is a
-maintenance liability; it should be the 20 facts that save the agent a wrong turn.
+maintenance liability. It should be the 20 facts that stop a wrong turn.
 
 Template: [`../../templates/claude-md/repo.CLAUDE.md`](../../templates/claude-md/repo.CLAUDE.md)
 
@@ -146,12 +146,12 @@ Template: [`../../templates/claude-md/repo.CLAUDE.md`](../../templates/claude-md
    CLAUDE.md and the workspace CLAUDE.md disagree, you have a bug. (An *index* is the one
    exception, and it is bounded by rule 5.)
 2. **Most-specific-that's-always-true.** A fact goes in the lowest layer where it's
-   *always* true — and *lowest* depends on how many repos you have. "We rebase, never
+   *always* true, and *lowest* depends on how many repos you have. "We rebase, never
    merge" is behaviour, so it is global in both shapes. "This repo ships from `develop`"
-   is a fact about a codebase, so it is **per-repo** — on sibling repos the workspace
+   is a fact about a codebase, so it is **per-repo**. On sibling repos the workspace
    atlas also indexes it, which is not the same as owning it. "This service's consumer is
    repo Y" is per-repo. "Which repos exist" only has a home when there is more than one.
-3. **Point, don't paste.** CLAUDE.md is not documentation of the codebase — that's what
+3. **Point, don't paste.** CLAUDE.md is not documentation of the codebase. That's what
    Serena + Forgetful are for. It's the small set of always-true policies and pointers.
 4. **Never commit personal AI-infra CLAUDE.md into a shared product repo** unless the
    team has agreed it's shared guidance. Your personal global file certainly doesn't

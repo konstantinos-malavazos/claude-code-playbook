@@ -10,7 +10,7 @@ disable-model-invocation: true
 # To questionnaire — pull the answer out of the person who has it
 
 The fourth kind of open question. `research` reads documents, `grilling` asks the human in
-the room, `task` gets someone to *do* something — this one asks someone what they **know**.
+the room, `task` gets someone to *do* something. This one asks someone what they **know**.
 
 > Prior art: Matt Pocock's `to-questionnaire` skill (MIT). Re-derivation: same three steps
 > and document shape, with the repo's own file convention instead of a fixed path.
@@ -18,7 +18,7 @@ the room, `task` gets someone to *do* something — this one asks someone what t
 ## Grill the send, not the subject
 
 Interview the user about the **send** only — who it goes to, and what they need back. They
-can always answer that. They cannot answer the subject; that is why there is a questionnaire.
+can always answer that. They cannot answer the subject. That is why there is a questionnaire.
 
 1. **Who is it going to?** One exchange: the recipient's role, what they know, their
    relationship to the user. This sets the tone and how much context the document carries.
@@ -33,13 +33,13 @@ and padding is what makes a recipient skim.
 
 **Match whatever convention the repo already uses for notes**, the same rule
 [`research`](../research/SKILL.md) follows. If there is none, put it beside the ticket's
-handoffs. Name the path in your report either way — a questionnaire nobody can find was not
+handoffs. Name the path in your report either way. A questionnaire nobody can find was not
 written.
 
 ## The document
 
-Order questions **most-important-first** — async means you may get only one pass. Group them
-under `##` themes once there are more than a handful.
+Order questions **most-important-first**, because async means you may get only one pass.
+Group them under `##` themes once there are more than a handful.
 
 ```markdown
 # <Title>
@@ -67,7 +67,7 @@ _Why this matters: <one line, only where the question could be misread.>_
 Anything we did not ask that we should know?
 ```
 
-The `>` under each question is the answer stub. Leave it empty — a recipient types into it.
+The `>` under each question is the answer stub. Leave it empty. A recipient types into it.
 
 ## Stop condition
 

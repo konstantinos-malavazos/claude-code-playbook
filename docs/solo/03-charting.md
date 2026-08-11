@@ -2,7 +2,7 @@
 
 Charting is **stage 2** of the [solo path](01-the-solo-path.md). You arrive holding a
 *build* verdict, a private repo the [kill gate](02-the-kill-gate.md) created, and a map
-sitting in that repo as issue #1 — and almost nothing else that is actually settled.
+sitting in that repo as issue #1. Almost nothing else is settled yet.
 
 The stage answers **what are we building, and on what?** It ends when nothing is left to
 decide, and hands over to [the bootstrap](04-the-bootstrap.md).
@@ -12,15 +12,15 @@ you can never say which one you mean.
 
 You run it with **`/charting`**, from
 [`templates/skills/charting/SKILL.md`](../../templates/skills/charting/SKILL.md). That
-template owns the mechanics and this doc does not repeat them. What it deliberately does
-**not** know is the one thing this doc supplies: where the solo path is going.
+template owns the mechanics and this doc does not repeat them. The template deliberately
+does **not** know where the solo path is going. That is the one thing this doc supplies.
 
 ---
 
 ## The destination you hand it
 
 `/charting` is general. It charts a docs effort or a data migration as readily as a
-product, so the destination is an **input** — supplied once, at the start, and every
+product. So the destination is an **input**: you supply it once, at the start, and every
 session orients to it before choosing a ticket.
 
 On the solo path the destination is always the same:
@@ -28,11 +28,11 @@ On the solo path the destination is always the same:
 > **A backlog of work units on a scaffolded repo that passes the seam.**
 
 The seam is the eight checks in
-[the spine doc](01-the-solo-path.md#the-seam--where-the-solo-path-stops); it owns them in
-full and this doc does not restate them.
+[the spine doc](01-the-solo-path.md#the-seam--where-the-solo-path-stops). That doc owns
+them in full, and this one does not restate them.
 
-That is where the *solo path* ends. It is **not** where *charting* ends, and confusing the
-two is the single easiest way to lose this stage.
+That is where the *solo path* ends. It is **not** where *charting* ends. Confusing the two
+is the easiest way to lose this stage.
 
 | What the destination might suggest | What charting actually does |
 |---|---|
@@ -40,9 +40,9 @@ two is the single easiest way to lose this stage.
 | Charting scaffolds the repo | Scaffolding is **stage 3**. Charting decides what to scaffold. |
 | Charting stops when the repo is real | Charting stops when **nothing is left to decide** before stages 3 and 4 can run. |
 
-The destination is the horizon every ticket is aimed at. It fixes the scope — anything
-past it is out of scope, and on this path *"past it"* means deployment, hosting, and
-release. Charting itself stops well short of the horizon, at the last decision.
+The destination is the horizon every ticket is aimed at. It fixes the scope: anything past
+it is out of scope. On this path *"past it"* means deployment, hosting, and release.
+Charting itself stops well short of the horizon, at the last decision.
 
 ---
 
@@ -50,7 +50,7 @@ release. Charting itself stops well short of the horizon, at the last decision.
 
 The map is a single issue on the repo's tracker — issue #1, created by the gate. Its
 tickets are its child issues, one question each, sized to a single agent session. The map
-is an **index, not a store**: a decision lives in exactly one place, its own ticket, and
+is an **index, not a store**. A decision lives in exactly one place, its own ticket, and
 the map only gists it and links to it.
 
 You never talk to the tracker directly. Charting states an intent — *create*, *close*,
@@ -66,13 +66,13 @@ flows it eventually hands off to.
 
 ## What a session feels like
 
-**One ticket per session.** Not a rule about tidiness — a ticket is *sized* to a fresh
-context window, and two tickets in one session means the second one runs on the remains of
-the first.
+**One ticket per session.** This is not a rule about tidiness. A ticket is *sized* to a
+fresh context window, so two tickets in one session means the second one runs on the
+remains of the first.
 
 | Step | What you do |
 |---|---|
-| 1 | Open the map. The low-resolution view — destination, notes, what is already decided. Not every ticket body. |
+| 1 | Open the map. Read the low-resolution view: destination, notes, what is already decided. Not every ticket body. |
 | 2 | Take a ticket from **the frontier** — the open, unblocked, unclaimed ones. Claim it before any work. |
 | 3 | Resolve it. Usually a [`/grilling`](../../templates/skills/grilling/SKILL.md) conversation, one question at a time. Sometimes a [`/research`](../../templates/skills/research/SKILL.md) subagent, sometimes a [`/prototype`](../../templates/skills/prototype/SKILL.md) you react to, sometimes manual work. |
 | 4 | Post the answer as a resolution comment, **gist first**, and close the ticket. |
@@ -82,56 +82,56 @@ Step 5 is the one that feels like nothing and is actually the stage working. See
 [fog of war](#fog-of-war) below.
 
 **If your tracker cannot draw the map, ask for the picture.** Native blocking edges are a
-GitHub-only luxury, so everywhere else *what is takeable now* is a question you answer by
+GitHub-only luxury. Everywhere else, *what is takeable now* is a question you answer by
 reading a list. One command fills
-[a shipped HTML page](../../templates/views/README.md) with the whole graph and opens it —
-one box per ticket, the frontier the only thing highlighted, and a click on any closed box
-gives you its answer. It is generated on demand and never committed; it is current if you
-just ran it.
+[a shipped HTML page](../../templates/views/README.md) with the whole graph and opens it.
+The page draws one box per ticket, highlights the frontier and nothing else, and gives you
+the answer behind any closed box you click. It is generated on demand and never committed,
+so it is current if you just ran it.
 
 **The gist line is not a formality.** Every resolution comment opens with a one-line
-summary, because the map's decision list is rebuilt from those first lines rather than
-hand-maintained. Skip it once and regeneration stops being mechanical.
+summary. The map's decision list is rebuilt from those first lines rather than kept up by
+hand. Skip it once and regeneration stops being mechanical.
 
 **A session that runs out before the ticket does** posts a progress comment and keeps the
-claim. Nothing is lost and nothing is jammed — the claim was never a lock. **That comment is
-the whole of resuming here**: next session you open the ticket and read it. Nothing else is
-stored, on this stage or any other — see
+claim. Nothing is lost and nothing is jammed, because the claim was never a lock. **That
+comment is the whole of resuming here.** Next session you open the ticket and read it.
+Nothing else is stored, on this stage or any other. See
 [the spine](01-the-solo-path.md#which-stage-are-you-standing-in).
 
 [../team/03-massive-tickets.md](../team/03-massive-tickets.md) runs this same skill against an
-existing multi-repo codebase, and it is worth reading for **how a map behaves over weeks** —
-the three endings, what the map never caches, and the two ways it fails silently. **Its
-commands are not yours to run.** They are bound to a chart folder under
-`<workspace>/.claude/charts/` and dispatch `/build-chart-ticket`, and neither exists on the
-solo path: your map is issue #1 on the tracker, and you walk it with `/charting`, every
-session. That page sits under `team/` for the same reason — the three commands are team-only.
+existing multi-repo codebase. Read it for **how a map behaves over weeks**: the three endings,
+what the map never caches, and the two ways it fails silently. **Its commands are not yours
+to run.** They are bound to a chart folder under `<workspace>/.claude/charts/` and they
+dispatch `/build-chart-ticket`. Neither exists on the solo path. Your map is issue #1 on the
+tracker, and you walk it with `/charting`, every session. That page sits under `team/` for
+the same reason: the three commands are team-only.
 
-**The skill is not, and that matters later than this stage.** Once you are past
+**The skill is not team-only, and that matters later than this stage.** Once you are past
 [the seam](01-the-solo-path.md#the-seam--where-the-solo-path-stops) your repo stops being
-greenfield, and the next foggy effort you hit is the case that page describes — a clear
+greenfield. The next foggy effort you hit is the case that page describes: a clear
 destination and no visible route, on a codebase that already exists. **You chart it the same
 way you charted this one:** `/charting`, your own tracker, one ticket per session, each make
 handed to [`/start-ticket`](../shared/08-ticket-pipeline.md) rather than to
-`/build-chart-ticket`. Read that page for the map's long-run behaviour; ignore its three
+`/build-chart-ticket`. Read that page for the map's long-run behaviour, and ignore its three
 commands. Nothing about fog is team-only.
 
 **Every session, unless you hand the walk to a loop.**
-[08-feeling-lucky.md](08-feeling-lucky.md) drives this stage unattended and answers
+[08-feeling-lucky.md](08-feeling-lucky.md) drives this stage unattended. It answers
 `grilling` tickets with an agent that must declare a basis for every answer — `grounded`,
-`guessed`, or `yours` — and stops at the ones you cannot take back. It needs your tickets to
-be files on disk, and it always stops at [the tail](#the-tail). It is a mode over *this*
-stage, not a fifth stage, and it changes nothing on this page except who is sitting there.
+`guessed`, or `yours` — and it stops at the ones you cannot take back. It needs your tickets
+to be files on disk, and it always stops at [the tail](#the-tail). It is a mode over *this*
+stage, not a fifth stage. It changes nothing on this page except who is sitting there.
 
 ---
 
 ## Fog of war
 
-You cannot chart what you cannot yet see, and pretending otherwise produces a map full of
+You cannot chart what you cannot yet see. Pretend otherwise and you get a map full of
 tickets that turn out to be wrong. So the map is **deliberately incomplete**. Beyond the
 live tickets sits the fog: decisions you can tell are coming but cannot yet phrase.
 
-The test is whether you can **state the question precisely now** — not whether you can
+The test is whether you can **state the question precisely now**. It is not whether you can
 answer it now.
 
 | | Where it goes |
@@ -140,12 +140,13 @@ answer it now.
 | You can see something is there, but not what it is asking | **Not yet specified**, on the map |
 | It sits past the destination | **Out of scope**, on the map — it never graduates |
 
-Resolving a ticket clears the fog ahead of it. Whatever just became sharp graduates into
-new tickets, and the patch it came from is deleted, so it lives in exactly one place.
+Resolving a ticket clears the fog ahead of it. Whatever just became sharp graduates into new
+tickets. The patch it came from is deleted, so it lives in exactly one place.
 
-Expect the map to **grow** for the first several sessions. That is not scope creep; it is
-the fog thinning. Charting is over when the map stops growing and the last ticket closes — **not** when the
-frontier empties, which is also what a [stalled map](#three-endings) looks like.
+Expect the map to **grow** for the first several sessions. That is not scope creep. It is
+the fog thinning. Charting is over when the map stops growing and the last ticket closes. It
+is **not** over when the frontier empties, which is also what a
+[stalled map](#three-endings) looks like.
 
 ---
 
@@ -160,32 +161,32 @@ Every ticket on the map is a **decision** or a **make**.
 | Predictable? | no | yes |
 | Finding the other kind | normal — spawn the make ticket on close | **stop and open a decision ticket** |
 
-They fail differently, which is why they cannot share a ticket: put both in one and the
+They fail differently, which is why they cannot share a ticket. Put both in one and the
 unpredictable half eats the context the predictable half needed.
 
 **Charting produces decisions by default.** The pull to just go and build the thing is
-almost always the signal that you have reached the edge of the map — which on this path
-means stage 3 is waiting for you, not that charting needs to stretch.
+almost always the signal that you have reached the edge of the map. On this path that means
+stage 3 is waiting for you, not that charting needs to stretch.
 
 The one make the solo path **guarantees** is the last ticket on the map: the tail's
 bootstrap checks. Others turn up as decisions spawn them, and that is the rule working
-rather than the map drifting. What tells you a make has drifted is not its existence but
-its subject — a make that would produce something belonging to **stage 3 or 4** is charting
+rather than the map drifting. What tells you a make has drifted is its subject, not its
+existence. A make that would produce something belonging to **stage 3 or 4** is charting
 reaching past its own stopping point.
 
 **A make on this path carries no layer.** The skill's `make:<layer>` type dispatches to a
-`@<layer>-specialist`, and on the solo path neither the specialists nor the `CLAUDE.md`
-chain they are generated from exists yet — [`/adapt-to-stack`](../shared/11-adapting-to-your-stack.md)
+`@<layer>-specialist`. On the solo path neither the specialists nor the `CLAUDE.md` chain
+they are generated from exists yet, because [`/adapt-to-stack`](../shared/11-adapting-to-your-stack.md)
 runs inside [the bootstrap](04-the-bootstrap.md), a whole stage later. So the tail's
 bootstrap-checks ticket is a plain make with no layer label and nobody to dispatch to. If
-you find yourself reaching for a layer name here, that is stage 3 leaking backwards.
+you reach for a layer name here, that is stage 3 leaking backwards.
 
 ---
 
 ## The tail
 
 Choosing the stack is a real decision, and charting is already the machine for resolving
-decisions — so it lives **on the map** rather than standing as a stage of its own. Two
+decisions. So it lives **on the map** rather than standing as a stage of its own. Two
 tickets, in this order:
 
 | | Ticket | Kind |
@@ -193,25 +194,24 @@ tickets, in this order:
 | 1 | **Name the stack** | decision |
 | 2 | **Write the bootstrap checks** — the exact build command, the test command if this stack gates on one, the Serena index check if the verdict calls for one | make |
 
-Together they are **the tail**, and **neither is takeable while any other ticket on the map
-is open.** Product decisions shape the stack far more than the stack shapes the product, so
+Together they are **the tail**. **Neither is takeable while any other ticket on the map is
+open.** Product decisions shape the stack far more than the stack shapes the product, so
 every one of them goes first.
 
-**How the stack actually gets chosen is its own doc** —
+**How the stack actually gets chosen is its own doc**,
 [06-choosing-the-stack.md](06-choosing-the-stack.md). This section owns *placement and
-ordering*; that one owns *method*: read-level rather than write-level, mainstream-first,
+ordering*. That one owns *method*: read-level rather than write-level, mainstream-first,
 propose-and-kill rather than comparison, and the three things ticket 1 decides.
 
 This is a **rule you follow, not blocker wiring you maintain.** Marking the tail blocked by
-every other ticket would be correct and would also demand a new edge every time you create
-a ticket — the kind of bookkeeping that gets forgotten once and then silently lies to you.
+every other ticket would be correct. It would also demand a new edge every time you create a
+ticket. That is bookkeeping that gets forgotten once and then silently lies to you.
 
 **The rule has a documented escape.** Occasionally a product question genuinely cannot be
-answered without the stack — *"should this work offline?"* is a product question whose
-honest answer depends on whether offline is nearly free or three weeks of work in the stack
-you would pick. When a ticket is truly stuck on this, take the stack early **and record why
-in its answer.** A stuck ticket is a signal worth writing down, not a rule to bend around
-quietly.
+answered without the stack. *"should this work offline?"* is one. Its honest answer depends
+on whether offline is nearly free or three weeks of work in the stack you would pick. When a
+ticket is truly stuck on this, take the stack early **and record why in its answer.** A
+stuck ticket is a signal worth writing down, not a rule to bend around quietly.
 
 The tail's second ticket is what makes [the bootstrap](04-the-bootstrap.md) testable: its
 checks are what stage 3 runs to prove it is done.
@@ -226,7 +226,7 @@ different things depending on which direction you are facing:
 | | What it means |
 |---|---|
 | **Something downstream comes back** | The bootstrap or [cutting](05-cutting.md) hits a decision that turns out to be wrong. You reopen the map and add a ticket. You do not push forward on something you now know is wrong. |
-| **You want to go back further** | You cannot. Charting does not reopen the kill gate — the way to un-decide *build* is to **abandon**, below. |
+| **You want to go back further** | You cannot. Charting does not reopen the kill gate. The way to un-decide *build* is to **abandon**, below. |
 
 One step, not a spiral. If the map keeps reopening, the thing it is telling you is in the
 next section.
@@ -270,9 +270,8 @@ next section.
 
 **Cleared** is the ordinary ending: the frontier is empty, the fog is gone, the tail is
 resolved, and there is nothing left to decide before someone goes and does the thing. This
-is the ending the [skill](../../templates/skills/charting/SKILL.md) calls **done** — same
-ending, and the skill's name is the general one because not every map hands off to a
-bootstrap.
+is the same ending the [skill](../../templates/skills/charting/SKILL.md) calls **done**. The
+skill's name is the general one, because not every map hands off to a bootstrap.
 
 **Stalled** is the one that looks like cleared and is not. The frontier is empty, but
 tickets are still open, because every one of them is waiting on somebody outside the
@@ -280,28 +279,27 @@ session. On this path that is almost always a `task`: an account to open, access
 provision, a domain to buy. **Do not read an empty frontier as stage 2 finishing.** Check
 whether anything is still open first.
 
-A stalled map is not handed to [the bootstrap](04-the-bootstrap.md) and its map is not
-closed — the day the blocker clears, those tickets have to be pickable again. Name each one
-and who owns the thing it waits on; that owner is the ticket's claim, which is what took it
+A stalled map is not handed to [the bootstrap](04-the-bootstrap.md), and the map is not
+closed. The day the blocker clears, those tickets have to be pickable again. Name each one
+and who owns the thing it waits on. That owner is the ticket's claim, which is what took it
 off the frontier in the first place. One `grilling` ticket asking *proceed without X, or
 wait?* is the move that refills the frontier.
 
-**Abandoned** is an ending, not a failure — and [the spine doc](01-the-solo-path.md) says
-why the path needs one: the gate is deliberately cheap, so it decides on very little
+**Abandoned** is an ending, not a failure. [The spine doc](01-the-solo-path.md) says why
+the path needs one. The gate is deliberately cheap, so it decides on very little
 information, and charting is where the true size of the thing shows up.
 
 **Telling stalled from the other two is mechanical**: is anything still open? Telling
-**cleared** from **abandoned** is the judgement call, and the test is not *"is this
-hard?"*, because everything worth building is hard by stage 2. The test is:
+**cleared** from **abandoned** is the judgement call. The test is not *"is this hard?"*,
+because everything worth building is hard by stage 2. The test is:
 
 > **Would this fact have changed the gate's verdict, if you had known it at the gate?**
 
 If yes, the gate was working from information it did not have, and abandoning is the
-correct outcome rather than a change of heart. If no — it is merely bigger, or duller, or
-more tangled than you hoped — that is ordinary, and it is what the backlog is for.
+correct outcome rather than a change of heart. If no, the thing is merely bigger, or
+duller, or more tangled than you hoped. That is ordinary, and it is what the backlog is for.
 
-Two tells that the answer is yes, both of which show up as map behaviour rather than as a
-feeling:
+Two tells say the answer is yes. Both show up as map behaviour rather than as a feeling:
 
 | Tell | What it means |
 |---|---|
@@ -309,7 +307,7 @@ feeling:
 | **You keep spending the backwards step.** Decisions do not stay decided. | The premise underneath them is the thing that is actually wrong. |
 
 Abandon by closing the map with a resolution that says what you learned. The repo is
-private and stays where it is — a costly thing to have discovered in three sessions of
+private and stays where it is. A costly thing to have discovered in three sessions of
 conversation is still the cheapest way to have discovered it.
 
 ---
@@ -321,11 +319,11 @@ conversation is still the cheapest way to have discovered it.
 | **A cleared map** | Every decision closed, and each one recoverable from its own ticket. |
 | **A named stack** | Seam check 1, done. |
 | **The bootstrap checks** | Written against the actual stack, which is what makes stage 3 testable. |
-| **The settled names** | On the map's `Notes`, written inline as each one settled and pruned at the tail of the ones that died. Bootstrap step 3 copies what survives into the repo's `CLAUDE.md` — their second and final home, and [seam check 3](01-the-solo-path.md#the-seam--where-the-solo-path-stops). The rule is charting's *One name per thing*; **none is a valid answer.** |
-| **One memory** | *What this project is and why.* Written when the map closes — one per map, never one per ticket, so stage 3 can add the second and the [seam](01-the-solo-path.md#the-seam--where-the-solo-path-stops) arithmetic comes out at exactly two. See [05-forgetful.md](../shared/05-forgetful.md). |
+| **The settled names** | On the map's `Notes`, written inline as each one settled, then pruned at the tail of the ones that died. Bootstrap step 3 copies what survives into the repo's `CLAUDE.md`, their second and final home, and [seam check 3](01-the-solo-path.md#the-seam--where-the-solo-path-stops). The rule is charting's *One name per thing*, and **none is a valid answer.** |
+| **One memory** | *What this project is and why.* Written when the map closes: one per map, never one per ticket, so stage 3 can add the second and the [seam](01-the-solo-path.md#the-seam--where-the-solo-path-stops) arithmetic comes out at exactly two. See [05-forgetful.md](../shared/05-forgetful.md). |
 
-Serena is **not** indexed yet, and that is correct rather than broken — the repo is a day
-old and empty. Stage 3 is what makes [seam check 4](01-the-solo-path.md#the-seam--where-the-solo-path-stops)
+Serena is **not** indexed yet. That is correct rather than broken, because the repo is a
+day old and empty. Stage 3 is what makes [seam check 4](01-the-solo-path.md#the-seam--where-the-solo-path-stops)
 hold, on whichever branch the tail's verdict put it. See
 [04-serena.md](../shared/04-serena.md).
 
@@ -337,9 +335,9 @@ The skill template tells you how charting works. The spine tells you where chart
 Neither answers the questions a reader actually has while standing *in* the stage:
 
 - The destination you hand the skill is where the **path** ends, not where **charting**
-  ends — and charting stopping short of it is the design, not a shortfall.
+  ends. Charting stopping short of it is the design, not a shortfall.
 - A map that grows for several sessions is the stage working correctly.
-- The stack is not a stage; it is the last two tickets, and there is a written escape for
+- The stack is not a stage. It is the last two tickets, and there is a written escape for
   the one case where waiting is dishonest.
 - There are three ways out, and an empty frontier only distinguishes one of them.
 

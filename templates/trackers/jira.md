@@ -12,7 +12,7 @@ is also enforced at the tool layer by
 
 > **Tool names depend on which Jira MCP server you installed.** They are written below as
 > `mcp__tracker__<verb>`, which assumes you named the server key `tracker` as
-> [`../mcp/README.md`](../mcp/README.md) requires — the guardrail hooks match on that
+> [`../mcp/README.md`](../mcp/README.md) requires. The guardrail hooks match on that
 > prefix. The **verb halves** are the
 > part that varies by server. Confirm the real names with `/mcp` before trusting any of
 > them: a wrong tool name fails the same silent way a wrong Serena prefix does.
@@ -36,11 +36,11 @@ is also enforced at the tool layer by
 | mark blocked | an **issue link** of type `Blocks` / `is blocked by` |
 | is this blocked? | read the issue's links, then **read the state of each blocker** |
 | retitle | `mcp__tracker__update_issue` on the summary field. The key is the identity, so links survive |
-| delete a ticket | **the one verb this adapter fakes outright.** Most Jira MCP servers expose no delete tool, and the *Delete Issues* permission is usually withheld anyway — so: transition to done, label it `<LABEL-PREFIX>:void`, and record the key on the map. Check `/mcp` before assuming you have a real delete; if you do, it is still the wrong default on a shared tracker |
+| delete a ticket | **the one verb this adapter fakes outright.** Most Jira MCP servers expose no delete tool, and the *Delete Issues* permission is usually withheld anyway. So: transition to done, label it `<LABEL-PREFIX>:void`, and record the key on the map. Check `/mcp` before assuming you have a real delete. If you do, it is still the wrong default on a shared tracker |
 
 ## The frontier
 
-Two steps, because JQL cannot express it in one. JQL can filter on *having* a link type; it
+Two steps, because JQL cannot express it in one. JQL can filter on *having* a link type. It
 cannot filter on the **state of the linked issue**. So the adapter narrows server-side and
 finishes client-side:
 
@@ -51,8 +51,8 @@ parent = <MAP-KEY> AND statusCategory != Done AND assignee IS EMPTY ORDER BY cre
 Then, for each result, read its `is blocked by` links and drop any whose blocker is not
 `statusCategory = Done`. First survivor in map order wins.
 
-**This two-step is invisible to the caller.** A skill asks for the frontier and gets a list;
-that the adapter did the blocked-filter itself is the adapter's business. That is the
+**This two-step is invisible to the caller.** A skill asks for the frontier and gets a list.
+That the adapter did the blocked-filter itself is the adapter's business. That is the
 contract working as designed.
 
 ## The whole graph
@@ -90,7 +90,7 @@ status of each blocker the search did not return. Same client-side finish the fr
 already does here, and invisible to the caller for the same reason.
 
 Comments are the part that varies. **If your server exposes the search's fields or expand
-argument, ask for `comment` and the whole graph is a single call** — Jira returns comments
+argument, ask for `comment` and the whole graph is a single call.** Jira returns comments
 inline with the issue, which no other tracker here does. If it does not, you are down to
 one comment read per ticket, and Jira has no repo-wide comments endpoint to fall back on
 the way GitHub does. Check with `/mcp` before you assume either.
@@ -117,6 +117,6 @@ blocked?* — the adapter still has to go and read each blocker's status, becaus
 alone does not tell you whether the blocker is done.
 
 **The claim is real, but still read it back.** Jira assignment is a genuine server-side
-write with permissions behind it — a caller lacking assign permission gets an error rather
-than GitHub's silent no-op. Read it back anyway; the habit is what makes the skills
+write with permissions behind it. A caller lacking assign permission gets an error rather
+than GitHub's silent no-op. Read it back anyway. The habit is what makes the skills
 portable.

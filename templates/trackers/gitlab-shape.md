@@ -2,10 +2,10 @@
 
 **This is not an adapter. It is the shape of one.**
 
-The verbs are stated; the commands are yours to write and verify. GitLab ships this way for
+The verbs are stated. The commands are yours to write and verify. GitLab ships this way for
 one reason: **its API documentation is demonstrably wrong about blocking**, and nothing
 here could be confirmed against a live instance. Shipping commands nobody has run is worse
-than shipping none — a wrong command in an adapter fails at the worst possible moment,
+than shipping none. A wrong command in an adapter fails at the worst possible moment,
 mid-session, on someone else's map.
 
 To use GitLab, fill this in against your own instance, verify every line, and install the
@@ -23,13 +23,13 @@ These are the reason this file exists. Check both before writing a single comman
 
 The issue-links API carries a blanket **Free / Premium / Ultimate** availability badge.
 It is wrong. On the Free tier, creating a `blocks` link returns **403**, while `relates_to`
-on the same endpoint succeeds — so the failure looks like a permissions problem with your
+on the same endpoint succeeds. So the failure looks like a permissions problem with your
 token rather than a tier limit, and you will go and re-scope the token for nothing.
 
 **If you are on Free, blocking has no native representation at all.** Fall back to a
 `Blocked by: #<n>` line in the description and answer *is this blocked?* by reading each
 listed issue's state — the same way the local-markdown adapter does. That fallback is not
-a downgrade of the contract; it is the contract working.
+a downgrade of the contract. It is the contract working.
 
 ### 2. Parent → child is GraphQL-only
 
@@ -57,7 +57,7 @@ the description and find children by search.
 | mark blocked | **Premium only** — see trap 1 | ☐ |
 | is this blocked? | read each blocker's state | ☐ |
 | retitle | `glab issue update --title` | ☐ |
-| delete a ticket | `glab issue delete <n>` — **irreversible, and on a `Part of #<map>` link the parent line is prose, so check nothing still points at it.** Leave a line on the map; the number is burned | ☐ |
+| delete a ticket | `glab issue delete <n>` — **irreversible, and on a `Part of #<map>` link the parent line is prose, so check nothing still points at it.** Leave a line on the map. The number is burned | ☐ |
 | **the frontier** | list children, drop blocked and claimed, first in map order | ☐ |
 | **the whole graph** | every ticket with state, claim, blockers, description and notes — **two scopings**: the children of a parent, **or a named set of tickets** (a backlog has no parent) | ☐ |
 
@@ -69,7 +69,7 @@ check two things against your instance:
 
 - **Does listing issues return descriptions**, or only titles and metadata?
 - **Is there a project-wide notes endpoint**, or is it strictly per-issue? GitHub has a
-  repo-wide one; whether GitLab has an equivalent is exactly the sort of thing this file
+  repo-wide one. Whether GitLab has an equivalent is exactly the sort of thing this file
   will not guess at.
 - **Do the blocking links come back as ids, or as a count?** GitHub's REST payload gives a
   count — enough for *is this blocked?* and useless for drawing the graph, which is what
@@ -92,7 +92,7 @@ which is the whole reason it is a verb.
 
 - **GitLab creates labels on the fly.** GitHub does not. If you port a command sequence
   between them, the GitHub side needs an explicit label-create step and the GitLab side
-  does not — this asymmetry is easy to miss in exactly one direction.
+  does not. This asymmetry is easy to miss in exactly one direction.
 - **Issues and merge requests are numbered separately**, so `#42` is unambiguous once you
   know which surface is meant. GitHub shares one number space across both.
 - **Merge requests are the PR analogue** — `glab mr` mirrors `gh pr`, with `note` and

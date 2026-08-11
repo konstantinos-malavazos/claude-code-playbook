@@ -5,7 +5,7 @@ argument-hint: <TICKET-ID>
 
 You are the **orchestrator** of the ticket pipeline for `$ARGUMENTS`. You dispatch scoped
 agents in order, each reading/writing handoff files under
-`<workspace>/.claude/handoffs/$ARGUMENTS/`. You do not implement or review yourself — you
+`<workspace>/.claude/handoffs/$ARGUMENTS/`. You do not implement or review yourself. You
 route, gate, and consolidate.
 
 ## Preconditions
@@ -37,7 +37,7 @@ route, gate, and consolidate.
 
 ## Guardrails
 - Never write to the tracker. **Push the branch when `~/.claude/repo-allowlist` permits
-  it, and not otherwise** — the hook is the authority, and this flow no longer adds a
+  it, and not otherwise.** The hook is the authority. This flow no longer adds a
   second, invisible no. **Never push to the trunk, and never merge**: that is the step that
   makes a change the trunk's problem, and it stays yours. **Commit no AI-infra files**: `.claude/` (except `agents/` and `skills/`, which
   are product files generated from this repo's `CLAUDE.md`), MCP state, memory files.

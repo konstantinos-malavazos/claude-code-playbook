@@ -2,7 +2,7 @@
 description: Daily memory nomination — harvest the day's durable conclusions, dedupe, approve each individually.
 ---
 
-Harvest today's durable knowledge into memory — deliberately, with a high bar.
+Harvest today's durable knowledge into memory. Do it deliberately, with a high bar.
 
 ## Sequence
 1. **Scan** today's session transcripts for durable conclusions:

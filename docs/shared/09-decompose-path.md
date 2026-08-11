@@ -1,16 +1,16 @@
 # 09 — The decompose path (large tickets)
 
-Most tickets (~95%) run the sequential chain and produce one commit per repo. A
-genuinely large ticket — say a change rolled out across many independent units, or
-several loosely-coupled features under one id — is better split into **independent
-vertical slices** built in **parallel**.
+Most tickets (~95%) run the sequential chain and produce one commit per repo. Some tickets
+are genuinely large: one change rolled out across many independent units, or several
+loosely-coupled features under one id. Split those into **independent vertical slices** and
+build the slices in **parallel**.
 
 This is a *fork inside* `/start-ticket`, not a separate command. The planner proposes it
-by setting **slice-count > 1**; you confirm it.
+by setting **slice-count > 1**. You confirm it.
 
-**This path assumes you can already name the slices.** If you sit down to plan and cannot —
-the destination is clear but the route is not — slicing is the wrong tool, because there is
-nothing yet to slice. That ticket gets **charted** first, with
+**This path assumes you can already name the slices.** Sometimes you sit down to plan and
+cannot: the destination is clear but the route is not. Slicing is the wrong tool then,
+because there is nothing yet to slice. That ticket gets **charted** first, with
 [`/charting`](../../templates/skills/charting/SKILL.md). On a team, three commands wrap that
 charting for an effort spanning repos: [../team/03-massive-tickets.md](../team/03-massive-tickets.md).
 Solo, you run the skill directly and hand each make back to `/start-ticket`. Either way the
@@ -49,8 +49,8 @@ different problems.
 
 A **vertical** slice is a thin end-to-end path (a little schema + a little service + a
 little client) that is **independently verifiable**. A **horizontal** split (all schema,
-then all service) forces a barrier between phases and can't be tested until the end.
-Vertical slices can be built and validated in parallel and integrated incrementally.
+then all service) forces a barrier between phases, and nothing can be tested until the
+end. Vertical slices can be built and validated in parallel, and integrated incrementally.
 
 ---
 
@@ -58,34 +58,34 @@ Vertical slices can be built and validated in parallel and integrated incrementa
 
 Parallel agents editing the same working copy collide.
 
-Two agents writing the same file at once **race**: the second write silently clobbers the
-first, and neither agent sees an error. Shared git state — one index, one `HEAD`, one set
-of staged changes — makes it worse, since a `git add` or `git checkout` from one agent can
-shift what another agent is looking at mid-edit. The fix is **structural isolation**, not
-better prompting: no instruction telling an agent "don't touch files another agent owns"
-prevents a race the filesystem itself allows.
+Two agents writing the same file at once **race**. The second write silently clobbers the
+first, and neither agent sees an error. Shared git state makes it worse: one index, one
+`HEAD`, one set of staged changes. A `git add` or `git checkout` from one agent can shift
+what another agent is looking at mid-edit. The fix is **structural isolation**, not better
+prompting. No instruction telling an agent "don't touch files another agent owns" prevents
+a race the filesystem itself allows.
 
 A **worktree** gives each slice its own checkout of the same repo on its own branch, so
 slices run truly in parallel.
 The `@integrator` tears the worktrees down after collapsing to one commit per repo.
 
-This isolation is enforced by Claude Code, not just convention, and it's been hardened
-recently: subagents redirecting git into the shared checkout via `git -C`, `--git-dir`,
-or `GIT_DIR`/`GIT_WORK_TREE` was fixed in v2.1.216, with related escapes fixed in
-v2.1.203 and v2.1.210. Treat v2.1.216 as the version floor for relying on worktree
-isolation — it hasn't always held.
+Claude Code enforces this isolation. It is not just convention, and it has been hardened
+recently. Subagents could redirect git into the shared checkout via `git -C`, `--git-dir`,
+or `GIT_DIR`/`GIT_WORK_TREE`. v2.1.216 fixed that, and v2.1.203 and v2.1.210 fixed related
+escapes. Treat v2.1.216 as the version floor for relying on worktree isolation, because it
+hasn't always held.
 
-Worktrees are the right tool *only* when agents mutate files in parallel — they cost
-setup time and disk, so the single-slice path never uses them.
+Worktrees are the right tool *only* when agents mutate files in parallel. They cost setup
+time and disk, so the single-slice path never uses them.
 
 ---
 
 ## The invariants that survive decomposition
 
-- **One commit per repo** still holds — the integrator collapses each repo's slice
+- **One commit per repo** still holds. The integrator collapses each repo's slice
   commits into one, using the planner's final commit message.
-- **Cross-slice consistency** is a gate (`@aligner`), not a hope: shared field names,
-  types, and contract members are diffed across slices before integration.
+- **Cross-slice consistency** is a gate (`@aligner`), not a hope. It diffs the shared field
+  names, types, and contract members across slices before integration.
 - **Combined acceptance criteria** get their own tests (`@integration-tester`) because a
   behaviour that emerges from two slices together isn't covered by either slice alone.
 
@@ -96,6 +96,6 @@ setup time and disk, so the single-slice path never uses them.
 Reach for decompose when a ticket is too big for one sequential pass **and** it splits
 cleanly into independent paths (the classic case: the same change applied across N
 independent units). If the parts are tightly coupled, the sequential chain is simpler and
-safer — don't decompose for its own sake.
+safer. Don't decompose for its own sake.
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

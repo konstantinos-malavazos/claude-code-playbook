@@ -12,7 +12,7 @@ description: >-
 It opens each URL, says exactly what to click and copy, captures the values, writes them
 where they belong, confirms at every stage, and shows how many stages are left.
 
-> Prior art: Matt Pocock's `wizard` skill (MIT). `template.sh` is included **verbatim**; this
+> Prior art: Matt Pocock's `wizard` skill (MIT). `template.sh` is included **verbatim**. This
 > file is a re-derivation that lands the script under the repo's own guardrails.
 
 ## The library is not yours to edit
@@ -27,7 +27,7 @@ identical in every wizard, and that sameness **is** the point.
 ## Scope it from the repo, not from the user
 
 Read before you ask. For setup: `.env`, `.env.example`, `.env.*`, the README,
-`docker-compose*`, framework config, and `.github/workflows/*` — **every `secrets.*` and
+`docker-compose*`, framework config, and `.github/workflows/*`. **Every `secrets.*` and
 `vars.*` reference is a value the wizard must produce.** For a migration: the current state,
 the target state, and the irreversible actions between them.
 
@@ -42,8 +42,8 @@ pure actions), and whether it is secret.
 
 Where you do not know the current dashboard or the exact command, **say so and ask, or check
 the docs**. A stage naming a button that does not exist strands the human halfway through a
-procedure they cannot finish and cannot judge — the one failure a wizard makes worse than no
-wizard.
+procedure they cannot finish and cannot judge. This is the one failure a wizard makes worse
+than no wizard.
 
 ## Author the stages
 
@@ -54,7 +54,7 @@ dependency order, and set `TOTAL_STAGES`. The helpers are `stage`, `say`/`step`,
 Hold the bar the template sets: open the URL **before** asking for its value, `ask_secret` for
 anything secret, `write_env` every persisted value, `set_secret` only what CI actually needs,
 and `confirm` before anything irreversible. Each stage clears the screen, so keep it to one
-focused task — anything the human still needs must not scroll away.
+focused task. Anything the human still needs must not scroll away.
 
 ## Verify, then hand off — do not run it
 
@@ -66,7 +66,7 @@ every `set_secret` name matches a `secrets.*` reference in CI exactly.
 
 ## Where it lives, and what it must never hold
 
-Ephemeral by default — a scratch path or `scripts/`, deleted when the job is done. Commit it
+Ephemeral by default: a scratch path or `scripts/`, deleted when the job is done. Commit it
 only when the user wants a repeatable setup path, and then link it from the README so the next
 person runs the script instead of re-asking an AI.
 
