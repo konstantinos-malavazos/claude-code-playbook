@@ -65,7 +65,7 @@ the description and find children by search.
 
 Both composed verbs assemble many tickets at once, so both are where a per-issue request
 loop turns a cheap view into an expensive one. Before you settle for one call per ticket,
-check two things against your instance:
+check these against your instance:
 
 - **Does listing issues return descriptions**, or only titles and metadata?
 - **Is there a project-wide notes endpoint**, or is it strictly per-issue? GitHub has a
@@ -85,7 +85,7 @@ check two things against your instance:
   instances with a `Blocked by: #<n>` line in the description, which is a claim about the
   past and says nothing about now.
 
-Neither answer changes the verb. They change whether it is affordable to call it often,
+None of these answers change the verb. They change whether it is affordable to call it often,
 which is the whole reason it is a verb.
 
 ## Smaller differences worth knowing
