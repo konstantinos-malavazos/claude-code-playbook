@@ -32,7 +32,7 @@ and each layer hands the next a **contract** (the names/shapes it just created).
 
 ## Worked examples
 
-You define your own; here are three shapes to calibrate against.
+You define your own; here are some shapes to calibrate against.
 
 **Data-heavy backend** (the shape this playbook was distilled from):
 ```
