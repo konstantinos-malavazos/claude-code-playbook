@@ -3,8 +3,8 @@ description: Reopen an in-flight ticket across sessions; if it had deferred deci
 argument-hint: <TICKET-ID>
 ---
 
-Resume `$ARGUMENTS`. Its handoff files were wiped at session end (by design) — rehydrate
-from durable state, don't redo finished work.
+Resume `$ARGUMENTS`. Its handoff files were wiped at session end (by design). Rehydrate
+from durable state. Don't redo finished work.
 
 ## Sequence
 1. **Rehydrate** — read the ticket's durable memory (including any `deferred-decisions`

@@ -14,10 +14,10 @@ bookkeeping, which is yours alone.
 
 Three hard rules, nothing overrides them:
 
-- **Zero tracker writes.** The development ticket the effort hangs off is read-only; the
-  session ends with text for the user to paste. **Map writes are yours and nobody else's** —
-  creating, claiming, commenting on and closing *this chart's* tickets is most of step 5, and
-  no command you dispatch does any of it. The two words are not interchangeable; where the
+- **Zero tracker writes.** The development ticket the effort hangs off is read-only. The
+  session ends with text for the user to paste. **Map writes are yours and nobody else's.**
+  Creating, claiming, commenting on and closing *this chart's* tickets is most of step 5, and
+  no command you dispatch does any of it. The two words are not interchangeable. Where the
   adapter puts the chart on a shared tracker, a map write is still seen by everyone.
 - **One ticket per session** — `research` is the only exception, because it runs in a
   background context and does not spend this one.
@@ -26,14 +26,14 @@ Three hard rules, nothing overrides them:
 
 ## 1. Find the map
 
-- `$ARGUMENTS` given → that chart folder. Missing → say so and stop; `/start-massive` charts
+- `$ARGUMENTS` given → that chart folder. Missing → say so and stop. `/start-massive` charts
   one.
 - Not given → list the charts, **skipping every map whose `map.md` opens with
   `State: closed`**. Exactly one left → take it. Several → **ask which**, showing each with
   its destination and its open count. None left → say every map is closed and stop.
 
-A closed map's folder stays on disk as the record. A map with no `State:` line at all is open
-— the stamp is written once, at close.
+A closed map's folder stays on disk as the record. A map with no `State:` line at all is open.
+The stamp is written once, at close.
 
 ## 2. Load it low-res
 
@@ -45,10 +45,10 @@ Do **not** read every ticket body. That is what the map exists to spare you.
 ## 3. Choose, then claim
 
 The user named a ticket → take that one. Otherwise take the first on **the frontier**: open,
-unclaimed, and every blocker `resolved` **on disk**. Read each blocker's file; a `Blocked by:`
+unclaimed, and every blocker `resolved` **on disk**. Read each blocker's file. A `Blocked by:`
 line still says blocked long after the blocker closed.
 
-**Frontier empty → go to step 7.** Something is ending; work out which thing.
+**Frontier empty → go to step 7.** Something is ending. Work out which thing.
 
 Claim it: set `Claim:` to your name and the date, save, then **read it back**. A claim that
 silently failed to write looks exactly like one that worked.
@@ -56,7 +56,7 @@ silently failed to write looks exactly like one that worked.
 Already claimed with an older date? The claim is advisory, not a lock. Say who holds it and
 when, and let the user decide to take it over.
 
-**A claim naming anyone but this session is a handoff, not a stale claim — never take it
+**A claim naming anyone but this session is a handoff, not a stale claim. Never take it
 over.** It says a person or a background agent is holding the ticket. Say who, and how long
 it has sat.
 
@@ -64,17 +64,17 @@ it has sat.
 
 | `Type:` | What happens |
 |---|---|
-| `make:<layer>` | `/build-chart-ticket <KEY>#<NN>`. It guards, implements with the one specialist the label names, and hands back a draft resolution comment. It does not close — you do |
+| `make:<layer>` | `/build-chart-ticket <KEY>#<NN>`. It guards, implements with the one specialist the label names, and hands back a draft resolution comment. It does not close. You do |
 | `grilling` | **you** run it, here, with the `grilling` skill. The human decides. An agent that answers its own grilling question has broken the ticket, not finished it |
 | `research` | one background agent, with the `research` skill's discipline in its prompt. Findings to the chart's `research/` folder. **Claim it to the agent as you dispatch**, then carry on while it runs |
 | `task` | the human does it — an account, an access grant, a file moved. Done inside this session? Record what they report and what it now unblocks. **Still outstanding when the session ends? Claim it to them** and comment what was asked and when |
 
-**Claiming a handed-off ticket is not bookkeeping politeness — it is what lets the map
+**Claiming a handed-off ticket is not bookkeeping politeness. It is what lets the map
 finish.** An unclaimed handoff is open with no `Blocked by:` edge, so it never leaves the
 frontier, so step 7 never runs.
 
 If `/build-chart-ticket` came back with a **decision report** instead of a resolution
-comment, it hit a real decision and stopped. It wrote nothing — filing it is yours:
+comment, it hit a real decision and stopped. It wrote nothing. Filing it is yours:
 
 1. Create a `grilling` ticket on the map with its question, at the next free number.
 2. Add that number to the make ticket's `Blocked by:`.
@@ -88,9 +88,9 @@ run was asked for.
 
 ## 5. Record it — this is the part only you do
 
-1. **Post the resolution comment.** Leading gist on line one; the rest may run as long as it
+1. **Post the resolution comment.** Leading gist on line one. The rest may run as long as it
    needs. For a make, `/build-chart-ticket` drafted it. For a grilling, write what was decided
-   **and why** — the why is what the next session cannot reconstruct.
+   **and why**. The why is what the next session cannot reconstruct.
 2. **Close** the ticket, and clear the claim.
 3. **Regenerate `Decisions so far`.** Ask for *the whole graph*, take every **closed**
    ticket's first line, in number order, and rewrite the section whole. Never append.
@@ -103,7 +103,7 @@ run was asked for.
 
 Resolving a ticket clears fog ahead of it:
 
-- **Graduate** whatever is now sharp enough to state precisely into new tickets — and
+- **Graduate** whatever is now sharp enough to state precisely into new tickets, and
   **delete the graduated patch from `Not yet specified`**, so it lives in one place.
 - **Rule out** anything the decision put past the destination: close it, one line under *Out
   of scope*.
@@ -142,14 +142,14 @@ is nothing to review.
 In this order. Do not skip step 2 because step 1 came back clean.
 
 1. **One `@release-reviewer` per repo the map touched, RELEASE MODE, in parallel, fresh
-   contexts.** Its file describes release mode over a tag-to-tag delta; **say explicitly in
+   contexts.** Its file describes release mode over a tag-to-tag delta. **Say explicitly in
    the prompt that the range is `origin/<main>..<branch>`**, a branch and not a tag, and give
    it the output path `reviews/<repo>-release.md`.
 
 2. **`@map-reviewer`**, once, after all of them finish. It judges the Destination and the
    ticket's acceptance criteria and writes `reviews/map-review.md`.
 
-3. **Every finding becomes a new ticket** — you create them, with the type `@map-reviewer`
+3. **Every finding becomes a new ticket.** You create them, with the type `@map-reviewer`
    proposed. The frontier refills and **the map does not close.** That is charting's fog rule,
    not a special case.
 
@@ -158,7 +158,7 @@ In this order. Do not skip step 2 because step 1 came back clean.
 
 5. **Bank the memories.** Aim for one. When one cannot hold the effort, write a **hub** plus
    **one per repo**, and cross-link them. Never one per ticket. Tag by functionality and
-   lifecycle; **the ticket id goes in the title, the content or the keywords, never in a
+   lifecycle. **The ticket id goes in the title, the content or the keywords, never in a
    tag.**
 
 6. **Hand `@map-reviewer`'s unproven criteria to `/test-ticket`.** Anything artifact-shaped —

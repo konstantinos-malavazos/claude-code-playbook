@@ -4,7 +4,7 @@ argument-hint: <TICKET-ID>
 ---
 
 Prove `$ARGUMENTS` works against **staging** by producing the real domain event and
-reconciling the resulting row/state — and **learn the produce recipe** so future tests
+reconciling the resulting row/state. Also **learn the produce recipe** so future tests
 of the same scenario reuse it.
 
 ## Sequence
@@ -31,8 +31,8 @@ of the same scenario reuse it.
 4. Write `test-report.md`.
 
 ## Guardrails
-Production forbidden. Read-first. **Staging where there is one; local where there is not**
-— what does not change is that the event is produced **for real** and the resulting row is
-**reconciled**, which is the whole value of the flow. Asserting against a mock proves the
+Production forbidden. Read-first. **Staging where there is one; local where there is not.**
+What does not change is that the event is produced **for real** and the resulting row is
+**reconciled**. That is the whole value of the flow. Asserting against a mock proves the
 mock works. Producing the event is the ONLY allowed write path; every other write-class
 action needs explicit approval.

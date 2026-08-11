@@ -4,11 +4,11 @@ Copy into `~/.claude/commands/`. Each file becomes `/<filename>`.
 
 > **Custom commands have been merged into skills.** `~/.claude/commands/deploy.md` and
 > `~/.claude/skills/deploy/SKILL.md` both produce `/deploy` and behave the same way, and
-> `commands/` files keep working — this directory is a supported shape, not a deprecated
+> `commands/` files keep working. This directory is a supported shape, not a deprecated
 > one. But the skill shape is the one that grows: a directory for supporting files, and the
 > [frontmatter fields](../skills/README.md) that control who may invoke it. **If a command
 > and a skill share a name, the skill wins.** Move a command here into `skills/` the moment
-> it needs bundled files or invocation control; leave it here while it is just a prompt.
+> it needs bundled files or invocation control. Leave it here while it is just a prompt.
 
 ## Anatomy of a command
 
@@ -54,24 +54,24 @@ skill and a tracker adapter installed; `build-chart-ticket` also needs the layer
 
 **They are team-only, and the `charting` skill they run is not.** What the three add over
 `/charting` is a chart folder for an effort spanning several repos, a dispatch to the layer
-specialists, and a per-repo closing review — scale, and a ticket somebody else wrote. Charting
-a codebase that already exists needs none of that: solo, you run `/charting` against your own
-repo and hand each make to `/start-ticket`. The skill stays `✓ ✓` in
+specialists, and a per-repo closing review. That is scale, and a ticket somebody else wrote.
+Charting a codebase that already exists needs none of that: solo, you run `/charting` against
+your own repo and hand each make to `/start-ticket`. The skill stays `✓ ✓` in
 [`skills/README.md`](../skills/README.md) for exactly that reason.
 
 The two `feeling-*` templates drive **solo stage 2 charting** unattended. They do **not**
-drive the `*-massive` flow above, and nothing in them grants anything on it — a distinction
-the columns now draw twice, since the two sets sit in opposite ones.
+drive the `*-massive` flow above, and nothing in them grants anything on it. The columns now
+draw that distinction twice, since the two sets sit in opposite ones.
 
 They are solo-only for a reason no flag can change: they dispatch
 [`decision-steward`](../agents/README.md), which stands in for the person whose decision it
-is, and that is only defensible when that person is the one who typed the command.
+is. That is only defensible when that person is the one who typed the command.
 
 **Any adapter drives them, but a shared tracker does not.** A night of unattended comments
 and closes is the largest batch of tracker writes this playbook produces, and guardrail 2
 still asks before writing where others can see. On GitHub they also compute the frontier from
-the [whole-graph GraphQL call](../trackers/github.md) rather than the REST summary, which
-lags a close and would let a walk call a live map finished. See
+the [whole-graph GraphQL call](../trackers/github.md) rather than the REST summary. The REST
+summary lags a close and would let a walk call a live map finished. See
 [08-feeling-lucky.md](../../docs/solo/08-feeling-lucky.md).
 
 The **solo** / **team** columns say which entrance needs each template. A `—` means the
