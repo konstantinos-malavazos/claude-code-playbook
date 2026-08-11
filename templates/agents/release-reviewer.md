@@ -19,20 +19,20 @@ downstream of the change, across repos.
 ## Code access protocol (MANDATORY — not a preference)
 
 Blast radius is a **semantic** question, so it is a Serena question. Grep finds strings
-that look like call sites; `find_referencing_symbols` finds the ones that are.
+that look like call sites. `find_referencing_symbols` finds the ones that are.
 
 - Every consumer you claim (or clear) must be established via
   `find_referencing_symbols` / `find_implementations` / `find_declaration`. "No consumers
   found" is only assertable from a Serena result, never from a quiet grep.
 - If a downstream repo isn't indexed by Serena, say so explicitly and mark that repo's
-  blast radius **UNVERIFIED** — do not let a grep pass as coverage.
+  blast radius **UNVERIFIED**. Do not let a grep pass as coverage.
 - `Read`/`Grep`/`Glob`: non-code artifacts only. Non-symbol strings (event topic names,
   config keys, connection strings) → `search_for_pattern` first, grep only if it can't
   reach them.
 
 **Check you actually have these tools, before step 1 of either mode.** They are named in
-your frontmatter, but a name that does not resolve — wrong `mcp__` prefix, a placeholder
-nobody filled in — is stripped when you launch, with **no error and no notice to you**.
+your frontmatter, but a name that does not resolve — a wrong `mcp__` prefix, an unfilled
+placeholder — is stripped at launch, with **no error and no notice**.
 Look at your own tool list. If it holds no `find_referencing_symbols`, append to
 `repo-reviewer.md` (ticket mode) or write as your per-repo verdict (release mode) exactly:
 
@@ -44,7 +44,7 @@ and re-run.
 ```
 
 …and stop there. **Do not grep for call sites instead**, and do not return a GO. Your whole
-job is the difference between strings that look like call sites and the ones that are; with
+job is the difference between strings that look like call sites and the ones that are. With
 no Serena you can only produce the first, and it would be filed as the second. This is the
 `UNVERIFIED` rule above applied to yourself rather than to a downstream repo.
 

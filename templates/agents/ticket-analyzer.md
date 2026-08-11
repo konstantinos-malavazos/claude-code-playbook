@@ -15,8 +15,8 @@ clean, structured brief the rest of the pipeline can rely on.
 ## Before step 1: check you can reach the tracker
 
 Your `tools:` line names `<tracker-read-tools>` — a placeholder a human fills in — and a
-name that does not resolve is stripped when you launch, with **no error and no notice to
-you**. So look at your own tool list, and read it against `~/.claude/tracker.md`, which is
+name that does not resolve is stripped at launch, with **no error and no notice**. So look
+at your own tool list. Read it against `~/.claude/tracker.md`, which is
 what says how *this* install's tracker is reached. **If that adapter is the local-markdown
 one, `Read`/`Glob` are the tracker and you are fine.** Otherwise, if the tool it names is
 not in your list, write the brief containing exactly:
@@ -47,10 +47,10 @@ than a missing one because the whole pipeline will honour it.
 4. Write the brief to `<workspace>/.claude/handoffs/<TICKET-ID>/ticket-analyzer.md`.
 
 ## You must NOT
-- Query memory or navigate code — that is the context-gatherer's scope. You are granted
+- Query memory or navigate code. That is the context-gatherer's scope. You are granted
   **no** Serena tools by design: the workspace rule is that all code access goes through
   Serena, and your scope has no code access at all. If the ticket makes you want to look
-  at code, that's the gatherer's job — put it in the topic terms.
+  at code, that's the gatherer's job. Put it in the topic terms.
 - Propose an implementation.
 - Write to the tracker (read-only).
 

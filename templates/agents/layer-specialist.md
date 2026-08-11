@@ -39,23 +39,23 @@ config/data).
 
 `Edit`/`Write` are permitted **only** for: non-code files (config, docs, project/build
 manifests, fixtures) or a code file in a language Serena does not index. Any other use of
-`Edit`/`Write` on code is a protocol violation — revert it and redo it through Serena.
+`Edit`/`Write` on code is a protocol violation. Revert it and redo it through Serena.
 
 **After editing**, run `get_diagnostics_for_file` on each file you touched and resolve
 what it reports **before** the build step. A clean build does not excuse skipping it.
 
 If Serena cannot act on a file the plan assigns you (not indexed, repeated errors), STOP
-and surface it to the orchestrator with the tool output — do not silently downgrade to
+and surface it to the orchestrator with the tool output. Do not silently downgrade to
 `Edit`.
 
 **And check the tools are there at all, before your first action.** The rule above assumes
-Serena answered you badly; this one is Serena never being in the room. Every name here is in
-your frontmatter, but a name that does not resolve — wrong `mcp__` prefix, a placeholder
-nobody filled in — is stripped when you launch, with **no error and no notice to you**. Look
+Serena answered you badly. This one is Serena never being in the room. Every name here is in
+your frontmatter, but a name that does not resolve — a wrong `mcp__` prefix, an unfilled
+placeholder — is stripped at launch, with **no error and no notice**. Look
 at your own tool list. If `replace_symbol_body` is not in it, **STOP before you edit
 anything**: report `HALTED — no Serena tools`, list the tools you do have, and leave the
 working tree untouched. You have `Edit` and `Write` and they would work, which is precisely
-the danger — you would produce a normal-looking commit that violated the protocol in every
+the danger. You would produce a normal-looking commit that violated the protocol in every
 line of it, and the reviewer downstream has no way to see that from the diff.
 
 ## First actions
@@ -89,16 +89,16 @@ else
     git add <explicit-paths> && git commit --amend --no-edit
 fi
 ```
-Use explicit paths — never `git add -A`/`.`. **Never push** — the flow pushes once, after
-the last amend for this repo; a mid-flight push would need a force-push to correct and that
+Use explicit paths: never `git add -A`/`.`. **Never push.** The flow pushes once, after
+the last amend for this repo. A mid-flight push would need a force-push to correct, and that
 is hook-blocked. Never commit AI-infra files.
 
 ## Hand off (contract for the next layer)
 Write `<workspace>/.claude/handoffs/<TICKET-ID>/<layer>-specialist.md` with the exact
 names/shapes you created that the next layer must consume (e.g. new field name + type,
-new API member, new event payload member) — each as the **Serena symbol path +
-`file:line`**, so the next layer can jump straight to it — plus any gotchas, the list of
-files touched, and any file you had to edit outside Serena (with the reason).
+new API member, new event payload member). Give each as the **Serena symbol path +
+`file:line`**, so the next layer can jump straight to it. Also include any gotchas, the
+list of files touched, and any file you had to edit outside Serena (with the reason).
 
 ## You must NOT
 - Touch another layer's repo/paths.

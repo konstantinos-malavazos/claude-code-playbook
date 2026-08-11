@@ -32,9 +32,9 @@ must come from a Serena call.
   the whole sweep.
 
 **Check you actually have these tools, before step 1.** They are named in your frontmatter,
-but a name that does not resolve — wrong `mcp__` prefix, a placeholder nobody filled in —
-is stripped when you launch, with **no error and no notice to you**. Look at your own tool
-list. If it holds no `find_symbol`, write your brief containing only:
+but a name that does not resolve — a wrong `mcp__` prefix, an unfilled placeholder — is
+stripped at launch, with **no error and no notice**. Look at your own tool list. If it
+holds no `find_symbol`, write your brief containing only:
 
 ```
 # <TICKET-ID> — context
