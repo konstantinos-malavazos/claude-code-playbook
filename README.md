@@ -4,6 +4,12 @@
 semantic code navigation, durable memory, and multi-agent flows behind slash commands.
 For any engineer, any stack, any tracker, any company.*
 
+**By [Konstantinos Malavazos](https://github.com/konstantinos-malavazos)** — extracted from
+daily use, stripped of company internals, open-sourced as it stands.
+
+**This is not theoretical.** I run a version of this pipeline on real Jira tickets at work.
+Every flow here earned its place by surviving that, not by reading well.
+
 > **License:** MIT — see [LICENSE](LICENSE).
 
 ---
@@ -165,13 +171,29 @@ step 4 forks.
 3. **Global `CLAUDE.md`, one tracker adapter, the guardrail hooks** — setup steps 4, 5
    and 7. The adapter stops every later flow from having to know which tracker you use.
    The hooks are wired globally, so they are per-machine rather than per-project.
-4. **Then take your door:**
+4. **Then take your door.** This is the only step that forks.
 
-| | The agile path | The solo path |
-|---|---|---|
-| **Next** | Fill in the `CLAUDE.md` layers your repo count calls for: the repo's own on one repo, plus the workspace atlas on siblings ([06](docs/shared/06-claude-md-layers.md)). Then adapt the layer-chain to your stack ([11](docs/shared/11-adapting-to-your-stack.md)). This is the single most important adaptation | Read [the spine](docs/solo/01-the-solo-path.md), then run `/pitch` on the idea. Do **not** create a repo first. A *build* verdict creates it for you |
-| **Then** | Copy the agents/skills/commands you want and add the flows one at a time. Start with `/start-ticket` | Work the map one ticket per session, then `/bootstrap`, then `/cut-backlog`. The stack, the layer chain, the repo's own `CLAUDE.md` and the specialists are all decided and generated on the way. You write none of them by hand |
-| **You know you're done when** | `/start-ticket` runs cleanly on a small real ticket | All eight [seam checks](docs/solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) hold. Then you are standing where the agile path starts |
+   **The agile path** — you hold a ticket someone else wrote.
+
+   - **Next:** fill in the `CLAUDE.md` layers your repo count calls for — the repo's own on
+     one repo, plus the workspace atlas on siblings
+     ([06](docs/shared/06-claude-md-layers.md)). Then adapt the layer-chain to your stack
+     ([11](docs/shared/11-adapting-to-your-stack.md)). This is the single most important
+     adaptation.
+   - **Then:** copy the agents/skills/commands you want and add the flows one at a time.
+     Start with `/start-ticket`.
+   - **Done when:** `/start-ticket` runs cleanly on a small real ticket.
+
+   **The solo path** — you hold a raw idea.
+
+   - **Next:** read [the spine](docs/solo/01-the-solo-path.md), then run `/pitch` on the
+     idea. Do **not** create a repo first. A *build* verdict creates it for you.
+   - **Then:** work the map one ticket per session, then `/bootstrap`, then `/cut-backlog`.
+     The stack, the layer chain, the repo's own `CLAUDE.md` and the specialists are all
+     decided and generated on the way. You write none of them by hand.
+   - **Done when:** all eight
+     [seam checks](docs/solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) hold.
+     Then you are standing where the agile path starts.
 
 You do **not** need everything on day one.
 
