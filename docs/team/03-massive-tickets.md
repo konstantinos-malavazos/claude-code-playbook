@@ -199,7 +199,7 @@ ends by printing text for **you** to paste.
 
 ## Why this doc exists
 
-- The decompose path and this one both say "large ticket", and they solve different problems.
+- The decompose path and this one both say "large ticket" and they solve different problems.
   Fog is the discriminator, not size.
 - `/charting` reads as greenfield-only if you meet it through the solo path. It is not.
 - Two of the rules above (the self-counting review gate, the unclaimed handoff) are invisible
