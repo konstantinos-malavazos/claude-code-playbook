@@ -13,7 +13,7 @@ The test is not size. It is **fog**.
 | You can see the destination but not the route, and it spans sessions | **this doc** |
 
 If you sit down to plan and cannot, that is the signal. A map you did not need costs more
-than the work; running `/start-massive` on a ticket you could have planned wastes a session
+than the work. Running `/start-massive` on a ticket you could have planned wastes a session
 proving that.
 
 ---
@@ -21,7 +21,7 @@ proving that.
 ## Why this doc lives under `team/`
 
 **Fog is not a team condition, and this flow is.** What sits here is the three commands, not
-the ability to chart a codebase that already exists — and the two are worth keeping apart,
+the ability to chart a codebase that already exists. The two are worth keeping apart,
 because only one of them moved.
 
 The three commands assume, at minimum, a ticket somebody else wrote and an effort spanning
@@ -33,9 +33,9 @@ not carry these files at all.
 
 **Solo, the capability survives the move.** A builder past
 [the seam](../solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) who hits a foggy
-effort on the repo they already shipped runs **`/charting`** against it directly — the same
-skill this flow runs, on their own tracker, one ticket per session. It is the same skill by
-construction: `charting` stays `✓ ✓` in
+effort on the repo they already shipped runs **`/charting`** against it directly. That is the
+same skill this flow runs, on their own tracker, one ticket per session. It is the same skill
+by construction. `charting` stays `✓ ✓` in
 [`templates/skills/README.md`](../../templates/skills/README.md), and the skill already
 handles both situations explicitly, including
 [the one where the index is sparse rather than empty](../../templates/skills/charting/SKILL.md).
@@ -47,7 +47,7 @@ specialists behind a review gate, no per-repo commit-message discipline, no clos
 On one repo they own, `/start-ticket` and its own reviewers already cover that ground.
 
 > **This is the sharper line the `solo` / `team` split was always drawing.** The old framing
-> called this case *awkward* — neither door quite fitting. It is not awkward; it is a case
+> called this case *awkward*, with neither door quite fitting. It is not awkward. It is a case
 > where both doors chart and only one needs a flow wrapped around the charting.
 
 ---
@@ -64,7 +64,7 @@ change, and they are the whole of this doc:
 
 | | Solo path | Massive ticket |
 |---|---|---|
-| Where the chart lives | `tickets/` in the repo, committed | `<workspace>/.claude/charts/<KEY>/`, **not** committed — no single repo owns a multi-repo effort |
+| Where the chart lives | `tickets/` in the repo, committed | `<workspace>/.claude/charts/<KEY>/`, **not** committed, because no single repo owns a multi-repo effort |
 | What the tickets are | mostly decisions | decisions **and** makes, because a spec-shaped ticket is mostly makes |
 | What closes it | the stack is named, the bootstrap checks are written | every repo reviewed, the map audited, the conclusion banked |
 
@@ -109,9 +109,9 @@ because it runs in a background context.
 
 A make ticket carries `make:<layer>`, where the layers are the implementation chain declared
 in the repo's `CLAUDE.md` — the same source
-[`/adapt-to-stack`](../shared/11-adapting-to-your-stack.md) generates the specialists from. A `schema → service → consumer` chain gives you `make:schema`
-dispatching `@schema-specialist`, and so on. Add a layer to the chain and you get its ticket
-type for free.
+[`/adapt-to-stack`](../shared/11-adapting-to-your-stack.md) generates the specialists from. A
+`schema → service → consumer` chain gives you `make:schema` dispatching
+`@schema-specialist`, and so on. Add a layer to the chain and you get its ticket type for free.
 
 **There is no track-allocation step, no slice fork, no worktrees, no aligner or integrator.**
 Charting already decomposed this effort; slicing a chart child again is slicing twice. This is
@@ -144,7 +144,7 @@ Both were found by testing the plumbing rather than by reading it, and both look
 bookkeeping until they cost you a map.
 
 **The review gate must exclude the ticket asking.** `/build-chart-ticket` reviews a repo only
-when no *other* make ticket for it is still open. It cannot count itself — it is still open
+when no *other* make ticket for it is still open. It cannot count itself. It is still open
 while it asks, because the walker closes it afterwards. Count it and the answer is always
 *yes*, and the review never fires on any map.
 
@@ -152,7 +152,7 @@ while it asks, because the walker closes it afterwards. Count it and the answer 
 blockers resolved*. A `task` waiting on a person has no blocking edge, so left unclaimed it
 stays takeable forever: every session picks it up, asks for the same thing, and ends. The
 frontier never empties, so the map can neither stall nor close. Claiming it to the person
-takes it off the frontier — which is the only way the frontier empties, and therefore the only
+takes it off the frontier. That is the only way the frontier empties, and therefore the only
 way the *stalled* ending is reachable at all. The same applies to a `research` ticket: left
 unclaimed, the next session fires a second agent at a question already being answered.
 
@@ -189,7 +189,7 @@ frontier.
 
 **Acceptance criteria.** They are not copied into the map, and a ticket that quotes one has
 cached it. `@map-reviewer` re-fetches them at close, so a criterion edited in week two is
-judged as it stands rather than as it was. This is easy to violate by accident — a ticket
+judged as it stands rather than as it was. This is easy to violate by accident. A ticket
 called *"pick the file naming convention"* wants to paste the criterion into its own question.
 
 **Anything the tracker owns.** These flows are read-only on the tracker, always. Every session
@@ -206,8 +206,8 @@ ends by printing text for **you** to paste.
   in a design read and fatal in a real run.
 - Sitting under `team/` says the **flow** needs other people, not that the **fog** does. A
   reader who takes the folder as the whole claim concludes a solo builder cannot chart an
-  existing codebase, which is false and would send them to `/start-ticket` with nothing to
-  plan from.
+  existing codebase. That is false, and it would send them to `/start-ticket` with nothing
+  to plan from.
 
 The mechanics live in [`templates/skills/charting/SKILL.md`](../../templates/skills/charting/SKILL.md)
 and in your [tracker adapter](../../templates/trackers/README.md). The commands are
