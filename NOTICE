@@ -1,0 +1,13 @@
+Claude Code Playbook
+Copyright (c) 2026 Konstantinos Malavazos
+
+This product includes third-party content.
+
+────────────────────────────────────────────────────────────────────────
+
+templates/skills/wizard/template.sh
+
+Included verbatim from Matt Pocock's `wizard` skill and licensed under the
+MIT License by its original author. The notice is retained in that file's
+own header, and the derivation is described in
+templates/skills/wizard/SKILL.md.

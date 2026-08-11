@@ -19,12 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Third-party content
-
-templates/skills/wizard/template.sh is included verbatim from Matt Pocock's
-`wizard` skill and remains licensed under the MIT License by its original
-author. Attribution is retained in that file's header and in
-templates/skills/wizard/SKILL.md.
