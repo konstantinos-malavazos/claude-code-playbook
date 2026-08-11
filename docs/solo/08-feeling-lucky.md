@@ -19,7 +19,7 @@ things: **who drives the loop**, and **who answers a `grilling` ticket**.
 ## What it is actually doing, plainly
 
 A stage 2 map is **mostly decisions**: *"charting produces decisions by default"*
-([03-charting.md:157](03-charting.md)). The only make the path guarantees is the very last
+([03-charting.md](03-charting.md)). The only make the path guarantees is the very last
 ticket on it. So this mode is not clearing a mechanical backlog while you sleep. There is no
 mechanical backlog here yet, because the repo is a stub.
 
@@ -41,8 +41,8 @@ adapter](../../templates/trackers/README.md), and there is nothing about a hoste
 loop cannot drive. GitHub claims and closes perfectly well.
 
 What the mode refuses is a **shared** one. Both adapter files open by asking exactly this:
-*"Is this a shared place?"* ([github.md:7](../../templates/trackers/github.md),
-[local-markdown.md:9](../../templates/trackers/local-markdown.md)). The answer is written
+*"Is this a shared place?"* ([github.md](../../templates/trackers/github.md),
+[local-markdown.md](../../templates/trackers/local-markdown.md)). The answer is written
 into the adapter itself. If the answer is yes, the walk stops before iteration one.
 
 This is [guardrail 2](07-guardrails-when-solo.md) applying unchanged: *ask before writing
@@ -59,7 +59,7 @@ This is a **hard rule about how the walk computes the frontier**, and on one ada
 changes which call you make.
 
 > **Blocking is a question, not an edge.** The verb is *"can I start this right now?"*, and
-> the adapter goes and checks ([`trackers/README.md:81`](../../templates/trackers/README.md)).
+> the adapter goes and checks ([`trackers/README.md`](../../templates/trackers/README.md)).
 > A stored `Blocked by:` line is a claim about the past. **So is a cached count.**
 
 [local-markdown](../../templates/trackers/local-markdown.md) and
@@ -74,7 +74,7 @@ blocker's file for `resolved`, the other reads each blocker's real `statusCatego
 > already closed. *"The same instant, two endpoints, two answers."* It settled about thirty
 > seconds later, with no intervening write. The trap's own words are that **"the frontier
 > query silently hides a ticket that just became takeable"**
-> ([github.md:99](../../templates/trackers/github.md)).
+> ([github.md](../../templates/trackers/github.md)).
 >
 > With you driving, that is a shrug: you re-read and carry on. **In a loop it corrupts the
 > one thing the loop runs on.** Iteration *n* closes a blocker. Iteration *n+1* computes the
@@ -113,8 +113,8 @@ The other three stages each have a reason they want you, and none of them is squ
 | Stage | Why it is not lucky |
 |---|---|
 | 1 — the kill gate | It is **one sitting**, and it already runs agents. There is no loop to drive. An unattended gate also hands itself the *build* verdict, which is the one verdict nobody should mark their own homework on. |
-| 3 — the bootstrap | Already unattended after its first step, by design ([04-the-bootstrap.md:46](04-the-bootstrap.md)). Nothing left to automate. |
-| 4 — cutting | Its exit condition is literally *"and **you approved them**"* ([01-the-solo-path.md:25](01-the-solo-path.md)). A mode that approves the backlog for you has deleted the stage, not automated it. |
+| 3 — the bootstrap | Already unattended after its first step, by design ([04-the-bootstrap.md](04-the-bootstrap.md)). Nothing left to automate. |
+| 4 — cutting | Its exit condition is literally *"and **you approved them**"* ([01-the-solo-path.md](01-the-solo-path.md)). A mode that approves the backlog for you has deleted the stage, not automated it. |
 
 Charting is the only one that is **a loop over many sessions**, which is the only shape a
 driver can drive. The other three run once each.
@@ -153,7 +153,7 @@ doc owns the method, and each command states its own halt table in full.
 
 Each iteration is **one ticket in a fresh context**, and that is not an optimisation. *One
 ticket per session* exists because a ticket is **sized** to a fresh context
-([03-charting.md:69](03-charting.md)). Ten tickets in one long session means the tenth runs
+([03-charting.md](03-charting.md)). Ten tickets in one long session means the tenth runs
 on the remains of the first. A loop that reuses its context has not automated the flow. It
 has broken the rule the flow was built on.
 
@@ -178,7 +178,7 @@ with one substitution:
 | `Type:` | Ordinary charting | Feeling lucky |
 |---|---|---|
 | `grilling` | you decide | [two agents, on the record](#the-two-agent-grilling) |
-| `research` | a background subagent | **unchanged** — it already ran unattended ([02-the-kill-gate.md:277](02-the-kill-gate.md)) |
+| `research` | a background subagent | **unchanged** — it already ran unattended ([02-the-kill-gate.md](02-the-kill-gate.md)) |
 | `task` | you do it | **claimed to you and left.** It does not halt. Claiming is what takes it off the frontier, so the walk continues past it |
 | `prototype` | you react to something rough | **halts.** Reacting *is* the ticket, and there is nobody to react |
 | `make:<layer>` | rare here — no chain is declared yet | **halts.** [Stage 2 has no layer chain and no specialists](../../templates/skills/charting/SKILL.md). `/adapt-to-stack` runs a stage later, so there is nothing to dispatch to |
@@ -186,7 +186,7 @@ with one substitution:
 ### The tail always stops the walk
 
 Charting ends with **the tail**: *name the stack*, then *write the bootstrap checks*, and
-neither is takeable while any other ticket is open ([01-the-solo-path.md:94](01-the-solo-path.md)).
+neither is takeable while any other ticket is open ([01-the-solo-path.md](01-the-solo-path.md)).
 
 **`/feeling-lucky` halts the moment the tail is all that is left.** Naming the stack is the
 single most expensive decision on this path. Every later ticket, the whole bootstrap, the
@@ -277,7 +277,7 @@ re-chart* — the destination moves, ticket numbers burn, decisions downstream w
 taken on top of it. If undoing it means reopening the map, `/feeling-lucky` stops there.
 
 This is the surviving half of the two-clause rule in
-[07-guardrails-when-solo.md:27](07-guardrails-when-solo.md). **The audience clause is
+[07-guardrails-when-solo.md](07-guardrails-when-solo.md). **The audience clause is
 already spent.** [Requirement 1](#1-the-tracker-must-not-be-a-shared-place) refused a
 shared tracker before iteration one, and [the push rule](#the-walk-pushes-to-main) only
 applies to a private stub nobody else has. You pay that clause once, up front and
@@ -297,7 +297,7 @@ until you check which.
 
 ### The iteration cap is the cost habit finally getting teeth
 
-[07-guardrails-when-solo.md:282](07-guardrails-when-solo.md) rules cost out as a guardrail,
+[07-guardrails-when-solo.md](07-guardrails-when-solo.md) rules cost out as a guardrail,
 for a reason that is correct: *"a hook cannot see token spend."*
 
 **But a loop can count its own iterations.** The cap and the breaker are the first
@@ -316,7 +316,7 @@ loop cannot do](07-guardrails-when-solo.md).
 ### What is actually being pushed
 
 Almost always: **ticket files.** Stage 2 produces decisions, not code
-([03-charting.md:157](03-charting.md)). On
+([03-charting.md](03-charting.md)). On
 [local-markdown](../../templates/trackers/local-markdown.md) those decisions *are* files in
 `tickets/`, committed. So the night's output is the map, the closed tickets and their
 resolution comments: a **record**, in markdown.
@@ -346,7 +346,7 @@ charting ends. Nothing here licenses pushing to `main` on a repo that has one.
 | [`block-secret-staging.sh`](../../templates/hooks/block-secret-staging.sh) is **installed** | this hook exists *because* push was loosened — see below |
 
 **The second one is not optional here, and this mode is the sharpest reason to have that hook.**
-[07-guardrails-when-solo.md:255](07-guardrails-when-solo.md) records the hole loosening push
+[07-guardrails-when-solo.md](07-guardrails-when-solo.md) records the hole loosening push
 opens: *"the agent writes `.env` with a live key, commits, pushes. The repo is private, so it
 feels fine. Six months later you make it public to show someone, and the key is in the
 history."* That scenario assumed a human who merely did not read the diff. **Here there is no
@@ -377,7 +377,7 @@ So the walk writes to **`.claude/lucky/`**, local, whatever the tracker is:
 
 **Never on the tracker, and never beside the tickets.** A ticket is a project record. It
 passes §5's provenance test, *would a fresh clone need this file?*
-([local-markdown.md:49](../../templates/trackers/local-markdown.md)). A log of what an agent
+([local-markdown.md](../../templates/trackers/local-markdown.md)). A log of what an agent
 did overnight fails that test outright. It is AI infra, it lives under `.claude/`, and the
 hooks already keep that out of a commit.
 
@@ -407,7 +407,7 @@ that is a contradiction. On this repo a contradiction is a defect, because an ag
 both files at once and has no tiebreak.
 
 It is not one, and the reason has the same shape as the finding in
-[07-guardrails-when-solo.md:27](07-guardrails-when-solo.md). **That rule was two clauses the
+[07-guardrails-when-solo.md](07-guardrails-when-solo.md). **That rule was two clauses the
 whole time.**
 
 | Clause | What it tests | Feeling lucky |
@@ -417,10 +417,10 @@ whole time.**
 
 **The team path fails the ownership clause, and no mechanism rescues it.** A steward reading
 a pack cannot stand in for a product owner who is simply not in the room. That is the premise
-[07-guardrails-when-solo.md:3](07-guardrails-when-solo.md) opens with. It is why this mode is
+[07-guardrails-when-solo.md](07-guardrails-when-solo.md) opens with. It is why this mode is
 solo-only, and why no new guardrail was needed to keep it off the team path. The hook layer
 says what is *possible*. A flow says what it *does*
-([07-guardrails-when-solo.md:356](07-guardrails-when-solo.md)). This mode simply does not
+([07-guardrails-when-solo.md](07-guardrails-when-solo.md)). This mode simply does not
 exist over there.
 
 So the shared rule holds **by its reason**, and the places that state it now say *silently*,
