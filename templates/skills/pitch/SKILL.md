@@ -88,7 +88,7 @@ The answer sets two things.
 
 ## Briefing a cold search
 
-Both searches are `/research` subagents. **Do not write new search-agent templates** — that
+Both searches are `/research` subagents. **Do not write new search-agent templates.** That
 skill exists and does exactly this.
 
 **They run cold, and that is the point.** A fresh subagent never heard the user's
@@ -157,7 +157,7 @@ writing, then ask. This is the strongest mechanism here and it costs nothing.
 
 ## Dispatching `pitch-judge`
 
-Runs **once, automatically**, as part of the gate. Never on demand — an appeals court the
+Runs **once, automatically**, as part of the gate. Never on demand. An appeals court the
 user can invoke is a reprieve-shopping machine.
 
 **It receives a case file, never a transcript.** A relabelled conversation identifies itself
@@ -222,7 +222,7 @@ something you and the user both approved.
 
 ## Park requires a trigger
 
-> **To park, the user must name a thing that will end — and that they will notice ending.**
+> **To park, the user must name a thing that will end, and that they will notice ending.**
 
 Not a length of time. A thing that ends.
 
@@ -232,7 +232,7 @@ Not a length of time. A thing that ends.
 | *"when things calm down"* · *"when I have more time"* · *"eventually"* | **kill** |
 
 **No trigger means kill**, said plainly and recorded with its reason. Ask once, accept a
-real answer, and do not help the user manufacture a trigger — offering candidate triggers is
+real answer, and do not help the user manufacture a trigger. Offering candidate triggers is
 how park swallows the whole gate.
 
 Say the thing that makes this bearable, out loud: **a kill is a recorded no, not a
@@ -259,7 +259,7 @@ convenient now.
 
 1. **Confirm the repo name with the user.** Ask; do not pick one and announce it.
 2. **Create the repo — private.** Through the tracker adapter's verbs, never a raw CLI call.
-3. **Seed the map as issue #1.** It arrives filled in, not empty — otherwise charting opens
+3. **Seed the map as issue #1.** It arrives filled in, not empty. Otherwise charting opens
    by asking what the project is, an hour after the gate was told.
 
 | Section | What you write |
@@ -279,7 +279,7 @@ convenient now.
 
 ## Stop condition
 
-The gate is done when a verdict is recorded in the ideas file — and on *build*, when the
+The gate is done when a verdict is recorded in the ideas file, and on *build*, when the
 repo exists with a seeded issue #1.
 
 **It is not done when you have run out of questions.** An hour of conversation that ends

@@ -45,7 +45,7 @@ contract's vocabulary, and the one installed adapter doc at `~/.claude/tracker.m
 it. One tracker in context, never four.
 
 The verbs this stage uses: **create · read · edit body · label · mark blocked**, and the
-composed **whole graph**. Nothing here branches on which tracker is underneath — where a
+composed **whole graph**. Nothing here branches on which tracker is underneath. Where a
 tracker lacks a verb natively the adapter fakes it, and you are never told.
 
 ## The seven steps
@@ -64,7 +64,7 @@ In order. Each one needs something the one before it produced.
 
 ### 1 — Read the smallest version out of the map
 
-Read the map. The **Notes** hold one sentence — *"add a habit and tick it off each day, on
+Read the map. The **Notes** hold one sentence: *"add a habit and tick it off each day, on
 my phone."* That sentence is the source of every unit.
 
 Then read the closed decisions the same way, and read them as **constraints**:
@@ -76,7 +76,7 @@ Then read the closed decisions the same way, and read them as **constraints**:
 
 **Decisions do not convert into work.** *"Seam item 4 becomes two branches"* is not something
 anyone can build. If you find yourself turning a decision into a ticket, you are cutting from
-the wrong artifact — go back to the sentence.
+the wrong artifact. Go back to the sentence.
 
 ### 2 — Cut the units
 
@@ -95,7 +95,7 @@ The test is the end of the ticket, not the start: **when this is done, what can 
 that it could not do before?** If the answer is *"nothing yet, but the next one will be
 easier"*, it is not a unit.
 
-**Do not apply the pipeline's usual size bar** — *touches 2+ files, or needs a decision the
+**Do not apply the pipeline's usual size bar**: *touches 2+ files, or needs a decision the
 codebase does not encode.* On a day-one repo it returns *yes* to everything, and a bar that
 cannot return *no* is not a bar. The rule above is this stage's own.
 
@@ -163,7 +163,7 @@ Editing a board is free; editing a dozen filed issues is a dozen edits and a re-
 private it is.
 
 Loop here as long as the human keeps editing. Re-render the whole board after each change,
-including the traces — a merge or a split changes what points at what.
+including the traces. A merge or a split changes what points at what.
 
 ### 6 — Create every ticket at once
 
@@ -244,18 +244,18 @@ Four things about a backlog in particular:
   whole point. Ask for the graph over **the ids in hand**. That is the contract's second
   scoping, not a workaround for a gap in it.
 - **Ask the tracker even though you already hold every field. A fetch is a read-back.** Drawn
-  from the session's notes the picture shows what you *meant* to create; drawn from the
+  from the session's notes the picture shows what you *meant* to create. Drawn from the
   tracker it shows what **landed**. Let the fourth create of four fail and the remembered
   picture still draws four boxes while the fetched one draws three.
 - **It gets the legend only.** The sidebar's *Not yet specified* and *Out of scope* sections
   belong to a map. The page omits them when they are absent — nothing to configure.
 - **The `blockedBy` *edges* come from the ticket bodies. The *states* on them come from the
   tracker.** Which unit needs which is a `needs #…` line you wrote, and the page does not
-  care who derived it — that is the data slot doing its job, and it is what keeps the body
+  care who derived it. That is the data slot doing its job, and it is what keeps the body
   the truth. But each blocker also carries `"state"`, and a body line cannot know that: it
   is a sentence, not a reading. Take it from the graph you just fetched. Here every unit is
   minutes old and every state is `open`, which is exactly why this is easy to fill in from
-  memory and be right — until someone regenerates the picture later and is quietly wrong.
+  memory and be right, until someone regenerates the picture later and is quietly wrong.
 
 ## Where you stop
 
@@ -274,5 +274,5 @@ Four stops, and none of them is a failure of the stage:
 them.** That is seam **item 6** — the last of the eight to come true, not the eighth — and
 the solo path stops there.
 
-Everything after this is the shared pipeline. Do not start the first ticket — hand over to
+Everything after this is the shared pipeline. Do not start the first ticket. Hand over to
 `/start-ticket` and stop.
