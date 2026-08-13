@@ -1,8 +1,13 @@
 # 10 — Memory hygiene: deliberate memory
 
-The memory pillar only stays valuable if it stays **signal-dense**. Two flows keep it
-that way. The principle behind both: **nothing enters or survives in memory
+The memory pillar only stays valuable if it stays **signal-dense**. Three flows keep it
+that way. The principle behind all of them: **nothing enters or survives in memory
 un-reviewed.**
+
+Two of the three are about a *day's* knowledge — what you concluded, and whether it aged
+well. The third is about a *repo's* knowledge, which is a different problem: it already
+exists, nobody concluded it recently, and there is far too much of it to nominate one item
+at a time.
 
 ---
 
@@ -30,6 +35,50 @@ What *doesn't* go in:
 - in-flight ticket state (that's what handoff files were for — and they've evaporated),
 - anything already recorded in code, git history, or a CLAUDE.md,
 - facts that only matter to today's conversation.
+
+---
+
+## `/encode-codebase` — read a repo in
+
+`/end-of-day` nominates what today settled, a few items at a time. That never reaches the
+knowledge a repo already holds: how it is layered, what the important symbols are, which
+mechanism a name belongs to. There is too much of it to nominate by hand, and none of it is
+new.
+
+So this flow reads the repo instead, navigating **by symbol** with Serena, and writes it into
+memory in batches. Four agents, and the division between them is the design:
+
+| Agent | Does | Holds a memory write tool? |
+|---|---|---|
+| `@encode-recon` | studies the repo once, drafts the tag vocabulary, ranks the work | **no** |
+| `@encoder` | encodes one batch, then exits — a fresh instance per batch | yes |
+| `@encode-rechecker` | re-checks that batch independently, assuming nothing | **no** |
+| `@encode-corrector` | applies one approved correction, after re-verifying it | yes |
+
+**Three things in that table carry the whole design.**
+
+**A fresh encoder per batch.** Context is the scarce resource in a long run, so no instance
+survives its batch and the orchestrator keeps one line per batch — never a memory body.
+
+**The auditor cannot write.** `@encode-rechecker` re-derives every enumeration, re-measures
+every quoted line count against the symbol rather than the file, and re-checks every path
+case-exact. It exists because **the encoder's own report is a claim, including the parts
+where it grades itself.** It holds no write tool, so "fixes nothing" is structural rather
+than a promise — and a correction goes to a separate agent that re-verifies the finding
+before touching anything. An auditor that repairs its own findings destroys the evidence
+that the audit worked.
+
+**The watermark only moves on a verified batch.** The flow bookmarks its progress with a
+commit SHA so a later session resumes rather than restarts. That bookmark advances only when
+the encoder finished clean **and** the re-check passed. An encoder-clean batch with no
+re-check is not clean, it is unverified, and a watermark moved on it silently marks ground
+as covered that nobody checked.
+
+Everything about your repo comes from the `## Memory encoding` section of its `CLAUDE.md` —
+indexed languages, where the vocabulary lives, what a tier means, any optional extra axis,
+and the inclusion rule. Absent or bracketed, the flow stops and names the line. The vocabulary
+itself is approved by a human before a single write, and the approval is split four ways
+rather than bundled.
 
 ---
 

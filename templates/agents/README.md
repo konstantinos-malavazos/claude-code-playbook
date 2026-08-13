@@ -28,7 +28,7 @@ cannot choose. The full set:
 | `description` | When Claude should delegate to it | ✓ all |
 | `tools` | Allowlist. **Inherits every tool if omitted** — including every MCP server | ✓ all |
 | `disallowedTools` | Denylist. Applied **first**, then `tools` resolves against the remainder | — |
-| `model` | `sonnet` / `opus` / `haiku` / `fable`, a full id, or `inherit`. **Defaults to `inherit`** | ✓ all but `layer-specialist` |
+| `model` | `sonnet` / `opus` / `haiku` / `fable`, a full id, or `inherit`. **Defaults to `inherit`** | ✓ all but the two layer specialists |
 | `permissionMode` | `default`, `acceptEdits`, `auto`, `dontAsk`, `bypassPermissions`, `plan` | — |
 | `maxTurns` | Caps agentic turns. The way to make an agent that weighs but cannot act | ✓ `pitch-judge`, `decision-steward` |
 | `skills` | Skills preloaded into its context at startup — full content, not just the description | — |
@@ -36,7 +36,7 @@ cannot choose. The full set:
 | `hooks` | Lifecycle hooks scoped to this agent | — |
 | `memory` | `user` / `project` / `local` — persistent cross-session memory | — |
 | `background` | Force background. **Unset already means background by default** — see below | — |
-| `effort` | `low` … `max`; overrides the session effort level | ✓ all but `layer-specialist` |
+| `effort` | `low` … `max`; overrides the session effort level | ✓ all but the two layer specialists |
 | `isolation` | `worktree` — runs in a throwaway git worktree | — |
 | `color` | Display colour in the task list | — |
 | `initialPrompt` | Only when the agent runs as the *main* session agent | — |
@@ -118,15 +118,17 @@ directory name. Same placeholder, opposite consequence:
   pin instead, deliberately: a pipeline agent's cost and judgement should not swing with the
   session's model. Use a fast/cheap model for mechanical, bounded work and a stronger model
   for design, judgement, and cross-repo reasoning.
-  **The one exception is the layer specialist.** The template and every file generated from
-  it omit the field unless the repo's `CLAUDE.md` names one per layer, because pinning is
-  advice to a human who knows the agent and not advice a generator can follow. Why, in full:
+  **The exception is the layer specialist, in both its forms.** `layer-specialist` and its
+  decompose-path sibling `slice-layer-specialist` omit the field unless the repo's `CLAUDE.md`
+  names one per layer, because pinning is advice to a human who knows the agent and not advice
+  a generator can follow. The slice variant inherits the argument along with everything else it
+  does not override. Why, in full:
   [`../../docs/shared/11-adapting-to-your-stack.md`](../../docs/shared/11-adapting-to-your-stack.md).
 - **`effort` is the second dial, and it is not the same dial as `model`.** `model` decides
   which mind runs the agent; `effort` decides how hard that mind works before it answers.
   Because it **overrides the session level**, an agent that must not answer cheaply says so
-  itself instead of depending on whoever started the session. **Every agent here states one,
-  and that is the point** — an unstated effort is not a neutral choice, it is the session's
+  itself instead of depending on whoever started the session. **Every agent here states one, with the
+  two noted exceptions, and that is the point** — an unstated effort is not a neutral choice, it is the session's
   choice applied to a job the session knows nothing about.
 
   The test is **what happens to the answer**. Where the output is a judgement somebody acts on
@@ -138,9 +140,11 @@ directory name. Same placeholder, opposite consequence:
   parse-and-restate with a fast model behind it, dial it **down**: `ticket-analyzer` is
   `medium`, and that is a saving, not a compromise.
 
-  **`layer-specialist` is the one exception, for the same reason it pins no `model`.** One
+  **The two layer specialists are the exception, for the same reason they pin no `model`.** One
   layer is mechanical and the next is design-heavy, and which is which is a fact about your
-  chain that a template cannot know. State it per layer once you do.
+  chain that a template cannot know. State it per layer once you do —
+  `slice-layer-specialist` inherits the argument from its base, because slice mode changes
+  where an agent works and not how hard its layer has to think.
 - **An agent that dispatches another agent needs `Agent` in its `tools` list.** Nesting is
   on by default (three layers below the main conversation), but an explicit allowlist still
   wins: leave `Agent` out and the dispatch simply cannot happen. `repo-reviewer` is the one
@@ -208,6 +212,10 @@ If you get it wrong anyway, the halt rule above is what catches it.
 | `fixer-planner.md` | QA bounce-back → root cause + fix plan; stops rather than guessing a cause | ✓ | ✓ |
 | `test-planner.md` | criteria → an approved staging test plan; owns the produce-recipe loop (plans and banks, never runs) | ✓ | ✓ |
 | `tester.md` | runs the approved plan — calls the produce driver, reconciles, verdicts, confirms or corrects the recipe | ✓ | ✓ |
+| `encode-recon.md` | **`/encode-codebase`** — studies a repo once, drafts the tag vocabulary, ranks the work (read-only on memory) | ✓ | ✓ |
+| `encoder.md` | **`/encode-codebase`** — encodes ONE batch then exits; a fresh instance per batch keeps context clean | ✓ | ✓ |
+| `encode-rechecker.md` | **`/encode-codebase`** — independent audit of a batch, assuming nothing (**holds no memory write tool**) | ✓ | ✓ |
+| `encode-corrector.md` | **`/encode-codebase`** — applies ONE approved correction, re-verifying it first | ✓ | ✓ |
 | `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |
 | `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | | ✓ |
 | `decision-steward.md` | one grilling question on an unattended walk → an answer **plus a basis** (**gathers no evidence**) | ✓ | |
