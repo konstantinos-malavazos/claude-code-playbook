@@ -173,7 +173,7 @@ which is why step 1 comes first rather than in the middle.
 | 2 — scaffold the stub | FastAPI's skeleton, plus `storage/`, `planner/`, `web/`. They are empty, because step 5 is about to write an agent file that names each path |
 | 3 — write `CLAUDE.md` | stack · build/test/run commands · the main branch (detected, not asked) · the chain · Serena verdict: yes · settled names: `alias` |
 | 4 — index Serena | the index, and a symbol query that comes back with real results |
-| 5 — `/adapt-to-stack` | three specialists and three standards skills in the repo's own `.claude/`, created and never overwritten |
+| 5 — `/adapt-to-stack` | three specialists, their three slice variants and three standards skills in the repo's own `.claude/`, created and never overwritten |
 | 6 — verify the tracker adapter | **nothing.** It only reads. Free to redo |
 | 7 — write memory two | *why this stack, why this chain, what was ruled out* — and **not** the stack or the chain themselves, which `CLAUDE.md` already carries |
 | 8 — run every check, report once, stop | the report |

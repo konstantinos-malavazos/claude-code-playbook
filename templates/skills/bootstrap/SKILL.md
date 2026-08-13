@@ -135,9 +135,10 @@ fall back to globbing the tree or reading whole files to compensate.
 
 ### 5 — Generate the layer specialists and the stack skills
 
-One specialist agent per layer of the chain, plus the stack's skills. **Run
-`/adapt-to-stack`.** It reads the `CLAUDE.md` step 3 just wrote and generates both, and
-each specialist names the folder step 2 created for its layer.
+The agents and skills your chain needs, one set per layer. **Run `/adapt-to-stack`.** It
+reads the `CLAUDE.md` step 3 just wrote and generates them, and each specialist names the
+folder step 2 created for its layer. What it produces is that flow's contract, stated once
+in its own file — this step does not restate the count.
 
 - **Call the generation flow. Do not reimplement it.** How these files are written is not
   this stage's business. This stage owns *when*: after the chain exists and the folders
@@ -195,7 +196,7 @@ Produce **one** report, in this shape:
 | 4 | Serena matches the verdict | pass / skipped — verdict no / FAIL | the symbol query, and what came back |
 | 5 | The tracker adapter matches this project | pass / FAIL | which adapter is installed |
 | 7 | Two memories exist | pass / FAIL | their titles |
-| 8 | The layer specialists exist | pass / FAIL | one path per layer |
+| 8 | The layer specialists exist | pass / FAIL | the base specialist's path per layer |
 
 <N> of 7 pass.
 ```

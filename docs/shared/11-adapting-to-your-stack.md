@@ -111,7 +111,7 @@ once per layer and fills in what `CLAUDE.md` already knows:
 | the **layer name** and the **repo(s)/paths** it owns | the chain section |
 | its **build/test commands** | the *build / test / run* section |
 | the **contract** it reads from the previous layer and writes for the next | chain **order** — the neighbours either side |
-| the **engineering standards** skill it loads | the skill generated in step 3, named for the layer |
+| the **engineering standards** skill it loads | the skill generated in step 4, named for the layer |
 | its **model** | the optional per-layer id, or omitted so it inherits |
 
 **Why generated rather than copied by hand:** a specialist file is *facts about this
@@ -123,7 +123,25 @@ codebase are project-scoped ([01-architecture.md](01-architecture.md)). On a tea
 `~/.claude/` mean every engineer hand-copies them and they drift apart. That is the manual
 labour this flow exists to kill.
 
-### 3. One engineering-standards skill per layer — generated
+### 3. One slice-mode variant per layer — generated
+
+The [decompose path](09-decompose-path.md) builds several vertical slices in parallel, and
+it dispatches a slice-mode variant of each specialist rather than the specialist itself. The
+flow copies
+[`../../templates/agents/slice-layer-specialist.md`](../../templates/agents/slice-layer-specialist.md)
+once per layer, into the same `.claude/agents/`, as `slice-<layer>-specialist.md`. There is
+almost nothing to fill in: the file is an override shell that reads the specialist above and
+overrides five things.
+
+**It is generated whether or not you ever decompose a ticket.** Nobody knows at generation
+time: the planner sets the slice count per ticket, and the fork lives inside `/start-ticket`,
+possibly months later. Making it conditional would mean a new declaration line in
+`CLAUDE.md` — and then the flow would be choosing, which is the one thing it does not do. The
+price of generating it anyway is one file per layer that nothing ever loads unless a slice
+dispatch names it. Because the flow never overwrites, a re-run on a repo adapted before this
+existed simply adds the missing variants. That re-run is the upgrade.
+
+### 4. One engineering-standards skill per layer — generated
 
 Split your engineering standards **by language/layer** so each specialist loads only what
 it needs (a schema specialist shouldn't carry frontend rules). The flow copies
@@ -147,7 +165,7 @@ loads that file and the alternative is pointing it at one that does not exist.
 ### It never overwrites, and it tells you what it did
 
 A re-run creates what is missing and **leaves everything existing alone**. Add a fifth
-layer and you get one specialist and one standards skill. Change the test command in
+layer and you get that layer's three files. Change the test command in
 `CLAUDE.md` and nothing changes automatically.
 
 Diff-and-patch was rejected on purpose. Once real rules are written by hand there is no
@@ -169,7 +187,7 @@ Like [the bootstrap's exit test](../solo/04-the-bootstrap.md#the-exit-test), it
 That last row costs no state at all — no timestamps, no ledger. **The convention that makes
 a template fillable is what makes un-filled-ness detectable.**
 
-### 4. Wire the order into `/start-ticket`
+### 5. Wire the order into `/start-ticket`
 
 The planner allocates tracks and the orchestrator dispatches the specialists **in chain
 order**. The template command
@@ -197,6 +215,8 @@ The first item is yours. The rest are read off the flow's report.
       `CLAUDE.md` — see [06](06-claude-md-layers.md).)
 - [ ] The report shows **one specialist created per layer** in `.claude/agents/`, each with
       its paths and build/test commands filled in from that file.
+- [ ] The report shows **one slice-mode variant per layer** in `.claude/agents/`, beside its
+      base specialist — generated even though no ticket has decomposed yet.
 - [ ] The report shows **one standards skill per layer** in `.claude/skills/`.
 - [ ] Nothing came back as **disagrees with `CLAUDE.md`** — or if it did, I reconciled it
       by hand.

@@ -116,7 +116,7 @@ where both entrances are visible at once. When all eight hold, the front-end is 
 | 5 | **The tracker adapter is installed** | Exactly one adapter, at the fixed path the global `CLAUDE.md` points at. |
 | 6 | **The backlog exists** | Units are in the tracker, ordered, and **you approved them**. |
 | 7 | **Two memories exist** | Exactly two: *what this project is and who it is for* (the one-paragraph version), and *the stack and the layer chain, and why*. |
-| 8 | **The layer specialists exist** | One agent file per layer of the chain, **on disk**. Item 3 says the chain is declared; this says something can act on it. See [11-adapting-to-your-stack.md](../shared/11-adapting-to-your-stack.md). |
+| 8 | **The layer specialists exist** | The base `<layer>-specialist` for every layer of the chain, **on disk**. Item 3 says the chain is declared; this says something can act on it. The slice-mode variants sit beside them and are not what this item checks — nothing dispatches one on the sequential path. See [11-adapting-to-your-stack.md](../shared/11-adapting-to-your-stack.md). |
 
 **On item 8 — declared is not the same as built.** Step 4 of
 [`/start-ticket`](../shared/08-ticket-pipeline.md) dispatches the implement step to layer

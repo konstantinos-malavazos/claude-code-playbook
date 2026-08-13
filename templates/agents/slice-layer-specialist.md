@@ -28,9 +28,11 @@ conflict, the overrides WIN.
 Anything restated here is a second copy of the base, and it drifts the first time the base is
 edited.
 
-**Copy this file once per layer of your chain and fill in `<layer>`.** `/adapt-to-stack` does
-not generate it: that flow generates exactly two things per layer and refuses to grow. So the
-decompose path costs one hand-written file per layer.
+**Generated once per layer of your chain by `/adapt-to-stack`**, into the repo's own
+`.claude/agents/` as `slice-<layer>-specialist.md`, beside the base `<layer>-specialist` it
+overrides (see `docs/shared/11-adapting-to-your-stack.md`). You do not copy it by hand. On a
+repo adapted before the flow generated this file, re-run the flow: it adds what is missing
+and overwrites nothing.
 
 ## Code access protocol (MANDATORY — not a preference)
 

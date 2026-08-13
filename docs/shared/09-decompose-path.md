@@ -43,11 +43,17 @@ different problems.
         └──► rejoin the normal path at @repo-reviewer → @release-reviewer
 ```
 
+The two steps that produce the board ship as skills:
+[`to-spec`](../../templates/skills/to-spec/SKILL.md) and
+[`to-tickets`](../../templates/skills/to-tickets/SKILL.md). `/start-ticket` dispatches both,
+so neither sets `disable-model-invocation` — the field would stop the path at the dispatch.
+
 Every agent named above ships as a template:
-[`slice-layer-specialist`](../../templates/agents/slice-layer-specialist.md) (copy one per
-layer of your chain), [`aligner`](../../templates/agents/aligner.md),
+[`slice-layer-specialist`](../../templates/agents/slice-layer-specialist.md) (generated one
+per layer of your chain by [`/adapt-to-stack`](11-adapting-to-your-stack.md), whether or not
+you ever decompose), [`aligner`](../../templates/agents/aligner.md),
 [`integrator`](../../templates/agents/integrator.md) and
-[`integration-tester`](../../templates/agents/integration-tester.md). None of them is
+[`integration-tester`](../../templates/agents/integration-tester.md). The other three are not
 installed by the normal setup, because none of them runs on the sequential path.
 
 ---
