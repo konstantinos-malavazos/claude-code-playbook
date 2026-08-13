@@ -81,6 +81,7 @@ than the two above:
 | `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
 | `wait-what` | **you type it** — the last message did not land, so it gets re-pitched simply | ✓ | ✓ |
+| `handoff` | **you type it** — compact this session into one file a fresh session resumes from | ✓ | ✓ |
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
 | `memory-tag-lint` | the `/encode-codebase` write gate — seven assertions, applied identically by three agents | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
@@ -107,8 +108,8 @@ skill from a solo install and you take stage 2 with it.
 
 ## On `disable-model-invocation`
 
-`bootstrap`, `cut-backlog`, `to-questionnaire` and `wait-what` set it. Two tests decide it,
-and a veto overrides both.
+`bootstrap`, `cut-backlog`, `to-questionnaire`, `wait-what` and `handoff` set it. Two tests
+decide it, and a veto overrides both.
 
 **Test 1 — [`PHILOSOPHY.md`](../../PHILOSOPHY.md) §5:** *if it's hard to reverse **or**
 leaves your machine, a human confirms it.* `bootstrap` writes memory and ends in a commit.
@@ -116,9 +117,10 @@ leaves your machine, a human confirms it.* `bootstrap` writes memory and ends in
 field because it never overwrites. The worst an unasked run does is add files you delete.
 
 **Test 2 — the run is not the model's to start.** `wait-what` is *you* saying the last
-message did not land. `to-questionnaire` needs a recipient only you know exists. Neither is
-a run the model can decide to begin, so the field makes them typed-only rather than
-confirmation gates.
+message did not land. `to-questionnaire` needs a recipient only you know exists. `handoff` is
+you deciding this session ends here, which is a fact about your day and not about the work.
+None of the three is a run the model can decide to begin, so the field makes them typed-only
+rather than confirmation gates.
 
 Conversation skills — `charting`, `pitch`, `grilling`, `diagnose` — deliberately leave it
 unset. A conversation that starts a turn early costs you one redirect.
