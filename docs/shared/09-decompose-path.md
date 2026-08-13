@@ -43,6 +43,13 @@ different problems.
         └──► rejoin the normal path at @repo-reviewer → @release-reviewer
 ```
 
+Every agent named above ships as a template:
+[`slice-layer-specialist`](../../templates/agents/slice-layer-specialist.md) (copy one per
+layer of your chain), [`aligner`](../../templates/agents/aligner.md),
+[`integrator`](../../templates/agents/integrator.md) and
+[`integration-tester`](../../templates/agents/integration-tester.md). None of them is
+installed by the normal setup, because none of them runs on the sequential path.
+
 ---
 
 ## Why vertical slices, not horizontal layers

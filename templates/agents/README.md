@@ -199,6 +199,8 @@ If you get it wrong anyway, the halt rule above is what catches it.
 | `context-gatherer.md` | heavy memory + Serena sweep in a throwaway context | ✓ | ✓ |
 | `planner.md` | design + track allocation + branch (no memory writes, no code) | ✓ | ✓ |
 | `layer-specialist.md` | **generated once per layer of your chain** by `/adapt-to-stack`, into that repo's own `.claude/agents/` — the implementer (Serena-only edits) | ✓ | ✓ |
+| `slice-layer-specialist.md` | **decompose path only** — the slice-mode variant of the above, **copied once per layer** by hand; overrides five things and inherits the rest | ✓ | ✓ |
+| `aligner.md` | **decompose path only** — cross-slice drift gate before any merge; ALIGNED or DRIFT FOUND (comments only) | ✓ | ✓ |
 | `integrator.md` | **decompose path only** — collapses each repo's slice branches to one commit; stops on a real conflict | ✓ | ✓ |
 | `integration-tester.md` | **decompose path only** — tests the combined behaviour no single slice proves; routes defects, never patches | ✓ | ✓ |
 | `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
@@ -230,14 +232,22 @@ the method, one declaration holds the nouns
 ([`../claude-md/repo.CLAUDE.md`](../claude-md/repo.CLAUDE.md)). Filling in those six lines is
 what installing `/test-ticket` means; copying the two agent files alone installs nothing.
 
-`integrator` and `integration-tester` are the two decompose-path agents that ship here. Copy
-them only if you use that path ([docs/shared/09](../../docs/shared/09-decompose-path.md)); on
-the sequential chain they never run, because the orchestrator dispatches them only when the
-planner set `slice-count > 1`.
+**The four decompose-path agents are now complete.** Copy them only if you use that path
+([docs/shared/09](../../docs/shared/09-decompose-path.md)); on the sequential chain none of
+them run, because the orchestrator dispatches them only when the planner set
+`slice-count > 1`. In order: the `slice-*` specialists build in parallel worktrees, `aligner`
+gates for drift, `integrator` collapses each repo to one commit, `integration-tester` covers
+what no single slice proves.
 
-**The path is not complete with these two.** It also wants `aligner` — the drift gate — and a
-`slice-*` override per layer, and neither is here yet. That is a stated gap rather than a
-silent one, and `integrator` is built to fail safely into it: it STOPS when `aligner.md` is
-absent, on the grounds that a missing gate and a passed gate must not look alike. Until the
-aligner exists, its verdict file is written by whatever you use in its place, and the honest
-answer may be a human reading the slice handoffs.
+**Two of the four are load-bearing on each other, and the coupling is deliberate.** `aligner`
+writes a verdict of exactly `ALIGNED` or `DRIFT FOUND`; `integrator` refuses to run on
+anything else — **including on a missing file**, because a gate that never ran and a gate that
+passed must not resolve the same way. Change that one word in either file and you have
+silently disabled the only check standing between parallel worktrees and a squashed commit.
+
+`slice-layer-specialist` is the one template here that is **copied per layer by hand.** It is
+the slice-mode sibling of `layer-specialist`, but `/adapt-to-stack` does not generate it: that
+flow generates exactly two things per layer and refuses to grow, on the grounds that widening
+it is a decision rather than a step
+([`../skills/adapt-to-stack/SKILL.md`](../skills/adapt-to-stack/SKILL.md)). So the decompose
+path costs one hand-written file per layer, and that cost is the reason it is not the default.
