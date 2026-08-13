@@ -36,7 +36,7 @@ cannot choose. The full set:
 | `hooks` | Lifecycle hooks scoped to this agent | — |
 | `memory` | `user` / `project` / `local` — persistent cross-session memory | — |
 | `background` | Force background. **Unset already means background by default** — see below | — |
-| `effort` | `low` … `max`; overrides the session effort level | ✓ `test-planner`, `tester` |
+| `effort` | `low` … `max`; overrides the session effort level | ✓ `fixer-planner`, `test-planner`, `tester` |
 | `isolation` | `worktree` — runs in a throwaway git worktree | — |
 | `color` | Display colour in the task list | — |
 | `initialPrompt` | Only when the agent runs as the *main* session agent | — |
@@ -125,10 +125,11 @@ directory name. Same placeholder, opposite consequence:
 - **`effort` is the second dial, and it is not the same dial as `model`.** `model` decides
   which mind runs the agent; `effort` decides how hard that mind works before it answers, and
   it **overrides the session level**, so an agent that must not think cheaply says so itself
-  rather than hoping the session was set high. Two agents here set it: `test-planner` at
-  `xhigh`, because tracing a produce path and judging whether a fingerprint really drifted is
-  design work; `tester` at `high`, because executing an approved plan is bounded but calling
-  FAIL versus INCONCLUSIVE is not. The other nine leave it unset and inherit the session, which
+  rather than hoping the session was set high. Three agents here set it: `test-planner` and
+  `fixer-planner` at `xhigh`, because tracing a produce path, and root-causing a bug that
+  already shipped, are both design work; `tester` at `high`, because executing an approved plan
+  is bounded but calling FAIL versus INCONCLUSIVE is not. The rest leave it unset and inherit
+  the session, which
   is the right default until you have watched an agent underthink a specific job. **Raise it
   where the agent's output is a judgement somebody will act on without re-deriving it** — a
   plan, a verdict, a review — and leave it alone everywhere else. Set on the wrong agent it
@@ -184,6 +185,7 @@ If you get it wrong anyway, the halt rule above is what catches it.
 | `layer-specialist.md` | **generated once per layer of your chain** by `/adapt-to-stack`, into that repo's own `.claude/agents/` — the implementer (Serena-only edits) | ✓ | ✓ |
 | `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
 | `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
+| `fixer-planner.md` | QA bounce-back → root cause + fix plan; stops rather than guessing a cause | ✓ | ✓ |
 | `test-planner.md` | criteria → an approved staging test plan; owns the produce-recipe loop (plans and banks, never runs) | ✓ | ✓ |
 | `tester.md` | runs the approved plan — calls the produce driver, reconciles, verdicts, confirms or corrects the recipe | ✓ | ✓ |
 | `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |

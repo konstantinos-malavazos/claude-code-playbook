@@ -9,7 +9,7 @@ stays one ticket / one commit per repo / one metrics row.
 ## Sequence
 1. **Load context** — read the consolidated memory for `$ARGUMENTS` and the merged code.
    Re-fetch the ticket + QA comments (read-only) for the reported failure.
-2. **@fixer-planner** (or the planner in fix mode) — using the `diagnose` skill,
+2. **@fixer-planner** — using the `diagnose` skill,
    reproduce and root-cause the bug. **If it can't be reproduced or explained, STOP and ask
    the user for more info. Do not guess.** Write a fix plan with track allocation.
 3. **Fix** — dispatch the responsible layer specialist(s). Write a **failing test that
