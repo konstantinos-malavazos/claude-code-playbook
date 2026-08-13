@@ -199,6 +199,8 @@ If you get it wrong anyway, the halt rule above is what catches it.
 | `context-gatherer.md` | heavy memory + Serena sweep in a throwaway context | ✓ | ✓ |
 | `planner.md` | design + track allocation + branch (no memory writes, no code) | ✓ | ✓ |
 | `layer-specialist.md` | **generated once per layer of your chain** by `/adapt-to-stack`, into that repo's own `.claude/agents/` — the implementer (Serena-only edits) | ✓ | ✓ |
+| `integrator.md` | **decompose path only** — collapses each repo's slice branches to one commit; stops on a real conflict | ✓ | ✓ |
+| `integration-tester.md` | **decompose path only** — tests the combined behaviour no single slice proves; routes defects, never patches | ✓ | ✓ |
 | `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
 | `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
 | `fixer-planner.md` | QA bounce-back → root cause + fix plan; stops rather than guessing a cause | ✓ | ✓ |
@@ -228,5 +230,14 @@ the method, one declaration holds the nouns
 ([`../claude-md/repo.CLAUDE.md`](../claude-md/repo.CLAUDE.md)). Filling in those six lines is
 what installing `/test-ticket` means; copying the two agent files alone installs nothing.
 
-Decompose-path agents (`aligner`, `integrator`, `integration-tester`, `slice-*`) follow
-the same anatomy. Add them only if you use the decompose path (docs/shared/09).
+`integrator` and `integration-tester` are the two decompose-path agents that ship here. Copy
+them only if you use that path ([docs/shared/09](../../docs/shared/09-decompose-path.md)); on
+the sequential chain they never run, because the orchestrator dispatches them only when the
+planner set `slice-count > 1`.
+
+**The path is not complete with these two.** It also wants `aligner` — the drift gate — and a
+`slice-*` override per layer, and neither is here yet. That is a stated gap rather than a
+silent one, and `integrator` is built to fail safely into it: it STOPS when `aligner.md` is
+absent, on the grounds that a missing gate and a passed gate must not look alike. Until the
+aligner exists, its verdict file is written by whatever you use in its place, and the honest
+answer may be a human reading the slice handoffs.
