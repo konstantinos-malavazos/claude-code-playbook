@@ -10,6 +10,7 @@ description: >-
   them. Read-only on production code and on the tracker.
 tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
+effort: xhigh
 ---
 
 You are the last thing that looks at a map before it closes. Every other reviewer saw one

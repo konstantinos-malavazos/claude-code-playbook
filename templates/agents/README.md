@@ -36,7 +36,7 @@ cannot choose. The full set:
 | `hooks` | Lifecycle hooks scoped to this agent | — |
 | `memory` | `user` / `project` / `local` — persistent cross-session memory | — |
 | `background` | Force background. **Unset already means background by default** — see below | — |
-| `effort` | `low` … `max`; overrides the session effort level | ✓ `fixer-planner`, `test-planner`, `tester` |
+| `effort` | `low` … `max`; overrides the session effort level | ✓ all but `layer-specialist` |
 | `isolation` | `worktree` — runs in a throwaway git worktree | — |
 | `color` | Display colour in the task list | — |
 | `initialPrompt` | Only when the agent runs as the *main* session agent | — |
@@ -123,17 +123,24 @@ directory name. Same placeholder, opposite consequence:
   advice to a human who knows the agent and not advice a generator can follow. Why, in full:
   [`../../docs/shared/11-adapting-to-your-stack.md`](../../docs/shared/11-adapting-to-your-stack.md).
 - **`effort` is the second dial, and it is not the same dial as `model`.** `model` decides
-  which mind runs the agent; `effort` decides how hard that mind works before it answers, and
-  it **overrides the session level**, so an agent that must not think cheaply says so itself
-  rather than hoping the session was set high. Three agents here set it: `test-planner` and
-  `fixer-planner` at `xhigh`, because tracing a produce path, and root-causing a bug that
-  already shipped, are both design work; `tester` at `high`, because executing an approved plan
-  is bounded but calling FAIL versus INCONCLUSIVE is not. The rest leave it unset and inherit
-  the session, which
-  is the right default until you have watched an agent underthink a specific job. **Raise it
-  where the agent's output is a judgement somebody will act on without re-deriving it** — a
-  plan, a verdict, a review — and leave it alone everywhere else. Set on the wrong agent it
-  buys nothing and costs on every dispatch.
+  which mind runs the agent; `effort` decides how hard that mind works before it answers.
+  Because it **overrides the session level**, an agent that must not answer cheaply says so
+  itself instead of depending on whoever started the session. **Every agent here states one,
+  and that is the point** — an unstated effort is not a neutral choice, it is the session's
+  choice applied to a job the session knows nothing about.
+
+  The test is **what happens to the answer**. Where the output is a judgement somebody acts on
+  without re-deriving it — a plan, a verdict, a review, a diagnosis, a build/kill call — the
+  cost of thinking too little is paid by everyone downstream, and nothing in the output reveals
+  it: a thin verdict and a thorough one arrive in the same shape. Those are `xhigh`. Where the
+  work is bounded but one call inside it still needs judgement, `high` — `tester` executes an
+  approved plan, but deciding FAIL versus INCONCLUSIVE is not mechanical. Where the job is
+  parse-and-restate with a fast model behind it, dial it **down**: `ticket-analyzer` is
+  `medium`, and that is a saving, not a compromise.
+
+  **`layer-specialist` is the one exception, for the same reason it pins no `model`.** One
+  layer is mechanical and the next is design-heavy, and which is which is a fact about your
+  chain that a template cannot know. State it per layer once you do.
 - **An agent that dispatches another agent needs `Agent` in its `tools` list.** Nesting is
   on by default (three layers below the main conversation), but an explicit allowlist still
   wins: leave `Agent` out and the dispatch simply cannot happen. `repo-reviewer` is the one
@@ -148,12 +155,21 @@ directory name. Same placeholder, opposite consequence:
   your actual MCP tool names (e.g. Forgetful's `query_memory`), or **delete them** if you run
   no such server. Left in place they are stripped at launch without a word — see above.
   **Serena is not a placeholder**, see below.
-- **`<memory-write-tools>` appears on exactly two files, and that is the point.** Only
-  `test-planner` and `tester` write memory without a human APPROVE step in front of them,
-  because a test recipe is confirmed or corrected by the run that just executed it — there is
-  nothing for a human to approve that the run did not already settle. Every other agent here
-  reads memory and lets a command do the writing. Widening this placeholder to a third agent
-  is a decision, not a copy-paste: say why the write cannot wait for an APPROVE.
+- **Memory writes have one rule: an agent may write only what its own run settled.** Durable
+  knowledge normally reaches memory through a command with a human APPROVE step, because a
+  conclusion drawn in conversation deserves a second reader. The exception is the case where
+  that second reader has nothing left to judge: `tester` executed the recipe, so it already
+  knows whether the recipe was right, and `test-planner` banks what it traced as *provisional*
+  precisely because it has not run. That is why `<memory-write-tools>` appears on those two
+  files and nowhere else. Widening it is a decision, not a copy-paste — say what the agent
+  executed that makes its write self-evident.
+- **The write's *discipline* lives in a skill; the write's *permission* cannot.** Both agents
+  load [`memory-schema`](../skills/memory-schema/SKILL.md) before writing, so call shape, caps
+  and tagging are stated once and these files cannot drift from them. But a skill preloads
+  **content, not capability** — the `skills` field in the table above adds instructions, never
+  tools. An agent with the skill and without `<memory-write-tools>` reads the correct call
+  shape and then silently cannot make the call, which is the same quiet failure as any other
+  stripped tool name. Both are needed, and they are not substitutes.
 
 ## Serena is mandatory, not preferred
 
