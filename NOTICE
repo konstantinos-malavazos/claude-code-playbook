@@ -11,3 +11,19 @@ Included verbatim from Matt Pocock's `wizard` skill and licensed under the
 MIT License by its original author. The notice is retained in that file's
 own header, and the derivation is described in
 templates/skills/wizard/SKILL.md.
+
+────────────────────────────────────────────────────────────────────────
+
+templates/skills/to-spec/SKILL.md
+templates/skills/to-tickets/SKILL.md
+
+Adapted — not included verbatim — from Matt Pocock's `to-spec` and
+`to-tickets` skills (upstream renames of `to-prd` and `to-issues`),
+licensed under the MIT License by their original author.
+
+Both were rewritten for this pipeline and differ from the originals in
+substance, not only in wording: neither interviews the user or re-explores
+the codebase, because an approved plan and a context sweep already exist by
+the time they run; and `to-tickets` produces internal work-units approved
+on a board rather than issues published to a tracker. Each file states its
+own derivation in its opening lines.

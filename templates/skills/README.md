@@ -76,7 +76,7 @@ than the two above:
 |---|---|---|---|
 | `commit-conventions` | about to commit / branch naming / MR-PR template | ✓ | ✓ |
 | `engineering-standards` | **one per layer, generated** — the review/coding standard for that language | ✓ | ✓ |
-| `adapt-to-stack` | a repo whose `CLAUDE.md` names a layer chain — generates one specialist and one standards skill per layer into that repo's own `.claude/`, and never overwrites | ✓ | ✓ |
+| `adapt-to-stack` | a repo whose `CLAUDE.md` names a layer chain — generates one specialist, its slice-mode variant and one standards skill per layer into that repo's own `.claude/`, and never overwrites | ✓ | ✓ |
 | `tdd` | test-first feature/bug work (red-green-refactor) | ✓ | ✓ |
 | `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
@@ -89,6 +89,8 @@ than the two above:
 | `wizard` | manual work only a human can do — writes a bash script that walks them through it stage by stage. **Ships `template.sh`; copy both or neither** | ✓ | ✓ |
 | `prototype` | a design question nobody can settle on paper — throwaway code built to be reacted to and then deleted | ✓ | ✓ |
 | `charting` | an effort too big for one session and too foggy to plan — maps it into tickets on the tracker | ✓ | ✓ |
+| `to-spec` | **decompose path only** — an approved plan → a slice-ready spec naming the testing seams and behaviour boundaries | ✓ | ✓ |
+| `to-tickets` | **decompose path only** — that spec → independent vertical slices + an approval board, then STOPS | ✓ | ✓ |
 | `pitch` | a raw idea with no repo — the one-hour kill gate that ends in build, kill or park | ✓ | |
 | `bootstrap` | a decided-but-empty repo — scaffolds it and reports on the pipeline's preconditions. **Runs once per project** | ✓ | |
 | `cut-backlog` | a closed map + a scaffolded repo — cuts them into an ordered backlog of work units, approved on a board before anything is created | ✓ | |
@@ -129,6 +131,9 @@ unset. A conversation that starts a turn early costs you one redirect.
 return. The field blocks the Skill tool. So the dispatch fails, the flow stops mid-run, and
 it asks you to type the thing. `prototype` writes files and still gets no field, because
 `charting`'s ticket-types table names `/prototype` as what backs a `prototype` ticket.
+`to-spec` and `to-tickets` are the same case and the sharpest one: `/start-ticket` dispatches
+both mid-flow, so the field would stop the decompose path at the dispatch and ask a human to
+type a step the orchestrator was already running.
 `bootstrap` step 5's *Run `/adapt-to-stack`* is why `adapt-to-stack` has none either.
 
 **When the veto and a test conflict, test the test first.** A skill that must be dispatched to

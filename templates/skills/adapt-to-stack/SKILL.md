@@ -1,12 +1,13 @@
 ---
 name: adapt-to-stack
 description: >-
-  Generate one layer specialist agent and one engineering-standards skill per layer of a
-  repo's chain, read out of that repo's own CLAUDE.md — creating what is missing, never
-  overwriting what exists, and ending in one report. Use when a repo's CLAUDE.md declares a
-  layer chain and the specialists do not exist yet, when the chain gains a layer, or the
-  user says "adapt to my stack" / "generate the layer specialists". NOT for writing
-  CLAUDE.md itself, and NOT for editing a generated file that already exists.
+  Generate one layer specialist agent, its slice-mode variant, and one engineering-standards
+  skill per layer of a repo's chain, read out of that repo's own CLAUDE.md — creating what is
+  missing, never overwriting what exists, and ending in one report. Use when a repo's
+  CLAUDE.md declares a layer chain and the specialists do not exist yet, when the chain
+  gains a layer, or the user says "adapt to my stack" / "generate the layer
+  specialists". NOT for writing CLAUDE.md itself, and NOT for editing a generated file
+  that already exists.
 ---
 
 # Adapt to stack — one specialist per layer, generated from one file
@@ -43,8 +44,8 @@ chain shapes and the repo kept one:
 
 | Shape | What the chain section says | What you generate |
 |---|---|---|
-| **A** — this repo is the whole chain | every layer, in order, plus where each lives | one specialist and one standards skill **per layer** |
-| **B** — this repo is one layer among sibling repos | this repo's one layer, and the contract either side | **one** specialist and **one** standards skill |
+| **A** — this repo is the whole chain | every layer, in order, plus where each lives | one specialist, one slice variant and one standards skill **per layer** |
+| **B** — this repo is one layer among sibling repos | this repo's one layer, and the contract either side | **one** specialist, **one** slice variant and **one** standards skill |
 
 ### If the input is missing or unfilled, stop
 
@@ -64,15 +65,16 @@ Say which of the three it is, name the sections you need, and point at
 > A missing chain means someone has not yet decided what the layers are, and that is a
 > decision, not a blank.
 
-## The five steps
+## The six steps
 
 | # | Step |
 |---|---|
 | 1 | Read the chain out of the repo's `CLAUDE.md` |
 | 2 | Generate one **layer specialist** per layer, into `.claude/agents/` |
-| 3 | Generate one **standards skill** per layer, into `.claude/skills/` |
-| 4 | Confirm what you wrote is visible to git |
-| 5 | Report, and stop |
+| 3 | Generate one **slice variant** of that specialist per layer, into `.claude/agents/` |
+| 4 | Generate one **standards skill** per layer, into `.claude/skills/` |
+| 5 | Confirm what you wrote is visible to git |
+| 6 | Report, and stop |
 
 Everything lands **inside the repo**. That is deliberate: a specialist file is *facts about
 this codebase*, and the files are committed.
@@ -97,7 +99,7 @@ From `templates/agents/layer-specialist.md`, one file per layer, into the repo's
 | the **repo(s)/paths it owns** | where the chain says that layer lives |
 | the **build / test commands** in its verify block | *build / test / run* |
 | the **contract** it reads and the one it writes | the layers either side of it in the chain |
-| the **engineering-standards skill it loads** | the skill step 3 generates for this layer, by name |
+| the **engineering-standards skill it loads** | the skill step 4 generates for this layer, by name |
 | `model` | see below |
 
 **The template's description opens with a line about where the file comes from and how many
@@ -127,7 +129,44 @@ reaches a human reading the file and never the agent's prompt:
 The standards skills get no such line: they carry no model of their own, because they are
 loaded by the specialist and run on whatever it is running on.
 
-### 3 — One standards skill per layer
+### 3 — One slice variant per layer
+
+From `templates/agents/slice-layer-specialist.md`, one file per layer, into the repo's
+`.claude/agents/`, named `slice-<layer>-specialist.md`. It is the decompose-path variant of
+the specialist step 2 just wrote for the same layer.
+
+| Fill in | From |
+|---|---|
+| `name` — `slice-<layer>-specialist` — and every `<layer>` in the description and the body | the layer's name |
+| the **base agent file it Reads first** | the file step 2 wrote for this layer, `.claude/agents/<layer>-specialist.md` |
+| the **next layer's slice variant** it hands on to | the layer after this one in the chain |
+| `model` | the same rule as step 2, on the same layer |
+
+**There is almost nothing to fill in, and that is the point.** This file is an override
+shell: it Reads its base specialist and inherits everything it does not override. Anything
+you copy across from the base is a second copy, and it drifts the first time the base is
+edited. If you find yourself restating a rule, you are writing the wrong file.
+
+**Drop the template's provenance paragraph** — the one that says this file is generated
+once per layer. It is addressed to whoever is holding the template, and a generated file is
+past that. Step 2 replaces its base's opener for the same reason.
+
+**`model` follows step 2 exactly**: the id if `CLAUDE.md` states one for this layer, the
+field omitted with its `#` comment if it does not. Same layer, same declaration, same
+answer, so a specialist and its slice variant never disagree. **`effort` you never write.**
+The chain declares none, and how hard a layer has to think is a fact about the chain rather
+than about slice mode. Leave the template's `#` comment as it is.
+
+**Generate it for every layer, every run.** Do not ask, and do not look for a flag. Whether
+a ticket decomposes is decided per ticket by the planner, months later, and the fork lives
+inside `/start-ticket` — so at generation time nobody knows. Making it conditional would
+need a new declaration line in `CLAUDE.md`, and this flow chooses nothing. The cost of
+generating it anyway is one file per layer on disk that nothing loads unless a slice
+dispatch names it. And because the flow never overwrites, a re-run on a repo generated
+before this step existed adds the missing slice variants and touches nothing else. That
+re-run is how a reader upgrades.
+
+### 4 — One standards skill per layer
 
 From `templates/skills/engineering-standards/SKILL.md`, one directory per layer, into the
 repo's `.claude/skills/`.
@@ -154,7 +193,7 @@ gets wrong. Generate the file anyway. The specialist in step 2 names it, and the
 alternative is pointing an agent at a file that does not exist. Every one of these lands in
 the report as **still a scaffold**, on day one and honestly.
 
-### 4 — Confirm what you wrote is visible to git
+### 5 — Confirm what you wrote is visible to git
 
 Ask git whether the two directories you just wrote to are ignored:
 
@@ -168,7 +207,7 @@ existing line — `!.claude/agents/` and `!.claude/skills/` — and change nothi
 These files are meant to be committed, and an ignored file produces **no error at all**.
 That is why you ask git rather than assume.
 
-### 5 — Report, and stop
+### 6 — Report, and stop
 
 One report. Every file you generated **and** every file you left alone.
 
@@ -180,10 +219,13 @@ Chain: **schema** ──► **api** ──► **web** (3 layers, shape A)
 | File | Layer | Did | Found |
 |---|---|---|---|
 | `.claude/agents/schema-specialist.md` | schema | **created** | — |
+| `.claude/agents/slice-schema-specialist.md` | schema | **created** | — |
 | `.claude/skills/schema-standards/SKILL.md` | schema | **created** | **still a scaffold** — 7 `<…>` brackets |
 | `.claude/agents/api-specialist.md` | api | **skipped** | — |
+| `.claude/agents/slice-api-specialist.md` | api | **created** | — |
 | `.claude/skills/api-standards/SKILL.md` | api | **skipped** | — |
 | `.claude/agents/web-specialist.md` | web | **skipped** | **disagrees with `CLAUDE.md`** — names `src/ui`; the chain says `src/web` |
+| `.claude/agents/slice-web-specialist.md` | web | **skipped** | — |
 | `.claude/skills/web-standards/SKILL.md` | web | **skipped** | **still a scaffold** — 12 `<…>` brackets |
 
 `.gitignore`: `.claude/` ignored, with `!.claude/agents/` and `!.claude/skills/` — added this run.
@@ -225,7 +267,7 @@ belongs to. A row with nothing beside it is an opinion.
 ## Never overwrite
 
 **Create what is missing. Leave everything that exists exactly as it is.** A re-run after a
-layer is added generates one specialist and one standards skill and touches nothing else.
+layer is added generates that layer's three files and touches nothing else.
 Change the test command in `CLAUDE.md` and nothing changes automatically. It lands in the
 report as *disagrees*, and there it stops.
 
@@ -233,7 +275,7 @@ Diff-and-patch is not an option, and neither is regenerating over the top: once 
 are written by hand there is no reliable boundary between the template's lines and someone's
 own, so a patcher that guesses wrong **destroys hand-written standards silently**.
 
-## Two things generated, three refused
+## Three things generated, three refused
 
 | Not generated | Why |
 |---|---|
@@ -241,8 +283,10 @@ own, so a patcher that guesses wrong **destroys hand-written standards silently*
 | Serena setup | Owned by the scaffolding step that has the project's Serena verdict. Two steps owning one act is one too many. |
 | `commit-conventions` | **Not per-stack.** One `<scope>` placeholder and a main-branch name, identical whatever the language is — a setup-time copy. Generating it per repo makes N copies of one workspace-wide convention. |
 
-If something else looks like it ought to be generated here, that is a decision and it is
-not yours. Say so and stop.
+**A fourth is not yours to add.** If something else looks like it ought to be generated
+here, that is a decision and it is not yours. Say so and stop. The slice variant sat in the
+refused column until the repo owner decided otherwise and wrote the decision into this
+file. That is the bar, and it is met before a run, never during one.
 
 ## Where you stop
 
@@ -259,5 +303,5 @@ Five stops, and none of them is a failure of the step:
 ## Stop condition
 
 **The step is done when the report exists.** Not when every row says *created*, and not
-when the scaffolds are filled in. A report of six *skipped* rows is a complete, correct
+when the scaffolds are filled in. A report of nine *skipped* rows is a complete, correct
 run on a repo that was already adapted.

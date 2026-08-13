@@ -113,8 +113,8 @@ Three different things own three different questions. None of them restates anot
 | **Whether** it happened | [seam check 8](01-the-solo-path.md#the-seam--where-the-solo-path-stops) |
 
 Step 5 does not reimplement any of that. It **runs `/adapt-to-stack`**. That reads the
-`CLAUDE.md` step 3 just wrote, and generates one specialist and one standards skill per
-layer into the repo's own `.claude/`. Read
+`CLAUDE.md` step 3 just wrote, and generates one specialist, its slice-mode variant and one
+standards skill per layer into the repo's own `.claude/`. Read
 [11-adapting-to-your-stack.md](../shared/11-adapting-to-your-stack.md) for what it makes,
 what it refuses to make, and why a re-run never overwrites what you have written.
 
