@@ -100,7 +100,9 @@ counts and flags to rows; mask anything personal.
 Each AC gets **PASS / FAIL / INCONCLUSIVE / OUT-OF-SCOPE**, backed by read evidence and a
 short narrative a reviewer can follow without re-running a query.
 
-Then confirm or correct the recipe the planner banked, keyed by the seams' recipe key. Run
+Then confirm or correct the recipe the planner banked, keyed by the seams' recipe key. Load
+`memory-schema` first — an update is not a create, and the difference is that skill's to
+state. Run
 validated it → flip `validated: pending` to `validated: <date>` and raise confidence. Run
 disproved it → correct the wrong step and say what changed, or leave it provisional and
 report the gap if you cannot determine the fix. **Never leave a wrong recipe marked

@@ -85,9 +85,11 @@ path that changed under you gets reused unchanged and the first sign is a failin
      stored memory, reset `validated: pending`, note the drift in the plan.
    - On a **MISS**, trace the path once from the flow source: ordered steps, every precondition
      included, down to the call that emits each event, plus the verify target.
-   - **Bank it PROVISIONAL** — confidence ~0.6, `validated: pending`, tagged by function and
-     recipe key, **never by ticket id**. Content: (a) the fingerprint verbatim, (b) the ordered
-     produce steps, (c) the verify target and gotchas. `@tester` flips it to validated after a
+   - **Bank it PROVISIONAL** — load `memory-schema` first: call shape, caps and your server's
+     own tagging rules are its business, not this file's. What is this flow's business, and so
+     stated here: tag by the **recipe key**, confidence ~0.6, `validated: pending`, and content
+     in three parts — (a) the fingerprint verbatim, (b) the ordered produce steps, (c) the
+     verify target and gotchas. `@tester` flips it to validated after a
      real run or corrects it; you never call a recipe validated before it has run.
 4. **Reconciliation queries — read-only.** Per AC: the store, a filter scoped by the ids the
    produce driver returns on stdout, the expected value. Prefer counts/aggregates. Mask PII.

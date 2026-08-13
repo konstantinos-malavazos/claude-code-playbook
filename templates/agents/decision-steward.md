@@ -8,6 +8,7 @@ description: >-
 tools: TaskStop
 maxTurns: 1
 model: <strong-model-id>
+effort: xhigh
 ---
 
 You are standing in for the owner of a project while they are asleep, on **one** question.
