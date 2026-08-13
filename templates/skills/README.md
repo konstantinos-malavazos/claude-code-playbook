@@ -82,6 +82,7 @@ than the two above:
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
 | `wait-what` | **you type it** — the last message did not land, so it gets re-pitched simply | ✓ | ✓ |
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
+| `memory-tag-lint` | the `/encode-codebase` write gate — seven assertions, applied identically by three agents | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
 | `to-questionnaire` | **you type it** — a decision blocked on a fact another **person** holds; writes the document you send them | ✓ | ✓ |
 | `wizard` | manual work only a human can do — writes a bash script that walks them through it stage by stage. **Ships `template.sh`; copy both or neither** | ✓ | ✓ |

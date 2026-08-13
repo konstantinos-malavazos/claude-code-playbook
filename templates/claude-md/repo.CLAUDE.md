@@ -112,5 +112,34 @@ shaped report, and nothing downstream can tell that apart from a pass.>
   <Landing is asynchronous and it flaps. One matching read is not proof — a late re-sync can
   revert a row that was already correct. N consecutive matching reads is proof.>
 
+## Memory encoding
+<The stack half of `/encode-codebase` — see docs/shared/10-memory-hygiene.md. The command and
+its four agents read this section and take NOTHING else about your repo from anywhere else.
+Absent or still bracketed, they STOP and name the line they needed. Delete the whole section if
+you do not encode this repo; an empty section and a bracketed one are not the same answer.>
+
+- **Indexed languages.** `<the languages your Serena install indexes for this repo>`
+  <The flow navigates by symbol, so it only works where Serena has a symbol graph. A repo that
+  is mostly SQL, IaC or notebooks is **out of scope** — say so here and the flow stops cleanly
+  instead of half-encoding it from text search.>
+- **Vocabulary home.** `<memory record id | path to a version-controlled file>`
+  <Where the authoritative tag vocabulary lives. Two copies exist by design: this one, and the
+  regenerated cache at `<workspace>/.claude/encode-vocab/<repo>.json`. **This one always wins**
+  and the cache is a build artifact. If your memory server cannot hold long-form text, put the
+  authoritative copy in a file in the repo and name its path here — what matters is that one
+  copy is authoritative, not which kind of thing it is.>
+- **Tier tags.** `<what tier-1 and tier-2 mean in this repo>`
+  <Tier-1 is the small set of architecture-level units; tier-2 is the ranked long tail of
+  symbol-level ones. Say what earns tier-1 here, because the ranking depends on it.>
+- **Optional extra axis.** `<tag pair, or NONE>`
+  <A second axis, beyond the repo tag and the tier tag, that genuinely changes what a unit
+  means — a tenant, a region, a plan tier. **NONE is the common answer and a valid one.** Add
+  one only where the same symbol carries different meaning per value of the axis; a tag that
+  never changes a reader's conclusion is noise that every future query has to step over.>
+- **Work-list inclusion rule.** `<which files are in scope for encoding>`
+  <Stored with the vocabulary on approval, so next month's run reproduces the same list rather
+  than a differently-drawn one. Vague here means the work-list silently changes shape between
+  runs and nobody can tell whether the corpus grew or the rule moved.>
+
 ## Do NOT
 - <Anything specific to avoid here — e.g. "never hand-edit generated files under `gen/`".>

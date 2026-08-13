@@ -41,11 +41,19 @@ and moves to the next.
 | `resume-ticket` | reopen an in-flight ticket across sessions (delta mode) | ✓ | ✓ |
 | `end-of-day` | daily memory nomination | ✓ | ✓ |
 | `garden-memory` | periodic memory hygiene | ✓ | ✓ |
+| `encode-codebase` | read a repo into memory in batches — recon → vocabulary gate → encode → audit | ✓ | ✓ |
 | `start-massive` | chart a foggy effort into a map of small tickets, then stop | — | ✓ |
 | `resume-massive` | walk that map, one ticket per session; owns the three endings | — | ✓ |
 | `build-chart-ticket` | implement one `make:<layer>` ticket off a map | — | ✓ |
 | `feeling-lucky` | walk a **stage 2** map unattended; stop at a guess you cannot take back | ✓ | — |
 | `feeling-very-lucky` | the same walk; stop only when the map or the budget does | ✓ | — |
+
+`end-of-day`, `garden-memory` and `encode-codebase` divide the memory work three ways and do
+not overlap. `end-of-day` nominates what today settled. `encode-codebase` reads a repo in and
+is the only one that creates memories in bulk. `garden-memory` keeps what is already there
+healthy, and is the only one that applies a rename map. `encode-codebase` needs the
+`## Memory encoding` section of the repo's `CLAUDE.md` and stops naming the missing line
+without it; copying its four agents alone installs nothing.
 
 The three `*-massive` templates are one flow and only work together — see
 [03-massive-tickets.md](../../docs/team/03-massive-tickets.md). They need the `charting`
