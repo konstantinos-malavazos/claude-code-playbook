@@ -76,5 +76,41 @@ counts as absent, never as a model called `<model-id>`.
 - <layer 1>: `<model-id>`
 - <layer 2>: `<model-id>`
 
+## Testing seams
+<This section is the whole stack half of `/test-ticket` — see docs/shared/07-the-flows.md.
+`@test-planner` and `@tester` read it and take NOTHING else about your stack from anywhere
+else. Absent or still bracketed, they STOP and name the line they needed. They never guess a
+produce path: a test that produced nothing and reconciled nothing still returns a normal-
+shaped report, and nothing downstream can tell that apart from a pass.>
+
+- **Environment.** Target `<staging | local>`; hosts `<…>`. REFUSE outright: `<prod patterns>`.
+  <Staging where you have one, local where you don't. If local, say what local IS — a compose
+  file, a seeded database, a fake broker. "Local" alone is not an answer an agent can act on.>
+- **Recipe key.** `<scenario> × <event>` | `<tenant> × <scenario> × <event>`
+  <What makes two recipes different — the generalisation of the `(scenario × event)` pair in
+  docs/shared/07-the-flows.md. Add a part for every axis that genuinely changes the produce
+  path: a tenant, a region, a plan tier. The event is always the last part. Too few parts and a
+  recipe gets reused across paths that differ — and the failure is silent, because the wrong
+  recipe still runs and still lands a row.>
+- **Flow source.** `<path or repo stating the flow of record>` · make current: `<command>`
+  <Whatever a human would read to learn *what has to happen, in what order*: an acceptance-test
+  suite, an API contract, a spec. `@test-planner` fingerprints it and diffs that fingerprint
+  before it reuses any banked recipe. **NONE is a valid answer** — say so explicitly, and accept
+  that recipes degrade from *verified before reuse* to *banked and trusted*.>
+- **Produce driver.** `<command>`
+  Contract: `<cmd> --event <name> --key <k=v>… --payload <json>` → stdout: the ids it created.
+  Non-zero exit means nothing was produced.
+  <**The project owns this; `@tester` calls it and never reimplements it.** An agent hand-rolling
+  a multi-call auth chain writes a new produce path instead of exercising yours, and then proves
+  the new one. If you have no driver, the honest ladder is: an HTTP endpoint that starts the flow
+  → a project CLI → a direct queue publish, last. **No driver and no ladder means `/test-ticket`
+  cannot run here** — say that, rather than leaving the line bracketed.>
+- **Verify store.** read via `<command>` → lands in `<store / table / key>`
+  <How `@tester` reads back, read-only, always. Same ladder shape: a connected MCP server → a CLI
+  client → an HTTP read. The agent composes the query; this line only says how a query runs.>
+- **Propagation.** timeout `<90s>` · poll `<2s>` · stable reads `<2>`
+  <Landing is asynchronous and it flaps. One matching read is not proof — a late re-sync can
+  revert a row that was already correct. N consecutive matching reads is proof.>
+
 ## Do NOT
 - <Anything specific to avoid here — e.g. "never hand-edit generated files under `gen/`".>

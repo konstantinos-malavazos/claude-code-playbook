@@ -36,7 +36,7 @@ cannot choose. The full set:
 | `hooks` | Lifecycle hooks scoped to this agent | — |
 | `memory` | `user` / `project` / `local` — persistent cross-session memory | — |
 | `background` | Force background. **Unset already means background by default** — see below | — |
-| `effort` | `low` … `max`; overrides the session effort level | — |
+| `effort` | `low` … `max`; overrides the session effort level | ✓ `test-planner`, `tester` |
 | `isolation` | `worktree` — runs in a throwaway git worktree | — |
 | `color` | Display colour in the task list | — |
 | `initialPrompt` | Only when the agent runs as the *main* session agent | — |
@@ -122,6 +122,17 @@ directory name. Same placeholder, opposite consequence:
   it omit the field unless the repo's `CLAUDE.md` names one per layer, because pinning is
   advice to a human who knows the agent and not advice a generator can follow. Why, in full:
   [`../../docs/shared/11-adapting-to-your-stack.md`](../../docs/shared/11-adapting-to-your-stack.md).
+- **`effort` is the second dial, and it is not the same dial as `model`.** `model` decides
+  which mind runs the agent; `effort` decides how hard that mind works before it answers, and
+  it **overrides the session level**, so an agent that must not think cheaply says so itself
+  rather than hoping the session was set high. Two agents here set it: `test-planner` at
+  `xhigh`, because tracing a produce path and judging whether a fingerprint really drifted is
+  design work; `tester` at `high`, because executing an approved plan is bounded but calling
+  FAIL versus INCONCLUSIVE is not. The other nine leave it unset and inherit the session, which
+  is the right default until you have watched an agent underthink a specific job. **Raise it
+  where the agent's output is a judgement somebody will act on without re-deriving it** — a
+  plan, a verdict, a review — and leave it alone everywhere else. Set on the wrong agent it
+  buys nothing and costs on every dispatch.
 - **An agent that dispatches another agent needs `Agent` in its `tools` list.** Nesting is
   on by default (three layers below the main conversation), but an explicit allowlist still
   wins: leave `Agent` out and the dispatch simply cannot happen. `repo-reviewer` is the one
@@ -132,10 +143,16 @@ directory name. Same placeholder, opposite consequence:
 - **State what the agent must NOT do.** "Comments only, never edits code." "Design only,
   never writes to memory." These negative constraints are as important as the positive
   steps.
-- **Replace `<memory-read-tools>` / `<tracker-read-tools>`** with your actual MCP tool
-  names (e.g. Forgetful's `query_memory`), or **delete them** if you run no such server.
-  Left in place they are stripped at launch without a word — see above. **Serena is not a
-  placeholder**, see below.
+- **Replace `<memory-read-tools>` / `<memory-write-tools>` / `<tracker-read-tools>`** with
+  your actual MCP tool names (e.g. Forgetful's `query_memory`), or **delete them** if you run
+  no such server. Left in place they are stripped at launch without a word — see above.
+  **Serena is not a placeholder**, see below.
+- **`<memory-write-tools>` appears on exactly two files, and that is the point.** Only
+  `test-planner` and `tester` write memory without a human APPROVE step in front of them,
+  because a test recipe is confirmed or corrected by the run that just executed it — there is
+  nothing for a human to approve that the run did not already settle. Every other agent here
+  reads memory and lets a command do the writing. Widening this placeholder to a third agent
+  is a decision, not a copy-paste: say why the write cannot wait for an APPROVE.
 
 ## Serena is mandatory, not preferred
 
@@ -167,6 +184,8 @@ If you get it wrong anyway, the halt rule above is what catches it.
 | `layer-specialist.md` | **generated once per layer of your chain** by `/adapt-to-stack`, into that repo's own `.claude/agents/` — the implementer (Serena-only edits) | ✓ | ✓ |
 | `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
 | `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
+| `test-planner.md` | criteria → an approved staging test plan; owns the produce-recipe loop (plans and banks, never runs) | ✓ | ✓ |
+| `tester.md` | runs the approved plan — calls the produce driver, reconciles, verdicts, confirms or corrects the recipe | ✓ | ✓ |
 | `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |
 | `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | | ✓ |
 | `decision-steward.md` | one grilling question on an unattended walk → an answer **plus a basis** (**gathers no evidence**) | ✓ | |
@@ -182,6 +201,14 @@ an existing repo with `/charting` closes the map without it.
 `pitch-judge` and `decision-steward` are the two that read no handoff file and touch no
 code. The floor rule above is written for them. Each file argues its own starvation in its
 own terms; do not widen either `tools` list on the way past.
+
+`test-planner` and `tester` take **no stack facts from their own bodies**. Both read the
+`## Testing seams` section of the repo's `CLAUDE.md` — environment, recipe key, flow source,
+produce driver, verify store, propagation — and halt naming the missing line if it is absent
+or still bracketed. This is the same split the layer chain already uses: the template holds
+the method, one declaration holds the nouns
+([`../claude-md/repo.CLAUDE.md`](../claude-md/repo.CLAUDE.md)). Filling in those six lines is
+what installing `/test-ticket` means; copying the two agent files alone installs nothing.
 
 Decompose-path agents (`aligner`, `integrator`, `integration-tester`, `slice-*`) follow
 the same anatomy. Add them only if you use the decompose path (docs/shared/09).
