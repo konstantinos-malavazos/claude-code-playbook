@@ -113,6 +113,9 @@ the room. Templates stay flat. Each `README.md` there says which path needs the 
 claude-code-playbook/
 ├── README.md                       ← you are here
 ├── PHILOSOPHY.md                   ← the mindset in one file (read this first)
+├── install.sh                      Interactive install / upgrade / remove (unix, WSL, Git Bash)
+├── install.ps1                     Windows preflight — checks bash + python, then delegates
+├── install-lib.py                  Discovery, hashing, the additive JSON merge, wiring checks
 ├── docs/
 │   ├── shared/                     BOTH PATHS
 │   │   ├── 01-architecture.md      The four config layers: MCP · agents · skills · hooks
@@ -171,6 +174,13 @@ step 4 forks.
 3. **Global `CLAUDE.md`, one tracker adapter, the guardrail hooks** — setup steps 4, 5
    and 7. The adapter stops every later flow from having to know which tracker you use.
    The hooks are wired globally, so they are per-machine rather than per-project.
+
+   **`./install.sh` does this part for you** (`.\install.ps1` on Windows, which checks
+   for Git Bash or WSL and hands off). It walks `templates/`, lets you pick, pulls in
+   the agents a command needs, fills the placeholders, wires the hooks and then proves
+   the wiring by re-reading `settings.json`. `./install.sh remove` reverses it. It
+   never overwrites or deletes anything you have edited — it reports it and moves on.
+   Step 1–3 still have to be done by hand: it cannot stand up Serena or Forgetful.
 4. **Then take your door.**
 
    **The agile path** — you hold a ticket someone else wrote.

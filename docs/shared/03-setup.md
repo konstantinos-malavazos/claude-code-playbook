@@ -3,6 +3,20 @@
 Order matters: capabilities first, then structure, then flows. You have a working setup
 after step 4. Steps 5–8 are additive.
 
+> **There is a script for steps 4–8.** From a clone, `./install.sh` (or `.\install.ps1`
+> on Windows) discovers what is installable by walking `templates/`, lets you pick,
+> installs it, fills the placeholders, wires the hooks and then *proves* the wiring by
+> re-reading `settings.json`. `./install.sh remove` takes it back out, and neither
+> command ever overwrites or deletes a file you have edited.
+>
+> **It cannot do steps 1–3.** Those are Claude Code itself, Serena and Forgetful —
+> servers the script cannot provision for you. It reads your `~/.claude.json` to work
+> out which Serena route you are on, but you have to have stood Serena up first.
+>
+> The manual path below stays fully documented. The script is the fast road, not the
+> only one, and it is worth reading step 2 and step 8 either way — they are the two
+> that fail silently.
+
 > **On the solo path, some of this is not yours to do yet.** Steps 1–3, 5 and 7 are
 > machine-level and you need all of them. **Step 4** you do by halves. The **global**
 > `CLAUDE.md` is yours now. The repo's is not, because there is no repo yet, and

@@ -1,3 +1,8 @@
 # Shell scripts must check out LF everywhere. A CRLF bash script fails on
 # Linux/macOS with: bad interpreter: /usr/bin/env bash^M
 *.sh text eol=lf
+
+# install-lib.py is invoked by install.sh from Git Bash and WSL. Python tolerates
+# CRLF, but keeping it LF means the file the installer hashes is the same file on
+# every platform.
+*.py text eol=lf
