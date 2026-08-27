@@ -713,6 +713,34 @@ def plan_install(units, manifest, selected):
     return rows
 
 
+def plan_state(manifest, units):
+    """The `list` view: what an update would do, without doing it.
+
+    Adds two things plan_remove cannot know, because they need the current
+    templates: whether a unit is OUTDATED (the template moved since we installed
+    it), and which units this clone ships that are not installed at all.
+    """
+    rows = []
+    recorded = manifest.get("units") or {}
+    for uid, rec in sorted(recorded.items()):
+        dest = rec.get("dest")
+        current = hash_path(dest) if dest else None
+        unit = units.get(uid)
+        if current is None:
+            state = "missing"
+        elif current != rec.get("hash"):
+            state = "edited"
+        elif unit and unit["source_hash"] != rec.get("source_hash"):
+            state = "outdated"
+        else:
+            state = "current"
+        rows.append((state, uid, rec.get("kind", "?")))
+    for uid in sorted(units):
+        if uid not in recorded:
+            rows.append(("available", uid, units[uid]["kind"]))
+    return rows
+
+
 def plan_remove(manifest):
     """Decide, per recorded unit, what a remove run may actually delete.
 
@@ -778,6 +806,8 @@ def main(argv):
         manifest = load_json(a[1])
         selected = [l.strip() for l in read(a[2]).splitlines() if l.strip()]
         tsv(plan_install(units, manifest, selected))
+    elif cmd == "plan-state":
+        tsv(plan_state(load_json(a[0]), json.loads(read(a[1]))))
     elif cmd == "plan-remove":
         tsv(plan_remove(load_json(a[0])))
     elif cmd == "units-tsv":

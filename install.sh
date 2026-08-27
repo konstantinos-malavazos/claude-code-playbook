@@ -2,7 +2,8 @@
 #
 # install.sh — select, install and remove the claude-code-playbook templates.
 #
-# Run it from a clone:   ./install.sh            interactive install / upgrade
+# Run it from a clone:   ./install.sh            interactive install / change what you have
+#                        ./install.sh update     non-interactive: refresh what you have
 #                        ./install.sh remove     take back what it installed
 #                        ./install.sh list       show state, change nothing
 #
@@ -405,10 +406,38 @@ tracker_screen() {
   done
 }
 
+# seed_from_manifest — pre-tick exactly what is already installed.
+# Returns 1 when there is no manifest to seed from (a fresh machine).
+seed_from_manifest() {
+  [[ -f "$MANIFEST" ]] || return 1
+  "$PY" - "$MANIFEST" <<'PY' > "$SELECTED"
+import json, sys
+m = json.load(open(sys.argv[1]))
+for uid in sorted(m.get("units") or {}):
+    print(uid)
+PY
+  [[ -s "$SELECTED" ]]
+}
+
 selection_stage() {
-  local choice total extra chosen_tracker
-  preset_recommended
+  local choice total extra chosen_tracker seeded="no"
+
+  # On a machine that already has an install, start from WHAT IS THERE, not from
+  # a preset. Starting from the preset would pre-tick units the user never chose
+  # and silently drop ones they did — an "upgrade" that installs 21 extra things
+  # is not an upgrade.
+  if seed_from_manifest; then
+    seeded="yes"
+  else
+    preset_recommended
+  fi
+
   stage "What to install"
+  if [[ "$seeded" == "yes" ]]; then
+    note "Pre-ticked from your existing install ($(wc -l < "$SELECTED" | tr -d ' ') units)."
+    note "Untick to remove on the next run; tick to add. ./install.sh update skips this screen."
+    pause "Continue?"
+  fi
   while :; do
     pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
     total=$("$PY" -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["selected"]))' "$WORK/resolved.json")
@@ -598,7 +627,15 @@ backup_file() {
 
 install_stage() {
   stage "Install"
+  install_stage_body
+  write_manifest
+  printf '\n'
+}
 
+# install_stage_body — the actual work, shared by `install` and `update`.
+# Kept separate from the stage banner and the manifest write so `update` can run
+# exactly the same copy / rewrite / fill / wire path without a second stage.
+install_stage_body() {
   # close the selection over its dependency edges, then write the closed set back
   pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
   "$PY" -c 'import json,sys
@@ -675,19 +712,18 @@ PY
 for c in json.load(open(sys.argv[1]))["conflicts"]:
     print("%s — kept yours (%r); ours would have been %r" % (c["path"], c["yours"], c["ours"]))' "$WORK/merge.json")
   fi
-
-  write_manifest
-  printf '\n'
 }
 
 write_manifest() {
-  "$PY" - "$MANIFEST" "$UNITS" "$SELECTED" "$WORK/merge.json" "$HERE" "$LIB" "$WORK/plan.tsv" <<'PY'
+  "$PY" - "$MANIFEST" "$UNITS" "$SELECTED" "$WORK/merge.json" "$HERE" "$LIB" "$WORK/plan.tsv" \
+         "$PH_SPEC" "$SERENA_PREFIX" "$WORK/tracker.json" <<'PY'
 import sys
 sys.dont_write_bytecode = True   # don't leave a __pycache__ in the user's clone
 
 import json, os, time, importlib.util
 
-manifest_path, units_path, sel_path, merge_path, repo, lib_path, plan_path = sys.argv[1:8]
+(manifest_path, units_path, sel_path, merge_path, repo, lib_path, plan_path,
+ ph_path, serena_prefix, tracker_path) = sys.argv[1:11]
 
 # reuse the library's hashing so the manifest and the planner agree exactly
 spec = importlib.util.spec_from_file_location("pblib", lib_path)
@@ -708,6 +744,32 @@ manifest.setdefault("units", {})
 manifest.setdefault("json", [])
 manifest["installed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 manifest["repo"] = repo
+
+# Remember the answers, so `update` can apply the SAME ones without asking. An
+# update that quietly swapped your model id or your Serena prefix would be a
+# different install wearing an upgrade's clothes.
+config = manifest.get("config") or {}
+if os.path.exists(ph_path):
+    spec = json.load(open(ph_path))
+    config["placeholders"] = {"values": spec.get("values", {}),
+                              "delete": spec.get("delete", [])}
+    config["serena_prefix"] = serena_prefix
+if os.path.exists(tracker_path):
+    # Merge rather than replace: a run where the user pressed Enter past a field
+    # records nothing for it, and must not erase the answer they gave last time.
+    new = json.load(open(tracker_path))
+    prior = (config.get("tracker") or {}).get("values", {})
+    merged = dict(prior)
+    merged.update(new.get("values", {}))
+    config["tracker"] = {"adapter": new.get("adapter"), "values": merged}
+if config:
+    manifest["config"] = config
+
+# The whole unit inventory this clone shipped at write time. `update` diffs the
+# current inventory against this to answer the only question that matters after a
+# git pull: WHAT IS NEW. Without it, "available but not installed" lists every unit
+# you have ever declined, which is noise rather than a signal.
+manifest["known"] = sorted(units)
 
 # Units this run refused to touch. Re-hashing one of these would ADOPT the user's
 # edit as our own recorded content, and the next remove would then delete their
@@ -793,8 +855,61 @@ tracker_fields() {
   esac
 }
 
+# tracker_recorded TOKEN — the answer given for TOKEN on a previous run, if any.
+tracker_recorded() {
+  [[ -f "$MANIFEST" ]] || return 0
+  "$PY" - "$MANIFEST" "$1" <<'PY'
+import json, sys
+try:
+    m = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(0)
+print(((m.get("config") or {}).get("tracker") or {}).get("values", {}).get(sys.argv[2], ""))
+PY
+}
+
+# tracker_apply TOKEN VALUE — substitute one token throughout tracker.md.
+tracker_apply() {
+  "$PY" - "$CLAUDE_HOME/tracker.md" "$1" "$2" <<'PY'
+import sys
+path, token, value = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(path, encoding="utf-8") as fh:
+    text = fh.read()
+with open(path, "w", encoding="utf-8") as fh:
+    fh.write(text.replace(token, value))
+PY
+}
+
+# tracker_replay — re-apply every recorded answer, without asking.
+# An upgrade overwrites tracker.md with the fresh template, which puts the tokens
+# back. Without this replay a non-interactive `update` would leave the adapter
+# unfilled, and an unfilled tracker passes every gate here and fails at first use.
+tracker_replay() {
+  [[ -f "$CLAUDE_HOME/tracker.md" ]] || return 0
+  [[ -f "$MANIFEST" ]] || return 0
+  local n=0 line token value
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    token="${line%%|*}"; value="${line#*|}"
+    grep -qF -- "$token" "$CLAUDE_HOME/tracker.md" || continue
+    tracker_apply "$token" "$value"
+    n=$((n + 1))
+  done < <("$PY" - "$MANIFEST" <<'PY'
+import json, sys
+try:
+    m = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(0)
+for k, v in (((m.get("config") or {}).get("tracker") or {}).get("values") or {}).items():
+    print("%s|%s" % (k, v))
+PY
+)
+  [[ "$n" -gt 0 ]] && ok "re-applied $n recorded tracker value(s)"
+  return 0
+}
+
 tracker_stage() {
-  local chosen fields line token prompt answer
+  local chosen fields line token prompt answer prior
   chosen=$(sed -n 's/^tracker://p' "$SELECTED" | head -1)
 
   # Always a stage, so the counter matches the total whether or not a tracker was
@@ -822,23 +937,36 @@ tracker_stage() {
   # The field list is fed on fd 3, not stdin. On stdin the `read answer` below
   # would consume the next field line instead of the human's reply, and every
   # second prompt would silently answer itself with the following token.
+  : > "$WORK/tracker-values.txt"
   while IFS= read -r line <&3; do
     [[ -z "$line" ]] && continue
     token="${line%%|*}"; prompt="${line#*|}"
     grep -qF -- "$token" "$CLAUDE_HOME/tracker.md" || continue
-    printf '  %s%s  [Enter skips]%s ' "$BOLD" "$prompt" "$RESET"
+    prior=$(tracker_recorded "$token")
+    if [[ -n "$prior" ]]; then
+      printf '  %s%s  [Enter keeps %s]%s ' "$BOLD" "$prompt" "$prior" "$RESET"
+    else
+      printf '  %s%s  [Enter skips]%s ' "$BOLD" "$prompt" "$RESET"
+    fi
     read -r answer || true
+    [[ -z "$answer" ]] && answer="$prior"
     [[ -z "$answer" ]] && continue
-    "$PY" - "$CLAUDE_HOME/tracker.md" "$token" "$answer" <<'PY'
-import sys
-path, token, value = sys.argv[1], sys.argv[2], sys.argv[3]
-with open(path, encoding="utf-8") as fh:
-    text = fh.read()
-with open(path, "w", encoding="utf-8") as fh:
-    fh.write(text.replace(token, value))
-PY
+    tracker_apply "$token" "$answer"
+    printf '%s|%s\n' "$token" "$answer" >> "$WORK/tracker-values.txt"
     ok "$token → $answer"
   done 3<<< "$fields"
+
+  # Persist the answers so a later upgrade can replay them onto a fresh template.
+  "$PY" - "$WORK/tracker.json" "$chosen" "$WORK/tracker-values.txt" <<'PY'
+import json, sys
+values = {}
+for line in open(sys.argv[3], encoding="utf-8"):
+    line = line.rstrip("\n")
+    if "|" in line:
+        k, v = line.split("|", 1)
+        values[k] = v
+json.dump({"adapter": sys.argv[2], "values": values}, open(sys.argv[1], "w"), indent=2)
+PY
 
   # The tracker's hash moved, so re-record it or the next run calls it user-edited.
   write_manifest
@@ -912,6 +1040,119 @@ PY
 }
 
 # ══════════════════════════════════════════════════════════════════════════
+# update — the "I added a feature to the playbook" path
+# ══════════════════════════════════════════════════════════════════════════
+# Non-interactive on purpose. It upgrades what you already have to the current
+# templates and pulls in anything newly REQUIRED by it. It does not install new
+# optional units: a new skill nobody depends on is a choice, not an upgrade, so
+# it is reported and left for you to tick in the interactive run.
+load_recorded_config() {
+  [[ -f "$MANIFEST" ]] || return 1
+  "$PY" - "$MANIFEST" "$PH_SPEC" <<'PY'
+import json, sys
+try:
+    m = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+cfg = m.get("config") or {}
+ph = cfg.get("placeholders")
+if not ph:
+    sys.exit(1)
+json.dump({"paths": [], "values": ph.get("values", {}), "delete": ph.get("delete", [])},
+          open(sys.argv[2], "w"), indent=2)
+print(cfg.get("serena_prefix") or "")
+PY
+}
+
+update_mode() {
+  TOTAL_STAGES=4
+  preflight
+  [[ -f "$MANIFEST" ]] || die "no manifest at $MANIFEST — run ./install.sh first."
+
+  discover_units_quiet
+
+  seed_from_manifest || die "the manifest records no units — run ./install.sh instead."
+  local had=$(wc -l < "$SELECTED" | tr -d ' ')
+
+  # Reuse the answers from the original install. An update that silently changed
+  # your model id or Serena prefix is a reinstall, not an update.
+  local prefix
+  if prefix=$(load_recorded_config); then
+    SERENA_PREFIX="$prefix"
+    ok "reusing the recorded placeholder values and Serena prefix"
+  else
+    warn "this install predates recorded config — asking once"
+    placeholder_stage
+  fi
+
+  stage "Update"
+
+  # Snapshot the PREVIOUS inventory before install_stage_body -> write_manifest
+  # overwrites it. Reading manifest["known"] after the write would compare this
+  # clone against itself and always report "nothing new".
+  "$PY" - "$MANIFEST" "$WORK/known-before.json" <<'PY'
+import json, sys
+try:
+    known = json.load(open(sys.argv[1])).get("known") or []
+except Exception:
+    known = []
+json.dump(known, open(sys.argv[2], "w"))
+PY
+
+  install_stage_body
+  tracker_replay
+  write_manifest
+
+  # The signal after a git pull: what is NEW in this clone, as opposed to
+  # everything you have ever declined. Those are different questions, and only the
+  # first one is news.
+  heading "New in this clone since your last run"
+  "$PY" - "$UNITS" "$SELECTED" "$WORK/known-before.json" <<'PY'
+import json, sys
+units = json.load(open(sys.argv[1]))
+have = {l.strip() for l in open(sys.argv[2]) if l.strip()}
+try:
+    known_before = set(json.load(open(sys.argv[3])))
+except Exception:
+    known_before = set()
+
+brand_new = sorted(u for u in units if u not in known_before)
+if not known_before:
+    print("      (this install predates inventory tracking — nothing to compare yet)")
+elif not brand_new:
+    print("      nothing new")
+else:
+    for u in brand_new:
+        print("      %-34s %s" % (u, "installed" if u in have else "not installed"))
+    if any(u not in have for u in brand_new):
+        print("")
+        print("      Run ./install.sh to tick on the ones you want.")
+
+declined = sorted(u for u in units
+                  if u not in have and u in known_before and not u.startswith("tracker:"))
+if declined:
+    print("")
+    print("      %d other unit(s) available and not installed — ./install.sh list shows them."
+          % len(declined))
+PY
+  printf '\n'
+
+  verify_stage
+  install_finish "Update complete"
+  note "was: $had units"
+  exit 0
+}
+
+# discover_units_quiet — same discovery, no explanatory screen or pause.
+discover_units_quiet() {
+  stage "Discover"
+  pb discover "$TEMPLATES" "$CLAUDE_HOME" > "$UNITS" || die "discovery failed"
+  pb units-tsv "$UNITS" > "$TSV"
+  ok "$(wc -l < "$TSV" | tr -d ' ') installable units in this clone"
+  printf '\n'
+}
+
+# ══════════════════════════════════════════════════════════════════════════
 # remove
 # ══════════════════════════════════════════════════════════════════════════
 remove_mode() {
@@ -978,16 +1219,26 @@ PY
 # ══════════════════════════════════════════════════════════════════════════
 list_mode() {
   preflight
+  discover_units_quiet
   stage "Current state"
   if [[ -f "$MANIFEST" ]]; then
-    local action uid kind dest
-    while IFS=$'\t' read -r action uid kind dest; do
-      case "$action" in
-        remove)      printf '   %-13s %s\n' "as-installed" "$uid" ;;
-        keep-edited) printf '   %-13s %s\n' "EDITED"       "$uid" ;;
-        gone)        printf '   %-13s %s\n' "missing"      "$uid" ;;
+    local state uid kind n_out=0 n_new=0
+    while IFS=$'\t' read -r state uid kind; do
+      case "$state" in
+        current)   printf '   %s%-10s%s %s\n' "$GREEN" "current"  "$RESET" "$uid" ;;
+        outdated)  printf '   %s%-10s%s %s\n' "$YELLOW" "outdated" "$RESET" "$uid"; n_out=$((n_out + 1)) ;;
+        edited)    printf '   %s%-10s%s %s\n' "$BOLD" "edited"   "$RESET" "$uid" ;;
+        missing)   printf '   %-10s %s\n' "missing"   "$uid" ;;
+        available) printf '   %s%-10s%s %s\n' "$DIM" "available" "$RESET" "$uid"; n_new=$((n_new + 1)) ;;
       esac
-    done < <(pb plan-remove "$MANIFEST")
+    done < <(pb plan-state "$MANIFEST" "$UNITS")
+    printf '\n'
+    note "outdated  = the template moved since you installed it"
+    note "edited    = you changed it; update and remove both leave it alone"
+    note "available = this clone ships it and you have not installed it"
+    printf '\n'
+    [[ "$n_out" -gt 0 ]] && say "$n_out unit(s) would be refreshed by ./install.sh update"
+    [[ "$n_new" -gt 0 ]] && say "$n_new unit(s) can be added with ./install.sh"
   else
     note "nothing installed by this script (no $MANIFEST)"
   fi
@@ -1027,7 +1278,7 @@ install_finish() {
   fi
 
   note "The manual path is documented in full in docs/shared/03-setup.md."
-  note "Re-run this script to upgrade; ./install.sh remove takes it back out."
+  note "./install.sh update refreshes what you have; remove takes it back out."
   printf '\n'
 }
 
@@ -1039,6 +1290,11 @@ case "$MODE" in
     TOTAL_STAGES=3
     banner "claude-code-playbook · remove"
     remove_mode
+    ;;
+  update|upgrade)
+    TOTAL_STAGES=4
+    banner "claude-code-playbook · update"
+    update_mode
     ;;
   list|status)
     TOTAL_STAGES=2
@@ -1058,6 +1314,6 @@ case "$MODE" in
     install_finish "Install complete"
     ;;
   *)
-    die "unknown mode: $MODE (expected install, remove or list)"
+    die "unknown mode: $MODE (expected install, update, remove or list)"
     ;;
 esac

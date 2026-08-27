@@ -178,9 +178,12 @@ step 4 forks.
    **`./install.sh` does this part for you** (`.\install.ps1` on Windows, which checks
    for Git Bash or WSL and hands off). It walks `templates/`, lets you pick, pulls in
    the agents a command needs, fills the placeholders, wires the hooks and then proves
-   the wiring by re-reading `settings.json`. `./install.sh remove` reverses it. It
-   never overwrites or deletes anything you have edited — it reports it and moves on.
-   Step 1–3 still have to be done by hand: it cannot stand up Serena or Forgetful.
+   the wiring by re-reading `settings.json`. After a `git pull`, `./install.sh update`
+   refreshes what you already have without asking anything and names what is new;
+   `./install.sh list` shows what is installed, outdated or available, and
+   `./install.sh remove` reverses the whole thing. **None of them overwrite or delete
+   anything you have edited** — they report it and move on. Steps 1–3 are still by
+   hand: the script cannot stand up Serena or Forgetful for you.
 4. **Then take your door.**
 
    **The agile path** — you hold a ticket someone else wrote.

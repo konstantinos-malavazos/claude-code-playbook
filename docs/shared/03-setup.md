@@ -6,8 +6,18 @@ after step 4. Steps 5–8 are additive.
 > **There is a script for steps 4–8.** From a clone, `./install.sh` (or `.\install.ps1`
 > on Windows) discovers what is installable by walking `templates/`, lets you pick,
 > installs it, fills the placeholders, wires the hooks and then *proves* the wiring by
-> re-reading `settings.json`. `./install.sh remove` takes it back out, and neither
-> command ever overwrites or deletes a file you have edited.
+> re-reading `settings.json`. Four modes:
+>
+> | | |
+> |---|---|
+> | `./install.sh` | pick what you want; on a machine that already has an install it pre-ticks what is there |
+> | `./install.sh update` | after a `git pull` — refresh what you have, no questions |
+> | `./install.sh list` | what is installed, outdated, edited or available |
+> | `./install.sh remove` | take back what it installed |
+>
+> **None of them ever overwrites or deletes a file you have edited.** An edited file is
+> reported and skipped, a `settings.json` value of yours that differs is left alone and
+> reported, and `remove` deletes only what still matches the hash it recorded.
 >
 > **It cannot do steps 1–3.** Those are Claude Code itself, Serena and Forgetful —
 > servers the script cannot provision for you. It reads your `~/.claude.json` to work
