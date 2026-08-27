@@ -18,16 +18,22 @@
     with hooks that cannot run.
 
 .PARAMETER Mode
-    install (default), remove, or list. Passed straight through to install.sh.
+    install (default), update, remove, or list. Passed straight through to install.sh.
 
 .EXAMPLE
     .\install.ps1
+    .\install.ps1 update
     .\install.ps1 remove
+
+.NOTES
+    Set $env:CLAUDE_HOME to install somewhere other than ~/.claude — the safe way
+    to try this out without touching a setup you already rely on. Use a bash-style
+    path, e.g. /c/Users/you/claude-test.
 #>
 
 [CmdletBinding()]
 param(
-    [ValidateSet('install', 'remove', 'list')]
+    [ValidateSet('install', 'update', 'remove', 'list')]
     [string]$Mode = 'install'
 )
 
@@ -142,6 +148,18 @@ Write-Host ''
 Write-Host '  Handing off to install.sh - it does the actual work.' -ForegroundColor DarkGray
 Write-Host ''
 
+# CLAUDE_HOME lets you install somewhere other than ~/.claude — the safe way to
+# try this out without touching a setup you already rely on. It has to be passed
+# INTO the command: PowerShell environment variables do not cross the WSL
+# boundary, so setting $env:CLAUDE_HOME alone would be silently ignored there.
+# Use a bash-style path: /c/Users/you/claude-test, not C:\Users\you\claude-test.
+$envPrefix = ''
+if ($env:CLAUDE_HOME) {
+    $envPrefix = "CLAUDE_HOME='$($env:CLAUDE_HOME -replace "'", "'\''")' "
+    Write-Host "  CLAUDE_HOME=$($env:CLAUDE_HOME)" -ForegroundColor DarkGray
+    Write-Host ''
+}
+
 if ($useWsl) {
     # Translate the Windows path so the Linux side can find the clone.
     $wslPath = & wsl.exe wslpath -a ($here -replace '\\', '/') 2>$null
@@ -151,9 +169,9 @@ if ($useWsl) {
             '  cd /mnt/c/path/to/claude-code-playbook && ./install.sh'
         )
     }
-    & wsl.exe bash -c "cd '$($wslPath.Trim())' && ./install.sh $Mode"
+    & wsl.exe bash -c "cd '$($wslPath.Trim())' && ${envPrefix}./install.sh $Mode"
 } else {
-    & $bash -lc "cd '$($here -replace '\\', '/')' && ./install.sh $Mode"
+    & $bash -lc "cd '$($here -replace '\\', '/')' && ${envPrefix}./install.sh $Mode"
 }
 
 exit $LASTEXITCODE
