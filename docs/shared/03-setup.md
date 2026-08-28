@@ -5,6 +5,10 @@ after step 4. Steps 5–8 are additive.
 
 > **There is a script for steps 4–8.**
 >
+> **On Windows, or if you want the prerequisites spelled out per system**, use
+> [the README's per-OS install section](../../README.md#install--step-by-step-for-your-os)
+> instead of the lines below — it lists what to install first on Linux, macOS and Windows.
+>
 > ```bash
 > git clone https://github.com/konstantinos-malavazos/claude-code-playbook.git
 > cd claude-code-playbook
