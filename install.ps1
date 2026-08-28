@@ -27,8 +27,15 @@
 
 .NOTES
     Set $env:CLAUDE_HOME to install somewhere other than ~/.claude — the safe way
-    to try this out without touching a setup you already rely on. Use a bash-style
-    path, e.g. /c/Users/you/claude-test.
+    to try this out without touching a setup you already rely on. The value is
+    handed to bash untranslated, so write it the way THAT bash sees the world:
+
+      Git Bash   /c/Users/you/claude-test
+      WSL        /home/you/claude-test, or /mnt/c/Users/you/claude-test
+
+    Not C:\Users\you\claude-test either way. Giving WSL a /c/... path does not
+    fail — it creates that directory inside the distro, and the install lands
+    somewhere you are not looking.
 #>
 
 [CmdletBinding()]
@@ -170,7 +177,13 @@ Write-Host ''
 # try this out without touching a setup you already rely on. It has to be passed
 # INTO the command: PowerShell environment variables do not cross the WSL
 # boundary, so setting $env:CLAUDE_HOME alone would be silently ignored there.
-# Use a bash-style path: /c/Users/you/claude-test, not C:\Users\you\claude-test.
+#
+# The value goes through verbatim — nothing below translates it — so it must be
+# written for the bash that receives it. Under Git Bash that is /c/Users/you/...;
+# under WSL it is /home/you/... or /mnt/c/Users/you/..., because there /c/Users
+# is not the C: drive, it is a path at the root of the distro. A Windows-shaped
+# C:\Users\you\... is wrong for both. None of these fail loudly: the wrong shape
+# installs successfully, somewhere you will not think to look.
 $envPrefix = ''
 if ($env:CLAUDE_HOME) {
     $envPrefix = "CLAUDE_HOME='$($env:CLAUDE_HOME -replace "'", "'\''")' "
