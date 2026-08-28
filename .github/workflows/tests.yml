@@ -1,0 +1,70 @@
+# Runs the repo's three suites on every push and pull request.
+#
+# They were all runnable by hand before this; nothing here is new coverage. What
+# was missing is somebody running them — the wiring scrub in particular exists to
+# catch a failure that is invisible in the output, which is exactly the kind
+# nobody thinks to go looking for.
+#
+# Everything below is offline: no model, no network, no tracker. The installer
+# suite does drive real installs, but into a sandbox with HOME and CLAUDE_HOME
+# redirected into a temp dir, so there is nothing here that needs a secret.
+
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Print the tools the suites reason about, so a runner-image bump shows up
+      # here as a version line rather than as a mystery failure further down.
+      # shellcheck's version matters most: its findings on install.sh are why
+      # section 13 has been red on some machines and green on others.
+      - name: Versions
+        run: |
+          bash --version | head -1
+          python3 --version
+          shellcheck --version | sed -n '2p'
+
+      # Fast and deterministic — it only reads templates and docs. Runs first so
+      # a wiring regression is the first thing in the log, not the last.
+      - name: Wiring scrub (tests/test-wiring.sh)
+        env:
+          PLAYBOOK_TEST_DIR: ${{ runner.temp }}/playbook-wiring
+        run: bash tests/test-wiring.sh
+
+      - name: Hook patterns (templates/hooks/test-hooks.sh)
+        run: bash templates/hooks/test-hooks.sh
+
+      # The slow one: real installs into a sandbox, plus the static checks
+      # (bash -n, py_compile, and shellcheck over install.sh, the hooks and both
+      # suites) in its section 13.
+      #
+      # Note it passes here with stdin not a terminal: sections 14 and 15 assert
+      # exactly that refusal, and the scripted cases opt past the door check with
+      # PLAYBOOK_SCRIPTED_INPUT, which the suite sets itself.
+      - name: Installer suite (tests/test-installer.sh)
+        env:
+          PLAYBOOK_TEST_DIR: ${{ runner.temp }}/playbook-install
+        run: bash tests/test-installer.sh
+
+      # Both suites keep their sandboxes and per-run logs under those dirs. On a
+      # failure the logs are the whole diagnosis, so keep them.
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: ${{ runner.temp }}/playbook-*
+          if-no-files-found: ignore
+          retention-days: 7

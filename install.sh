@@ -96,12 +96,20 @@ open_url() {
 }
 
 # pause "msg" — wait for the human to confirm they've done the manual part.
+#
+# DEAD ON PURPOSE. This is the verbatim library copy; the definition that runs is
+# the one near require_tty below, which stops on EOF instead of answering for you.
+# The library stays unedited (see banner_pb), so this body is shadowed, not fixed.
+# shellcheck disable=SC2317  # shadowed by the re-definition below — see there
 pause() {
   printf '  %s%s%s ' "$DIM" "${1:-Press Enter to continue}" "$RESET"
   read -r _ || true
 }
 
 # confirm "question" — y/N gate; returns success on yes.
+#
+# DEAD ON PURPOSE, for the same reason as pause above.
+# shellcheck disable=SC2317  # shadowed by the re-definition below — see there
 confirm() {
   local reply=""
   printf '  %s? %s [y/N] ' "$YELLOW" "$1"
@@ -1652,7 +1660,10 @@ PY
   # tidy up directories we created and then emptied — never one with anything left
   local d
   for d in agents skills commands hooks; do
-    [[ -d "$CLAUDE_HOME/$d" ]] && rmdir "$CLAUDE_HOME/$d" 2>/dev/null || true
+    # rmdir only ever removes an EMPTY directory, so a dir the user still has
+    # things in survives by refusing — the `|| true` is about not failing the
+    # run, not about ignoring a real error.
+    if [[ -d "$CLAUDE_HOME/$d" ]]; then rmdir "$CLAUDE_HOME/$d" 2>/dev/null || true; fi
   done
 
   rm -f "$MANIFEST"
