@@ -54,6 +54,40 @@ run() {
   return 0
 }
 
+# run_raw MODE LOG - like run(), but WITHOUT PLAYBOOK_SCRIPTED_INPUT and with stdin
+# closed. run() sets that flag so the scripted cases can drive the real prompts,
+# which means every other case deliberately walks past the door check. These two
+# guards therefore need a runner that does not hold the door open.
+#
+# `timeout` matters more than it looks: the bug these cases exist for was a menu
+# that re-rendered forever, so a regression must FAIL rather than hang the suite.
+# 857KB in 4 minutes was the observed shape; 60s and 20KB are both far outside a
+# healthy run, which refuses in about a second and 200 bytes.
+TIMEOUT=""
+command -v timeout >/dev/null 2>&1 && TIMEOUT="timeout 60"
+run_raw() {
+  local mode="$1" log="$2"
+  ( cd "$REPO" && HOME="$HOME_DIR" CLAUDE_HOME="$CH"     $TIMEOUT bash ./install.sh $mode )     < /dev/null > "$LOGS/$log.out" 2> "$LOGS/$log.err"
+  RC=$?
+  return 0
+}
+
+# bytes LOG - size of a run's output, the loop tripwire. Both streams: a runaway
+# menu prints to stdout, and the refusal that should replace it goes to stderr.
+bytes() { cat "$LOGS/$1.out" "$LOGS/$1.err" 2>/dev/null | wc -c | tr -d ' '; }
+
+# inboth / notinboth LOG TEXT NAME - die() writes to stderr, so a refusal is not
+# in .out. Note the flags: `grep -qiF` SIGABRTs on the GNU grep 3.0 that ships with
+# Git Bash here - -qF, -qi and -q are each fine, it is -i and -F together that dies,
+# leaving the grep.exe.stackdump this repo has collected. Match case-sensitively
+# instead, which is what the rest of this suite already does.
+bothgrep() {
+  grep -qF -- "$2" "$LOGS/$1.out" 2>/dev/null && return 0
+  grep -qF -- "$2" "$LOGS/$1.err" 2>/dev/null
+}
+inboth()    { if bothgrep "$1" "$2"; then pass "$3"; else fail "$3"; fi; }
+notinboth() { if bothgrep "$1" "$2"; then fail "$3"; else pass "$3"; fi; }
+
 n_files() { find "$CH" -type f 2>/dev/null | wc -l | tr -d ' '; }
 has() { grep -qF -- "$2" "$LOGS/$1.out"; }
 inlog() { if has "$1" "$2"; then pass "$3"; else fail "$3"; fi; }
@@ -293,6 +327,38 @@ m=json.load(open(sys.argv[1]))
 assert "command:end-of-day" not in m["units"], "adopted without consent!"
 PY
 chk $? "declining adoption leaves it out of the manifest"
+fi
+
+# ------------------------------------------------- 14 install with no one there
+# Regression for #87. A closed stdin used to fall through to the Stage 3 menu and
+# re-render until something killed it, because the read helpers end `|| true` and
+# an empty answer is legal at every menu here.
+if want 14; then
+banner "14 - install refuses when stdin is not a terminal"
+fresh_env t14; with_serena
+run_raw install t14
+yn $([ "$RC" != "0" ] && echo 0 || echo 1) "exits non-zero (rc=$RC)"
+yn $([ "$(bytes t14)" -lt 20000 ] && echo 0 || echo 1) "no runaway output ($(bytes t14) bytes)"
+yn $([ "$(n_files)" = "0" ] && echo 0 || echo 1) "wrote nothing ($(n_files) files)"
+inboth t14 "stdin is not a terminal" "says why"
+fi
+
+# ------------------------------------------------- 15 remove with no one there
+# `confirm` at EOF used to read as "no", so remove exited 0 reporting "nothing
+# changed" - a decline the user never made. Silence must not answer for them.
+if want 15; then
+banner "15 - remove refuses when stdin is not a terminal"
+fresh_env t15; with_serena
+keys t15 "${FULL[@]}"
+run install t15
+BEFORE=$(n_files)
+yn $([ "$BEFORE" -gt 0 ] && echo 0 || echo 1) "installed first ($BEFORE files)"
+run_raw remove t15r
+yn $([ "$RC" != "0" ] && echo 0 || echo 1) "exits non-zero (rc=$RC)"
+yn $([ "$(n_files)" = "$BEFORE" ] && echo 0 || echo 1) "install intact ($BEFORE -> $(n_files))"
+yn $([ "$(bytes t15r)" -lt 20000 ] && echo 0 || echo 1) "no runaway output ($(bytes t15r) bytes)"
+notinboth t15r "nothing changed" "did not fake a decline the user never made"
+inboth t15r "stdin is not a terminal" "says why"
 fi
 
 printf '\n================================\n'
