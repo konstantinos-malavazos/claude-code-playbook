@@ -21,7 +21,9 @@
 # Exit 0 = every case behaved. Exit 1 = at least one guardrail is not guarding.
 
 set -uo pipefail
-cd "$(dirname "$0")"
+# If this cd fails every path below is resolved against the wrong directory and
+# the results are meaningless, so refuse rather than "pass" somewhere else.
+cd "$(dirname "$0")" || exit 1
 
 GIT_HOOK=./block-dangerous-git.sh
 INFRA_HOOK=./block-infra-staging.sh

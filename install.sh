@@ -22,6 +22,11 @@
 #
 # Everything from here to the "STAGES" marker is that library: do not hand-edit it.
 # The installer is authored below the marker.
+#
+# shellcheck disable=SC2329  # pause() and confirm() in that library are never called:
+# both are superseded by the definitions beside _read() below, which end the run at EOF
+# instead of treating a closed stdin as an answer. The library stays byte-identical, so
+# the directive lives out here rather than inside it. File-scoped for that reason.
 set -euo pipefail
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -435,6 +440,9 @@ preset_everything() {
   : > "$SELECTED"
   local id
   # every kind except tracker — that one is exclusive and picked explicitly
+  # Word-splitting is the point here: one id per field, and an id is a filename-derived
+  # kind:name that never contains whitespace.
+  # shellcheck disable=SC2013
   for id in $(awk -F'\t' '$1!="tracker" {print $3}' "$TSV"); do sel_add "$id"; done
 }
 
@@ -1017,6 +1025,10 @@ backup_file() {
 
   # Newest first, drop everything past the cap. Keyed on "$base." so one file's
   # history never prunes another's.
+  # ls, not find: this needs newest-first ordering, the names are timestamps we wrote,
+  # and read -r takes a whole line, so a space in $BACKUPS is handled. The directive
+  # must sit in front of the whole loop - between done and its redirect it is SC1123.
+  # shellcheck disable=SC2012
   while IFS= read -r old; do
     [[ -n "$old" ]] && rm -rf "$old"
   done < <(ls -1dt "$BACKUPS/$base."* 2>/dev/null | tail -n "+$((BACKUP_KEEP + 1))")
@@ -1501,7 +1513,8 @@ update_mode() {
   serena_gate
 
   seed_from_manifest || die "the manifest records no units — run ./install.sh instead."
-  local had=$(wc -l < "$SELECTED" | tr -d ' ')
+  local had
+  had=$(wc -l < "$SELECTED" | tr -d ' ')
 
   # Reuse the answers from the original install. An update that silently changed
   # your model id or Serena prefix is a reinstall, not an update.

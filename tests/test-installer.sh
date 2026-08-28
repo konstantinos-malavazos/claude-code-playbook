@@ -27,7 +27,7 @@ banner() { printf '\n=== %s\n' "$1"; }
 fresh_env() {
   HOME_DIR="$SANDBOX/$1/home"
   CH="$SANDBOX/$1/claude"
-  rm -rf "$SANDBOX/$1"
+  rm -rf "${SANDBOX:?}/${1:?}"
   mkdir -p "$HOME_DIR" "$CH"
 }
 
@@ -48,7 +48,7 @@ run() {
   local mode="$1" log="$2"
   [ -f "$LOGS/$log.in" ] || : > "$LOGS/$log.in"
   ( cd "$REPO" && HOME="$HOME_DIR" CLAUDE_HOME="$CH" PLAYBOOK_SCRIPTED_INPUT=1 \
-    bash ./install.sh $mode ) \
+    bash ./install.sh "$mode" ) \
     < "$LOGS/$log.in" > "$LOGS/$log.out" 2> "$LOGS/$log.err"
   RC=$?
   return 0
@@ -67,7 +67,11 @@ TIMEOUT=""
 command -v timeout >/dev/null 2>&1 && TIMEOUT="timeout 60"
 run_raw() {
   local mode="$1" log="$2"
-  ( cd "$REPO" && HOME="$HOME_DIR" CLAUDE_HOME="$CH"     $TIMEOUT bash ./install.sh $mode )     < /dev/null > "$LOGS/$log.out" 2> "$LOGS/$log.err"
+  # $TIMEOUT is deliberately unquoted: it is empty, or the two words "timeout 60".
+  # shellcheck disable=SC2086
+  ( cd "$REPO" && HOME="$HOME_DIR" CLAUDE_HOME="$CH" \
+    $TIMEOUT bash ./install.sh "$mode" ) \
+    < /dev/null > "$LOGS/$log.out" 2> "$LOGS/$log.err"
   RC=$?
   return 0
 }
@@ -114,6 +118,8 @@ banner "13 · static checks"
 chk $? "python3 -m py_compile install-lib.py"
 if command -v shellcheck >/dev/null 2>&1; then
   ( cd "$REPO" && shellcheck install.sh ) ; chk $? "shellcheck install.sh"
+  ( cd "$REPO" && shellcheck templates/hooks/*.sh ) ; chk $? "shellcheck the hooks"
+  ( cd "$REPO" && shellcheck tests/test-installer.sh ) ; chk $? "shellcheck this suite"
 else
   printf '    SKIP  shellcheck — NOT INSTALLED on this machine, so NOT run\n'
 fi
@@ -130,21 +136,21 @@ fi
 if want 1; then
 banner "1 · list on an empty CLAUDE_HOME"
 fresh_env t1; nokeys t1; run list t1
-yn $([ "$RC" = "0" ] && echo 0 || echo 1) "exit 0"
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exit 0"
 inlog t1 "nothing installed by this script" "reports nothing installed"
-yn $([ "$(n_files)" = "0" ] && echo 0 || echo 1) "wrote nothing"
+yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "wrote nothing"
 fi
 
 # ---------------------------------------------------------------- 2 serena gate fires
 if want 2; then
 banner "2 · Serena gate FIRES (no .claude.json anywhere)"
 fresh_env t2; keys t2 "${FULL[@]}"; run install t2
-yn $([ "$RC" != "0" ] && echo 0 || echo 1) "exits non-zero (rc=$RC)"
+yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "exits non-zero (rc=$RC)"
 inlog t2 "Serena is not set up on this machine" "prints the refusal"
 inlog t2 "serena plugin from the official marketplace" "prints route A"
 inlog t2 "mcpServers.serena" "prints route B"
 inlog t2 "docs/shared/03-setup.md" "points at the doc rather than copying it"
-yn $([ "$(n_files)" = "0" ] && echo 0 || echo 1) "CLAUDE_HOME still empty ($(n_files) files)"
+yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "CLAUDE_HOME still empty ($(n_files) files)"
 awk '/This installer looked in:/{seen=1} seen' "$LOGS/t2.out" > "$LOGS/t2.tail"
 if grep -qE $'\033\\[[23]J' "$LOGS/t2.tail"; then fail "no clear escape after the steps"
 else pass "no clear escape after the steps"; fi
@@ -172,7 +178,7 @@ run install t4
 inlog t4 "No tracker adapter is selected" "refuses i while tracker is none"
 inlog t4 "ticket-analyzer" "states the cost (start-ticket's first step)"
 notinlog t4 "which tool prefix" "did NOT proceed past selection"
-yn $([ "$(n_files)" = "0" ] && echo 0 || echo 1) "nothing written"
+yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "nothing written"
 
 banner "4b · the explicit 'later' escape"
 fresh_env t4b; with_serena
@@ -189,10 +195,10 @@ banner "5 · confirm stage — answering no"
 fresh_env t5; with_serena
 keys t5 '' '' '5' '4' '' 'i' '' '' '' '' '' '' 'n'
 run install t5
-yn $([ "$RC" = "0" ] && echo 0 || echo 1) "exits 0"
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exits 0"
 inlog t5 "Nothing was written" "says nothing was written"
-yn $([ "$(n_files)" = "0" ] && echo 0 || echo 1) "CLAUDE_HOME has zero files ($(n_files))"
-yn $([ ! -f "$CH/.playbook-install.json" ] && echo 0 || echo 1) "no manifest"
+yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "CLAUDE_HOME has zero files ($(n_files))"
+yn "$([ ! -f "$CH/.playbook-install.json" ] && echo 0 || echo 1)" "no manifest"
 inlog t5 "settings.json" "listed the settings.json keys it would add"
 inlog t5 "start-ticket.md" "listed destination paths"
 inlog t5 "repo-allowlist" "hooks warning names the allowlist"
@@ -206,12 +212,12 @@ banner "6 · confirm stage — answering yes (full install)"
 fresh_env t6; with_serena
 keys t6 '' '' 'r' '5' '4' '' 'i' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
 run install t6
-yn $([ "$RC" = "0" ] && echo 0 || echo 1) "exits 0"
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exits 0"
 for f in commands/start-ticket.md agents/ticket-analyzer.md hooks/block-dangerous-git.sh \
          repo-allowlist tracker.md CLAUDE.md settings.json .playbook-install.json; do
-  yn $([ -e "$CH/$f" ] && echo 0 || echo 1) "wrote $f"
+  yn "$([ -e "$CH/$f" ] && echo 0 || echo 1)" "wrote $f"
 done
-yn $([ -d "$CH/skills/adapt-to-stack" ] && echo 0 || echo 1) "wrote skills/adapt-to-stack"
+yn "$([ -d "$CH/skills/adapt-to-stack" ] && echo 0 || echo 1)" "wrote skills/adapt-to-stack"
 if grep -vE '^[[:space:]]*#|^[[:space:]]*$' "$CH/repo-allowlist" | grep -q .; then
   fail "repo-allowlist installs EMPTY"
 else pass "repo-allowlist installs EMPTY (comments only)"; fi
@@ -243,21 +249,21 @@ mkdir -p "$CH/.playbook-backups"
 for i in 01 02 03 04 05 06 07 08 09 10 11 12 13 14; do
   cp "$CH/settings.json" "$CH/.playbook-backups/settings.json.200001$i-000000"
 done
-BEFORE=$(ls -1 "$CH/.playbook-backups"/settings.json.* 2>/dev/null | wc -l | tr -d ' ')
+BEFORE=$(find "$CH/.playbook-backups" -name 'settings.json.*' 2>/dev/null | wc -l | tr -d ' ')
 nokeys bk1; run update bk1
-AFTER=$(ls -1 "$CH/.playbook-backups"/settings.json.* 2>/dev/null | wc -l | tr -d ' ')
+AFTER=$(find "$CH/.playbook-backups" -name 'settings.json.*' 2>/dev/null | wc -l | tr -d ' ')
 printf '    (before=%s after=%s)\n' "$BEFORE" "$AFTER"
-yn $([ "$BEFORE" -gt 10 ] && echo 0 || echo 1) "primed with more than 10 backups ($BEFORE)"
-yn $([ "$AFTER" -le 10 ] && echo 0 || echo 1) "at most 10 backups remain ($AFTER)"
-yn $([ ! -e "$CH/.playbook-backups/settings.json.20000101-000000" ] && echo 0 || echo 1) "oldest pruned"
-yn $([ -e "$CH/.playbook-backups/settings.json.20000114-000000" ] && echo 0 || echo 1) "newest kept"
+yn "$([ "$BEFORE" -gt 10 ] && echo 0 || echo 1)" "primed with more than 10 backups ($BEFORE)"
+yn "$([ "$AFTER" -le 10 ] && echo 0 || echo 1)" "at most 10 backups remain ($AFTER)"
+yn "$([ ! -e "$CH/.playbook-backups/settings.json.20000101-000000" ] && echo 0 || echo 1)" "oldest pruned"
+yn "$([ -e "$CH/.playbook-backups/settings.json.20000114-000000" ] && echo 0 || echo 1)" "newest kept"
 fi
 
 # ---------------------------------------------------------------- 10 update
 if want 10; then
 banner "10 · update is non-interactive"
 nokeys up1; run update up1
-yn $([ "$RC" = "0" ] && echo 0 || echo 1) "exit 0 with stdin closed"
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exit 0 with stdin closed"
 inlog up1 "Update complete" "completes"
 if grep -qE '\[y/N\]|Write these\?|Ready to start' "$LOGS/up1.out"; then
   fail "asked no questions"; else pass "asked no questions"; fi
@@ -272,11 +278,11 @@ fresh_env t11; with_serena
 mkdir -p "$CH"
 printf '{\n  "model": "my-own-model",\n  "verbose": true\n}\n' > "$CH/settings.json"
 keys t11 "${FULL[@]}"; run install t11
-yn $([ -f "$CH/commands/start-ticket.md" ] && echo 0 || echo 1) "installed first"
+yn "$([ -f "$CH/commands/start-ticket.md" ] && echo 0 || echo 1)" "installed first"
 keys rm1 '' 'y'; run remove rm1
-yn $([ "$RC" = "0" ] && echo 0 || echo 1) "remove exits 0"
-yn $([ ! -e "$CH/commands/start-ticket.md" ] && echo 0 || echo 1) "files gone"
-yn $([ ! -e "$CH/.playbook-install.json" ] && echo 0 || echo 1) "manifest gone"
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "remove exits 0"
+yn "$([ ! -e "$CH/commands/start-ticket.md" ] && echo 0 || echo 1)" "files gone"
+yn "$([ ! -e "$CH/.playbook-install.json" ] && echo 0 || echo 1)" "manifest gone"
 python3 - "$CH/settings.json" <<'PY'
 import json,sys
 d=json.load(open(sys.argv[1]))
@@ -285,7 +291,7 @@ assert d.get("verbose") is True, "user key lost: %r" % d
 assert "hooks" not in d, "hook entries left behind: %r" % d.get("hooks")
 PY
 chk $? "hook entries removed, user's own settings keys untouched"
-yn $([ -d "$CH/.playbook-backups" ] && echo 0 || echo 1) "backups survive remove"
+yn "$([ -d "$CH/.playbook-backups" ] && echo 0 || echo 1)" "backups survive remove"
 fi
 
 # ---------------------------------------------------------------- 8 adoption
@@ -309,11 +315,11 @@ assert rec.get("adopted") is True, 'no "adopted": true -- %r' % rec
 PY
 chk $? 'manifest records "adopted": true'
 NOW=$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/commands/end-of-day.md")
-yn $([ "$BYHAND" = "$NOW" ] && echo 0 || echo 1) "the user's file was not rewritten"
+yn "$([ "$BYHAND" = "$NOW" ] && echo 0 || echo 1)" "the user's file was not rewritten"
 keys rm8 '' 'y'; run remove rm8
 inlog rm8 "adopted" "remove reports keep-adopted"
-yn $([ -f "$CH/commands/end-of-day.md" ] && echo 0 || echo 1) "ADOPTED FILE SURVIVES remove"
-yn $([ ! -f "$CH/commands/start-ticket.md" ] && echo 0 || echo 1) "non-adopted files still removed"
+yn "$([ -f "$CH/commands/end-of-day.md" ] && echo 0 || echo 1)" "ADOPTED FILE SURVIVES remove"
+yn "$([ ! -f "$CH/commands/start-ticket.md" ] && echo 0 || echo 1)" "non-adopted files still removed"
 
 banner "8b · adoption REFUSED leaves it foreign"
 fresh_env t8b; with_serena
@@ -337,9 +343,9 @@ if want 14; then
 banner "14 - install refuses when stdin is not a terminal"
 fresh_env t14; with_serena
 run_raw install t14
-yn $([ "$RC" != "0" ] && echo 0 || echo 1) "exits non-zero (rc=$RC)"
-yn $([ "$(bytes t14)" -lt 20000 ] && echo 0 || echo 1) "no runaway output ($(bytes t14) bytes)"
-yn $([ "$(n_files)" = "0" ] && echo 0 || echo 1) "wrote nothing ($(n_files) files)"
+yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "exits non-zero (rc=$RC)"
+yn "$([ "$(bytes t14)" -lt 20000 ] && echo 0 || echo 1)" "no runaway output ($(bytes t14) bytes)"
+yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "wrote nothing ($(n_files) files)"
 inboth t14 "stdin is not a terminal" "says why"
 fi
 
@@ -352,11 +358,11 @@ fresh_env t15; with_serena
 keys t15 "${FULL[@]}"
 run install t15
 BEFORE=$(n_files)
-yn $([ "$BEFORE" -gt 0 ] && echo 0 || echo 1) "installed first ($BEFORE files)"
+yn "$([ "$BEFORE" -gt 0 ] && echo 0 || echo 1)" "installed first ($BEFORE files)"
 run_raw remove t15r
-yn $([ "$RC" != "0" ] && echo 0 || echo 1) "exits non-zero (rc=$RC)"
-yn $([ "$(n_files)" = "$BEFORE" ] && echo 0 || echo 1) "install intact ($BEFORE -> $(n_files))"
-yn $([ "$(bytes t15r)" -lt 20000 ] && echo 0 || echo 1) "no runaway output ($(bytes t15r) bytes)"
+yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "exits non-zero (rc=$RC)"
+yn "$([ "$(n_files)" = "$BEFORE" ] && echo 0 || echo 1)" "install intact ($BEFORE -> $(n_files))"
+yn "$([ "$(bytes t15r)" -lt 20000 ] && echo 0 || echo 1)" "no runaway output ($(bytes t15r) bytes)"
 notinboth t15r "nothing changed" "did not fake a decline the user never made"
 inboth t15r "stdin is not a terminal" "says why"
 fi
