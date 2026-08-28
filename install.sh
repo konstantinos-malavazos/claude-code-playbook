@@ -254,12 +254,17 @@ screen() {
     "$BOLD" "$BLUE" "$_STAGE_INDEX" "$TOTAL_STAGES" "$1" "$RESET"
 }
 
-# banner_quiet TITLE - the banner for the modes that must not ask anything.
-# The library's banner() ends in pause "Ready to start?", and `update` documents
-# itself as asking no questions; it also talks about driving a browser, which this
-# installer never does. The library is verbatim and not hand-edited, so `update`
-# simply does not call it.
-banner_quiet() {
+# banner_pb TITLE [pause] — this installer's own opening screen.
+#
+# The wizard library's banner() is verbatim and not hand-edited, so the fix for it
+# is not to call it. Two things made it wrong here:
+#   * it says "You drive the browser", which belongs to the wizard the library was
+#     written for. This installer never opens a browser, and it is the first
+#     sentence a stranger reads.
+#   * it always ends in pause "Ready to start?". `update` documents itself as
+#     asking nothing, and `list` changes nothing — neither should stop for a key.
+# install and remove still pause: both are about to change the machine.
+banner_pb() {
   _clear
   printf '
 %s%s  %s%s
@@ -267,6 +272,18 @@ banner_quiet() {
   printf '%s  %s stages%s
 
 ' "$DIM" "$TOTAL_STAGES" "$RESET"
+  printf '%s  Installs the playbook templates into
+' "$DIM"
+  printf '    %s
+' "$CLAUDE_HOME"
+  printf '  It walks you through what to install, shows you every file before it
+'
+  printf '  writes one, and never overwrites anything you have edited.
+'
+  printf '  Ctrl-C is safe at any point.%s
+' "$RESET"
+  [[ "${2:-}" == "pause" ]] && pause "Ready to start?"
+  return 0
 }
 
 heading() { printf '\n  %s%s%s\n' "$BOLD" "$1" "$RESET"; }
@@ -1660,22 +1677,22 @@ install_finish() {
 case "$MODE" in
   remove|uninstall)
     TOTAL_STAGES=3
-    banner "claude-code-playbook · remove"
+    banner_pb "claude-code-playbook · remove" pause
     remove_mode
     ;;
   update|upgrade)
     TOTAL_STAGES=4
-    banner_quiet "claude-code-playbook · update"
+    banner_pb "claude-code-playbook · update"
     update_mode
     ;;
   list|status)
     # preflight · discover · current state
     TOTAL_STAGES=3
-    banner "claude-code-playbook · state"
+    banner_pb "claude-code-playbook · state"
     list_mode
     ;;
   install|"")
-    banner "claude-code-playbook · install"
+    banner_pb "claude-code-playbook · install" pause
     preflight
     discover_units
     selection_stage
