@@ -71,7 +71,7 @@ hop out from a ticket that did not exist when it ran.
 ## 3. Plan — and stop if it meets a decision
 
 Invoke `@planner <TICKET-ID>`. Give it the ticket Question and `map.md`'s Destination and
-Notes as its scope.
+Notes as its scope. Its plan carries the **weight** for the step 5 dispatch.
 
 The planner will end with open design questions. Take each one and **try to answer it from
 the code yourself** with a pinpoint symbol lookup. Record what the code settles, with
@@ -105,6 +105,15 @@ every ticket that touches it.
 
 `make:<layer>` dispatches `@<layer>-specialist`, and that specialist's own file says whether
 its layer ships tests.
+
+**Dispatch it on a weight, classified by the `dispatch-weight` skill.** The planner in step 3
+runs it over what this ticket actually changes; you read the answer and route. `light` → no
+model override, so the specialist runs on its own pinned model (normally `<MODEL-CHEAP-ID>`);
+`heavy` → the tier `<MODEL-STRONG-ID>` belongs to, for that run only. Never below the
+specialist's own pinned `model:`. **The label chose the layer, not the tier** — a `make` can
+be one file or a contract with callers in three repos, and the label says nothing about
+which. If the ticket is re-dispatched after a review sends it back, classify again and never
+drop below the tier it last ran at.
 
 **The label already chose. There is no track-allocation step**, no slice fork, no worktrees,
 no aligner, no integrator. Charting decomposed this map already; slicing a chart child again

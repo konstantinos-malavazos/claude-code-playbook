@@ -147,6 +147,30 @@ driver can drive. The other three run once each.
 Both take `--max <n>` for the iteration cap. **Neither is derived from the other.** This
 doc owns the method, and each command states its own halt table in full.
 
+### A heavy weight, with nobody watching
+
+Every implementer dispatch carries a `light` or `heavy` weight, and the orchestrator escalates
+the heavy ones for that one run
+([shared 07](../shared/07-the-flows.md#model-escalation-cheap-by-default-escalated-by-weight)).
+Attended, a wrong call is visible: you watch an implementer thrash through a signature change
+and you raise it yourself. **Unattended there is nobody to notice**, and the iteration cap is
+the only thing that eventually stops it. So a `heavy` weight here is a **decision point, and
+you settle it before the walk starts**: either **escalate automatically**, or **halt and
+ask**. The trade in one sentence — escalating spends more per ticket and hands you a finished
+track in the morning, halting spends the night and hands you the judgement call on the one
+ticket most likely to need it. Both are defensible; pick the one you would rather explain to
+yourself at breakfast. **Walking a heavy track unattended on the cheap tier is not a third
+option**: that is the run that burns the cap and leaves the repo half-edited, and [a loop
+cannot tell working from failing
+productively](#the-breaker-fires-in-both-and-that-is-the-point).
+
+**Today that is a narrow case here, deliberately.** Every `make` halts the walk, so the only
+implementing ticket this mode reaches unattended is [the tail's bootstrap checks under
+`/feeling-very-lucky`](#the-tail-always-stops-the-walk). It is written down because it is the
+thing to settle *before* looping any flow that does implement — the same reason as everything
+else on this page: **a loop adds no failure modes, it removes the human who was absorbing the
+ones already there.**
+
 ---
 
 ## The loop

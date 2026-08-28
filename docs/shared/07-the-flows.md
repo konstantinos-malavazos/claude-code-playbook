@@ -67,9 +67,12 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 
 1. **Retrieval is offloaded.** The gatherer's expensive context is discarded. The planner
    only sees the brief.
-2. **Models are matched to work.** Use a cheaper, faster model for mechanical, bounded
-   tracks (analyzer, per-layer implementers). Use a stronger model for design, judgement
-   and review. Pin exact model *ids* so an alias does not silently downgrade you.
+2. **Models are matched to work, and then to the ticket.** Pin a cheap, fast model on
+   mechanical, bounded tracks (analyzer, per-layer implementers) and a stronger one on
+   design, judgement and review. Then let the planner's per-track **weight** raise an
+   implementer for one run when the ticket is shaped badly for a cheap model — see
+   [Model escalation](#model-escalation-cheap-by-default-escalated-by-weight). Pin exact
+   model *ids* so an alias does not silently downgrade you.
 3. **Handoffs are files.** Inspect them under `…/handoffs/<TICKET>/` while it runs. They
    vanish at session end.
 
@@ -143,6 +146,163 @@ is managed, not forgotten, so dependent work proceeds. `/resume-ticket` can pick
 days later when the answer lands. What *managed* requires is owned by
 [`templates/skills/grilling/`](../../templates/skills/grilling/SKILL.md). Where the gate
 sits in the pipeline is [08-ticket-pipeline.md](08-ticket-pipeline.md).
+
+---
+
+## Model escalation: cheap by default, escalated by weight
+
+An agent's `model:` is a static property of its file. The difficulty of the ticket it is
+about to be handed is not. This section is the missing dial between the two.
+
+### Why pipeline position is the wrong thing to price on
+
+- **An agent loop re-sends its accumulated context on every step.** A track's cost is
+  therefore *steps x context size*, and the context grows as the steps accumulate. That is
+  **superlinear in steps, not linear in tokens**. A model that is cheaper per token but
+  takes several times more steps on a long task costs **more** per ticket, not less.
+- **Upstream planning removes DISCOVERY steps from the implementer. It does not remove
+  EDITING steps.** The gatherer and the planner hand over Serena-verified file/symbol
+  targets, so the implementer stops hunting. It still has to hold several files consistent
+  through a signature change, and **that** is where step count explodes. No amount of
+  planning upstream makes that part cheaper.
+- **Therefore: pipeline position does not decide the implementer's model. Ticket shape
+  does.** *"Implementers are mechanical, so implementers are cheap"* prices the **role**.
+  The cost lives in the **ticket**.
+
+> **One measurement, and it is a snapshot rather than a recommendation.** As of **August
+> 2026**, the [DeepSWE long-horizon benchmark](https://deepswe.datacurve.ai/) measured a
+> cheaper-per-token model taking roughly **2.7x the steps** of a stronger one on multi-file
+> repository tasks, and costing about **twice as much per task** as a result. Read it as an
+> illustration of the mechanism above — steps, not token price, set the bill — and not as a
+> standing verdict on any named model. Re-measure before you rely on the ratio: every model
+> in it will have moved.
+
+### a. The weight is per dispatch, not per ticket
+
+**This is the part most setups get wrong**, and it is worth doing before anything else:
+**inventory every place your pipeline hands work to an implementation agent.** In a mature
+pipeline it is five or six sites, and typically **only one of them has the plan in hand**.
+
+**Run the inventory off the tool lists, not off the job titles.** The test is *can this agent
+edit code* — grep your agent files for the edit verbs and see which ones come back. Reading
+the names instead misses the agents that quietly write and amend (a cross-slice test writer
+is an editing agent) and wastes weights on the ones that only look like implementers. An
+agent that edits but already pins the strong tier needs no weight either, because a weight
+may only raise its floor.
+
+| # | Dispatch site | Has the plan? | Weighed by |
+|---|---|---|---|
+| 1 | the initial track dispatch, in chain order | **yes** | `@planner`, in the plan |
+| 2 | each parallel slice on the decompose path ([09](09-decompose-path.md)) | yes, per slice | `@planner`, per slice |
+| 3 | the **review-fix re-pass** after `REQUEST CHANGES` | no | `@repo-reviewer`, in the verdict |
+| 4 | the **drift fix** after the alignment gate | no | `@aligner`, with its drift report |
+| 5 | the QA bounce-back (`/fix-ticket`) | no | `@fixer-planner`, in the fix plan |
+| 6 | a secondary command that dispatches a specialist directly (`/build-chart-ticket`) | its own | its own planner step |
+
+**A `weight` field on the plan covers site 1 and silently misses the rest.** Site 3 is the
+most expensive one to miss: it is where a track that has *just failed review* gets handed
+back to the same model that failed it, on the reasoning that the ticket was classified light
+an hour ago.
+
+Whoever has just looked at the work does the weighing. **The orchestrator never computes one
+itself** — it reads the weight and routes. That keeps the judgement with the agent holding
+the evidence, and keeps the orchestrator scoped to the one job it has.
+
+### b. One definition, many call sites
+
+The classification rule lives in **one named unit** that every dispatch site invokes:
+[`templates/skills/dispatch-weight/`](../../templates/skills/dispatch-weight/SKILL.md).
+
+Six sites restating "heavy means more than N files" is six copies of a threshold. They will
+not be six copies for long. Tune the criteria **in the skill**, and every site moves at once
+— the same argument this repo already makes for generating layer specialists instead of
+copying them ([11](11-adapting-to-your-stack.md)).
+
+### c. The rule itself
+
+Classify **the change about to be made** as `light` or `heavy`, with a **one-line reason
+naming the criterion that fired**. Suggested starting criteria, to be tuned per team: file
+count over a threshold, more than one repo, a shared contract or signature with multiple
+callers, a placeholder seam left by a deferred decision
+([the grilling gate](#deferred-decisions-the-grilling-gate)) — and, on a fix pass, several
+review findings against one track, or **any** finding saying the *design* was wrong rather
+than the details.
+
+The reason line is what makes the thresholds auditable later, and
+[the calibration loop below](#calibrating-it-and-the-trap-it-catches) reads those lines. A
+weight nobody can audit drifts.
+
+### d. Three invariants, and what breaks without each
+
+| Invariant | The rule | What happens without it |
+|---|---|---|
+| **Asymmetry** | Raise on suspicion, lower only on evidence. | The cheap direction wins ties — and its failures are the ones invisible in the output. |
+| **Ratchet** | A re-dispatch never runs below the tier that track last ran at. | A fresh classification sends a track that just failed review back to the model that failed it. The classification is not wrong; it answered a question about the fix while the evidence was about the model. |
+| **Floor** | The frontmatter `model:` is a floor a weight may raise and never lower. | A per-dispatch heuristic silently overrules a decision made by somebody who knew the agent — once per dispatch, forever. |
+
+The ratchet is also why *"escalate one tier whenever review sends it back"* is not a
+substitute for re-classifying. It is wrong twice: a returned ticket can be a one-line rename
+that needs nothing, and on a track that was **already** `heavy`, *one tier up* names nothing
+at all.
+
+### e. Pin exact model ids — and know where you cannot
+
+> **Footgun: a bare tier alias is not a model id.** An alias resolves to whatever the org
+> default for that tier currently is, which is usually **a generation behind what you meant**,
+> and it moves under you with no diff and no notice. The failure is silent in both
+> directions: you never see the downgrade, and the bill never explains itself. The same rule
+> is stated for the frontmatter in
+> [`templates/agents/README.md`](../../templates/agents/README.md).
+>
+> **The dispatch override can only name a tier.** Verified against Claude Code `2.1.226`:
+> the subagent dispatch takes a **tier alias** — one of a short fixed list of tier names,
+> `<MODEL-TIER-ALIAS>` — and **not** a full model id. So the frontmatter is the only place an
+> exact id can be pinned, and an
+> escalated run lands on whatever that tier resolves to on the day. **That is a known cost of
+> escalating, not a step you forgot to configure.** Re-check it after an upgrade: the answer
+> is a property of the harness, not of this playbook.
+
+### Why not two versions of each agent
+
+The obvious alternative is a cheap twin and a strong twin of every implementer, and it does
+buy the one thing the override cannot: an **exact** id on the escalated path. Take the
+override anyway.
+
+**The model is a dispatch parameter, not part of an agent's identity.** Fork an agent when
+its **behaviour** differs — a different worktree, a different handoff path, different commit
+rules. That is why `slice-layer-specialist` exists next to `layer-specialist`
+([09](09-decompose-path.md)): slice mode changes where the agent works and what it commits,
+not how clever it is. Never fork one because only its capability tier differs.
+
+**The cost compounds, and this pipeline already forks for behaviour.** Two variants per role
+become **four** the moment you add a tier axis to the slice axis, and every behaviour fix
+then has to land in all four. That is transcription with a multiplier, and this repo already
+refuses hand-copying for exactly that reason: *"Copying is transcription, and transcription
+drifts"* ([11](11-adapting-to-your-stack.md)).
+
+**If you genuinely need the exact id, generate the twin rather than copying it.** The layer
+specialists are already generated one per layer by
+[`/adapt-to-stack`](11-adapting-to-your-stack.md) from a single source, so a second file
+written from that same source inherits the generator's answer to drift. It is a change to the
+generator's contract: decide it **once, deliberately** — not per layer and not per ticket.
+
+### Calibrating it, and the trap it catches
+
+**Log four things in the track's handoff at every dispatch — the dispatched model, the
+weight, the reason, and the pass number** — then read them back across several tickets. The
+pass number is what turns the log into a signal: it separates *classified light and finished*
+from *classified light three times and still going*. Two readings, two different fixes:
+
+- **Tracks dispatched `light` keep failing review** → the **thresholds are too loose**.
+  Tighten the criteria in the skill until the flag predicts the failures.
+- **Nearly every dispatch classifies heavy** → the model is not the problem. **The tickets
+  are too big**, and the fix belongs in the ticket-cutting stage — the decompose path
+  ([09](09-decompose-path.md)) or `/cut-backlog` ([solo 05](../solo/05-cutting.md)) — not in
+  the dispatch line.
+
+Worth saying plainly, because the second reading is the easy one to miss: **reaching for a
+bigger model is the cheaper-looking way to hide a sizing problem.** It works, it never shows
+up in a diff, and it bills you for the sizing problem once per ticket instead of once.
 
 ---
 

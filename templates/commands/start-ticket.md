@@ -12,6 +12,25 @@ route, gate, and consolidate.
 - Register the ticket for metrics if you use the ledger (docs/team/01).
 - Create the handoffs dir for `$ARGUMENTS`.
 
+## The dispatch rule — applies at EVERY implementation dispatch below
+
+Every time you hand work to an implementation specialist, that dispatch carries a weight,
+classified by the `dispatch-weight` skill. **You never classify it yourself** — the agent
+holding the evidence does, and you read its answer and route:
+
+- `weight: light` → dispatch with **no model override**. The specialist runs on its own
+  pinned model, normally `<MODEL-CHEAP-ID>`.
+- `weight: heavy` → dispatch on the tier `<MODEL-STRONG-ID>` belongs to, **for that run
+  only**. (These two are the ids you filled in at install as `<fast-model-id>` and
+  `<strong-model-id>`.)
+- **Ratchet:** never dispatch a track below the tier it last ran at.
+- **Floor:** never dispatch a specialist below its own pinned `model:`, whatever the weight
+  says.
+
+Record the dispatched model, the weight, the reason and the pass number in that track's
+handoff. There are four dispatch sites below (steps 5 and 6); a weight read once from
+`planner.md` and reused covers one of them.
+
 ## Sequence
 1. **@ticket-analyzer** — tracker → `ticket-analyzer.md`.
 2. **@context-gatherer** — heavy memory + Serena sweep → `context-gatherer.md`.
@@ -22,14 +41,23 @@ route, gate, and consolidate.
    design, send @planner back to RE-PLAN. Record deferrals to durable ticket state.
 5. **Decompose fork:**
    - `slice-count == 1` → dispatch the **layer specialists in chain order** (per the
-     layer chain in the repo's CLAUDE.md). After each, confirm its build/tests are green and its handoff
-     is written. If ≥2 layers touched, run the **alignment** check before review.
+     layer chain in the repo's CLAUDE.md). **Dispatch site 1** — apply the dispatch rule
+     above, reading each track's weight from `planner.md`. After each, confirm its
+     build/tests are green and its handoff
+     is written. If ≥2 layers touched, run the **alignment** check before review, and
+     **dispatch site 2**: any drift fix `@aligner` routes back goes on the weight `@aligner`
+     classified, not on the slice's original one.
    - `slice-count > 1` → run `/to-spec` then `/to-tickets`, get the user's approval of the
-     slice board, dispatch the slices in parallel worktrees, then @aligner → @integrator
-     → @integration-tester (see docs/shared/09).
+     slice board, dispatch the slices in parallel worktrees — **dispatch site 3**, each
+     slice on its own weight from the plan — then @aligner → @integrator →
+     @integration-tester (see docs/shared/09). @aligner's drift fixes are site 2 above.
 6. **@repo-reviewer** → **@release-reviewer** → consolidate into the FINAL verdict.
    - `REQUEST CHANGES` → back to the responsible specialist (amend, don't add commits);
-     re-review.
+     re-review. **Dispatch site 4, and the one most setups miss:** dispatch on the **re-pass
+     weight in the verdict**, which @repo-reviewer classified over its own findings. Not the
+     first pass's weight, and not a blanket one-tier bump — a one-line rename and a broken
+     contract with three untouched callers both come back as `REQUEST CHANGES`. The ratchet
+     applies: never below the tier that track last ran at.
    - `APPROVE` → continue.
 7. **Land** — consolidate the ticket's handoffs into ONE durable memory (root cause /
    design / blast radius / recipes; tagged by functionality). Then tell the user the

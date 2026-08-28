@@ -147,7 +147,11 @@ Return the verdict to the orchestrator.
 - **ALIGNED** → the orchestrator proceeds to `@integrator`.
 - **DRIFT FOUND** → the orchestrator re-dispatches the responsible slice's
   `@slice-<layer>-specialist` in its worktree to fix, then invokes you again. Repeat until
-  ALIGNED.
+  ALIGNED. **Load the `dispatch-weight` skill and classify each fix you route**, on what that
+  fix has to do. Nothing upstream planned this dispatch, so there is no plan to inherit a
+  weight from, and you are the only agent holding the drift evidence. *Two slices disagree
+  about a shared contract* is close to the definition of a heavy change — say so when it is,
+  and say so when it is not. The ratchet holds: never below the tier that slice last ran at.
 
 On a re-run, `Edit` the same file: update the `## Verdict` line in place, then **append** a
 dated section recording what was fixed and what you re-checked. Never create a second file and
@@ -178,6 +182,6 @@ stale copy beside it is indistinguishable from the current one.
 ## Drift findings  | [BLOCKER]/[MAJOR] | artifact | what each slice does | responsible slice |
 ## Handoff vs code | slice | claim | what the code says |  (empty = the handoffs were accurate)
 ## Deferrals       | slice | region | open question | relied on by another slice? |
-## Fix routing     | slice-<N> → @slice-<layer>-specialist | what to change |
+## Fix routing     | slice-<N> → @slice-<layer>-specialist | what to change | weight + reason |
 ## Next            @integrator, or the slice to re-dispatch, or the question for the user
 ```

@@ -68,6 +68,13 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
 5. Dispatch `@release-reviewer` for cross-repo blast radius.
 6. Consolidate the senior reviewer's appended findings into the **final verdict**
    (`APPROVE` or `REQUEST CHANGES` with specific, actionable items).
+7. On `REQUEST CHANGES`, **load the `dispatch-weight` skill and classify the re-pass for
+   each specialist you send work back to**, judged on **what your findings ask for** and not
+   on what the first pass was. You are dispatch site 3, the one a plan-only weight misses,
+   and you hold the evidence: your own findings. Two of that skill's criteria exist for you
+   in particular — several findings against one track, and any finding saying the *design*
+   was wrong rather than the details. The orchestrator dispatches on your answer; you never
+   set a `model:` yourself.
 
 ## You must NOT
 - Edit code (comments only).
@@ -83,4 +90,7 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
 ## Commit-convention check (one commit? convention?)
 ## MR/PR description (draft)
 ## Provisional verdict → (updated to FINAL after senior review)
+## Re-pass weights (REQUEST CHANGES only) — one line per specialist
+##    - <layer-1> specialist — weight: light — one-line rename, no callers affected
+##    - <layer-2> specialist — weight: heavy — contract changed, 3 callers left untouched
 ```

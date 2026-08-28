@@ -31,10 +31,12 @@ different problems.
         │
    parallel slices     each slice = a thin COMPLETE path through the layers it needs
    (git worktrees)     (layer-1 → layer-2 → …), built by @slice-* agents in ISOLATED
-        │              git worktrees so they don't collide
+        │              git worktrees so they don't collide — each dispatched on its
+        │              own weight, per slice
         │
 @aligner          cross-slice drift gate (read-only): do the slices agree on shared
-        │          names/types/contracts/signatures? comments only
+        │          names/types/contracts/signatures? comments only — and it weighs
+        │          any drift fix it sends back
 @integrator       for each repo, bring every slice's commits onto the single final
         │          branch in dependency order, then collapse to ONE commit per repo
 @integration-tester   tests the COMBINED behaviour no single slice proves alone;
@@ -101,6 +103,20 @@ time and disk, so the single-slice path never uses them.
   names, types, and contract members across slices before integration.
 - **Combined acceptance criteria** get their own tests (`@integration-tester`) because a
   behaviour that emerges from two slices together isn't covered by either slice alone.
+- **Every dispatch is weighed on its own**, this path's two included: each slice at its
+  initial dispatch, and the **drift fix** after `@aligner` reports that slices disagree. The
+  drift fix is the site to watch here — nothing upstream planned it, so there is no plan to
+  inherit a weight from, and *"the slices disagree about a shared contract"* is close to the
+  definition of a heavy change. The rule is the `dispatch-weight` skill
+  ([`../../templates/skills/dispatch-weight/`](../../templates/skills/dispatch-weight/SKILL.md)),
+  the same one the sequential path runs; the reasoning is
+  [07](07-the-flows.md#model-escalation-cheap-by-default-escalated-by-weight). `@aligner`
+  weighs the drift fix it routes. **`@integrator` and `@integration-tester` take no weight —
+  but not because they do not edit.** Both do: the integrator collapses commits, and the
+  integration tester writes cross-slice tests and amends them into each repo's commit. They
+  take no weight because each already pins the **strong tier as its floor**, and a weight may
+  only raise a floor. Check that before excluding an agent from this rule; *"it is not really
+  an implementer"* is the wrong test, and it is wrong about both of these.
 
 ---
 
