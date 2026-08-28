@@ -175,15 +175,42 @@ step 4 forks.
    and 7. The adapter stops every later flow from having to know which tracker you use.
    The hooks are wired globally, so they are per-machine rather than per-project.
 
-   **`./install.sh` does this part for you** (`.\install.ps1` on Windows, which checks
-   for Git Bash or WSL and hands off). It walks `templates/`, lets you pick, pulls in
-   the agents a command needs, fills the placeholders, wires the hooks and then proves
-   the wiring by re-reading `settings.json`. After a `git pull`, `./install.sh update`
-   refreshes what you already have without asking anything and names what is new;
-   `./install.sh list` shows what is installed, outdated or available, and
-   `./install.sh remove` reverses the whole thing. **None of them overwrite or delete
-   anything you have edited** — they report it and move on. Steps 1–3 are still by
-   hand: the script cannot stand up Serena or Forgetful for you.
+   **`./install.sh` does this part for you.** Three lines, from anywhere:
+
+   ```bash
+   git clone https://github.com/konstantinos-malavazos/claude-code-playbook.git
+   cd claude-code-playbook
+   ./install.sh
+   ```
+
+   On Windows run `.\install.ps1` instead — it checks for Git Bash or WSL and hands
+   off to the same script. There is no `curl | sh` one-liner and there will not be
+   one: `git clone` already *is* the command that fetches everything from git, and a
+   bootstrap script would only wrap these same three lines in something you would
+   have to download and read first.
+
+   It walks `templates/`, lets you pick, pulls in the agents a command needs, fills
+   the placeholders, wires the hooks and then proves the wiring by re-reading
+   `settings.json`. After a `git pull`, `./install.sh update` refreshes what you
+   already have without asking anything and names what is new; `./install.sh list`
+   shows what is installed, outdated or available, and `./install.sh remove`
+   reverses the whole thing. **None of them overwrite or delete anything you have
+   edited** — they report it and move on.
+
+   Four things it will do that are worth knowing before you run it:
+
+   - **It stops if Serena is not set up**, before writing anything, and prints the
+     steps. 17 of the 21 agents halt and produce nothing without Serena, so a
+     no-Serena install is a success message over a setup that refuses to work.
+     Step 1–3 are still by hand: the script cannot stand up Serena or Forgetful.
+   - **It shows you every file it is about to write**, and every `settings.json` key
+     the hooks add, and asks. Answering no writes nothing at all.
+   - **It makes you choose a tracker adapter**, or say out loud that you are leaving
+     it for later. `/start-ticket`'s first step reads the ticket through that
+     adapter, so without one the flagship command stops on its first line.
+   - **If you already set this up by hand**, it finds your files, and offers to adopt
+     them so `update` can keep them current. Adopted files are never deleted by
+     `remove` — the script did not write them.
 4. **Then take your door.**
 
    **The agile path** — you hold a ticket someone else wrote.

@@ -689,11 +689,12 @@ def manifest_classify(manifest, units):
 def plan_install(units, manifest, selected):
     """Decide, per selected unit, what an install run may actually do to it.
 
-    Four actions, and only two of them write:
+    Five actions, and only two of them write:
       * install        — nothing there yet
       * upgrade        — there, and still byte-identical to what we last wrote
       * current        — there, ours, and already the version we ship
       * skip-edited    — there, but changed since we wrote it. Left alone. Reported.
+      * skip-foreign   — there, and no record of us putting it there. Left alone.
 
     'skip-edited' is decision 8 and half of decision 7 in one line: an upgrade that
     clobbers an edited file is the same bug as a bad uninstall.
@@ -711,7 +712,10 @@ def plan_install(units, manifest, selected):
             action = "install"
         elif rec is None:
             # On disk but not ours — a hand-copied file from the manual path.
-            # Adopting it silently would let a later remove delete the user's work.
+            # Never adopted HERE: install.sh offers adoption on the confirm stage and
+            # records it as "adopted": True in the manifest, which permanently exempts
+            # the unit from removal. Adopting silently would instead let a later remove
+            # delete work this script never wrote.
             action = "skip-foreign"
         elif current != rec.get("hash"):
             action = "skip-edited"
@@ -756,6 +760,11 @@ def plan_remove(manifest):
 
     Only a file still matching the hash we recorded is ours to delete. Anything else
     is either gone already or has the user's changes in it, and stays.
+
+    'keep-adopted' is the fourth answer, and it does not consult the hash at all. An
+    adopted unit was on disk BEFORE this script ever ran — the user consented to it
+    being managed, which buys updates, not the right to delete it. Matching hashes
+    only prove we last wrote what is there now, never that we put it there first.
     """
     rows = []
     for uid, rec in sorted((manifest.get("units") or {}).items()):
@@ -763,6 +772,8 @@ def plan_remove(manifest):
         current = hash_path(dest) if dest else None
         if current is None:
             action = "gone"
+        elif rec.get("adopted"):
+            action = "keep-adopted"
         elif current == rec.get("hash"):
             action = "remove"
         else:

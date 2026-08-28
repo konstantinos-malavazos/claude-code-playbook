@@ -26,9 +26,14 @@
     .\install.ps1 remove
 
 .NOTES
-    Set $env:CLAUDE_HOME to install somewhere other than ~/.claude — the safe way
-    to try this out without touching a setup you already rely on. The value is
-    handed to bash untranslated, so write it the way THAT bash sees the world:
+    To see what this would do without doing it, just run it: install.sh lists every
+    file it is about to write and every settings.json key it would add, and asks
+    before writing anything. Answering no writes nothing at all.
+
+    Set $env:CLAUDE_HOME to install somewhere other than ~/.claude — a second,
+    heavier option, useful when you want a throwaway install you can poke at rather
+    than a preview. The value is handed to bash untranslated, so write it the way
+    THAT bash sees the world:
 
       Git Bash   /c/Users/you/claude-test
       WSL        /home/you/claude-test, or /mnt/c/Users/you/claude-test
@@ -164,7 +169,10 @@ if ($LASTEXITCODE -ne 0 -or -not $pythonFound) {
         'Then run this script again.'
     )
 }
-Write-Ok "python in bash: $($pythonFound.Trim())"
+# A login shell runs the user's bash profile, and a profile that clears the screen
+# puts the escape codes into what we just captured. Keep the interpreter name only.
+$pythonName = ($pythonFound | Out-String) -replace '\[[0-9;?]*[A-Za-z]', '' -replace '[^ -~]', ''
+Write-Ok "python in bash: $($pythonName.Trim())"
 
 # ---------------------------------------------------------------------------
 # 3. hand off
@@ -173,8 +181,7 @@ Write-Host ''
 Write-Host '  Handing off to install.sh - it does the actual work.' -ForegroundColor DarkGray
 Write-Host ''
 
-# CLAUDE_HOME lets you install somewhere other than ~/.claude — the safe way to
-# try this out without touching a setup you already rely on. It has to be passed
+# CLAUDE_HOME lets you install somewhere other than ~/.claude. It has to be passed
 # INTO the command: PowerShell environment variables do not cross the WSL
 # boundary, so setting $env:CLAUDE_HOME alone would be silently ignored there.
 #
