@@ -175,42 +175,9 @@ step 4 forks.
    and 7. The adapter stops every later flow from having to know which tracker you use.
    The hooks are wired globally, so they are per-machine rather than per-project.
 
-   **`./install.sh` does this part for you.** Three lines, from anywhere:
-
-   ```bash
-   git clone https://github.com/konstantinos-malavazos/claude-code-playbook.git
-   cd claude-code-playbook
-   ./install.sh
-   ```
-
-   On Windows run `.\install.ps1` instead — it checks for Git Bash or WSL and hands
-   off to the same script. There is no `curl | sh` one-liner and there will not be
-   one: `git clone` already *is* the command that fetches everything from git, and a
-   bootstrap script would only wrap these same three lines in something you would
-   have to download and read first.
-
-   It walks `templates/`, lets you pick, pulls in the agents a command needs, fills
-   the placeholders, wires the hooks and then proves the wiring by re-reading
-   `settings.json`. After a `git pull`, `./install.sh update` refreshes what you
-   already have without asking anything and names what is new; `./install.sh list`
-   shows what is installed, outdated or available, and `./install.sh remove`
-   reverses the whole thing. **None of them overwrite or delete anything you have
-   edited** — they report it and move on.
-
-   Four things it will do that are worth knowing before you run it:
-
-   - **It stops if Serena is not set up**, before writing anything, and prints the
-     steps. 17 of the 21 agents halt and produce nothing without Serena, so a
-     no-Serena install is a success message over a setup that refuses to work.
-     Step 1–3 are still by hand: the script cannot stand up Serena or Forgetful.
-   - **It shows you every file it is about to write**, and every `settings.json` key
-     the hooks add, and asks. Answering no writes nothing at all.
-   - **It makes you choose a tracker adapter**, or say out loud that you are leaving
-     it for later. `/start-ticket`'s first step reads the ticket through that
-     adapter, so without one the flagship command stops on its first line.
-   - **If you already set this up by hand**, it finds your files, and offers to adopt
-     them so `update` can keep them current. Adopted files are never deleted by
-     `remove` — the script did not write them.
+   **`./install.sh` does this part for you** — see
+   [Install, step by step for your OS](#install--step-by-step-for-your-os) below,
+   which has the exact commands for Linux, macOS and Windows.
 4. **Then take your door.**
 
    **The agile path** — you hold a ticket someone else wrote.
@@ -241,6 +208,141 @@ You do **not** need everything on day one.
   command. Everything else is additive.
 - **Solo path minimum:** the same, plus `/pitch`. The gate runs before a repo exists, so
   it is the one thing you cannot defer. It is also the cheapest hour on the path.
+
+---
+
+## Install — step by step for your OS
+
+Pick your system. Every path ends at the same interactive installer.
+
+**The installer covers setup steps 4–8 only.** It cannot install Claude Code, Serena or
+Forgetful for you — those are steps 1–3, and **it will stop and tell you** if Serena is
+missing rather than write an install that cannot run.
+
+There is no `curl | sh` one-liner and there will not be one. `git clone` already *is* the
+command that fetches everything from git; a bootstrap script would only wrap the same
+lines in something you would have to download and read first.
+
+---
+
+### Linux
+
+```bash
+# 1. prerequisites — pick the line for your distro
+sudo apt install git python3          # Debian, Ubuntu
+sudo dnf install git python3          # Fedora, RHEL
+sudo pacman -S git python             # Arch
+
+# 2. Claude Code — see https://claude.com/claude-code, then authenticate
+# 3. Serena — docs/shared/03-setup.md step 2. The installer refuses without it.
+
+# 4. install the playbook
+git clone https://github.com/konstantinos-malavazos/claude-code-playbook.git
+cd claude-code-playbook
+./install.sh
+```
+
+---
+
+### macOS
+
+```bash
+# 1. prerequisites
+xcode-select --install                 # git
+brew install python3                   # or python.org; any Python 3.7+
+
+# 2. Claude Code — see https://claude.com/claude-code, then authenticate
+# 3. Serena — docs/shared/03-setup.md step 2. The installer refuses without it.
+
+# 4. install the playbook
+git clone https://github.com/konstantinos-malavazos/claude-code-playbook.git
+cd claude-code-playbook
+./install.sh
+```
+
+macOS still ships bash 3.2 as `/bin/bash`. The installer is written for it deliberately,
+so there is nothing to upgrade.
+
+---
+
+### Windows
+
+Windows needs one extra thing first, and it is not optional: **the seven guardrail hooks
+are bash scripts, and six of them parse their input with Python.** A native-PowerShell
+install would place hooks that cannot execute — and a hook that cannot execute fails
+*closed*, jamming every command instead of guarding it. So Windows runs them through Git
+Bash or WSL.
+
+**1. Install bash.** Either one works:
+
+- **Git for Windows** — <https://git-scm.com/download/win>. Includes Git Bash. Simplest.
+- **WSL** — `wsl --install` in an admin PowerShell, then reboot.
+
+**2. Install Python 3.7+, and make sure bash can see it.**
+
+Python that works in PowerShell is **not** enough — the hooks run inside bash. The
+Microsoft Store stub is the classic trap: it resolves in PowerShell and is missing in Git
+Bash. Install from <https://www.python.org/downloads/> and tick **"Add python.exe to
+PATH"**, then confirm in **Git Bash** (not PowerShell):
+
+```bash
+python3 --version
+```
+
+On WSL instead: `sudo apt install python3`.
+
+**3. Install Claude Code** — <https://claude.com/claude-code> — and authenticate.
+
+**4. Set up Serena** — [docs/shared/03-setup.md](docs/shared/03-setup.md) step 2.
+The installer refuses without it.
+
+**5. Install the playbook.** In **PowerShell** (not `cmd`), from where you keep your repos:
+
+```powershell
+git clone https://github.com/konstantinos-malavazos/claude-code-playbook.git
+cd claude-code-playbook
+.\install.ps1
+```
+
+`install.ps1` is a preflight, not a port. It checks that bash and Python are both really
+there, then hands off to the same `install.sh` everyone else runs. If it cannot find
+either, it tells you exactly what to install and changes nothing.
+
+---
+
+### What the installer does, on every OS
+
+It walks `templates/`, lets you pick, pulls in the agents a command needs, fills the
+placeholders, wires the hooks, and then proves the wiring by re-reading `settings.json`.
+
+Four things worth knowing before you run it:
+
+- **It stops if Serena is not set up**, before writing anything, and prints the steps.
+  17 of the 21 agents halt and produce nothing without Serena, so a no-Serena install
+  would be a success message over a setup that refuses to work.
+- **It shows you every file it is about to write**, and every `settings.json` key the
+  hooks add, and asks. Answering no writes nothing at all.
+- **It makes you choose a tracker adapter**, or say out loud that you are leaving it for
+  later. `/start-ticket`'s first step reads the ticket through that adapter, so without
+  one the flagship command stops on its first line.
+- **If you already set this up by hand**, it finds your files and offers to adopt them so
+  `update` can keep them current. Adopted files are never deleted by `remove` — the
+  script did not write them.
+
+### The other three commands
+
+| Command | What it does |
+|---|---|
+| `./install.sh update` | after a `git pull` — refresh what you have, ask nothing, name what is new |
+| `./install.sh list` | what is installed, outdated, edited or available. Changes nothing |
+| `./install.sh remove` | take back what it installed |
+
+On Windows put `.\install.ps1` in front of the same words: `.\install.ps1 update`.
+
+**None of them overwrite or delete anything you have edited** — they report it and move on.
+
+`install` and `remove` are interactive and will refuse to run with no terminal attached;
+`update` and `list` ask nothing and are safe in a script or in CI.
 
 ---
 
