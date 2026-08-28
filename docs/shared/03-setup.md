@@ -3,10 +3,17 @@
 Order matters: capabilities first, then structure, then flows. You have a working setup
 after step 4. Steps 5–8 are additive.
 
-> **There is a script for steps 4–8.** From a clone, `./install.sh` (or `.\install.ps1`
-> on Windows) discovers what is installable by walking `templates/`, lets you pick,
-> installs it, fills the placeholders, wires the hooks and then *proves* the wiring by
-> re-reading `settings.json`. Four modes:
+> **There is a script for steps 4–8.**
+>
+> ```bash
+> git clone https://github.com/konstantinos-malavazos/claude-code-playbook.git
+> cd claude-code-playbook
+> ./install.sh          # .\install.ps1 on Windows — it hands off to this
+> ```
+>
+> It discovers what is installable by walking `templates/`, lets you pick, installs it,
+> fills the placeholders, wires the hooks and then *proves* the wiring by re-reading
+> `settings.json`. Four modes:
 >
 > | | |
 > |---|---|
@@ -17,7 +24,28 @@ after step 4. Steps 5–8 are additive.
 >
 > **None of them ever overwrites or deletes a file you have edited.** An edited file is
 > reported and skipped, a `settings.json` value of yours that differs is left alone and
-> reported, and `remove` deletes only what still matches the hash it recorded.
+> reported, and `remove` deletes only what still matches the hash it recorded — or was
+> adopted, which is never deleted at all.
+>
+> **It stops if Serena is not set up.** `install` and `update` both refuse, before
+> writing anything, when there is no Serena registration or plugin anywhere on the
+> machine, and print the steps below instead. That is step 2 being enforced rather than
+> warned about: 17 of the 21 agents declare Serena tools and every one of them halts
+> without them, so a no-Serena install is a success message over a setup that cannot run.
+>
+> **It shows you the whole plan before it writes.** Every destination path, every
+> `settings.json` key the hook wiring adds, then a yes/no. No writes nothing.
+>
+> **It explains the guardrail hooks before installing them** — including that the first
+> thing you will notice is Claude being unable to `git push`, that your own `git push` is
+> untouched, and the exact line to add to `~/.claude/repo-allowlist` (step 7 below).
+>
+> **It makes the tracker a choice, not an oversight.** It will not install while the
+> tracker is `none` unless you explicitly pick "later" and see what that costs (step 5).
+>
+> **If you did this by hand already, it can adopt your files.** It finds them, lists
+> them, and asks. Adopting changes nothing on disk: it records them as managed so
+> `update` keeps them current, and `remove` will never delete them.
 >
 > **It cannot do steps 1–3.** Those are Claude Code itself, Serena and Forgetful —
 > servers the script cannot provision for you. It reads your `~/.claude.json` to work
