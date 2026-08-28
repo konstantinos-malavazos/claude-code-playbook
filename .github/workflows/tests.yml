@@ -11,9 +11,20 @@
 
 name: tests
 
+# A bare `push:` alongside `pull_request:` runs everything TWICE on any branch
+# that has a PR open — same commit, same result, twice the minutes. Scoping push
+# to master gives one run per PR while the work is in flight, and one on master
+# after it merges, which is the coverage without the duplicate.
 on:
   push:
+    branches: [master]
   pull_request:
+
+# A second push while the first run is still going makes that run answer a
+# question about a commit nobody is waiting on any more. Cancel it.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
