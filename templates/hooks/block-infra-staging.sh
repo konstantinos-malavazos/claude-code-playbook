@@ -76,6 +76,10 @@ if printf '%s' "$norm" | grep -Eiq 'git +(add|commit|stage)'; then
     # .claude/ regenerates or belongs to your machine. Check every reference, not the
     # first — one allowed path in the command does not license the others beside it.
     # Backslashes become '/' first, so one pattern covers both path separators.
+    # SET1 is A-Z plus one literal backslash (tr spells that with two). ShellCheck
+    # reads it as a quoting mistake; it is not. Verified against the real hook:
+    # .CLAUDE\SETTINGS.JSON is blocked, .claude/agents/x.md is allowed.
+    # shellcheck disable=SC1003
     paths="$(printf '%s' "$norm" | tr 'A-Z\\' 'a-z/')"
     refs="$(printf '%s' "$paths" | grep -Eo '\.claude(/[a-z0-9_./-]*)?' || true)"
     if [ -n "$refs" ]; then
