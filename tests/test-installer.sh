@@ -120,6 +120,7 @@ if command -v shellcheck >/dev/null 2>&1; then
   ( cd "$REPO" && shellcheck install.sh ) ; chk $? "shellcheck install.sh"
   ( cd "$REPO" && shellcheck templates/hooks/*.sh ) ; chk $? "shellcheck the hooks"
   ( cd "$REPO" && shellcheck tests/test-installer.sh ) ; chk $? "shellcheck this suite"
+  ( cd "$REPO" && shellcheck tests/test-wiring.sh ) ; chk $? "shellcheck the wiring scrub"
 else
   printf '    SKIP  shellcheck — NOT INSTALLED on this machine, so NOT run\n'
 fi
