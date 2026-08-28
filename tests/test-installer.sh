@@ -47,7 +47,8 @@ nokeys() { : > "$LOGS/$1.in"; }
 run() {
   local mode="$1" log="$2"
   [ -f "$LOGS/$log.in" ] || : > "$LOGS/$log.in"
-  ( cd "$REPO" && HOME="$HOME_DIR" CLAUDE_HOME="$CH" bash ./install.sh $mode ) \
+  ( cd "$REPO" && HOME="$HOME_DIR" CLAUDE_HOME="$CH" PLAYBOOK_SCRIPTED_INPUT=1 \
+    bash ./install.sh $mode ) \
     < "$LOGS/$log.in" > "$LOGS/$log.out" 2> "$LOGS/$log.err"
   RC=$?
   return 0

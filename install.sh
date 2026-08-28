@@ -291,6 +291,53 @@ ok()      { printf '  %s✓%s %s\n' "$GREEN" "$RESET" "$1"; }
 bad()     { printf '  %s✗%s %s\n' "$RED" "$RESET" "$1"; }
 die()     { printf '\n  %s✗ %s%s\n\n' "$RED" "$1" "$RESET" >&2; exit 1; }
 
+# ── prompts: a closed stdin is not an answer ──────────────────────────────
+# The library's read helpers all end `|| true`, so at EOF the variable comes back
+# empty — and an empty answer is a legal one at every menu here (Enter = back, or
+# = keep the default). `./install.sh < /dev/null`, a pipe, or CI therefore does
+# not stop at the first question: it falls through the Stage 3 menu, which loops,
+# re-rendering and re-running resolve-deps until something kills it.
+#
+# require_tty catches that at the door. _read catches a terminal that closes
+# mid-run, which the door check cannot see coming. The library itself is verbatim
+# and not hand-edited (see banner_pb), so pause and confirm are re-defined here
+# rather than corrected up there — these definitions are the ones that run.
+
+# require_tty — refuse an interactive mode that has no one to talk to.
+#
+# PLAYBOOK_SCRIPTED_INPUT is the one deliberate exception: tests/test-installer.sh
+# drives the real prompts from a file of keystrokes, and means it. It buys past
+# this door check only — if that answer list runs short, _read below still stops
+# the run rather than letting EOF answer the rest.
+require_tty() {
+  [[ -t 0 || -n "${PLAYBOOK_SCRIPTED_INPUT:-}" ]] && return 0
+  printf '\n'
+  note "./install.sh update  refreshes what you already have, asking nothing."
+  note "./install.sh list    prints the current state and changes nothing."
+  die "$MODE is interactive, and stdin is not a terminal"
+}
+
+# _read VAR — one line into VAR. EOF ends the run instead of answering for you.
+# `update` reaches this too: on a manifest that predates recorded config it asks
+# one question, and no tty means it stops there rather than picking for you.
+_read() {
+  read -r "$1" && return 0
+  printf '\n'
+  die "no answer on stdin — stopping rather than answering for you"
+}
+
+pause() {
+  printf '  %s%s%s ' "$DIM" "${1:-Press Enter to continue}" "$RESET"
+  _read _
+}
+
+confirm() {
+  local reply=""
+  printf '  %s? %s [y/N] ' "$YELLOW" "$1"
+  _read reply
+  [[ "$reply" =~ ^[Yy] ]]
+}
+
 # ── selection state ───────────────────────────────────────────────────────
 # Held in a file rather than an associative array, so this runs on the bash 3.2
 # that still ships as /bin/bash on macOS.
@@ -408,7 +455,7 @@ toggle_screen() {
     printf '\n'
     note "numbers toggle (space-separated) · a=all · n=none · Enter=back"
     printf '  %s>%s ' "$BOLD" "$RESET"
-    read -r choice || true
+    _read choice
     [[ -z "$choice" ]] && return 0
     case "$choice" in
       a) for id in $ids; do sel_add "$id"; done; continue ;;
@@ -444,7 +491,7 @@ tracker_screen() {
     printf '\n'
     note "one number selects · 0=none · Enter=back"
     printf '  %s>%s ' "$BOLD" "$RESET"
-    read -r choice || true
+    _read choice
     [[ -z "$choice" ]] && return 0
     for id in $ids; do sel_del "$id"; done
     [[ "$choice" == "0" ]] && continue
@@ -484,7 +531,7 @@ tracker_required_screen() {
   note "Enter  = go back and pick one (menu item 5)"
   note "later  = install without one; you set it up by hand afterwards"
   printf '  %s>%s ' "$BOLD" "$RESET"
-  read -r reply || true
+  _read reply
   case "$reply" in
     later|l|LATER)
       TRACKER_DEFERRED="yes"
@@ -549,7 +596,7 @@ selection_stage() {
     note "1-7 opens a list · m=minimal · r=recommended · e=everything"
     note "v=review what gets pulled in · i=install · q=quit"
     printf '  %s>%s ' "$BOLD" "$RESET"
-    read -r choice || true
+    _read choice
     case "$choice" in
       1) toggle_screen command "commands" ;;
       2) toggle_screen skill   "skills" ;;
@@ -678,7 +725,7 @@ PY
   local suggest ans
   suggest=$("$PY" -c 'import json,sys;print(json.load(open(sys.argv[1]))["route"] or "B")' "$WORK/serena.json")
   printf '  %sRoute [A/B, Enter = %s]%s ' "$BOLD" "$suggest" "$RESET"
-  read -r ans || true
+  _read ans
   [[ -z "$ans" ]] && ans="$suggest"
   case "$ans" in
     a|A) SERENA_PREFIX="mcp__plugin_serena_serena__"; ok "will rewrite to the plugin prefix" ;;
@@ -717,9 +764,9 @@ placeholder_stage() {
 
   local strong fast mem_read="" mem_write="" trk_read=""
   printf '  %sStrong model id — planning, review  [Enter = claude-opus-5]%s ' "$BOLD" "$RESET"
-  read -r strong || true; [[ -z "$strong" ]] && strong="claude-opus-5"
+  _read strong; [[ -z "$strong" ]] && strong="claude-opus-5"
   printf '  %sFast model id — cheap lookups       [Enter = claude-haiku-4-5-20251001]%s ' "$BOLD" "$RESET"
-  read -r fast || true; [[ -z "$fast" ]] && fast="claude-haiku-4-5-20251001"
+  _read fast; [[ -z "$fast" ]] && fast="claude-haiku-4-5-20251001"
   printf '\n'
 
   # The MCP tool tokens: fill only when the server is actually registered,
@@ -728,16 +775,16 @@ placeholder_stage() {
   if [[ "$(server_registered forgetful)" == "yes" ]]; then
     ok "found mcpServers.forgetful in ~/.claude.json"
     printf '  %sMemory READ tool names, comma-separated  [Enter deletes the token]%s ' "$BOLD" "$RESET"
-    read -r mem_read || true
+    _read mem_read
     printf '  %sMemory WRITE tool names, comma-separated [Enter deletes the token]%s ' "$BOLD" "$RESET"
-    read -r mem_write || true
+    _read mem_write
   else
     note "no mcpServers.forgetful — deleting <memory-read-tools> and <memory-write-tools>"
   fi
   if [[ "$(server_registered tracker)" == "yes" ]]; then
     ok "found mcpServers.tracker in ~/.claude.json"
     printf '  %sTracker READ tool names, comma-separated [Enter deletes the token]%s ' "$BOLD" "$RESET"
-    read -r trk_read || true
+    _read trk_read
   else
     note "no mcpServers.tracker — deleting <tracker-read-tools>"
   fi
@@ -1324,7 +1371,7 @@ tracker_stage() {
     else
       printf '  %s%s  [Enter skips]%s ' "$BOLD" "$prompt" "$RESET"
     fi
-    read -r answer || true
+    _read answer
     [[ -z "$answer" ]] && answer="$prior"
     [[ -z "$answer" ]] && continue
     tracker_apply "$token" "$answer"
@@ -1676,6 +1723,7 @@ install_finish() {
 # ══════════════════════════════════════════════════════════════════════════
 case "$MODE" in
   remove|uninstall)
+    require_tty
     TOTAL_STAGES=3
     banner_pb "claude-code-playbook · remove" pause
     remove_mode
@@ -1692,6 +1740,7 @@ case "$MODE" in
     list_mode
     ;;
   install|"")
+    require_tty
     banner_pb "claude-code-playbook · install" pause
     preflight
     discover_units
