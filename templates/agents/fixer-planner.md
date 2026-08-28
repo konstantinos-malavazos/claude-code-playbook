@@ -86,17 +86,22 @@ unavailable*. No tracker tools means the QA report must come from the user — a
 
    A fix that spreads into modules the original ticket never touched is strong evidence of
    `missed_scope`, and possibly of a separate ticket. Say so.
-5. **Write the fix plan** to `<workspace>/.claude/handoffs/<TICKET-ID>/fixer-planner.md`, in the
+5. **Classify each layer of the fix with the `dispatch-weight` skill**: a weight and a
+   one-line reason, judged on what THIS fix touches, not on what the shipped ticket was. A
+   bounce-back is its own dispatch and gets its own classification — the shipped ticket's
+   weight is months of drift old and is not evidence. The orchestrator dispatches on your
+   answer; you never set a `model:`.
+6. **Write the fix plan** to `<workspace>/.claude/handoffs/<TICKET-ID>/fixer-planner.md`, in the
    format below. Allocate layers in the chain order the repo's `CLAUDE.md` declares — never
    reverse it. If no code change is needed at all, say that plainly instead of inventing a
    layer to fill.
-6. **Branch — only after the human approves the plan.**
+7. **Branch — only after the human approves the plan.**
    - **Scenario A:** do NOT cut a branch. Check out the existing one per repo. The specialists
      amend its commit, and the original commit type stays as it was.
    - **Scenario B:** cut `<TICKET-ID>_fix-<short-kebab-slug>` from that repo's main branch —
      read the branch name from its `CLAUDE.md`, never assume it. The slug describes the **fix**,
      not the original feature. The ticket id does not change: one ticket, one id, one memory.
-7. **Hand back** the plan path, the branch, and which specialist to dispatch first.
+8. **Hand back** the plan path, the branch, and which specialist to dispatch first.
 
 ## You must NOT
 
@@ -127,6 +132,7 @@ Branch: <repo>:<name>   ·   Bug origin: pipeline_miss | missed_scope | unclear 
 ## QA report        symptom (verbatim) · repro · where it happens · source
 ## Diagnosis        reproduced how · root cause (symbols + files) · why the pipeline missed it
 ## Fix plan         layers in chain order + why each · files/symbols · the test that catches THIS bug
+##                  each layer carries  weight: light | heavy — <one-line reason>
 ## Commit message   Scenario A: the original, amended · Scenario B: fix(<scope>): <summary>
 ## Risk             regression surface · migration · blast radius
 ## Next             the specialist to dispatch first

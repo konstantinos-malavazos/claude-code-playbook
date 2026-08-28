@@ -77,6 +77,7 @@ than the two above:
 | `commit-conventions` | about to commit / branch naming / MR-PR template | ✓ | ✓ |
 | `engineering-standards` | **one per layer, generated** — the review/coding standard for that language | ✓ | ✓ |
 | `adapt-to-stack` | a repo whose `CLAUDE.md` names a layer chain — generates one specialist, its slice-mode variant and one standards skill per layer into that repo's own `.claude/`, and never overwrites | ✓ | ✓ |
+| `dispatch-weight` | **before every implementation dispatch** — classifies THAT dispatch `light` or `heavy` so the orchestrator escalates the model for one run. One definition, six call sites | ✓ | ✓ |
 | `tdd` | test-first feature/bug work (red-green-refactor) | ✓ | ✓ |
 | `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |

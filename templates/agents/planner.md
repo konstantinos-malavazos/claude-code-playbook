@@ -54,7 +54,14 @@ target from a verified one.
    caller assumption.
 3. Produce a **step-by-step plan**:
    - the design, with **Serena-verified file/symbol targets** for each step,
-   - **track allocation** — which layer specialist does what, in chain order,
+   - **track allocation** — which layer specialist does what, in chain order, **each
+     tagged `weight: light | heavy` with a one-line reason**, classified with the
+     `dispatch-weight` skill. Load it; do not re-derive the criteria here. The weight is
+     **advice to the orchestrator**, which applies the model override at dispatch — you do
+     not set anybody's `model:`.
+     **What you write is the input to the INITIAL dispatch only.** It is not the ticket's
+     permanent weight. Every later dispatch of that track — a review re-pass, a drift fix, a
+     QA bounce-back — is classified again, by whichever agent is holding the evidence then.
    - a **risk assessment** (what could break; the blast radius to watch),
    - the **acceptance-criteria mapping** (which step satisfies which criterion).
 4. Decide **slice-count**: `1` for the normal sequential path; `>1` only for a genuinely
@@ -69,7 +76,10 @@ target from a verified one.
 
 ## RE-PLAN mode (when invoked by /resume-ticket)
 Amend the prior plan with newly-available answers: lift placeholders, promote any parked
-slices, and surface any NEW questions the answers created.
+slices, and surface any NEW questions the answers created. **Re-classify every track you
+re-allocate** — a lifted placeholder can turn a `light` track `heavy`, and a weight carried
+over unexamined is the one nobody notices is stale. The ratchet holds: never below the tier
+that track last ran at.
 
 ## You must NOT
 - Write production code (that's the specialists).
@@ -83,7 +93,10 @@ slices, and surface any NEW questions the answers created.
 ## Design summary
 ## Slice-count: <1 | N + rationale>
 ## Steps (with Serena-verified file:line/symbol targets)
-## Track allocation (specialist × layer, in order)
+## Track allocation (specialist × layer, in order, each with a weight)
+#    - <layer-1> specialist — weight: light — one file, no shared contract
+#    - <layer-2> specialist — weight: heavy — signature change, 4 callers across 2 repos
+#    (initial dispatch only — every re-dispatch is classified again)
 ## Risk / blast radius
 ## Open questions for grilling (owner + reversibility + planned default)
 ## Final commit message

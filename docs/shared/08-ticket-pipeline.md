@@ -16,7 +16,7 @@ your layer specialists for the implementer steps, and your git host for "MR/PR".
 | 3 | `planner` | Serena read + branch creation; **no memory writes** | `planner.md` — plan, track allocation, final commit message, branch |
 | 3b | grilling gate | (human) | answers or **deferred** open questions |
 | 4 | layer specialists (in chain order) | **Serena edit** + build/test in their repo | code + `<layer>.md` handoff |
-| 5 | `repo-reviewer` | Serena read, run tests; **comments only** | `repo-reviewer.md` — provisional verdict + MR description |
+| 5 | `repo-reviewer` | Serena read, run tests; **comments only** | `repo-reviewer.md` — provisional verdict + MR description + re-pass weights |
 | 6 | `release-reviewer` | cross-repo Serena read; **comments only** | appended findings → final verdict |
 | 7 | orchestrator + human | — | consolidated memory; agent pushes the branch where allowlisted, human opens the MR/PR |
 
@@ -47,7 +47,9 @@ First-pass detection of coupling and stale wiring. Distil it all into
 
 Consume both briefs. Do pinpoint Serena reads to finalize the design. Produce a step-by-step
 plan with **Serena-verified file/symbol targets** and a **risk assessment**. Allocate work to
-layer specialists in chain order. Decide the **slice-count** (1 = sequential; >1 = decompose —
+layer specialists in chain order, tagging each track `weight: light | heavy` with a one-line
+reason ([07](07-the-flows.md#model-escalation-cheap-by-default-escalated-by-weight)). Decide
+the **slice-count** (1 = sequential; >1 = decompose —
 see [09](09-decompose-path.md)). Write the **final commit message**. Then create the feature
 branch (following the new-branch workflow in the global `CLAUDE.md`, onto the branch this
 repo ships from). The planner **cannot** write to memory — design only.
@@ -69,6 +71,15 @@ commit per repo**. It writes its own handoff (e.g. the contract the next layer m
 honour). If two or more layers were touched, an **alignment gate** checks they agree
 (column names ↔ field names ↔ payload members) before review.
 
+**Dispatch each track on the weight for that dispatch.** Every implementer dispatch carries
+one, classified by the `dispatch-weight` skill
+([`templates/skills/dispatch-weight/`](../../templates/skills/dispatch-weight/SKILL.md)) —
+here by the planner, which has the plan. **`light` → no override**, so the specialist runs on
+its own pinned model; **`heavy` → the stronger tier**, for that run. The orchestrator does not
+classify; it reads the weight and routes. The invariants — asymmetry, ratchet, floor — and
+why the weight rather than the pipeline position decides this:
+[07](07-the-flows.md#model-escalation-cheap-by-default-escalated-by-weight).
+
 Implementation is **Serena-only**: read the target symbol with `find_symbol` and its
 callers with `find_referencing_symbols`, change it with `replace_symbol_body` /
 `insert_after_symbol` / `rename_symbol` / `safe_delete_symbol`, then clear
@@ -83,6 +94,12 @@ criteria, run the tests, check the commit convention (including one-commit-per-b
 draft a **provisional** verdict + MR/PR description, then dispatch `@release-reviewer`.
 Comments only — never edits code.
 
+**A `REQUEST CHANGES` verdict carries the re-pass weight.** The reviewer has just read the
+diff and written the findings, so it is the agent holding the evidence for how heavy the fix
+is. For each specialist it sends work back to, it runs the `dispatch-weight` skill over
+**what the findings actually ask for** and states the result. This is dispatch site 3, the
+one a plan-only weight misses.
+
 ## Step 6 — Release review (`@release-reviewer`)
 
 Cross-repo blast radius: contract/payload coupling, downstream consumers, schema
@@ -91,7 +108,11 @@ consolidates them into the **final verdict**.
 
 ## Step 7 — Land
 
-- **REQUEST CHANGES** → back to the relevant specialist (amend, don't add commits).
+- **REQUEST CHANGES** → back to the relevant specialist (amend, don't add commits),
+  dispatched on the **re-pass weight in the verdict** — not the first pass's weight, and not
+  a blanket one-tier bump. A one-line rename and a broken contract with three untouched
+  callers both come back as `REQUEST CHANGES`, and they are not the same dispatch. The
+  **ratchet** still applies: never below the tier that track last ran at.
 - **APPROVE** → consolidate the ticket's handoffs into **one durable memory** (root
   cause / design / blast radius / recipes), then **the agent pushes the branch** where
   `~/.claude/repo-allowlist` permits it and the **human opens the MR/PR**. The agent never
