@@ -74,6 +74,13 @@ if (-not (Test-Path $installSh)) {
 # 1. bash — Git Bash or WSL
 # ---------------------------------------------------------------------------
 $bash = $null
+$useWsl = $false
+
+# The known Git for Windows locations come FIRST and the PATH lookup comes LAST.
+# On a stock Windows install `Get-Command bash.exe` answers C:\Windows\System32\bash.exe,
+# which is not Git Bash at all — it is the launcher for the default WSL distro, and
+# System32 sits ahead of Git on PATH. Searching PATH first therefore hid a perfectly
+# good Git Bash behind a WSL shim.
 $candidates = @(
     "$env:ProgramFiles\Git\bin\bash.exe",
     "${env:ProgramFiles(x86)}\Git\bin\bash.exe",
@@ -81,13 +88,24 @@ $candidates = @(
 )
 
 $onPath = Get-Command bash.exe -ErrorAction SilentlyContinue
-if ($onPath) { $candidates = @($onPath.Source) + $candidates }
+if ($onPath) { $candidates += $onPath.Source }
 
+# Present is not the same as working, and WHICH bash it is decides the handoff below.
+# `uname -s` answers both in one call: MINGW/MSYS is Git Bash and takes /c/... paths
+# as they are, Linux means we reached WSL through the System32 shim and must go back
+# out through wsl.exe with a translated path. A candidate that cannot run `uname` at
+# all — that shim with no usable distro behind it — is skipped rather than reported
+# as the bash we found and then blamed for having no python.
 foreach ($candidate in $candidates) {
-    if ($candidate -and (Test-Path $candidate)) { $bash = $candidate; break }
+    if (-not $candidate -or -not (Test-Path $candidate)) { continue }
+    $kernel = $null
+    try { $kernel = & $candidate -c 'uname -s' 2>$null } catch { continue }
+    if ($LASTEXITCODE -ne 0 -or -not $kernel) { continue }
+    if ($kernel -match 'Linux') { $bash = 'wsl.exe'; $useWsl = $true }
+    else                        { $bash = $candidate }
+    break
 }
 
-$useWsl = $false
 if (-not $bash) {
     $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
     if ($wsl) {

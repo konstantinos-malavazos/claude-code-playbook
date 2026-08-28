@@ -21,6 +21,16 @@ import os
 import re
 import sys
 
+# Windows Python opens stdout in TEXT mode, so every "\n" written below leaves the
+# process as "\r\n". install.sh reads the TSV this file prints with `read -r`, which
+# splits on "\n" and leaves the "\r" on the last field — the destination path. Under
+# Git Bash that installs every unit under a name ending in CR: the harness never loads
+# it, the placeholder fill and the Serena rewrite cannot open it, and the manifest
+# hashes a path that no longer exists — which leaves update, list and remove all
+# convinced nothing was ever installed. Force LF and the whole class goes away.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(newline="\n")
+
 # ---------------------------------------------------------------------------
 # What is never installed into ~/.claude/
 # ---------------------------------------------------------------------------
