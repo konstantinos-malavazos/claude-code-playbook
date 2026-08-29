@@ -247,6 +247,9 @@ def discover(templates, claude_home):
 def _link_dependencies(units, templates):
     """Discover command→agent, command→command and →skill edges from the bodies.
 
+    An agent gets skill edges only. See the comments in the loop for why the other
+    two kinds stop at a command.
+
     Every edge is grepped out of the template text, so a new unit never needs a line
     here. Each discovered reference is INTERSECTED with what actually exists on disk
     before it becomes a dependency — a command may legitimately name an agent this
@@ -258,22 +261,35 @@ def _link_dependencies(units, templates):
     commands = {u["id"].split(":", 1)[1] for u in units.values() if u["kind"] == "command"}
 
     for unit in units.values():
-        if unit["kind"] not in ("command", "skill"):
+        if unit["kind"] not in ("command", "skill", "agent"):
             continue
         body = _unit_text(unit["src"])
+        me = unit["id"].split(":", 1)[1]
         needs = set()
 
-        for ref in set(re.findall(r"(?<![\w./-])@([a-z][a-z0-9-]+)", body)):
-            if ref in agents:
-                needs.add("agent:" + ref)
-        # The lookbehind is load-bearing: without it a relative doc link like
-        # `../../commands/resume-ticket` reads as a /resume-ticket invocation and
-        # invents an edge that drags an unrelated command into the selection.
-        for ref in set(re.findall(r"(?<![\w./-])/([a-z][a-z0-9-]+)", body)):
-            if ref in commands and ref != unit["id"].split(":", 1)[1]:
-                needs.add("command:" + ref)
+        # @agent and /command edges are a COMMAND's business. An agent that names
+        # another agent, or the command that dispatches it, is describing where it
+        # sits in a flow — it is not declaring a file it cannot work without. Reading
+        # those out of an agent would drag half the pipeline into a selection of one.
+        if unit["kind"] != "agent":
+            for ref in set(re.findall(r"(?<![\w./-])@([a-z][a-z0-9-]+)", body)):
+                if ref in agents:
+                    needs.add("agent:" + ref)
+            # The lookbehind is load-bearing: without it a relative doc link like
+            # `../../commands/resume-ticket` reads as a /resume-ticket invocation and
+            # invents an edge that drags an unrelated command into the selection.
+            for ref in set(re.findall(r"(?<![\w./-])/([a-z][a-z0-9-]+)", body)):
+                if ref in commands and ref != me:
+                    needs.add("command:" + ref)
+
+        # Skills are everyone's business, agents included. "Load the `dispatch-weight`
+        # skill and classify each fix" is an instruction that fails SILENTLY when the
+        # skill is not installed: the load finds nothing and the agent carries on with
+        # the step undone. Thirteen agents said that and declared nothing, so a
+        # selection of agents without their commands installed instructions that could
+        # not be followed. (#97)
         for ref in set(re.findall(r"`([a-z][a-z0-9-]+)`", body)):
-            if ref in skills and ref != unit["id"].split(":", 1)[1]:
+            if ref in skills and ref != me:
                 needs.add("skill:" + ref)
 
         unit["needs"] = sorted(needs)
