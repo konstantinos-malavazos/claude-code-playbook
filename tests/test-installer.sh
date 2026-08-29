@@ -126,6 +126,81 @@ else
 fi
 fi
 
+# ------------------------------------------------- 17 the documented Windows command
+# Windows PowerShell ships set to `Restricted`, so a bare `.\install.ps1` dies with
+# "running scripts is disabled on this system" before the script's first line runs.
+# The README told people to type exactly that.
+#
+# The install.ps1 suite cannot catch it, and never will: it launches the script with
+# -ExecutionPolicy Bypass itself (see New-Run in tests/test-install-ps1.ps1), because
+# it has to in order to test anything at all. So the one thing a real user hits first
+# is invisible to it, and to CI. This section covers the DOCS instead, which is where
+# the bug actually lived, and it runs on every platform.
+#
+# Catches: any doc block that tells someone to run install.ps1 without saying how to
+# get past the execution policy, and the deletion of the explanation itself.
+if want 17; then
+banner "17 · the docs give a Windows command that actually runs"
+
+DOCFAIL=$(cd "$REPO" && python3 - <<'PY'
+import os, re
+
+targets = ["README.md"]
+for root, _dirs, files in os.walk("docs"):
+    for fn in files:
+        if fn.endswith(".md"):
+            targets.append(os.path.join(root, fn))
+
+fence = re.compile(r"^\s*(?:>\s*)?```")
+for path in sorted(targets):
+    with open(path, encoding="utf-8") as fh:
+        lines = fh.read().splitlines()
+    block, inside = [], False
+    for line in lines:
+        if fence.match(line):
+            if inside:
+                text = "\n".join(block)
+                # Only a line that STARTS with the invocation is telling someone to
+                # run it. A repo-tree block that merely names the file is not, and
+                # a block quoting the ERROR is the one place the bare form belongs.
+                runs = any(re.match(r"^\s*(?:>\s*)?\.?\\?install\.ps1\b", b)
+                           for b in block)
+                if runs and "cannot be loaded" not in text:
+                    if "-ExecutionPolicy" not in text:
+                        print("BARE %s" % path)
+                block, inside = [], False
+            else:
+                inside = True
+            continue
+        if inside:
+            block.append(line)
+
+readme = open("README.md", encoding="utf-8").read()
+if "-ExecutionPolicy Bypass -File" not in readme:
+    print("NOCOMMAND README.md")
+if "running scripts is disabled" not in readme:
+    print("NOSYMPTOM README.md")
+PY
+)
+
+if [ -z "$DOCFAIL" ]; then
+  pass "every doc block that runs install.ps1 gets past the execution policy"
+else
+  printf '%s\n' "$DOCFAIL" | sed -n 's/^BARE /          bare .\\install.ps1 in: /p'
+  printf '%s\n' "$DOCFAIL" | sed -n 's/^NOCOMMAND /          no working command documented in: /p'
+  printf '%s\n' "$DOCFAIL" | sed -n 's/^NOSYMPTOM /          the error it fixes is no longer named in: /p'
+  fail "a documented Windows command would die on 'running scripts is disabled'"
+fi
+
+# The help text inside install.ps1 is the other copy of the same instruction, and it
+# is what `Get-Help .\install.ps1` prints.
+if grep -qF -- '-ExecutionPolicy Bypass -File .\install.ps1' "$REPO/install.ps1"; then
+  pass "install.ps1's own .EXAMPLE block shows the command that runs"
+else
+  fail "install.ps1's .EXAMPLE block still shows a bare .\\install.ps1"
+fi
+fi
+
 # ---------------------------------------------------------------- 12 hooks
 if want 12; then
 banner "12 · templates/hooks/test-hooks.sh"

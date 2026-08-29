@@ -12,7 +12,7 @@ after step 4. Steps 5–8 are additive.
 > ```bash
 > git clone https://github.com/konstantinos-malavazos/claude-code-playbook.git
 > cd claude-code-playbook
-> ./install.sh          # .\install.ps1 on Windows — it hands off to this
+> ./install.sh          # Windows: powershell -ExecutionPolicy Bypass -File .\install.ps1
 > ```
 >
 > It discovers what is installable by walking `templates/`, lets you pick, installs it,

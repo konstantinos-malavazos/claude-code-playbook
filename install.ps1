@@ -21,9 +21,18 @@
     install (default), update, remove, or list. Passed straight through to install.sh.
 
 .EXAMPLE
+    Windows PowerShell is set to Restricted out of the box, which blocks every .ps1
+    file. Launching it this way lifts that for the one command, and changes nothing
+    on the machine:
+
+    powershell -ExecutionPolicy Bypass -File .\install.ps1
+    powershell -ExecutionPolicy Bypass -File .\install.ps1 update
+    powershell -ExecutionPolicy Bypass -File .\install.ps1 remove
+
+    After a one-time `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` the short
+    form works too:
+
     .\install.ps1
-    .\install.ps1 update
-    .\install.ps1 remove
 
 .NOTES
     To see what this would do without doing it, just run it: install.sh lists every
