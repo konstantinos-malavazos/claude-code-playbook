@@ -494,6 +494,140 @@ else
 fi
 fi
 
+# ---------------------------------------------------------------- A9
+# Three files under templates/ are GENERATION TEMPLATES, not installables:
+# layer-specialist, slice-layer-specialist and engineering-standards. Each carries
+# a <layer> placeholder in its `name:`, and /adapt-to-stack writes a filled copy
+# per layer into the REPO's .claude/ — never into $CLAUDE_HOME. Stage 2 of the
+# installer prints that promise in its own words; install-lib.py keeps it with
+# NEVER_INSTALL.
+#
+# Catches: the guard going vacuous. It did, on Windows — under Git Bash the lib
+# runs on a windows python, os.path.relpath came back with backslashes, no entry
+# matched, and all three became ordinary units. skill:adapt-to-stack then gained a
+# skill:engineering-standards edge, `recommended` dragged it in, and the install
+# ended red on its own placeholder gate for a unit nobody ticked. (#99)
+#
+# It catches the quieter ways too: a renamed template leaves an entry matching
+# nothing, and an entry whose file no longer holds a placeholder is a template
+# that has stopped being one.
+if want A9; then
+banner "A9 · the three generation templates are not installable units"
+if command -v python3 >/dev/null 2>&1; then
+  mkdir -p "$SCRATCH"
+
+  # python reports what it found; the verdicts stay in the harness, as in A8.
+  A9="$(cd "$REPO" && python3 -c '
+import importlib.util, os, sys
+
+spec = importlib.util.spec_from_file_location("pblib", "install-lib.py")
+lib = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(lib)
+
+templates = "templates"
+units = lib.discover(templates, sys.argv[1])
+
+print("units %d" % len(units))
+print("entries %d" % len(lib.NEVER_INSTALL))
+
+def unit_name(rel):
+    base = os.path.basename(rel)
+    return base[:-3] if base.endswith(".md") else base
+
+for rel in sorted(lib.NEVER_INSTALL):
+    print("NAME " + unit_name(rel))
+    src = os.path.join(templates, *rel.split("/"))
+    if not os.path.exists(src):
+        print("MISSINGSRC " + rel)
+        continue
+    # A template with nothing left to fill is not a generation template any more,
+    # and excluding it would need a different reason than this one.
+    if not lib.scan_placeholders([src]):
+        print("NOPLACEHOLDER " + rel)
+
+# The exclusion itself: not a unit, and therefore not reachable as a dependency
+# either — an edge is only ever drawn to something discovery kept, so no preset
+# and no hand-ticked selection can close over one of these.
+excluded = {unit_name(r) for r in lib.NEVER_INSTALL}
+for uid in sorted(units):
+    if uid.split(":", 1)[1] in excluded:
+        print("UNIT " + uid)
+    for need in units[uid]["needs"]:
+        if need.split(":", 1)[1] in excluded:
+            print("EDGE " + uid + " -> " + need)
+
+# Separator-proofing, asserted on every platform rather than only where it broke:
+# feed the guard the shape a windows python hands it and it must still match.
+win = lib._unit_rel(os.path.join(templates, "skills\\engineering-standards"), templates)
+print("SEP " + ("ok" if win in lib.NEVER_INSTALL else "broken(" + win + ")"))
+' "$SCRATCH/fakehome-a9" 2>"$SCRATCH/discover-a9.err")"
+
+  if [ -n "$A9" ]; then
+    pass "install-lib.py discover runs (errors in $SCRATCH/discover-a9.err)"
+  else
+    fail "install-lib.py discover produced nothing — see $SCRATCH/discover-a9.err"
+  fi
+
+  # An empty NEVER_INSTALL would pass every assertion below while excluding
+  # nothing, which is the failure mode this line closes.
+  case "$A9" in *"entries 3"*)
+    pass "NEVER_INSTALL still names three templates" ;;
+  *)
+    fail "NEVER_INSTALL no longer names three templates — reclassify, or fix the guard" ;;
+  esac
+
+  if printf '%s\n' "$A9" | grep -q '^MISSINGSRC '; then
+    printf '%s\n' "$A9" | sed -n 's/^MISSINGSRC /          no such template: /p'
+    fail "a NEVER_INSTALL entry matches no file — the guard excludes nothing, silently"
+  else
+    pass "every NEVER_INSTALL entry names a template that exists"
+  fi
+
+  if printf '%s\n' "$A9" | grep -q '^NOPLACEHOLDER '; then
+    printf '%s\n' "$A9" | sed -n 's/^NOPLACEHOLDER /          nothing left to fill: /p'
+    fail "an excluded template holds no blocking placeholder — it is no longer a generation template"
+  else
+    pass "each one still carries the <layer> placeholder that makes it ungeneric"
+  fi
+
+  if printf '%s\n' "$A9" | grep -q '^UNIT '; then
+    printf '%s\n' "$A9" | sed -n 's/^UNIT /          discovered: /p'
+    fail "a generation template is an installable unit — tick it and the placeholder gate goes red"
+  else
+    pass "none of the three is discovered as a unit"
+  fi
+
+  if printf '%s\n' "$A9" | grep -q '^EDGE '; then
+    printf '%s\n' "$A9" | sed -n 's/^EDGE /          /p'
+    fail "a unit depends on a generation template — a preset installs it without anyone choosing it"
+  else
+    pass "no unit depends on one, so no preset can drag one in"
+  fi
+
+  case "$A9" in *"SEP ok"*)
+    pass "the guard matches a windows-shaped relative path too" ;;
+  *)
+    printf '%s\n' "$A9" | sed -n 's/^SEP /          /p'
+    fail "the guard is separator-dependent — under Git Bash all three become units again (#99)" ;;
+  esac
+
+  # The promise and the behaviour are two different files. Stage 2 of install.sh
+  # names the three in prose; NEVER_INSTALL is what actually excludes them. Drift
+  # between them is exactly how #99 read as a broken installer.
+  NOTE="$(grep -n 'never installed here, deliberately' -A1 "$REPO/install.sh" \
+          | sed -n 's/.*note "  *\(.*\)"$/\1/p' | tail -1)"
+  NOTED="$(setlike "$(printf '%s\n' "$NOTE" | tr '·' ' ')")"
+  GUARDED="$(setlike "$(printf '%s\n' "$A9" | sed -n 's/^NAME //p' | tr '\n' ' ')")"
+  if [ -n "$NOTED" ] && [ "$NOTED" = "$GUARDED" ]; then
+    pass "stage 2 names exactly what NEVER_INSTALL excludes: $GUARDED"
+  else
+    fail "stage 2 promises [$NOTED] but NEVER_INSTALL excludes [$GUARDED]"
+  fi
+else
+  printf '    SKIP  python3 — NOT INSTALLED on this machine, so A9 NOT run\n'
+fi
+fi
+
 # ---------------------------------------------------------------- tally
 printf '\n=== %s passed, %s failed\n' "$PASS" "$FAIL"
 if [ "$FAIL" != "0" ]; then
