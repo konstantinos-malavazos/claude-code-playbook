@@ -93,11 +93,11 @@ cut is always the *why*.
 
 `Entity.entity_type`: `Organization` | `Individual` | `Team` | `Device` | `Other`
 
-- `Other` **requires** `custom_type` (≤ 100). That is where anything technical goes:
-  `kafka-topic`, `sftp-server`, `scheduled-job`, `mcp-server`, `report-endpoint`,
-  `sql-source-table`, `catalog-schema`.
+- `Other` **requires** `custom_type` (≤ 100). That is where everything technical goes, so
+  the value is yours to pick — name the *kind of thing* in your own stack's words and stay
+  consistent: `message-queue-topic`, `source-table`, `scheduled-job`, `mcp-server`.
 - These all **fail**, however natural they read: `Service`, `Interface`, `Database`,
-  `Catalog`, `Component`, `Repository`, `Project`.
+  `Application`, `Component`, `Repository`, `Project`.
 
 `Project.project_type`: `personal` | `work` | `learning` | `development` |
 `infrastructure` | `template` | `product` | `marketing` | `finance` | `documentation` |
@@ -145,8 +145,9 @@ between them, and bridge with a Memory linked to both (`link_entity_to_memory` +
   cause, a job's behaviour.
 - **Document** — long-form, ≤ 100K: an architecture write-up, an inventory, a codified set
   of rulings. Anything a query must return *completely*.
-- **Entity** — real-world things only. A catalog/schema, a Kafka topic, a source table →
-  `Other` + `custom_type`. Code, notebooks and jobs are **Memories**, not entities.
+- **Entity** — real-world things only: a team, a vendor, a queue topic, a source table, a
+  server you integrate with → `Other` + `custom_type` for anything not in the enum. Code
+  and the jobs that run it are **Memories**, not entities.
 - **CodeArtifact** — reusable code that will actually be pasted somewhere. Not a
   description of code.
 
