@@ -368,6 +368,36 @@ notinboth t15r "nothing changed" "did not fake a decline the user never made"
 inboth t15r "stdin is not a terminal" "says why"
 fi
 
+# ---------------------------------------------------------------- 16 apostrophe path
+# Git Bash hands arguments to a WINDOWS python and msys rewrites /c/... into C:/... on
+# the way — for every argument EXCEPT one containing an apostrophe, which it leaves
+# alone. python then reads /c/Users/O'Brien/... as C:\c\Users\O'Brien\... and the
+# install dies at discovery, several stages after preflight said everything was fine.
+# install.sh does that one conversion itself now, in py().
+#
+# On Linux and macOS an apostrophe in a path was never a problem, so on those runners
+# this section guards the other direction: that the conversion is a no-op there and did
+# not break the ordinary case. It is the same assertions either way — which is the
+# point, since the bug it covers only exists on one of them.
+if want 16; then
+banner "16 · a clone and a CLAUDE_HOME with an apostrophe in the path"
+fresh_env t16; with_serena
+APOS_REPO="$SANDBOX/t16/o'brien clone"
+APOS_HOME="$SANDBOX/t16/o'brien home/.claude"
+mkdir -p "$APOS_REPO" "$APOS_HOME"
+( cd "$REPO" && tar -cf - install.sh install-lib.py templates ) | ( cd "$APOS_REPO" && tar xf - )
+keys t16 "${FULL[@]}"
+( cd "$APOS_REPO" && HOME="$HOME_DIR" CLAUDE_HOME="$APOS_HOME" PLAYBOOK_SCRIPTED_INPUT=1 \
+  bash ./install.sh install ) < "$LOGS/t16.in" > "$LOGS/t16.out" 2>&1
+RC=$?
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "install exits 0 (rc=$RC)"
+inlog t16 "Install complete" "runs to completion"
+notinlog t16 "discovery failed" "discovery does not fail"
+notinlog t16 "can't open file" "python opened every path it was handed"
+APOS_N=$(find "$APOS_HOME" -type f 2>/dev/null | wc -l | tr -d ' ')
+yn "$([ "$APOS_N" -gt 0 ] && echo 0 || echo 1)" "wrote into the apostrophe CLAUDE_HOME ($APOS_N files)"
+fi
+
 printf '\n================================\n'
 printf '  passed %s   failed %s\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then

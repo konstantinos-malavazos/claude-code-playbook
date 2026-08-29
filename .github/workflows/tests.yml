@@ -1,9 +1,19 @@
-# Runs the repo's three suites on every push and pull request.
+# Runs the repo's suites on every push and pull request, on BOTH operating systems
+# the installers target.
 #
-# They were all runnable by hand before this; nothing here is new coverage. What
-# was missing is somebody running them — the wiring scrub in particular exists to
-# catch a failure that is invisible in the output, which is exactly the kind
-# nobody thinks to go looking for.
+# Linux alone was a blind spot with a shape: install.ps1 is PowerShell and the hooks
+# are bash, so a Linux runner could not execute half of what ships here. Four Windows
+# bugs reached master through a green board — a quoting bug that made the python probe
+# unparseable, a handled failure that came out as a raw PowerShell error dump, Docker
+# Desktop's utility VM accepted as a WSL distribution, and an apostrophe in a path
+# breaking both halves of the install. None of them were reachable from ubuntu-latest.
+#
+# So there are two jobs. The Linux one is the fast, authoritative run of the three
+# bash suites. The Windows one runs those same three under Git Bash — where the paths
+# and the python are Windows ones — and adds the install.ps1 suite, twice: once under
+# Windows PowerShell 5.1 and once under PowerShell 7. Three of the four bugs above
+# were invisible under 7 and only appeared under 5.1, which is what `powershell.exe`
+# and a right-click "Run with PowerShell" still give you.
 #
 # Everything below is offline: no model, no network, no tracker. The installer
 # suite does drive real installs, but into a sandbox with HOME and CLAUDE_HOME
@@ -30,7 +40,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  linux:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -75,7 +85,90 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-logs
+          name: test-logs-linux
+          path: ${{ runner.temp }}/playbook-*
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Everything above, on the platform the installers are hardest on — plus the suite
+  # that only exists here, because install.ps1 cannot run on the Linux job at all.
+  #
+  # `shell: bash` on a Windows runner IS Git Bash, which is one of the two shells
+  # install.ps1 hands off to, so the three bash suites here are running against
+  # Windows paths, a Windows python and msys path translation. That is where the
+  # apostrophe bug lived: it needed a Windows python to be handed a /c/... path.
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # There is no python3.exe on Windows — the interpreter is python.exe — but
+      # tests/test-installer.sh section 13 calls python3 by name, and so does most
+      # advice about this repo. A one-line shim on PATH is enough for Git Bash, and
+      # unlike copying python.exe it does not move the interpreter away from the
+      # stdlib that sits beside it. install.sh and install.ps1 need no shim: both
+      # already try python3 first and python second.
+      - name: Give Git Bash a python3
+        shell: bash
+        run: |
+          d="$(cygpath -u "$RUNNER_TEMP")/pybin"
+          mkdir -p "$d"
+          printf '#!/bin/sh\nexec python "$@"\n' > "$d/python3"
+          chmod +x "$d/python3"
+          cygpath -w "$d" >> "$GITHUB_PATH"
+
+      - name: Versions
+        shell: bash
+        run: |
+          bash --version | head -1
+          python3 --version
+          powershell.exe -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+          pwsh.exe -NoProfile -Command '$PSVersionTable.PSVersion.ToString()'
+
+      # runner.temp is a Windows path and a bash suite would read its backslashes
+      # as escapes, so it is converted here rather than interpolated as-is.
+      - name: Wiring scrub (tests/test-wiring.sh)
+        shell: bash
+        run: PLAYBOOK_TEST_DIR="$(cygpath -u "$RUNNER_TEMP")/playbook-wiring" bash tests/test-wiring.sh
+
+      - name: Hook patterns (templates/hooks/test-hooks.sh)
+        shell: bash
+        run: bash templates/hooks/test-hooks.sh
+
+      - name: Installer suite (tests/test-installer.sh)
+        shell: bash
+        run: PLAYBOOK_TEST_DIR="$(cygpath -u "$RUNNER_TEMP")/playbook-install" bash tests/test-installer.sh
+
+      # The host is named explicitly rather than left to `shell:`, because WHICH
+      # PowerShell ran is the entire point of running this twice. The suite tests
+      # whichever host starts it, so these two steps are the same file, twice.
+      - name: install.ps1 suite (Windows PowerShell 5.1)
+        shell: pwsh
+        env:
+          PLAYBOOK_TEST_DIR: ${{ runner.temp }}/playbook-ps1-51
+        run: |
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/test-install-ps1.ps1
+          exit $LASTEXITCODE
+
+      - name: install.ps1 suite (PowerShell 7)
+        shell: pwsh
+        env:
+          PLAYBOOK_TEST_DIR: ${{ runner.temp }}/playbook-ps1-7
+        run: |
+          & pwsh.exe -NoProfile -File tests/test-install-ps1.ps1
+          exit $LASTEXITCODE
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-windows
           path: ${{ runner.temp }}/playbook-*
           if-no-files-found: ignore
           retention-days: 7

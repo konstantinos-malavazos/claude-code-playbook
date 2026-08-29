@@ -228,6 +228,31 @@ HOOK_SNIPPET="$TEMPLATES/hooks/settings-hooks.snippet.json"
 MODE="${1:-install}"
 PY=""
 
+# Git Bash hands arguments to a WINDOWS python, and msys rewrites /c/... into C:/...
+# on the way there — for every argument EXCEPT one containing an apostrophe, which it
+# leaves alone. A clone or a CLAUDE_HOME under C:\Users\O'Brien therefore arrives as
+# /c/Users/O'Brien/..., which python reads as C:\c\Users\O'Brien\... and cannot open:
+# the installer dies at discovery, several stages after preflight said everything was
+# fine. So do that one rewrite by hand, with the flag that produces the same C:/...
+# shape msys produces, and an apostrophe path behaves like every other path already
+# does. cygpath exists only under msys, so this is a no-op on Linux and macOS — where
+# an apostrophe in a path was never a problem in the first place.
+#
+# Every python call in this file goes through here. Only /-rooted arguments carrying
+# an apostrophe are touched; a -c script or a plain value is passed straight on.
+CYGPATH="$(command -v cygpath 2>/dev/null || true)"
+py() {
+  local a
+  local args=()
+  for a in "$@"; do
+    case "$a" in
+      /*\'*) if [ -n "$CYGPATH" ]; then a="$("$CYGPATH" -m "$a")"; fi ;;
+    esac
+    args+=("$a")
+  done
+  "$PY" "${args[@]}"
+}
+
 # Windows Python picks the ANSI code page for stdout (cp1252 on a UK/US box), and the
 # first python block below that prints a "←" or an em dash then dies with a
 # UnicodeEncodeError — which, under `set -e`, takes the whole installer down mid-stage.
@@ -256,7 +281,7 @@ TODO=()
 # adapter, having been shown what that costs.
 TRACKER_DEFERRED="no"
 
-pb() { "$PY" "$LIB" "$@"; }
+pb() { py "$LIB" "$@"; }
 
 # screen "Title" — a sub-screen WITHIN a stage. Clears and titles like stage(),
 # but does not advance the counter: stages are milestones, and paging around the
@@ -369,7 +394,7 @@ deps_of()  { awk -F'\t' -v u="$1" '$3==u {print $4+0}' "$TSV"; }
 exists()   { awk -F'\t' -v u="$1" '$3==u {f=1} END {exit !f}' "$TSV"; }
 
 sel_json() {
-  "$PY" - "$SELECTED" <<'PY'
+  py - "$SELECTED" <<'PY'
 import json, sys
 print(json.dumps([l.strip() for l in open(sys.argv[1]) if l.strip()]))
 PY
@@ -392,7 +417,7 @@ preflight() {
   [[ -f "$LIB" ]]       || die "install-lib.py not found beside this script. Run it from the clone."
   [[ -d "$TEMPLATES" ]] || die "templates/ not found beside this script. Run it from the clone."
 
-  ok "$("$PY" --version 2>&1)"
+  ok "$(py --version 2>&1)"
   ok "templates  $TEMPLATES"
   ok "target     $CLAUDE_HOME"
   printf '\n'
@@ -562,7 +587,7 @@ tracker_required_screen() {
 # Returns 1 when there is no manifest to seed from (a fresh machine).
 seed_from_manifest() {
   [[ -f "$MANIFEST" ]] || return 1
-  "$PY" - "$MANIFEST" <<'PY' > "$SELECTED"
+  py - "$MANIFEST" <<'PY' > "$SELECTED"
 import json, sys
 m = json.load(open(sys.argv[1]))
 for uid in sorted(m.get("units") or {}):
@@ -592,8 +617,8 @@ selection_stage() {
   fi
   while :; do
     pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
-    total=$("$PY" -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["selected"]))' "$WORK/resolved.json")
-    extra=$("$PY" -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["pulled_in"]))' "$WORK/resolved.json")
+    total=$(py -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["selected"]))' "$WORK/resolved.json")
+    extra=$(py -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["pulled_in"]))' "$WORK/resolved.json")
     chosen_tracker=$(sed -n 's/^tracker://p' "$SELECTED" | tr '\n' ' ')
     [[ -z "${chosen_tracker// /}" ]] && chosen_tracker="none"
 
@@ -644,7 +669,7 @@ selection_stage() {
 review_screen() {
   screen "Review · what your selection pulls in"
   pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
-  "$PY" - "$WORK/resolved.json" <<'PY'
+  py - "$WORK/resolved.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 pulled = set(d["pulled_in"])
@@ -684,7 +709,7 @@ SERENA_PREFIX=""
 serena_gate() {
   pb serena-detect "$HOME" "$PWD" > "$WORK/serena.json"
   local n
-  n=$("$PY" -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["evidence"]))' "$WORK/serena.json")
+  n=$(py -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["evidence"]))' "$WORK/serena.json")
   [[ "$n" -gt 0 ]] && return 0
 
   printf '\n  %s%s✗ Serena is not set up on this machine.%s\n\n' "$BOLD" "$RED" "$RESET"
@@ -722,7 +747,7 @@ serena_stage() {
   serena_gate
 
   heading "Evidence on this machine:"
-  "$PY" - "$WORK/serena.json" <<'PY'
+  py - "$WORK/serena.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 if not d["evidence"]:
@@ -739,7 +764,7 @@ PY
   printf '\n'
 
   local suggest ans
-  suggest=$("$PY" -c 'import json,sys;print(json.load(open(sys.argv[1]))["route"] or "B")' "$WORK/serena.json")
+  suggest=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["route"] or "B")' "$WORK/serena.json")
   printf '  %sRoute [A/B, Enter = %s]%s ' "$BOLD" "$suggest" "$RESET"
   _read ans
   [[ -z "$ans" ]] && ans="$suggest"
@@ -760,7 +785,7 @@ PH_SPEC="$WORK/placeholders.json"
 
 # server_registered NAME — is there an mcpServers.NAME in ~/.claude.json?
 server_registered() {
-  "$PY" - "$HOME/.claude.json" "$1" <<'PY'
+  py - "$HOME/.claude.json" "$1" <<'PY'
 import json, sys
 try:
     with open(sys.argv[1], encoding="utf-8") as fh:
@@ -805,7 +830,7 @@ placeholder_stage() {
     note "no mcpServers.tracker — deleting <tracker-read-tools>"
   fi
 
-  "$PY" - "$PH_SPEC" "$strong" "$fast" "$mem_read" "$mem_write" "$trk_read" <<'PY'
+  py - "$PH_SPEC" "$strong" "$fast" "$mem_read" "$mem_write" "$trk_read" <<'PY'
 import json, sys
 out = sys.argv[1]
 values = {"<strong-model-id>": sys.argv[2], "<fast-model-id>": sys.argv[3]}
@@ -924,7 +949,7 @@ confirm_stage() {
   # touching $SELECTED — install_stage_body closes it again from the same inputs,
   # so the plan shown here is the plan that runs.
   pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
-  "$PY" -c 'import json,sys
+  py -c 'import json,sys
 for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.json" > "$WORK/closed.txt"
   pb plan-install "$UNITS" "$MANIFEST" "$WORK/closed.txt" > "$WORK/plan-preview.tsv"
 
@@ -949,7 +974,7 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
 
   screen "What this will write"
   printf '\n'
-  "$PY" - "$WORK/plan-preview.tsv" "$WORK/wiring-preview.json" "$SETTINGS" <<'PY'
+  py - "$WORK/plan-preview.tsv" "$WORK/wiring-preview.json" "$SETTINGS" <<'PY'
 import json, sys
 
 plan_path, wiring_path, settings = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -1056,7 +1081,7 @@ install_stage() {
 install_stage_body() {
   # close the selection over its dependency edges, then write the closed set back
   pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
-  "$PY" -c 'import json,sys
+  py -c 'import json,sys
 for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.json" > "$SELECTED"
 
   pb plan-install "$UNITS" "$MANIFEST" "$SELECTED" > "$WORK/plan.tsv"
@@ -1104,23 +1129,23 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
   ok "$(wc -l < "$WORK/written.txt" | tr -d ' ') file(s)/dir(s) written"
 
   # ── Serena prefix, then placeholders, across what we just wrote ────────
-  "$PY" -c 'import json,sys
+  py -c 'import json,sys
 json.dump([l.strip() for l in open(sys.argv[1]) if l.strip()], open(sys.argv[2],"w"))' \
     "$WORK/written.txt" "$WORK/paths.json"
 
   if [[ -n "$SERENA_PREFIX" ]]; then
     pb serena-rewrite "$WORK/paths.json" "$SERENA_PREFIX" > "$WORK/serena-rw.json"
-    ok "rewrote the Serena prefix in $("$PY" -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["changed"]))' "$WORK/serena-rw.json") file(s)"
+    ok "rewrote the Serena prefix in $(py -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["changed"]))' "$WORK/serena-rw.json") file(s)"
   fi
 
-  "$PY" - "$PH_SPEC" "$WORK/paths.json" <<'PY'
+  py - "$PH_SPEC" "$WORK/paths.json" <<'PY'
 import json, sys
 spec = json.load(open(sys.argv[1]))
 spec["paths"] = json.load(open(sys.argv[2]))
 json.dump(spec, open(sys.argv[1], "w"), indent=2)
 PY
   pb apply-placeholders "$PH_SPEC" > "$WORK/ph-applied.json"
-  ok "filled placeholders in $("$PY" -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["changed"]))' "$WORK/ph-applied.json") file(s)"
+  ok "filled placeholders in $(py -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["changed"]))' "$WORK/ph-applied.json") file(s)"
 
   # ── hook wiring, filtered to the hooks actually installed ─────────────
   local hooks_installed
@@ -1136,14 +1161,14 @@ PY
     TODO+=("Claude cannot run 'git push' in any repo until you allow that repo. Your OWN git push is unaffected. To allow one, add a line to $CLAUDE_HOME/repo-allowlist, like:   github.com/you/weekend-project    yes    yes   — that is (part of your remote URL from 'git config --get remote.origin.url') (may Claude push here? yes/no) (is this repo's CLAUDE.md its own? yes/no).")
     while IFS= read -r line; do
       [[ -n "$line" ]] && CONFLICTS+=("$line")
-    done < <("$PY" -c 'import json,sys
+    done < <(py -c 'import json,sys
 for c in json.load(open(sys.argv[1]))["conflicts"]:
     print("%s — kept yours (%r); ours would have been %r" % (c["path"], c["yours"], c["ours"]))' "$WORK/merge.json")
   fi
 }
 
 write_manifest() {
-  "$PY" - "$MANIFEST" "$UNITS" "$SELECTED" "$WORK/merge.json" "$HERE" "$LIB" "$WORK/plan.tsv" \
+  py - "$MANIFEST" "$UNITS" "$SELECTED" "$WORK/merge.json" "$HERE" "$LIB" "$WORK/plan.tsv" \
          "$PH_SPEC" "$SERENA_PREFIX" "$WORK/tracker.json" "$WORK/adopt.txt" <<'PY'
 import sys
 sys.dont_write_bytecode = True   # don't leave a __pycache__ in the user's clone
@@ -1301,7 +1326,7 @@ tracker_fields() {
 # tracker_recorded TOKEN — the answer given for TOKEN on a previous run, if any.
 tracker_recorded() {
   [[ -f "$MANIFEST" ]] || return 0
-  "$PY" - "$MANIFEST" "$1" <<'PY'
+  py - "$MANIFEST" "$1" <<'PY'
 import json, sys
 try:
     m = json.load(open(sys.argv[1]))
@@ -1313,7 +1338,7 @@ PY
 
 # tracker_apply TOKEN VALUE — substitute one token throughout tracker.md.
 tracker_apply() {
-  "$PY" - "$CLAUDE_HOME/tracker.md" "$1" "$2" <<'PY'
+  py - "$CLAUDE_HOME/tracker.md" "$1" "$2" <<'PY'
 import sys
 path, token, value = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(path, encoding="utf-8") as fh:
@@ -1337,7 +1362,7 @@ tracker_replay() {
     grep -qF -- "$token" "$CLAUDE_HOME/tracker.md" || continue
     tracker_apply "$token" "$value"
     n=$((n + 1))
-  done < <("$PY" - "$MANIFEST" <<'PY'
+  done < <(py - "$MANIFEST" <<'PY'
 import json, sys
 try:
     m = json.load(open(sys.argv[1]))
@@ -1400,7 +1425,7 @@ tracker_stage() {
   done 3<<< "$fields"
 
   # Persist the answers so a later upgrade can replay them onto a fresh template.
-  "$PY" - "$WORK/tracker.json" "$chosen" "$WORK/tracker-values.txt" <<'PY'
+  py - "$WORK/tracker.json" "$chosen" "$WORK/tracker-values.txt" <<'PY'
 import json, sys
 values = {}
 for line in open(sys.argv[3], encoding="utf-8"):
@@ -1444,7 +1469,7 @@ verify_stage() {
     heading "Hook wiring (re-read from settings.json, not assumed)"
     # shellcheck disable=SC2086
     pb verify-wiring "$SETTINGS" $hooks_installed > "$WORK/wiring-check.json"
-    "$PY" - "$WORK/wiring-check.json" <<'PY'
+    py - "$WORK/wiring-check.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 for h in d.get("wired", []):
@@ -1491,7 +1516,7 @@ PY
 # it is reported and left for you to tick in the interactive run.
 load_recorded_config() {
   [[ -f "$MANIFEST" ]] || return 1
-  "$PY" - "$MANIFEST" "$PH_SPEC" <<'PY'
+  py - "$MANIFEST" "$PH_SPEC" <<'PY'
 import json, sys
 try:
     m = json.load(open(sys.argv[1]))
@@ -1542,7 +1567,7 @@ update_mode() {
   # Snapshot the PREVIOUS inventory before install_stage_body -> write_manifest
   # overwrites it. Reading manifest["known"] after the write would compare this
   # clone against itself and always report "nothing new".
-  "$PY" - "$MANIFEST" "$WORK/known-before.json" <<'PY'
+  py - "$MANIFEST" "$WORK/known-before.json" <<'PY'
 import json, sys
 try:
     known = json.load(open(sys.argv[1])).get("known") or []
@@ -1559,7 +1584,7 @@ PY
   # everything you have ever declined. Those are different questions, and only the
   # first one is news.
   heading "New in this clone since your last run"
-  "$PY" - "$UNITS" "$SELECTED" "$WORK/known-before.json" <<'PY'
+  py - "$UNITS" "$SELECTED" "$WORK/known-before.json" <<'PY'
 import json, sys
 units = json.load(open(sys.argv[1]))
 have = {l.strip() for l in open(sys.argv[2]) if l.strip()}
@@ -1641,7 +1666,7 @@ remove_mode() {
   done < "$WORK/rplan.tsv"
 
   # revert exactly the JSON additions we recorded, and nothing else
-  "$PY" - "$MANIFEST" "$WORK" <<'PY'
+  py - "$MANIFEST" "$WORK" <<'PY'
 import json, os, sys
 manifest = json.load(open(sys.argv[1]))
 for i, rec in enumerate(manifest.get("json", [])):
@@ -1650,7 +1675,7 @@ for i, rec in enumerate(manifest.get("json", [])):
 PY
   local i=0 target
   while [[ -f "$WORK/unmerge-$i.json" ]]; do
-    target=$("$PY" -c 'import json,sys;print(json.load(open(sys.argv[1]))["target"])' "$WORK/unmerge-$i.json")
+    target=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["target"])' "$WORK/unmerge-$i.json")
     backup_file "$target"
     pb unmerge-json "$target" "$WORK/unmerge-$i.json" > /dev/null
     ok "reverted our additions in $target"
