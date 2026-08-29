@@ -165,7 +165,7 @@ if want 3; then
 banner "3 · Serena gate PASSES (mcpServers.serena present)"
 fresh_env t3; with_serena; keys t3 "${FULL[@]}"; run install t3
 notinlog t3 "Serena is not set up" "gate does not fire"
-inlog t3 "which tool prefix" "reaches the Serena route stage"
+inlog t3 "which tool names" "reaches the Serena route stage"
 inlog t3 "mcpServers.serena" "shows the evidence it found"
 inlog t3 "Install complete" "runs to completion"
 fi
@@ -176,17 +176,17 @@ banner "4 · tracker is a required choice"
 fresh_env t4; with_serena
 keys t4 '' '' 'i' '' 'q'
 run install t4
-inlog t4 "No tracker adapter is selected" "refuses i while tracker is none"
+inlog t4 "No tracker is selected" "refuses i while tracker is none"
 inlog t4 "ticket-analyzer" "states the cost (start-ticket's first step)"
-notinlog t4 "which tool prefix" "did NOT proceed past selection"
+notinlog t4 "which tool names" "did NOT proceed past selection"
 yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "nothing written"
 
 banner "4b · the explicit 'later' escape"
 fresh_env t4b; with_serena
 keys t4b '' '' 'i' 'later' '' '' '' '' '' '' 'y' ''
 run install t4b
-inlog t4b "which tool prefix" "'later' lets the install proceed"
-inlog t4b "no tracker adapter selected" "tracker stage still warns"
+inlog t4b "which tool names" "'later' lets the install proceed"
+inlog t4b "no tracker selected" "tracker stage still warns"
 inlog t4b "Install complete" "completes"
 fi
 
@@ -266,7 +266,7 @@ banner "10 · update is non-interactive"
 nokeys up1; run update up1
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exit 0 with stdin closed"
 inlog up1 "Update complete" "completes"
-if grep -qE '\[y/N\]|Write these\?|Ready to start' "$LOGS/up1.out"; then
+if grep -qE '\[y/N\]|Write the files|Ready to start' "$LOGS/up1.out"; then
   fail "asked no questions"; else pass "asked no questions"; fi
 if grep -q '<workspace>' "$CH/tracker.md"; then fail "tracker values replayed"
 else pass "tracker values replayed"; fi
