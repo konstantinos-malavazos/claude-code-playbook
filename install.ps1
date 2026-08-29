@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Windows entry point for the claude-code-playbook installer.
 
@@ -68,6 +68,51 @@ function Write-Ok {
     Write-Host "  + $Message" -ForegroundColor Green
 }
 
+# Windows PowerShell 5.1 - `powershell.exe`, and what a right-click Run with
+# PowerShell gives you - turns ANY stderr from a native exe into a TERMINATING
+# NativeCommandError while $ErrorActionPreference is 'Stop'. Neither `2>$null` nor
+# `2>&1` suppresses it; only lowering the preference around the call does. Every
+# probe below is a command that is ALLOWED to fail, so without this the script dies
+# on a raw PowerShell error dump instead of printing the failure message written for
+# exactly that case. pwsh 7 does not behave this way, so nothing here misbehaves for
+# whoever wrote it - only for whoever runs it on a stock Windows box.
+function Invoke-Probe {
+    param([string]$Exe, [string[]]$Arguments)
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $global:LASTEXITCODE = 0
+        $out = & $Exe @Arguments 2>$null
+        [pscustomobject]@{ Output = $out; Code = $LASTEXITCODE }
+    } catch {
+        # The exe could not be launched at all. Nothing to report from here: every
+        # caller treats that the same as a probe that answered no.
+        [pscustomobject]@{ Output = $null; Code = 1 }
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+}
+
+# WSL being installed is not the same as WSL being usable. Docker Desktop registers
+# `docker-desktop` as a distribution - and it can be the DEFAULT one - but it is
+# Docker's own utility VM: bash is not executable inside it, and Docker rebuilds it
+# whenever it likes. `wsl -l -q` lists it exactly like a real distro, so a name check
+# is guesswork and the honest test is to run bash and see.
+function Test-WslBash {
+    (Invoke-Probe 'wsl.exe' @('bash', '-c', 'exit 0')).Code -eq 0
+}
+
+# Everything handed to bash below travels inside single quotes, and one apostrophe
+# in the value ends that quoting early - bash then dies on an unterminated string
+# rather than on anything to do with the playbook. Windows paths carry apostrophes
+# routinely (C:\Users\O'Brien), so quote every interpolated value through here:
+# close the quote, escape the apostrophe, reopen. A double quote needs no handling -
+# Windows paths cannot contain one.
+function ConvertTo-BashQuoted {
+    param([string]$Value)
+    "'" + ($Value -replace "'", "'\''") + "'"
+}
+
 $here = $PSScriptRoot
 if (-not $here) { $here = Split-Path -Parent $MyInvocation.MyCommand.Path }
 $installSh = Join-Path $here 'install.sh'
@@ -87,6 +132,7 @@ if (-not (Test-Path $installSh)) {
 # ---------------------------------------------------------------------------
 $bash = $null
 $useWsl = $false
+$wslSeen = $false
 
 # The known Git for Windows locations come FIRST and the PATH lookup comes LAST.
 # On a stock Windows install `Get-Command bash.exe` answers C:\Windows\System32\bash.exe,
@@ -110,28 +156,53 @@ if ($onPath) { $candidates += $onPath.Source }
 # as the bash we found and then blamed for having no python.
 foreach ($candidate in $candidates) {
     if (-not $candidate -or -not (Test-Path $candidate)) { continue }
-    $kernel = $null
-    try { $kernel = & $candidate -c 'uname -s' 2>$null } catch { continue }
-    if ($LASTEXITCODE -ne 0 -or -not $kernel) { continue }
-    if ($kernel -match 'Linux') { $bash = 'wsl.exe'; $useWsl = $true }
-    else                        { $bash = $candidate }
+    $probe = Invoke-Probe $candidate @('-c', 'uname -s')
+    if ($probe.Code -ne 0 -or -not $probe.Output) { continue }
+    if ("$($probe.Output)" -match 'Linux') {
+        # We reached WSL through the System32 shim. Take it only if bash actually
+        # runs over there; otherwise keep looking rather than adopt a dead end.
+        if (-not (Test-WslBash)) { $wslSeen = $true; continue }
+        $bash = 'wsl.exe'; $useWsl = $true
+    }
+    else { $bash = $candidate }
     break
 }
 
 if (-not $bash) {
     $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
     if ($wsl) {
-        # `wsl -l -q` succeeding with output means at least one distro is installed;
-        # wsl.exe exists even when none is, and then every call fails.
-        $distros = & wsl.exe -l -q 2>$null
-        if ($LASTEXITCODE -eq 0 -and $distros) {
-            $useWsl = $true
-            $bash = 'wsl.exe'
+        # `wsl -l -q` succeeding with output means at least one distro is registered;
+        # wsl.exe exists even when none is, and then every call fails. Registered is
+        # not the same as usable, so Test-WslBash has the last word.
+        $distros = Invoke-Probe 'wsl.exe' @('-l', '-q')
+        if ($distros.Code -eq 0 -and $distros.Output) {
+            $wslSeen = $true
+            if (Test-WslBash) {
+                $useWsl = $true
+                $bash = 'wsl.exe'
+            }
         }
     }
 }
 
 if (-not $bash) {
+    # Two different dead ends, and telling them apart is the whole value of the
+    # message: "install WSL" is useless to someone who already has wsl.exe and a
+    # docker-desktop entry, and sends them round the same loop a second time.
+    if ($wslSeen) {
+        Write-Fail 'No usable bash found. WSL answers, but bash does not run in its default distribution.' @(
+            'Docker Desktop registers docker-desktop as a WSL distribution. It is not one',
+            'you can install into - bash is not executable there and Docker rebuilds it at',
+            'will - so if that is the only entry, WSL is not really set up on this machine.',
+            '',
+            'Install one of:',
+            '  Git for Windows (includes Git Bash)  https://git-scm.com/download/win',
+            '  A real WSL distribution              wsl --install -d Ubuntu',
+            '                                       wsl --set-default Ubuntu',
+            '',
+            'Then run this script again.'
+        )
+    }
     Write-Fail 'No bash found. The playbook hooks are bash scripts and cannot run without one.' @(
         'Install one of:',
         '  Git for Windows (includes Git Bash)  https://git-scm.com/download/win',
@@ -149,15 +220,24 @@ Write-Ok "bash: $bash$(if ($useWsl) { ' (WSL)' })"
 # inside bash, and a python visible to PowerShell is not necessarily visible there.
 # The Microsoft Store python stub is the classic case — it resolves in PowerShell
 # and is missing or non-functional in Git Bash.
-$pythonProbe = 'for c in python3 python; do command -v "$c" >/dev/null 2>&1 && "$c" -c "import sys; sys.exit(0 if sys.version_info>=(3,7) else 1)" 2>/dev/null && { echo "$c"; exit 0; }; done; exit 1'
+# Not one double quote in this probe, deliberately. Windows PowerShell 5.1 - still
+# what `powershell.exe` and a right-click Run with PowerShell give you - does not
+# escape embedded double quotes when it builds the command line for a native exe,
+# so a probe containing them arrives at bash chopped into fragments and dies with
+# `syntax error: unexpected end of file`, which reads like a broken bash rather
+# than a broken caller. Single quotes cross intact, and PowerShell adds the outer
+# double quotes itself. pwsh 7 escapes correctly and works either way, so this is
+# not a difference the author of a change here would notice locally.
+$pythonProbe = 'for c in python3 python; do command -v $c >/dev/null 2>&1 && $c -c ''import sys; sys.exit(0 if sys.version_info>=(3,7) else 1)'' 2>/dev/null && { echo $c; exit 0; }; done; exit 1'
 
 if ($useWsl) {
-    $pythonFound = & wsl.exe bash -lc $pythonProbe 2>$null
+    $python = Invoke-Probe 'wsl.exe' @('bash', '-lc', $pythonProbe)
 } else {
-    $pythonFound = & $bash -lc $pythonProbe 2>$null
+    $python = Invoke-Probe $bash @('-lc', $pythonProbe)
 }
+$pythonFound = $python.Output
 
-if ($LASTEXITCODE -ne 0 -or -not $pythonFound) {
+if ($python.Code -ne 0 -or -not $pythonFound) {
     Write-Fail 'No python 3.7+ inside bash. install-lib.py needs it, and so do six of the seven hooks.' @(
         'A python that works in PowerShell is not enough — the hooks run inside bash.',
         '',
@@ -193,23 +273,30 @@ Write-Host ''
 # installs successfully, somewhere you will not think to look.
 $envPrefix = ''
 if ($env:CLAUDE_HOME) {
-    $envPrefix = "CLAUDE_HOME='$($env:CLAUDE_HOME -replace "'", "'\''")' "
+    $envPrefix = "CLAUDE_HOME=$(ConvertTo-BashQuoted $env:CLAUDE_HOME) "
     Write-Host "  CLAUDE_HOME=$($env:CLAUDE_HOME)" -ForegroundColor DarkGray
     Write-Host ''
 }
 
+# From here on the child's stderr is output for the user to read, not an error for
+# PowerShell to raise. Under 'Stop', one line on stderr from install.sh aborts this
+# script with a NativeCommandError - after the install has already run, and instead
+# of the exit code we mean to hand back. (5.1 only; see Invoke-Probe above.)
+$ErrorActionPreference = 'Continue'
+
 if ($useWsl) {
     # Translate the Windows path so the Linux side can find the clone.
-    $wslPath = & wsl.exe wslpath -a ($here -replace '\\', '/') 2>$null
-    if (-not $wslPath) {
+    $translated = Invoke-Probe 'wsl.exe' @('wslpath', '-a', ($here -replace '\\', '/'))
+    $wslPath = [string]($translated.Output | Select-Object -First 1)
+    if ($translated.Code -ne 0 -or -not $wslPath) {
         Write-Fail 'Could not translate this directory into a WSL path.' @(
             'Run install.sh directly from inside WSL instead:',
             '  cd /mnt/c/path/to/claude-code-playbook && ./install.sh'
         )
     }
-    & wsl.exe bash -c "cd '$($wslPath.Trim())' && ${envPrefix}./install.sh $Mode"
+    & wsl.exe bash -c "cd $(ConvertTo-BashQuoted ($wslPath.Trim())) && ${envPrefix}./install.sh $Mode"
 } else {
-    & $bash -lc "cd '$($here -replace '\\', '/')' && ${envPrefix}./install.sh $Mode"
+    & $bash -lc "cd $(ConvertTo-BashQuoted ($here -replace '\\', '/')) && ${envPrefix}./install.sh $Mode"
 }
 
 exit $LASTEXITCODE
