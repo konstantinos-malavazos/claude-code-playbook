@@ -37,6 +37,13 @@ if hasattr(sys.stdout, "reconfigure"):
 # These are templates that /adapt-to-stack generates PER LAYER, PER REPO into that
 # repo's own .claude/. Their frontmatter carries a <layer> placeholder in `name:`,
 # which registers an undispatchable agent if it ever lands in ~/.claude/agents/.
+#
+# Written with "/" separators and compared through _unit_rel, which normalises the
+# separator first. Under Git Bash this file runs on a WINDOWS python, where
+# os.path.relpath returns "skills\\engineering-standards" — a raw comparison misses
+# every entry here, all three become ordinary units, and skill:adapt-to-stack picks
+# up a skill:engineering-standards edge that drags one of them into `recommended`.
+# The install then fails its own placeholder gate on a unit nobody chose. (#99)
 NEVER_INSTALL = {
     "agents/layer-specialist.md",
     "agents/slice-layer-specialist.md",
@@ -102,6 +109,15 @@ def _walk_rel(root):
             yield os.path.relpath(full, root)
 
 
+def _unit_rel(src, templates):
+    """The templates-relative path of a unit, in the one form NEVER_INSTALL uses.
+
+    Both separators are folded to "/" rather than just os.sep: a posix python handed
+    a backslash path would otherwise miss the entries too.
+    """
+    return os.path.relpath(src, templates).replace(os.sep, "/").replace("\\", "/")
+
+
 def hash_path(path):
     if os.path.isdir(path):
         return sha256_tree(path)
@@ -150,8 +166,7 @@ def discover(templates, claude_home):
     units = {}
 
     def add(uid, kind, src, dest, **extra):
-        rel = os.path.relpath(src, templates)
-        if rel in NEVER_INSTALL:
+        if _unit_rel(src, templates) in NEVER_INSTALL:
             return
         unit = {
             "id": uid,
