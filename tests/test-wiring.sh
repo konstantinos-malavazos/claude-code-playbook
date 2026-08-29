@@ -429,6 +429,71 @@ for stem in $(printf '%s\n' "$EDITORS" | sed '/^$/d'); do
 done
 fi
 
+# ---------------------------------------------------------------- A8
+# An agent that says "load the `x` skill" must DECLARE skill:x, so that ticking
+# the agent installs the skill. Until #97 the installer read command and skill
+# bodies only, so thirteen agents said it and declared nothing: a selection of
+# agents without their commands installed instructions that could not be
+# followed.
+#
+# Catches: the exclusion coming back, and a new agent that names a skill nobody
+# wired. Both fail the same silent way — the agent loads a skill that is not on
+# disk, finds nothing, and carries on with the step undone.
+#
+# The edges are read from `install-lib.py discover`, not from a list here: a list
+# would need a line per agent and would go stale the day someone adds one.
+if want A8; then
+banner "A8 · every agent declares the skills it loads"
+if command -v python3 >/dev/null 2>&1; then
+  mkdir -p "$SCRATCH"
+  ( cd "$REPO" && python3 install-lib.py discover templates "$SCRATCH/fakehome" ) \
+    > "$SCRATCH/discover-a8.json" 2> "$SCRATCH/discover-a8.err"
+  chk $? "install-lib.py discover runs (errors in $SCRATCH/discover-a8.err)"
+
+  # python reports what it found; the verdicts stay in the harness so they tally
+  # with every other line here. A backtick reference that is not a shipped skill
+  # is not an edge — the installer intersects with what exists on disk, and so
+  # does this.
+  # The backticks in the regex below are python's, not command substitution.
+  # SC2016 sees a single-quoted string with backticks in it and cannot tell.
+  # shellcheck disable=SC2016
+  A8="$(cd "$REPO" && python3 -c '
+import json, re, sys
+units = json.load(open(sys.argv[1]))
+skills = {u.split(":", 1)[1] for u in units if u.startswith("skill:")}
+found = missing = 0
+for uid in sorted(units):
+    if not uid.startswith("agent:"):
+        continue
+    body = open(units[uid]["src"], encoding="utf-8", errors="replace").read()
+    for ref in sorted(set(re.findall(r"`([a-z][a-z0-9-]+)`", body))):
+        if ref not in skills:
+            continue
+        found += 1
+        if ("skill:" + ref) not in units[uid]["needs"]:
+            missing += 1
+            print("MISSING " + uid + " names `" + ref + "` and does not need skill:" + ref)
+print("found %d" % found)
+print("missing %d" % missing)
+' "$SCRATCH/discover-a8.json" 2>/dev/null)"
+
+  # A count of zero would pass the assertion below while testing nothing at all,
+  # which is the failure mode this line exists to close.
+  case "$A8" in *"found 0"*|"")
+    fail "no agent names any shipped skill — A8 asserted nothing, so it proves nothing" ;;
+  *) pass "$(printf '%s\n' "$A8" | sed -n 's/^found /agent-to-skill references checked: /p')" ;; esac
+
+  case "$A8" in *"missing 0"*)
+    pass "every agent declares the skills it names, so ticking one installs them" ;;
+  *)
+    printf '%s\n' "$A8" | sed -n 's/^MISSING /          /p'
+    fail "an agent names a skill it does not declare — tick that agent alone and the skill is absent, silently" ;;
+  esac
+else
+  printf '    SKIP  python3 — NOT INSTALLED on this machine, so A8 NOT run\n'
+fi
+fi
+
 # ---------------------------------------------------------------- tally
 printf '\n=== %s passed, %s failed\n' "$PASS" "$FAIL"
 if [ "$FAIL" != "0" ]; then
