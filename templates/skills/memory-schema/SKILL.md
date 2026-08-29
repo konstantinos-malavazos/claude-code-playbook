@@ -11,6 +11,12 @@ description: >-
 
 > Replace every `<PLACEHOLDER>` with your actual memory MCP's tool names and constraints.
 > The point of this skill is to make memory writes correct on the first try.
+>
+> **Running Forgetful?** [`forgetful.SKILL.md`](forgetful.SKILL.md) next to this file is
+> this skill already filled in for it — call shape, caps, enums, the asymmetric linking
+> table and the tools that don't exist. `mv forgetful.SKILL.md SKILL.md` and delete this
+> placeholder. On any other server, read it as a worked example of how much detail earns
+> its place here, then write your own.
 
 ## Call shape
 - Create: `<create-memory-tool>` with fields `<title>`, `<content>`, `<tags>`, `<...>`.

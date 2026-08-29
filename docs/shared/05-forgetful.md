@@ -58,6 +58,20 @@ Your memory server has its own exact call shape and field limits. Capture those 
 `memory-schema` skill, so the agent uses the right shape and stops inventing fields.
 See [`../../templates/skills/`](../../templates/skills/).
 
+**If you run Forgetful, that skill is already written**:
+[`../../templates/skills/memory-schema/forgetful.SKILL.md`](../../templates/skills/memory-schema/forgetful.SKILL.md)
+ships filled in — the wrapper-trio call shape, the 2000-char `content` cap, the strict
+`entity_type` / `project_type` enums, the asymmetric linking table, and the three tools
+that look obvious and do not exist. `mv forgetful.SKILL.md SKILL.md` inside that folder
+and delete the placeholder. Everything else in this playbook stays server-agnostic: it
+loads `memory-schema` by name and never names Forgetful.
+
+That file is worth having whether or not the shape ever surprises you. A memory write that
+fails validation is cheap; one that *succeeds* with `project_ids: []`, or with the ticket
+id as a tag, is not — it is invisible or unfindable months later, and nothing at write time
+says so. Enums and caps are what the skill enforces; the tagging and scope rules are what
+it is actually for.
+
 ---
 
 ## How it plugs into the flow

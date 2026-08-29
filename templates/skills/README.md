@@ -83,7 +83,7 @@ than the two above:
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
 | `wait-what` | **you type it** — the last message did not land, so it gets re-pitched simply | ✓ | ✓ |
 | `handoff` | **you type it** — compact this session into one file a fresh session resumes from | ✓ | ✓ |
-| `memory-schema` | before any memory WRITE — enforces your memory server's call shape | ✓ | ✓ |
+| `memory-schema` | before any memory WRITE — enforces your memory server's call shape. **Ships a filled-in `forgetful.SKILL.md` alongside the placeholder** | ✓ | ✓ |
 | `memory-tag-lint` | the `/encode-codebase` write gate — seven assertions, applied identically by three agents | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
 | `to-questionnaire` | **you type it** — a decision blocked on a fact another **person** holds; writes the document you send them | ✓ | ✓ |
@@ -108,6 +108,17 @@ skill from a solo install and you take stage 2 with it.
 
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
+
+`memory-schema` is the one template that ships **two** bodies. `SKILL.md` is the
+placeholder every other file in this repo refers to by name;
+[`memory-schema/forgetful.SKILL.md`](memory-schema/forgetful.SKILL.md) is that placeholder
+already filled in for Forgetful, the memory server
+[docs/shared/05-forgetful.md](../../docs/shared/05-forgetful.md) uses as its reference
+implementation. Run Forgetful and you `mv forgetful.SKILL.md SKILL.md`; run anything else
+and you read it as a worked example and then delete it. Both carry `name: memory-schema`,
+because the **directory** is what the harness loads — a variant that shipped as its own
+`forgetful-schema/` folder would be a second skill answering the same question, and the
+agents that say *load `memory-schema`* would keep loading the empty one.
 
 ## On `disable-model-invocation`
 
