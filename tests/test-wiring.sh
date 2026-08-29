@@ -614,7 +614,7 @@ print("SEP " + ("ok" if win in lib.NEVER_INSTALL else "broken(" + win + ")"))
   # The promise and the behaviour are two different files. Stage 2 of install.sh
   # names the three in prose; NEVER_INSTALL is what actually excludes them. Drift
   # between them is exactly how #99 read as a broken installer.
-  NOTE="$(grep -n 'never installed here, deliberately' -A1 "$REPO/install.sh" \
+  NOTE="$(grep -n 'deliberately NOT installed' -A1 "$REPO/install.sh" \
           | sed -n 's/.*note "  *\(.*\)"$/\1/p' | tail -1)"
   NOTED="$(setlike "$(printf '%s\n' "$NOTE" | tr '·' ' ')")"
   GUARDED="$(setlike "$(printf '%s\n' "$A9" | sed -n 's/^NAME //p' | tr '\n' ' ')")"

@@ -179,7 +179,7 @@ $r4 = Invoke-Installer -Dir $Repo -Log 'list' -Mode 'list' `
         -WithEnv @{ CLAUDE_HOME = (ConvertTo-BashPath $ch) }
 chk ($r4.Code -eq 0) 'exits 0' "rc=$($r4.Code) — see $($r4.Log)"
 inlog $r4 'python in bash' 'the python probe answers'
-inlog $r4 'Discover' 'reaches install.sh discovery'
+inlog $r4 'this clone can install' 'reaches install.sh discovery'
 notinlog $r4 'discovery failed' 'discovery does not fail'
 notcrashed $r4 'no raw PowerShell error'
 
@@ -229,7 +229,7 @@ New-Item -ItemType Directory -Force -Path $h7 | Out-Null
 $r7 = Invoke-Installer -Dir $c7 -Log 'apostrophe' -Mode 'list' `
         -WithEnv @{ CLAUDE_HOME = (ConvertTo-BashPath $h7) }
 chk ($r7.Code -eq 0) 'exits 0' "rc=$($r7.Code) — see $($r7.Log)"
-inlog $r7 'Discover' 'reaches discovery'
+inlog $r7 'this clone can install' 'reaches discovery'
 notinlog $r7 'discovery failed' 'discovery does not fail'
 notinlog $r7 'unexpected EOF' 'bash got a terminated command'
 notinlog $r7 "can't open file" 'python opened every path it was handed'

@@ -310,16 +310,35 @@ banner_pb() {
   printf '%s  %s stages%s
 
 ' "$DIM" "$TOTAL_STAGES" "$RESET"
-  printf '%s  Installs the playbook templates into
-' "$DIM"
-  printf '    %s
-' "$CLAUDE_HOME"
-  printf '  It walks you through what to install, shows you every file before it
-'
-  printf '  writes one, and never overwrites anything you have edited.
-'
-  printf '  Ctrl-C is safe at any point.%s
-' "$RESET"
+  printf '%s' "$DIM"
+  case "$MODE" in
+    remove|uninstall)
+      printf '  This takes the playbook files back out of:\n'
+      printf '    %s\n\n' "$CLAUDE_HOME"
+      printf '  You are shown exactly what would go before anything is deleted, and\n'
+      printf '  anything you edited yourself is kept.\n'
+      ;;
+    update|upgrade)
+      printf '  This brings what you already have in:\n'
+      printf '    %s\n' "$CLAUDE_HOME"
+      printf '  up to date with this clone. It asks you nothing.\n'
+      printf '  Files you edited yourself are left exactly as they are.\n'
+      ;;
+    list|status)
+      printf '  This shows what is currently installed in:\n'
+      printf '    %s\n\n' "$CLAUDE_HOME"
+      printf '  It only reads. Nothing is written, changed or deleted.\n'
+      ;;
+    *)
+      printf '  This installs ready-made commands, agents and guardrails for Claude\n'
+      printf '  Code into this folder:\n'
+      printf '    %s\n\n' "$CLAUDE_HOME"
+      printf '  How it goes: you pick what you want, you are shown the exact list of\n'
+      printf '  files first, and NOTHING is written until you answer yes.\n'
+      printf '  A file you have edited yourself is never overwritten.\n'
+      ;;
+  esac
+  printf '  Ctrl-C stops it at any point, safely.%s\n' "$RESET"
   [[ "${2:-}" == "pause" ]] && pause "Ready to start?"
   return 0
 }
@@ -351,8 +370,8 @@ require_tty() {
   [[ -t 0 || -n "${PLAYBOOK_SCRIPTED_INPUT:-}" ]] && return 0
   printf '\n'
   note "./install.sh update  refreshes what you already have, asking nothing."
-  note "./install.sh list    prints the current state and changes nothing."
-  die "$MODE is interactive, and stdin is not a terminal"
+  note "./install.sh list    shows what you have and changes nothing."
+  die "this mode ($MODE) needs to ask you questions, but stdin is not a terminal — there is nobody to answer them"
 }
 
 # _read VAR — one line into VAR. EOF ends the run instead of answering for you.
@@ -361,7 +380,7 @@ require_tty() {
 _read() {
   read -r "$1" && return 0
   printf '\n'
-  die "no answer on stdin — stopping rather than answering for you"
+  die "no answer came back — stopping here rather than picking an answer for you"
 }
 
 pause() {
@@ -404,7 +423,7 @@ PY
 # Stage 1 — preflight
 # ══════════════════════════════════════════════════════════════════════════
 preflight() {
-  stage "Preflight"
+  stage "Checking this machine"
 
   for cand in python3 python; do
     if command -v "$cand" >/dev/null 2>&1 &&
@@ -412,14 +431,14 @@ preflight() {
       PY="$cand"; break
     fi
   done
-  [[ -n "$PY" ]] || die "python3 (3.7+) is required — install-lib.py needs it, and so do six of the seven hooks, which parse their payload with it."
+  [[ -n "$PY" ]] || die "python 3.7 or newer is required, and none was found. This installer needs it, and so do six of the seven guardrail hooks."
 
-  [[ -f "$LIB" ]]       || die "install-lib.py not found beside this script. Run it from the clone."
-  [[ -d "$TEMPLATES" ]] || die "templates/ not found beside this script. Run it from the clone."
+  [[ -f "$LIB" ]]       || die "install-lib.py is not next to this script. Run ./install.sh from inside the folder you cloned."
+  [[ -d "$TEMPLATES" ]] || die "the templates/ folder is not next to this script. Run ./install.sh from inside the folder you cloned."
 
-  ok "$(py --version 2>&1)"
-  ok "templates  $TEMPLATES"
-  ok "target     $CLAUDE_HOME"
+  ok "found $(py --version 2>&1)"
+  ok "reading the templates from  $TEMPLATES"
+  ok "your Claude Code folder     $CLAUDE_HOME"
   printf '\n'
 }
 
@@ -427,21 +446,22 @@ preflight() {
 # Stage 2 — discovery
 # ══════════════════════════════════════════════════════════════════════════
 discover_units() {
-  stage "Discover what is installable"
+  stage "What this clone can install"
   pb discover "$TEMPLATES" "$CLAUDE_HOME" > "$UNITS" || die "discovery failed"
   pb units-tsv "$UNITS" > "$TSV"
 
-  heading "Found by walking templates/ — nothing below is a hardcoded list:"
+  heading "Everything this clone can install:"
   awk -F'\t' '{c[$1]++} END {for (k in c) printf "    %-11s %d\n", k, c[k]}' "$TSV" | sort
 
   printf '\n'
-  note "  never installed here, deliberately:"
+  note "  Three files are deliberately NOT installed:"
   note "    layer-specialist · slice-layer-specialist · engineering-standards"
-  note "  /adapt-to-stack generates those per layer, per repo, into that repo's own"
-  note "  .claude/. A <layer> left in name: registers an agent that cannot be"
-  note "  dispatched, so they must not land in $CLAUDE_HOME."
+  note "  They are half-written on purpose. The /adapt-to-stack command finishes"
+  note "  them off for each project you use, to match that project's languages,"
+  note "  and saves the result inside that project. Copied here unfinished they"
+  note "  would not work at all, so the installer leaves them alone."
   printf '\n'
-  pause "Continue?"
+  pause "Press Enter to continue"
 }
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -494,7 +514,7 @@ toggle_screen() {
       printf '   %2d [%s] %s%s\n' "$i" "$mark" "${id#*:}" "$suffix"
     done
     printf '\n'
-    note "numbers toggle (space-separated) · a=all · n=none · Enter=back"
+    note "type numbers to tick/untick (e.g. 1 4 5) · a=all · n=none · Enter=go back"
     printf '  %s>%s ' "$BOLD" "$RESET"
     _read choice
     [[ -z "$choice" ]] && return 0
@@ -518,9 +538,11 @@ toggle_screen() {
 tracker_screen() {
   local choice ids id i mark
   while :; do
-    screen "Choose · tracker adapter"
-    note "Exactly one, installed at $CLAUDE_HOME/tracker.md."
-    note "Flows state their intent in abstract verbs; one adapter answers them."
+    screen "Choose · where your tickets live"
+    note "Pick exactly ONE of these."
+    note "The commands here ask things like \"what should I work on next?\". This"
+    note "file is what turns that into a real lookup against your tracker."
+    note "It is installed as $CLAUDE_HOME/tracker.md."
     printf '\n'
     ids=$(ids_of tracker)
     i=0
@@ -530,7 +552,7 @@ tracker_screen() {
       printf '   %2d (%s) %s\n' "$i" "$mark" "${id#*:}"
     done
     printf '\n'
-    note "one number selects · 0=none · Enter=back"
+    note "type one number to choose it · 0=none · Enter=go back"
     printf '  %s>%s ' "$BOLD" "$RESET"
     _read choice
     [[ -z "$choice" ]] && return 0
@@ -555,22 +577,23 @@ tracker_screen() {
 # nothing to read a ticket from.
 tracker_required_screen() {
   local reply
-  screen "Choose · tracker adapter (required)"
-  warn "No tracker adapter is selected."
+  screen "Choose · where your tickets live (required)"
+  warn "No tracker is selected yet."
   printf '\n'
-  say "Every flow that touches a ticket asks the same abstract questions — what is"
-  say "the frontier, is this blocked — and exactly ONE adapter answers them."
+  say "A tracker is wherever your tickets live: GitHub Issues, Jira, or plain"
+  say "markdown files on your own disk."
   printf '\n'
-  say "/start-ticket's very first step is:"
+  say "Almost every command here begins by reading a ticket. The very first step"
+  say "of /start-ticket, for example, is:"
   printf '      %s@ticket-analyzer — tracker -> ticket-analyzer.md%s\n' "$BOLD" "$RESET"
-  say "Without an adapter there is nothing for it to read the ticket from, so the"
-  say "flagship command stops on its first line."
+  say "With no tracker there is nothing for it to read, so the main command of"
+  say "the whole playbook stops on its first line."
   printf '\n'
-  say "github, jira and local-markdown are genuinely different answers. The"
-  say "installer will not guess one for you."
+  say "GitHub, Jira and local-markdown work too differently for the installer to"
+  say "guess which one you mean, so it asks."
   printf '\n'
-  note "Enter  = go back and pick one (menu item 5)"
-  note "later  = install without one; you set it up by hand afterwards"
+  note "Enter  = go back and pick one (item 5 on the previous screen)"
+  note "later  = carry on without one, and set it up yourself afterwards"
   printf '  %s>%s ' "$BOLD" "$RESET"
   _read reply
   case "$reply" in
@@ -611,9 +634,10 @@ selection_stage() {
 
   stage "What to install"
   if [[ "$seeded" == "yes" ]]; then
-    note "Pre-ticked from your existing install ($(wc -l < "$SELECTED" | tr -d ' ') units)."
-    note "Untick to remove on the next run; tick to add. ./install.sh update skips this screen."
-    pause "Continue?"
+    note "Already ticked below: the $(wc -l < "$SELECTED" | tr -d ' ') things you installed last time."
+    note "Tick something to add it. Untick something to have it removed."
+    note "(./install.sh update refreshes what you have without asking anything.)"
+    pause "Press Enter to continue"
   fi
   while :; do
     pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
@@ -625,17 +649,21 @@ selection_stage() {
     screen "What to install"
     printf '   1  commands ......... %s of %s\n' "$(sel_count command)" "$(count_of command)"
     printf '   2  skills ........... %s of %s\n' "$(sel_count skill)"   "$(count_of skill)"
-    printf '   3  agents ........... %s of %s   %s(normally left to dependencies)%s\n' \
+    printf '   3  agents ........... %s of %s   %s(you rarely pick these by hand)%s\n' \
            "$(sel_count agent)" "$(count_of agent)" "$DIM" "$RESET"
-    printf '   4  hooks ............ %s of %s\n' "$(sel_count hook)"    "$(count_of hook)"
+    printf '   4  guardrails ....... %s of %s\n' "$(sel_count hook)"    "$(count_of hook)"
     printf '   5  tracker .......... %s\n' "$chosen_tracker"
     printf '   6  views ............ %s of %s\n' "$(sel_count view)"    "$(count_of view)"
     printf '   7  global CLAUDE.md . %s\n' "$(sel_yn claude-md:global)"
     printf '\n'
-    printf '   %s%s units once dependencies are pulled in (+%s of them)%s\n' "$DIM" "$total" "$extra" "$RESET"
+    printf '   %s%s things will be installed — %s of them added for you,%s\n' "$DIM" "$total" "$extra" "$RESET"
+    printf '   %sbecause something you picked cannot work without them.%s\n' "$DIM" "$RESET"
     printf '\n'
-    note "1-7 opens a list · m=minimal · r=recommended · e=everything"
-    note "v=review what gets pulled in · i=install · q=quit"
+    note "1-7  open one of the lists above and tick things on or off"
+    note "m    a bare minimum    r  recommended (a good starting point)"
+    note "e    absolutely everything"
+    note "v    show me the full list, and what was added for me"
+    note "i    install it        q  quit without changing anything"
     printf '  %s>%s ' "$BOLD" "$RESET"
     _read choice
     case "$choice" in
@@ -667,27 +695,28 @@ selection_stage() {
 
 # Decision 5: dependencies are auto-ticked, but VISIBLY.
 review_screen() {
-  screen "Review · what your selection pulls in"
+  screen "Review · everything that will be installed"
   pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
   py - "$WORK/resolved.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 pulled = set(d["pulled_in"])
-print("\n  you picked:")
+print("\n  you picked these:")
 for u in sorted(set(d["selected"]) - pulled):
     print("    " + u)
 if pulled:
-    print("\n  pulled in for you:")
+    print("\n  and these were added for you, because the ones above need them:")
     for u in sorted(pulled):
         print("    " + u)
 else:
     print("\n  nothing extra was needed.")
 PY
   printf '\n'
-  note "A command without its agents fails on first dispatch, so these are added"
-  note "rather than refused. Untick one in its own list if you disagree."
+  note "Things are added for you rather than refused: a command with no agent to"
+  note "call would fail the first time you used it, which is a worse surprise."
+  note "If you disagree with one, untick it in its own list (1-7)."
   printf '\n'
-  pause "Back"
+  pause "Press Enter to go back"
 }
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -714,10 +743,12 @@ serena_gate() {
 
   printf '\n  %s%s✗ Serena is not set up on this machine.%s\n\n' "$BOLD" "$RED" "$RESET"
   printf '  %sNothing has been installed and nothing has been changed.%s\n\n' "$BOLD" "$RESET"
-  say "Serena is how the agents read and edit code, and it is mandatory here — not"
-  say "preferred. 17 of the 21 agents in this playbook stop and produce nothing"
-  say "without it, so installing them now would hand you a setup that reports"
-  say "success and then refuses to work."
+  say "Serena is a separate tool that lets Claude find and edit code by symbol"
+  say "name instead of re-reading whole files. This playbook does not merely"
+  say "prefer it — 17 of its 21 agents refuse to run at all without it."
+  printf '\n'
+  say "Installing now would leave you with something that reports success and"
+  say "then does nothing, so the installer stops here instead."
   printf '\n'
   printf '  %sDo this first:%s\n\n' "$BOLD" "$RESET"
   printf '    1. Install Claude Code and sign in, if you have not already.\n\n'
@@ -729,38 +760,44 @@ serena_gate() {
   printf '                           mcpServers.serena in <workspace>/.mcp.json or\n'
   printf '                           in ~/.claude.json. See\n'
   printf '                           templates/mcp/project.mcp.json.snippet\n\n'
-  printf '    3. Prove it: run /mcp in Claude Code and confirm serena is listed, and\n'
-  printf '       that its WRITE tools are there too (replace_symbol_body,\n'
-  printf '       rename_symbol, safe_delete_symbol). A read-only Serena is not enough.\n\n'
+  printf '    3. Check it worked: run /mcp in Claude Code. You should see serena\n'
+  printf '       listed, AND the tools that write code (replace_symbol_body,\n'
+  printf '       rename_symbol, safe_delete_symbol). A Serena that can only read\n'
+  printf '       is not enough for this playbook.\n\n'
   printf '    4. Run this installer again.\n\n'
-  printf '  %sThe full version of those steps, including why the wrong tool prefix fails\n' "$DIM"
-  printf '  silently, is in:%s\n' "$RESET"
+  printf '  %sThe same steps in full, including why picking the wrong tool name fails\n' "$DIM"
+  printf '  with no error message at all, are written up in:%s\n' "$RESET"
   printf '    docs/shared/02-prerequisites.md\n'
   printf '    docs/shared/03-setup.md   (step 2)\n\n'
-  printf '  %sThis installer looked in: %s/.claude.json, %s/.mcp.json,\n' "$DIM" "$HOME" "$PWD"
+  printf '  %sPlaces this installer looked: %s/.claude.json, %s/.mcp.json,\n' "$DIM" "$HOME" "$PWD"
   printf '  and %s/.claude/plugins%s\n\n' "$HOME" "$RESET"
   exit 1
 }
 
 serena_stage() {
-  stage "Serena — which tool prefix"
+  stage "Serena — which tool names to use"
   serena_gate
 
-  heading "Evidence on this machine:"
+  heading "What this installer found on your machine:"
   py - "$WORK/serena.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 if not d["evidence"]:
-    print("      none — no Serena registration or plugin files found")
+    print("      nothing — no Serena registration or plugin files were found")
 for e in d["evidence"]:
     print("      %-22s ← %s" % (e["found"], e["where"]))
 PY
   printf '\n'
-  say "A wrong prefix fails SILENTLY: an unresolvable name in a tools: list is"
-  say "stripped at launch and the agent quietly reads whole files instead."
+  say "Serena's tools are named differently depending on how you installed it,"
+  say "and the agent files have to use the matching name. This one is worth"
+  say "getting right: if the name is wrong, nothing complains. Claude Code drops"
+  say "a tool it cannot find without a word, and the agent carries on without it."
   printf '\n'
-  note "  A  plugin route       mcp__plugin_serena_serena__"
-  note "  B  .mcp.json route    mcp__serena__   (what the templates ship with)"
+  note "  A  you installed the Serena PLUGIN    ->  mcp__plugin_serena_serena__"
+  note "  B  you registered it yourself, in"
+  note "     .mcp.json or ~/.claude.json        ->  mcp__serena__   (the default)"
+  printf '\n'
+  say "Pressing Enter takes the suggestion, which is based on what was found above."
   printf '\n'
 
   local suggest ans
@@ -769,12 +806,12 @@ PY
   _read ans
   [[ -z "$ans" ]] && ans="$suggest"
   case "$ans" in
-    a|A) SERENA_PREFIX="mcp__plugin_serena_serena__"; ok "will rewrite to the plugin prefix" ;;
-    *)   SERENA_PREFIX="";                            ok "leaving mcp__serena__ as shipped" ;;
+    a|A) SERENA_PREFIX="mcp__plugin_serena_serena__"; ok "will rename the Serena tools to the plugin form" ;;
+    *)   SERENA_PREFIX="";                            ok "keeping mcp__serena__, which is what the files already say" ;;
   esac
-  TODO+=("Confirm the real Serena tool names with /mcp, and check a dispatched agent actually got them.")
+  TODO+=("Check the real Serena tool names with /mcp in Claude Code, then run one agent and confirm it actually got them.")
   printf '\n'
-  pause "Continue?"
+  pause "Press Enter to continue"
 }
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -798,15 +835,21 @@ PY
 }
 
 placeholder_stage() {
-  stage "Fill the placeholders"
-  say "These sit in name:, model: and tools: — the three keys the harness resolves."
-  say "One left unfilled is stripped in silence, or dies on first dispatch."
+  stage "Filling in the blanks"
+  say "Some of these files ship with blanks in them, written like <strong-model-id>."
+  say "Each one has to be filled in before Claude Code can use the file. A blank"
+  say "left behind is either ignored without a word, or fails the first time you"
+  say "use that file."
+  printf '\n'
+  say "Press Enter at any question to take the suggested answer."
   printf '\n'
 
   local strong fast mem_read="" mem_write="" trk_read=""
-  printf '  %sStrong model id — planning, review  [Enter = claude-opus-5]%s ' "$BOLD" "$RESET"
+  printf '  %sWhich model for the heavy work — planning and code review?%s\n' "$BOLD" "$RESET"
+  printf '  %s[Enter = claude-opus-5]%s ' "$DIM" "$RESET"
   _read strong; [[ -z "$strong" ]] && strong="claude-opus-5"
-  printf '  %sFast model id — cheap lookups       [Enter = claude-haiku-4-5-20251001]%s ' "$BOLD" "$RESET"
+  printf '  %sWhich model for the quick, cheap lookups?%s\n' "$BOLD" "$RESET"
+  printf '  %s[Enter = claude-haiku-4-5-20251001]%s ' "$DIM" "$RESET"
   _read fast; [[ -z "$fast" ]] && fast="claude-haiku-4-5-20251001"
   printf '\n'
 
@@ -814,20 +857,24 @@ placeholder_stage() {
   # otherwise DELETE. Deleting is the documented right move for a server you do
   # not run — a token left in a tools: list is stripped at launch, silently.
   if [[ "$(server_registered forgetful)" == "yes" ]]; then
-    ok "found mcpServers.forgetful in ~/.claude.json"
-    printf '  %sMemory READ tool names, comma-separated  [Enter deletes the token]%s ' "$BOLD" "$RESET"
+    ok "found a memory server (forgetful) registered in ~/.claude.json"
+    say "Type its exact tool names, separated by commas."
+    printf '  %sMemory tools that READ   %s[Enter = take the blank out instead]%s ' "$BOLD" "$DIM" "$RESET"
     _read mem_read
-    printf '  %sMemory WRITE tool names, comma-separated [Enter deletes the token]%s ' "$BOLD" "$RESET"
+    printf '  %sMemory tools that WRITE  %s[Enter = take the blank out instead]%s ' "$BOLD" "$DIM" "$RESET"
     _read mem_write
   else
-    note "no mcpServers.forgetful — deleting <memory-read-tools> and <memory-write-tools>"
+    note "No memory server is registered here, so the two memory blanks are taken"
+    note "out of the files rather than left in. Nothing else changes."
   fi
   if [[ "$(server_registered tracker)" == "yes" ]]; then
-    ok "found mcpServers.tracker in ~/.claude.json"
-    printf '  %sTracker READ tool names, comma-separated [Enter deletes the token]%s ' "$BOLD" "$RESET"
+    ok "found a tracker server registered in ~/.claude.json"
+    say "Type its exact tool names, separated by commas."
+    printf '  %sTracker tools that READ  %s[Enter = take the blank out instead]%s ' "$BOLD" "$DIM" "$RESET"
     _read trk_read
   else
-    note "no mcpServers.tracker — deleting <tracker-read-tools>"
+    note "No tracker server is registered here, so that blank is taken out of the"
+    note "files rather than left in. Nothing else changes."
   fi
 
   py - "$PH_SPEC" "$strong" "$fast" "$mem_read" "$mem_write" "$trk_read" <<'PY'
@@ -845,7 +892,7 @@ for tok, val in (("<memory-read-tools>",  sys.argv[4]),
 json.dump({"paths": [], "values": values, "delete": delete}, open(out, "w"), indent=2)
 PY
   printf '\n'
-  pause "Continue?"
+  pause "Press Enter to continue"
 }
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -863,8 +910,9 @@ PY
 hooks_warning_screen() {
   screen "Before the guardrail hooks go in — please read this"
   printf '\n'
-  say "You have picked some guardrail hooks. They are small scripts that sit"
-  say "between Claude and your computer and refuse a few dangerous commands."
+  say "You picked some guardrails. In Claude Code these are called \"hooks\":"
+  say "small scripts that sit between Claude and your computer, and refuse a"
+  say "few commands that are hard to undo."
   printf '\n'
   printf '  %sWhat changes for you, straight away:%s\n\n' "$BOLD" "$RESET"
   say "  Claude will no longer be able to run  git push  for you, in any repo,"
@@ -878,24 +926,26 @@ hooks_warning_screen() {
   printf '\n'
   printf '  %sHow to allow a repo — one line in %s:%s\n\n' "$BOLD" "$CLAUDE_HOME/repo-allowlist" "$RESET"
   printf '      %sgithub.com/you/weekend-project    yes    yes%s\n\n' "$BOLD" "$RESET"
-  say "  Three things, separated by spaces:"
-  say "    1  any piece of your repo's remote address. Check yours with"
+  say "  Three things on one line, separated by spaces:"
+  say "    1  any recognisable piece of that repo's address. To see yours, run"
   say "         git config --get remote.origin.url"
-  say "       and copy enough of it to be unmistakable. It is matched as a"
-  say "       substring, so one line covers both the https:// and the git@ form."
-  say "    2  may Claude run git push here?                       yes or no"
-  say "    3  is this repo's CLAUDE.md its own — would a fresh clone"
-  say "       on a new laptop need it?                            yes or no"
-  say "  Anything that is not exactly 'yes' counts as no."
+  say "       inside the repo, and copy enough of it that no other repo of"
+  say "       yours would match. It only has to appear somewhere in the"
+  say "       address, so one line covers the https:// and the git@ form both."
+  say "    2  may Claude run git push in this repo?               yes or no"
+  say "    3  does this repo's CLAUDE.md belong to the repo — would"
+  say "       someone cloning it fresh on a new laptop need it?   yes or no"
+  say "  Anything that is not exactly 'yes' is treated as no."
   printf '\n'
-  note "That file is installed EMPTY, on purpose. A repo you have not thought"
-  note "about yet answers no to both questions, which is the safe answer. You add"
-  note "a line the first time a project actually needs one."
+  note "That file is installed EMPTY on purpose. Any repo you have not thought"
+  note "about yet answers no to both questions, which is the safe answer. You"
+  note "add a line the first time a project actually needs one."
   printf '\n'
-  note "Two things no line can switch back on: 'git add -A' / 'git add .', and"
-  note "writes into .claude/, .serena, .forgetful and MEMORY.md."
+  note "Two things stay blocked everywhere, and no line in that file turns them"
+  note "back on: 'git add -A' / 'git add .', and writing into .claude/, .serena,"
+  note ".forgetful or MEMORY.md."
   printf '\n'
-  pause "Understood — continue?"
+  pause "Press Enter when you have read this"
 }
 
 # adopt_screen — decision 3. Files that are already there but were not put there by
@@ -914,31 +964,32 @@ adopt_screen() {
 
   screen "Files already here that this script did not install"
   printf '\n'
-  say "These are on disk already, and there is no record of this installer putting"
-  say "them there — so they are almost certainly yours, copied in by hand."
+  say "These files are already on your disk, and this installer has no record of"
+  say "putting them there — so they are almost certainly yours, copied in by hand"
+  say "at some point."
   printf '\n'
   while IFS=$'\t' read -r uid dest; do
     printf '    %-34s %s\n' "$uid" "$dest"
   done < "$WORK/foreign.txt"
   printf '\n'
-  say "By default the installer leaves them completely alone, for ever, which also"
-  say "means it can never update them for you."
+  say "Unless you say otherwise, the installer leaves them alone for good — which"
+  say "also means it can never bring you a newer version of them."
   printf '\n'
-  printf '  %sIf you adopt them:%s\n\n' "$BOLD" "$RESET"
-  say "  · nothing is changed on disk right now — your files stay exactly as they are"
-  say "  · they are recorded as managed, so a later ./install.sh update WILL replace"
-  say "    them with this clone's version when the template changes"
-  say "  · ./install.sh remove will NEVER delete them, whatever they contain,"
-  say "    because this script did not write them in the first place"
+  printf '  %sIf you say yes ("adopt" them):%s\n\n' "$BOLD" "$RESET"
+  say "  · nothing changes on disk right now. Your files stay exactly as they are."
+  say "  · from now on they count as managed, so a later ./install.sh update WILL"
+  say "    replace them when the playbook's version of that file changes."
+  say "  · ./install.sh remove will still NEVER delete them, whatever they contain,"
+  say "    because this installer did not put them there in the first place."
   printf '\n'
   if confirm "Adopt the $n file(s)/dir(s) above?"; then
     cut -f1 "$WORK/foreign.txt" > "$WORK/adopt.txt"
-    ok "will record $n unit(s) as managed"
-    pause "Continue?"
+    ok "$n file(s) will be kept up to date from now on"
+    pause "Press Enter to continue"
   else
     rm -f "$WORK/adopt.txt"
-    note "left alone — they stay yours and this script will not touch them"
-    pause "Continue?"
+    note "Left alone. They stay yours, and this installer will not touch them."
+    pause "Press Enter to continue"
   fi
 }
 
@@ -988,11 +1039,11 @@ for line in open(plan_path, encoding="utf-8"):
     groups.setdefault(action, []).append((kind, uid, dest))
 
 TITLES = [
-    ("install",      "new files — created"),
-    ("upgrade",      "existing files this script wrote — replaced with this clone's version"),
-    ("current",      "already identical to this clone — rewritten with the same bytes"),
-    ("skip-edited",  "you changed these since install — LEFT ALONE"),
-    ("skip-foreign", "here already, not this script's — LEFT ALONE"),
+    ("install",      "NEW — do not exist yet, will be created"),
+    ("upgrade",      "UPDATED — this installer wrote these before, and will replace them"),
+    ("current",      "UNCHANGED — already exactly this version"),
+    ("skip-edited",  "LEFT ALONE — you edited these yourself since installing them"),
+    ("skip-foreign", "LEFT ALONE — already here, and this installer did not put them there"),
 ]
 
 wrote_any = False
@@ -1023,17 +1074,19 @@ if wiring:
                 print("      hooks / %s / matcher=%s" % (event, matcher))
                 print("          %s" % h.get("command", ""))
     print("")
-    print("  A key you already have with a DIFFERENT value is never overwritten —")
-    print("  it is kept and reported at the end.")
+    print("  If one of those settings already exists with a different value, your")
+    print("  value is kept. The installer never overwrites it, and it tells you")
+    print("  at the end that it left it alone.")
     print("")
 else:
     print("  no changes to %s.\n" % settings)
 PY
-  note "Nothing outside $CLAUDE_HOME is written. Answering no writes nothing at all."
+  note "This is the last question before anything is written. Not one file"
+  note "outside $CLAUDE_HOME is touched, and answering no writes nothing at all."
   printf '\n'
-  if ! confirm "Write these?"; then
+  if ! confirm "Write the files listed above?"; then
     printf '\n  %sNothing was written. Nothing on your machine changed.%s\n\n' "$BOLD" "$RESET"
-    printf '  Run ./install.sh again any time.\n\n'
+    printf '  Run ./install.sh again whenever you like.\n\n'
     exit 0
   fi
   printf '\n'
@@ -1069,7 +1122,7 @@ backup_file() {
 }
 
 install_stage() {
-  stage "Install"
+  stage "Writing the files"
   install_stage_body
   write_manifest
   printf '\n'
@@ -1382,24 +1435,26 @@ tracker_stage() {
 
   # Always a stage, so the counter matches the total whether or not a tracker was
   # picked — and so "you have no tracker" is stated rather than silently skipped.
-  stage "Tracker"
+  stage "Setting up your tracker"
   if [[ -z "$chosen" || ! -f "$CLAUDE_HOME/tracker.md" ]]; then
-    warn "no tracker adapter selected"
-    say "Every flow that touches a ticket states its intent in abstract verbs, and"
-    say "exactly one adapter answers them. Without it those flows have nothing to ask."
-    TODO+=("Install one tracker adapter — re-run and pick one at menu item 5, or copy one from templates/trackers/ to $CLAUDE_HOME/tracker.md by hand.")
+    warn "no tracker selected"
+    say "Nothing is set up to read your tickets, so the commands that start from a"
+    say "ticket have nowhere to look. Everything else still works."
+    TODO+=("Set up a tracker: re-run ./install.sh and pick one at item 5, or copy a file from templates/trackers/ to $CLAUDE_HOME/tracker.md and fill it in.")
     printf '\n'
-    pause "Continue?"
+    pause "Press Enter to continue"
     return 0
   fi
   printf '  %s%s%s\n\n' "$BOLD" "$chosen" "$RESET"
   fields=$(tracker_fields "$chosen")
   if [[ -z "$fields" ]]; then
-    warn "$chosen ships as a shape, not a working adapter."
-    say "Its API documentation is wrong about blocking, so no command in it has been"
-    say "verified. Fill it in against your own instance and check every line."
+    warn "$chosen is an outline, not a finished tracker."
+    say "The published API docs for it are wrong about how blocking works, so none"
+    say "of its commands have been verified against a real instance. Treat the file"
+    say "as a starting point: fill it in against your own server and check each"
+    say "command by hand before you rely on it."
     TODO+=("Write and verify the GitLab adapter commands in $CLAUDE_HOME/tracker.md.")
-    printf '\n'; pause "Continue?"; return 0
+    printf '\n'; pause "Press Enter to continue"; return 0
   fi
 
   # The field list is fed on fd 3, not stdin. On stdin the `read answer` below
@@ -1412,9 +1467,9 @@ tracker_stage() {
     grep -qF -- "$token" "$CLAUDE_HOME/tracker.md" || continue
     prior=$(tracker_recorded "$token")
     if [[ -n "$prior" ]]; then
-      printf '  %s%s  [Enter keeps %s]%s ' "$BOLD" "$prompt" "$prior" "$RESET"
+      printf '  %s%s%s  %s[Enter keeps %s]%s ' "$BOLD" "$prompt" "$RESET" "$DIM" "$prior" "$RESET"
     else
-      printf '  %s%s  [Enter skips]%s ' "$BOLD" "$prompt" "$RESET"
+      printf '  %s%s%s  %s[Enter skips this one]%s ' "$BOLD" "$prompt" "$RESET" "$DIM" "$RESET"
     fi
     _read answer
     [[ -z "$answer" ]] && answer="$prior"
@@ -1439,26 +1494,27 @@ PY
   # The tracker's hash moved, so re-record it or the next run calls it user-edited.
   write_manifest
   printf '\n'
-  pause "Continue?"
+  pause "Press Enter to continue"
 }
 
 # ══════════════════════════════════════════════════════════════════════════
 # Stage 9 — verify
 # ══════════════════════════════════════════════════════════════════════════
 verify_stage() {
-  stage "Verify"
+  stage "Checking it worked"
 
   # 1 — the acceptance grep from 03-setup.md step 8
-  heading "Placeholder gate (03-setup.md step 8)"
+  heading "1. Are all the blanks filled in?"
   local hits
   hits=$(grep -rnE '^(name|model|tools):.*<[a-z][a-z-]*>' \
            "$CLAUDE_HOME/agents" "$CLAUDE_HOME/skills" 2>/dev/null || true)
   if [[ -z "$hits" ]]; then
-    ok "no unfilled placeholder in any name:, model: or tools:"
+    ok "yes — nothing left unfilled in any name:, model: or tools: line"
   else
-    bad "unfilled placeholders remain:"
+    bad "no — these blanks were not filled in:"
     printf '%s\n' "$hits" | sed 's/^/        /'
-    TODO+=("Fill or delete the placeholders listed in the verify stage.")
+    say "      Each one has to be filled in or deleted before the file works."
+    TODO+=("Fill in or delete the blanks listed under 'Are all the blanks filled in?' above.")
   fi
 
   # 2 — wiring. Installing a hook is NOT wiring a hook, so this re-reads
@@ -1466,7 +1522,7 @@ verify_stage() {
   local hooks_installed
   hooks_installed=$(sed -n 's/^hook://p' "$SELECTED" | tr '\n' ' ')
   if [[ -n "${hooks_installed// /}" ]]; then
-    heading "Hook wiring (re-read from settings.json, not assumed)"
+    heading "2. Are the guardrails switched on? (read back from settings.json)"
     # shellcheck disable=SC2086
     pb verify-wiring "$SETTINGS" $hooks_installed > "$WORK/wiring-check.json"
     py - "$WORK/wiring-check.json" <<'PY'
@@ -1479,31 +1535,32 @@ for h in d.get("unwired", []):
 if d.get("error"):
     print("      %s" % d["error"])
 PY
-    TODO+=("Prove each hook FIRES: in a scratch repo, feed it a command it must refuse. test-hooks.sh runs hooks standalone and never sees settings.json, so it cannot tell you this.")
+    TODO+=("Check each guardrail really fires: in a throwaway repo, ask Claude to do something it should refuse. (test-hooks.sh cannot tell you this - it runs the scripts directly and never reads settings.json.)")
   fi
 
   # 3 — the tracker. The step-8 grep reads only agents/ and skills/, so an
   #     unfilled tracker passes every other gate here and fails at first use.
   if [[ -f "$CLAUDE_HOME/tracker.md" ]]; then
-    heading "Tracker"
+    heading "3. Is the tracker filled in?"
     local left
     left=$(grep -oE '<(owner|repo|MAP-KEY|LABEL-PREFIX|YOUR-DONE-STATUS|workspace)>' \
              "$CLAUDE_HOME/tracker.md" 2>/dev/null | sort -u | tr '\n' ' ' || true)
     if [[ -n "${left// /}" ]]; then
-      bad "still unfilled: $left"
-      TODO+=("Fill $left in $CLAUDE_HOME/tracker.md.")
+      bad "no — still to fill in: $left"
+      TODO+=("Fill in ${left% } in $CLAUDE_HOME/tracker.md.")
     else
-      ok "the curated config fields are filled"
+      ok "yes — the settings it asks for are all filled in"
     fi
-    TODO+=("Answer 'Is this a shared place?' in $CLAUDE_HOME/tracker.md — it decides whether writes need your approval.")
-    TODO+=("Point your global CLAUDE.md at $CLAUDE_HOME/tracker.md so it loads every session.")
+    TODO+=("Answer 'Is this a shared place?' in $CLAUDE_HOME/tracker.md. It decides whether Claude needs your approval before writing to the tracker.")
+    TODO+=("Add a line to your global CLAUDE.md pointing at $CLAUDE_HOME/tracker.md, so it is loaded in every session.")
   fi
 
   # 4 — the two CLAUDE.md layers this installer deliberately does not place
-  heading "Per-repo files this script does not place"
-  note "  templates/claude-md/repo.CLAUDE.md      → <repo>/CLAUDE.md"
-  note "  templates/claude-md/workspace.CLAUDE.md → <workspace>/CLAUDE.md (sibling repos only)"
-  note "  The installer does not know which repo you mean, so it will not guess a path."
+  heading "4. Two files you copy into your own projects, by hand"
+  note "  templates/claude-md/repo.CLAUDE.md      → <your repo>/CLAUDE.md"
+  note "  templates/claude-md/workspace.CLAUDE.md → <your workspace>/CLAUDE.md"
+  note "                                            (only if you keep sibling repos)"
+  note "  The installer cannot know which project you mean, so it will not guess."
   printf '\n'
 }
 
@@ -1622,10 +1679,10 @@ PY
 
 # discover_units_quiet — same discovery, no explanatory screen or pause.
 discover_units_quiet() {
-  stage "Discover"
+  stage "Reading this clone"
   pb discover "$TEMPLATES" "$CLAUDE_HOME" > "$UNITS" || die "discovery failed"
   pb units-tsv "$UNITS" > "$TSV"
-  ok "$(wc -l < "$TSV" | tr -d ' ') installable units in this clone"
+  ok "$(wc -l < "$TSV" | tr -d ' ') things this clone can install"
   printf '\n'
 }
 
@@ -1635,7 +1692,7 @@ discover_units_quiet() {
 remove_mode() {
   preflight
 
-  stage "What remove would do"
+  stage "What removing would do"
   [[ -f "$MANIFEST" ]] || die "no manifest at $MANIFEST — this script has not installed anything."
 
   pb plan-remove "$MANIFEST" > "$WORK/rplan.tsv"
@@ -1649,12 +1706,13 @@ remove_mode() {
     esac
   done < "$WORK/rplan.tsv"
   printf '\n'
-  note "$n_rm to remove · $n_keep kept because you changed them since install"
+  note "$n_rm will be deleted · $n_keep kept, because you edited them yourself"
   [[ "$n_adopt" -gt 0 ]] && note "$n_adopt kept because they were adopted, not installed by this script"
-  note "JSON keys and hook entries this script added are reverted; yours stay."
-  note "Backups under $BACKUPS are NOT deleted — this is when they matter most."
+  note "Settings this installer added are taken back out; anything you added"
+  note "yourself stays exactly where it is."
+  note "Your backups in $BACKUPS are NOT deleted — this is when they matter most."
   printf '\n'
-  confirm "Remove them?" || { printf '\n  nothing changed.\n\n'; exit 0; }
+  confirm "Delete the files marked 'remove' above?" || { printf '\n  Nothing changed.\n\n'; exit 0; }
 
   stage "Removing"
   while IFS=$'\t' read -r action uid kind dest; do
@@ -1704,7 +1762,7 @@ PY
 list_mode() {
   preflight
   discover_units_quiet
-  stage "Current state"
+  stage "What you have installed"
   if [[ -f "$MANIFEST" ]]; then
     local state uid kind n_out=0 n_new=0
     while IFS=$'\t' read -r state uid kind; do
@@ -1717,14 +1775,16 @@ list_mode() {
       esac
     done < <(pb plan-state "$MANIFEST" "$UNITS")
     printf '\n'
-    note "outdated  = the template moved since you installed it"
-    note "edited    = you changed it; update and remove both leave it alone"
+    note "current   = you have the same version this clone ships"
+    note "outdated  = this clone has a newer version than the one you installed"
+    note "edited    = you changed it yourself; update and remove both leave it be"
+    note "missing   = installed once, but the file is gone from disk now"
     note "available = this clone ships it and you have not installed it"
     printf '\n'
-    [[ "$n_out" -gt 0 ]] && say "$n_out unit(s) would be refreshed by ./install.sh update"
-    [[ "$n_new" -gt 0 ]] && say "$n_new unit(s) can be added with ./install.sh"
+    [[ "$n_out" -gt 0 ]] && say "$n_out would be brought up to date by:  ./install.sh update"
+    [[ "$n_new" -gt 0 ]] && say "$n_new more could be added by:            ./install.sh"
   else
-    note "nothing installed by this script (no $MANIFEST)"
+    note "nothing installed by this script yet (there is no $MANIFEST)"
   fi
   printf '\n'
   exit 0
@@ -1756,14 +1816,16 @@ install_finish() {
   _summarise "conflicts — your value kept" ${CONFLICTS[@]+"${CONFLICTS[@]}"}
 
   if [[ ${#TODO[@]} -gt 0 ]]; then
-    printf '  %s%sstill yours to do:%s\n' "$BOLD" "$YELLOW" "$RESET"
+    printf '  %s%sStill to do, by hand:%s\n' "$BOLD" "$YELLOW" "$RESET"
     local t
     for t in "${TODO[@]}"; do printf '    %s-%s %s\n' "$YELLOW" "$RESET" "$t"; done
     printf '\n'
   fi
 
-  note "The manual path is documented in full in docs/shared/03-setup.md."
-  note "./install.sh update refreshes what you have; remove takes it back out."
+  note "docs/shared/03-setup.md walks through these same steps by hand, in full."
+  note "./install.sh list    see what you have now"
+  note "./install.sh update  bring it up to date with this clone"
+  note "./install.sh remove  take it all back out again"
   printf '\n'
 }
 
