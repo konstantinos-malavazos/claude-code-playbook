@@ -26,3 +26,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.stackdump
+
+# python bytecode — install-lib.py is byte-compiled by the test suite
+__pycache__/
+*.pyc

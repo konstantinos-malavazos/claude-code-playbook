@@ -301,8 +301,32 @@ The installer refuses without it.
 ```powershell
 git clone https://github.com/konstantinos-malavazos/claude-code-playbook.git
 cd claude-code-playbook
-.\install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
+
+**Why not just `.\install.ps1`?** Because on a stock Windows machine that fails before
+the installer runs at all:
+
+```
+.\install.ps1 : File ...\install.ps1 cannot be loaded because running scripts is disabled on this system.
+```
+
+Windows PowerShell ships set to `Restricted`, which blocks every `.ps1` file — yours,
+ours, anyone's. `-ExecutionPolicy Bypass` lifts it **for that one command only** and
+changes nothing on your machine. Nothing is installed differently; it is how the script
+gets to start.
+
+If you would rather type `.\install.ps1` here and from now on, allow local scripts for
+your own account once — no admin needed, and it is the setting Microsoft recommends for
+a development machine:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+One more, only if you downloaded a **ZIP** instead of using `git clone`: Windows marks
+files from the internet, and `RemoteSigned` blocks those even after the change above.
+Clear the mark with `Unblock-File .\install.ps1`.
 
 `install.ps1` is a preflight, not a port. It checks that bash and Python are both really
 there, then hands off to the same `install.sh` everyone else runs. If it cannot find
@@ -337,7 +361,14 @@ Four things worth knowing before you run it:
 | `./install.sh list` | what is installed, outdated, edited or available. Changes nothing |
 | `./install.sh remove` | take back what it installed |
 
-On Windows put `.\install.ps1` in front of the same words: `.\install.ps1 update`.
+On Windows the same four words go to `install.ps1`, launched the same way as above:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1 update
+```
+
+(Plain `.\install.ps1 update` works too, once you have run the one-time
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` from step 5.)
 
 **None of them overwrite or delete anything you have edited** — they report it and move on.
 
