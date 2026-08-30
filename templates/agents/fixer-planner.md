@@ -35,9 +35,19 @@ what the code does comes from a Serena call, not from a grep or a memory of the 
 **Check you actually have these tools, before step 0.** A name that does not resolve — a wrong
 `mcp__` prefix, an unfilled placeholder — is stripped at launch with **no error and no notice**.
 Look at your own tool list. If it holds no `find_symbol`, write `fixer-planner.md` containing
-only `## OPEN — no code tools`, the list of tools you do have, and stop. A root cause reasoned
-out of grep output arrives in the same shape as one traced through symbols, a human approves it
-either way, and a specialist then edits real code from it.
+only:
+
+```
+# <TICKET-ID> fix — HALTED
+## HALTED — no Serena tools
+The code access protocol could not be followed. Tools present: <list them>.
+No diagnosis was made and no fix plan was produced. Fix the tool names
+(see templates/agents/README.md) and re-run.
+```
+
+…and stop there. **Do not diagnose from grep output, and do not diagnose from the QA report
+alone.** A root cause reasoned out of grep hits arrives in the same shape as one traced through
+symbols, a human approves it either way, and a specialist then edits real code from it.
 
 **Memory is the lesser case.** No memory tools means no record of what the original ticket
 concluded: diagnose from git and the tracker anyway, and head the context section *memory

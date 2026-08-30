@@ -6,8 +6,8 @@
     This is a preflight-and-delegate wrapper around install.sh. It is deliberately
     NOT a PowerShell port of the installer.
 
-    The reason is the hooks. All seven guardrail hooks are bash scripts, and six of
-    them parse their JSON payload with python. A PowerShell installer could copy
+    The reason is the hooks. All six guardrail hooks are bash scripts, and every one
+    of them parses its JSON payload with python. A PowerShell installer could copy
     them into place and wire them into settings.json, and they would still be unable
     to run: a hook that cannot execute exits non-zero, and the blocking hooks fail
     CLOSED — so a "successful" native-Windows install would jam every Bash tool call
@@ -247,7 +247,7 @@ if ($useWsl) {
 $pythonFound = $python.Output
 
 if ($python.Code -ne 0 -or -not $pythonFound) {
-    Write-Fail 'No python 3.7+ inside bash. install-lib.py needs it, and so do six of the seven hooks.' @(
+    Write-Fail 'No python 3.7+ inside bash. install-lib.py needs it, and so do all six hooks.' @(
         'A python that works in PowerShell is not enough — the hooks run inside bash.',
         '',
         'Git Bash:  install python from https://www.python.org/downloads/ and tick',

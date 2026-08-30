@@ -113,9 +113,15 @@ the room. Templates stay flat. Each `README.md` there says which path needs the 
 claude-code-playbook/
 ├── README.md                       ← you are here
 ├── PHILOSOPHY.md                   ← the mindset in one file (read this first)
+├── LICENSE                         MIT
+├── NOTICE                          third-party content shipped inside the templates
 ├── install.sh                      Interactive install / upgrade / remove (unix, WSL, Git Bash)
 ├── install.ps1                     Windows preflight — checks bash + python, then delegates
 ├── install-lib.py                  Discovery, hashing, the additive JSON merge, wiring checks
+├── .gitattributes                  *.sh and *.py check out LF everywhere — a CRLF hook cannot run
+├── .gitignore                      keeps local AI-infra out: .claude/ · .serena/ · CLAUDE.md · MEMORY.md
+├── .github/
+│   └── workflows/tests.yml         every suite below, on Linux and Windows, on push + PR
 ├── docs/
 │   ├── shared/                     BOTH PATHS
 │   │   ├── 01-architecture.md      The four config layers: MCP · agents · skills · hooks
@@ -148,15 +154,20 @@ claude-code-playbook/
 ├── examples/                       Two worked walkthroughs, narrated end to end
 │   ├── solo-path-walkthrough.md    An idea through all four solo stages to the seam
 │   └── ticket-flow-walkthrough.md  One ticket through /start-ticket
-└── templates/
-    ├── claude-md/    global · workspace · per-repo CLAUDE.md skeletons
-    ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · map-reviewer · decision-steward · …
-    ├── skills/       tdd · engineering-standards · grilling · pitch · charting · bootstrap · cut-backlog · next-steps · …
-    ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory · start-massive · resume-massive · build-chart-ticket · feeling-lucky · feeling-very-lucky
-    ├── hooks/        block-dangerous-git · block-infra-staging · block-secret-staging · block-mcp-writes · …
-    ├── mcp/          MCP config snippets (global + project) + settings snippet
-    ├── trackers/     one adapter, installed at ~/.claude/tracker.md
-    └── views/        pages a skill fills with data and you open in a browser
+├── templates/
+│   ├── claude-md/    global · workspace · per-repo CLAUDE.md skeletons
+│   ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · map-reviewer · decision-steward · …
+│   ├── skills/       tdd · engineering-standards · grilling · pitch · charting · bootstrap · cut-backlog · next-steps · …
+│   ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory · start-massive · resume-massive · build-chart-ticket · encode-codebase · feeling-lucky · feeling-very-lucky
+│   ├── hooks/        block-dangerous-git · block-infra-staging · block-secret-staging · block-mcp-writes · …
+│   ├── mcp/          MCP config snippets (global + project) + settings snippet
+│   ├── trackers/     one adapter, installed at ~/.claude/tracker.md
+│   └── views/        pages a skill fills with data and you open in a browser
+└── tests/                           offline, no model, no network — `bash tests/<name>`
+    ├── test-wiring.sh               wiring that fails open: dispatch weight · next-steps · halt blocks
+    ├── test-docs.sh                 the docs' own claims: links · counts · commands · layout tree
+    ├── test-installer.sh            real installs into a sandboxed HOME, plus the static checks
+    └── test-install-ps1.ps1         install.ps1's preflight, under PowerShell 5.1 and 7
 ```
 
 ---
@@ -267,11 +278,11 @@ so there is nothing to upgrade.
 
 ### Windows
 
-Windows needs one extra thing first, and it is not optional: **the seven guardrail hooks
-are bash scripts, and six of them parse their input with Python.** A native-PowerShell
-install would place hooks that cannot execute — and a hook that cannot execute fails
-*closed*, jamming every command instead of guarding it. So Windows runs them through Git
-Bash or WSL.
+Windows needs one extra thing first, and it is not optional: **the six guardrail hooks
+are bash scripts, and every one of them parses its input with Python.** A
+native-PowerShell install would place hooks that cannot execute — and a hook that cannot
+execute fails *closed*, jamming every command instead of guarding it. So Windows runs
+them through Git Bash or WSL.
 
 **1. Install bash.** Either one works:
 
@@ -342,7 +353,7 @@ placeholders, wires the hooks, and then proves the wiring by re-reading `setting
 Four things worth knowing before you run it:
 
 - **It stops if Serena is not set up**, before writing anything, and prints the steps.
-  17 of the 21 agents halt and produce nothing without Serena, so a no-Serena install
+  16 of the 20 agents halt and produce nothing without Serena, so a no-Serena install
   would be a success message over a setup that refuses to work.
 - **It shows you every file it is about to write**, and every `settings.json` key the
   hooks add, and asks. Answering no writes nothing at all.

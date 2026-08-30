@@ -34,7 +34,7 @@ after step 4. Steps 5–8 are additive.
 > **It stops if Serena is not set up.** `install` and `update` both refuse, before
 > writing anything, when there is no Serena registration or plugin anywhere on the
 > machine, and print the steps below instead. That is step 2 being enforced rather than
-> warned about: 17 of the 21 agents declare Serena tools and every one of them halts
+> warned about: 16 of the 20 agents declare Serena tools and every one of them halts
 > without them, so a no-Serena install is a success message over a setup that cannot run.
 >
 > **It shows you the whole plan before it writes.** Every destination path, every
@@ -134,6 +134,12 @@ The templates ship with **`mcp__serena__`**. On Route A, search-and-replace
    ([`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet);
    the snippet ships a `tracker` entry too — delete it if you don't run one).
 3. Verify: create one test memory, then query it by meaning and confirm it comes back.
+4. **Swap the placeholder memory skill for the filled-in one.**
+   `templates/skills/memory-schema/` ships two files: `SKILL.md`, a blank you fill in for
+   whatever server you run, and `forgetful.SKILL.md`, already filled in for Forgetful. If
+   you run Forgetful, `mv forgetful.SKILL.md SKILL.md` in the **installed** skill
+   directory. Skip this and Claude loads the blank and invents call shapes — see
+   [05-forgetful.md](05-forgetful.md).
 
 ## Step 4 — Lay down the CLAUDE.md layers
 
