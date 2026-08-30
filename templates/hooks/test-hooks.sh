@@ -229,6 +229,52 @@ run $INFRA_HOOK Bash     "git add CLAUDE.md"                               2
 run $INFRA_HOOK Bash     "git add docs/about-claude.md"                    0
 run $INFRA_HOOK Bash     "git add CLAUDE.md.bak"                           0
 
+echo "block-infra-staging.sh — it stages, or it only MENTIONS: the arguments, not the text"
+# The scan used to read the whole command as text, so a command that merely NAMED an infra
+# path was refused as if it were staging one. Writing a note ABOUT this rule was blocked
+# twice while #112 was being fixed, once in the notes for #112 itself. Because a compound
+# command dies whole, anything chained in FRONT of the mention never ran either, and the
+# failure read as if that first step was the problem.
+#
+# A name only counts when it is an ARGUMENT of git add / commit / stage.
+run $INFRA_HOOK Bash     "git commit -m 'stop tracking MEMORY.md'"         0
+run $INFRA_HOOK Bash     "git commit -m 'move .serena out of the repo'"    0
+run $INFRA_HOOK Bash     "git add src/main.py && echo 'never commit MEMORY.md' >> notes.txt" 0
+run $INFRA_HOOK Bash     "echo 'git add -A is blocked here'"               0
+run $INFRA_HOOK Bash     "grep -r .forgetful docs/"                        0
+# A heredoc body is DATA, not a command. A line inside one that starts with a stage verb is
+# prose about staging — which is exactly what this repo's own docs are full of.
+run $INFRA_HOOK Bash     "cat > notes.md <<'EOF'
+git add .serena/project.yml
+EOF"                                                                       0
+run $INFRA_HOOK Bash     "git add docs/hooks.md && cat >> docs/hooks.md <<'EOF'
+never stage MEMORY.md or .forgetful/index.json
+EOF"                                                                       0
+
+echo "block-infra-staging.sh — an ARGUMENT still blocks, wherever it sits"
+run $INFRA_HOOK Bash     "git add docs/MEMORY.md && echo done"             2
+run $INFRA_HOOK Bash     "echo starting; git add .serena/project.yml"      2
+run $INFRA_HOOK Bash     "git commit MEMORY.md"                            2
+run $INFRA_HOOK Bash     "git -C /tmp/repo add .serena/project.yml"        2
+run $INFRA_HOOK Bash     "git add -- .forgetful/index.json"                2
+# The FIRST of these is the Windows carriage-return case, and it needs two things at once
+# that are easy to get wrong. On Windows a text-mode stdout turns the tokenizer's newlines
+# into CR LF; the stray CR rides on the last field of every line EXCEPT the final one,
+# which the command substitution strips. So the name must sit on a NON-FINAL line — hence
+# an argument after it — AND be the LAST COMPONENT of its path, so the CR lands where the
+# comparison looks. Measured against a hand-tampered hook: this case goes red.
+run $INFRA_HOOK Bash     "git add MEMORY.md src/main.py"                   2
+# The second does NOT catch that bug and is not claimed to: `.serena` is a middle component,
+# so a CR after project.yml leaves the match intact. It is here for what it does prove —
+# that a second git command in the same call is extracted, not just the first.
+run $INFRA_HOOK Bash     "git add .serena/project.yml; git add src/main.py" 2
+# The sweep is an argument too, and only on add: a commit message saying "-A" is not one.
+run $INFRA_HOOK Bash     "git add -A && echo swept"                        2
+run $INFRA_HOOK Bash     "git commit -m 'document git add -A'"             0
+# A command we cannot tokenise is a BLOCK, for the same reason an unreadable payload is:
+# the hook did not find out what it was being asked to clear, so it does not clear it.
+run $INFRA_HOOK Bash     "git add 'unterminated"                           2
+
 echo "block-infra-staging.sh — must ALLOW (exit 0)"
 run $INFRA_HOOK Bash     "git add src/main.py"                             0
 run $INFRA_HOOK Bash     "git commit -m 'docs: update readme'"             0
