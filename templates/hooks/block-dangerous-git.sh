@@ -88,7 +88,33 @@ fi
 
 printf '%s' "$norm" | grep -Eiq 'git +reset +--hard'      && block "git reset --hard"
 printf '%s' "$norm" | grep -Eiq 'git +clean +-[a-z]*f'    && block "git clean -f"
-printf '%s' "$norm" | grep -Eiq 'git +branch +-D'         && block "git branch -D (force delete)"
+# --- git branch: block FORCE, allow SAFE (#115) ---------------------------------
+# This was one pattern, `-Eiq 'git +branch +-D'`, and it was wrong in both directions.
+#
+# Too strict: `-i` folds case, and `-d` is the OPPOSITE of `-D` — it refuses a branch
+# with unmerged commits. So the safe cleanup was blocked and then reported as a force
+# delete. That is the bug in #115.
+#
+# Too loose, and the worse half: `-D` is one of eight spellings git accepts for the same
+# destructive operation. Measured on the unfixed hook, these all sailed through —
+#   git branch --delete --force  ·  --force --delete  ·  -d --force  ·  -fd  ·  -df
+#   git branch -f <name> <start>  ·  --force <name> <start>   (force-MOVES a pointer)
+# — so the guardrail stopped exactly one of them and let seven past.
+#
+# The rule is therefore about FORCE, not about delete: on `git branch`, any force flag is
+# destructive, whether it deletes an unmerged branch or moves a ref over existing history.
+#
+#   allowed   -d  --delete  -a  -r  -m  -v  --list  --format=…   (safe or read-only)
+#   blocked   any SHORT cluster containing D or f, and --force in any position
+#
+# A short cluster is a `-` NOT followed by another `-`, which is what keeps `--format`
+# and `--delete` out of the `[Df]` test. Case-sensitive on purpose: `-D` blocks, `-d`
+# does not. Every spelling above is a case in templates/hooks/test-hooks.sh, in BOTH
+# directions — the missing allow-case is why this survived so long.
+printf '%s' "$norm" | grep -Eq  'git +branch( +[^ ;&|]+)* +-[a-zA-Z]*[Df]' \
+    && block "git branch force delete/move (-D, -f, -fd, -df) — use -d, which refuses unmerged branches"
+printf '%s' "$norm" | grep -Eiq 'git +branch( +[^ ;&|]+)* +--force' \
+    && block "git branch --force — use --delete on its own, which refuses unmerged branches"
 printf '%s' "$norm" | grep -Eiq 'git +push +.*--force|git +push +.*-f\b' && block "git push --force"
 printf '%s' "$norm" | grep -Eiq -- '--no-verify'          && block "--no-verify (bypasses hooks)"
 printf '%s' "$norm" | grep -Eiq -- '--no-gpg-sign'        && block "--no-gpg-sign"
