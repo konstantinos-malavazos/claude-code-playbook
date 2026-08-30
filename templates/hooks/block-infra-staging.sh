@@ -64,9 +64,26 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 # Only inspect git add / commit / stage commands.
 if printf '%s' "$norm" | grep -Eiq 'git +(add|commit|stage)'; then
 
-    # Never, whatever the allowlist says: your machine, not the project.
+    # A never-stage name counts only at a PATH BOUNDARY, and the anchor lives in ONE place
+    # so that removing it is a single visible edit the suite catches.
+    #
+    # Unanchored, these were bare substrings matched against the whole command, so any
+    # basename that merely CONTAINED one was refused — this repo's own tracked
+    # templates/commands/garden-memory.md among them, and src/inmemory.md beside it. The
+    # suite was green throughout, because the only case it asserted was the true positive.
+    #
+    # `\b` is not the fix: a word boundary treats `-` and `.` as boundaries, so
+    # garden-memory.md would still match. The anchor below is the same one
+    # block-secret-staging.sh uses for `.env`, with one deliberate difference — its class
+    # has no backslash, and this one needs it, or `.serena\project.yml` from a PowerShell
+    # command stops being caught.
+    #
+    # -i STAYS. Windows resolves .Serena and .serena to one directory, so dropping it would
+    # turn a different spelling of the real infra dir into a way through. Case is not what
+    # makes garden-MEMORY.md stageable; the anchor is.
+    bound='[ /\"'"'"';]'   # space / \ " ' ;  — a backslash is literal inside an ERE bracket
     for pat in '\.serena' '\.forgetful' 'MEMORY\.md'; do
-        if printf '%s' "$norm" | grep -Eiq -e "$pat"; then
+        if printf '%s' "$norm" | grep -Eiq -e "(^|$bound)$pat($|$bound)"; then
             block "attempt to stage AI-infra path matching /$pat/ — a fresh clone never needs it."
         fi
     done
@@ -95,7 +112,14 @@ if printf '%s' "$norm" | grep -Eiq 'git +(add|commit|stage)'; then
     # CLAUDE.md: the one path the allowlist decides. On a repo you have answered `yes`
     # for, this file IS the product — nothing else will ever commit it, and without it a
     # fresh clone re-derives the stack, the chain and the Serena verdict from nothing.
-    if printf '%s' "$norm" | grep -Eiq 'CLAUDE\.md'; then
+    #
+    # Anchored with $bound for the same reason as the never-stage names above, and it had
+    # the same defect: unanchored, `docs/about-claude.md` and `CLAUDE.md.bak` were both
+    # read as the one file the allowlist governs, and refused on a repo that had not
+    # answered for them. This is the allowlist FLIP, not a never-stage name, so it is a
+    # separate check — but leaving it unanchored ten lines below an anchored loop would
+    # read as a deliberate distinction, and it is not one.
+    if printf '%s' "$norm" | grep -Eiq -e "(^|$bound)CLAUDE\.md($|$bound)"; then
         if ! allowlist_says claude-md; then
             block "attempt to stage CLAUDE.md — this repo is not in ~/.claude/repo-allowlist with own-claude-md: yes."
         fi
