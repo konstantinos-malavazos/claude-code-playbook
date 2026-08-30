@@ -27,3 +27,11 @@ eval results + regressions + sweep proposals + applied changes.
 ## Rules
 Never delete a memory silently. Never auto-edit the golden set (it's human-owned).
 Retrieval quality is a tracked number. Treat a regression as a real defect.
+
+## Then say what they do now
+
+End with the `next-steps` block: the report's full path; the proposals still waiting on a
+per-item approval, listed by what each one would do, because none of them happens without the
+user; the regressions, if there are any, as the thing they decide about today; no next
+command, because this runs on a period rather than on a queue; and nothing to commit — the
+report lives under `.claude/`, which is never staged.

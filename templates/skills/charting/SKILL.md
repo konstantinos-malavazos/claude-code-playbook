@@ -344,6 +344,11 @@ answered.
 **One ticket per session — research is the only exception**, because research runs AFK in
 subagent contexts and does not spend the session's own.
 
+**Then the `next-steps` block.** The ticket you closed and the one line it settled, the next
+takeable ticket by number and name, `/charting` again — and a fresh session, because one
+ticket is sized to one context. That is the rule above, said to the person standing in front
+of it.
+
 Expect other sessions to be editing the tracker concurrently. The claim is **advisory, a
 note to others, not a lock**. No tracker can give you one. A stale claim is a nuisance
 cleared by hand, not a jam.
@@ -385,3 +390,12 @@ A stalled map has one move that refills the frontier: open a single `grilling` t
 
 **Abandoned.** The destination turned out not to be worth reaching. This is a finished map,
 and the cheapest possible outcome — the one charting exists to make affordable.
+
+**All three end with the `next-steps` block, and they need three different next steps.**
+
+- **Done** — the memory ids the close produced, and the stage that takes over from the map. On
+  the solo path that is `/bootstrap`, in a fresh session, because it re-reads the whole map.
+- **Stalled** — no command to run, and saying so is the point. What the user does *today*:
+  chase the owner you named, or say yes to the one `grilling` ticket that refills the frontier.
+- **Abandoned** — nothing left to run, and where the record is. The cheapest outcome is still
+  an outcome, and it gets an ending like the other two.

@@ -163,6 +163,9 @@ graph TD
   ticket.
 - **Never write to memory.** This is pre-merge and ephemeral.
 - **STOP at the board.** Dispatching slices is the orchestrator's job, after you approve.
+  End with the `next-steps` block: the board's path and the slice count; that approval is a
+  yes typed here, or an edit that re-slices; and that a human who ran this directly has no
+  orchestrator waiting — `/start-ticket`, with this ticket's id, is what dispatches the board.
 - **Every slice is vertical and independently verifiable.** Reject any slice that is one
   layer.
 - **Park a slice, do not create it,** when a deferral decides its existence or its boundary.
@@ -172,4 +175,7 @@ graph TD
   finished.
 - **Dependencies are a DAG.** Merge any two slices that would form a cycle.
 - **If there is really only one slice, say so.** The ticket should not have entered the
-  decompose path — tell the orchestrator to fall back to the sequential pipeline.
+  decompose path — tell the orchestrator to fall back to the sequential pipeline. A human who
+  ran this directly has no orchestrator to tell, so the `next-steps` block says it to them:
+  there is no board to approve, `/start-ticket` with this ticket's id runs it sequentially,
+  and nothing was written to the tracker, so nothing needs undoing.

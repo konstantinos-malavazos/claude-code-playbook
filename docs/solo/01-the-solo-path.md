@@ -24,6 +24,12 @@ repeat them.
 | 3 | **The bootstrap** | Make the repo real. | The stack-specific checks written by the tail pass (items 1–5, 7 and 8 of the seam). | [04-the-bootstrap.md](04-the-bootstrap.md) |
 | 4 | **Cutting** | Cut the first version into units the pipeline can run. | Work units exist in the tracker, ordered, and **you approved them**. | [05-cutting.md](05-cutting.md) |
 
+**Every exit condition is also a session boundary.** A stage hands over by *ending*: the
+next one runs in a **fresh** session because it is sized to one context, and each stage says
+so in its own hand-back ([`templates/skills/next-steps/`](../../templates/skills/next-steps/SKILL.md)).
+The same rule holds one level down inside stage 2 — charting resolves **one ticket per
+session**, and the ticket that has just closed is where the session ends.
+
 The stage is **charting**. The artifact it produces is **the map**. They never share a
 name — otherwise you can never say which one you mean. The same holds one row down: the
 stage is **cutting**, and the artifact it produces is **the backlog**.

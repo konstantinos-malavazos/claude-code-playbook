@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# Wiring scrub for the per-dispatch model weight (issue #92).
+# Wiring scrub. Two wirings live here, both the same shape — one definition, many
+# call sites — and both failing OPEN when a call site drifts:
+#
+#   A1-A9  the per-dispatch model weight (issue #92)
+#   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
-#   bash tests/test-wiring.sh A1 A4      # only these
+#   bash tests/test-wiring.sh A1 N2      # only these
 #
 # Deterministic and offline: no network, no model, no install. It reads the
-# templates and the docs and asserts the weight wiring is still wired.
+# templates and the docs and asserts both wirings are still wired.
 #
 # WHY THIS EXISTS. The weight landed across six dispatch sites, one shared skill
 # and four weighing agents, and was verified by hand. None of that survives the
@@ -30,6 +34,7 @@ AGENTS="$REPO/templates/agents"
 COMMANDS="$REPO/templates/commands"
 TEMPLATES="$REPO/templates"
 SKILL="$REPO/templates/skills/dispatch-weight/SKILL.md"
+NEXT="$REPO/templates/skills/next-steps/SKILL.md"
 FLOWS="$REPO/docs/shared/07-the-flows.md"
 
 SCRATCH="${PLAYBOOK_TEST_DIR:-${TMPDIR:-/tmp}/playbook-wiring-tests}"
@@ -625,6 +630,263 @@ print("SEP " + ("ok" if win in lib.NEVER_INSTALL else "broken(" + win + ")"))
   fi
 else
   printf '    SKIP  python3 — NOT INSTALLED on this machine, so A9 NOT run\n'
+fi
+fi
+
+# ================================================================== N — next-steps
+#
+# The end-of-flow hand-back (#104). A flow that finishes and says nothing leaves
+# the user holding a finished stage with no next move, and NOTHING in the output
+# says so — a report reads as complete either way. That is the same silent shape
+# the A sections guard, so it is guarded the same way.
+
+# ---------------------------------------------------------------- N readers
+#
+# Every installable command and skill is classified here, by hand, into one of two
+# buckets. The list IS the tripwire: a new command, or a new skill with an ending,
+# lands in neither and fails N1 until somebody decides which it is.
+#
+# terminal      — a flow the user is left standing at the end of; must invoke the
+#                 skill, whatever the ending is (including a stop-with-a-question)
+# not-terminal  — runs INSIDE another flow's ending and has no ending of its own,
+#                 or is the block's own definition, or is a generation template
+terminal_class() {
+  case "$1" in
+    # every command template ships a flow, and every flow has an ending
+    build-chart-ticket|encode-codebase|end-of-day|feeling-lucky|feeling-very-lucky) printf 'terminal' ;;
+    fix-ticket|garden-memory|resume-massive|resume-ticket|start-massive)            printf 'terminal' ;;
+    start-ticket|test-ticket)                                                       printf 'terminal' ;;
+    # the skills a human is left standing at the end of
+    adapt-to-stack|bootstrap|charting|cut-backlog|grilling|handoff)                 printf 'terminal' ;;
+    pitch|prototype|research|to-questionnaire|to-tickets|wizard)                    printf 'terminal' ;;
+    # always-loaded skills, the block's own definition, and a generation template
+    commit-conventions|diagnose|dispatch-weight|memory-schema|memory-tag-lint)      printf 'not-terminal' ;;
+    tdd|to-spec|wait-what|next-steps|engineering-standards)                         printf 'not-terminal' ;;
+    *)                                                                              printf 'UNCLASSIFIED' ;;
+  esac
+}
+
+# skill_dirs — the skill stems, read off disk the way stems() reads the flat dirs
+skill_dirs() {
+  local d
+  for d in "$TEMPLATES"/skills/*/; do
+    [ -d "$d" ] || continue
+    basename "$d"
+  done
+}
+
+# invokes_next FILE — does this file send the reader to the one definition?
+# The backticks are the pattern, not a substitution: the installer's skill-edge
+# regex only matches a backticked reference, so this asks for the same thing.
+# shellcheck disable=SC2016
+invokes_next() { grep -qF '`next-steps`' "$1"; }
+
+# terminal_file STEM — the template a stem's ending lives in
+terminal_file() {
+  if [ -f "$COMMANDS/$1.md" ]; then printf '%s' "$COMMANDS/$1.md"
+  else printf '%s' "$TEMPLATES/skills/$1/SKILL.md"; fi
+}
+
+# terminal_uid STEM — the unit id discovery will have given it
+terminal_uid() {
+  if [ -f "$COMMANDS/$1.md" ]; then printf 'command:%s' "$1"
+  else printf 'skill:%s' "$1"; fi
+}
+
+# ---------------------------------------------------------------- N1
+# Every terminal template invokes the skill, and every template is classified.
+#
+# Catches: a new flow that ends in silence, and an existing one whose hand-back
+# was reworded until the reference stopped matching.
+if want N1; then
+banner "N1 · every terminal template invokes next-steps"
+if [ -f "$NEXT" ]; then pass "templates/skills/next-steps/SKILL.md exists"
+else fail "templates/skills/next-steps/SKILL.md is MISSING"; fi
+
+n_terminal=0
+for stem in $(stems "$COMMANDS") $(skill_dirs); do
+  f="$(terminal_file "$stem")"
+  case "$(terminal_class "$stem")" in
+    terminal)
+      n_terminal=$((n_terminal+1))
+      if [ ! -f "$f" ]; then
+        fail "$stem is classified terminal but has no template file"
+      elif invokes_next "$f"; then
+        pass "$stem ends by invoking next-steps"
+      else
+        fail "$stem is a terminal point and never invokes next-steps — it finishes and says nothing"
+      fi
+      ;;
+    not-terminal)
+      # Exempt because it runs inside another flow's ending. Nothing to assert
+      # about its body: a not-terminal template that DOES invoke the skill is not
+      # an error, it is somebody having found an ending in it.
+      pass "$stem is not a terminal point (exempt)"
+      ;;
+    *)
+      fail "$stem is UNCLASSIFIED — classify it terminal or not-terminal in terminal_class()"
+      ;;
+  esac
+done
+
+# A classification list that had drifted to zero terminals would pass every line
+# above while asserting nothing at all.
+if [ "$n_terminal" = "24" ]; then
+  pass "24 terminal points, which is the inventory this landed against"
+else
+  fail "$n_terminal terminal points, not 24 — the inventory moved; change it here deliberately"
+fi
+fi
+
+# ---------------------------------------------------------------- N2
+# The format lives in the skill and nowhere else under templates/. Call sites
+# reference it; they never restate the four fields.
+#
+# Catches: the drift that had ALREADY happened — three hand-written hand-back
+# blocks in three different shapes, in three of twenty-four terminal points.
+FIELDS='**Landed**
+**Yours now**
+**Next command**
+**This session or a fresh one**'
+
+if want N2; then
+banner "N2 · the four fields live in the skill and nowhere else under templates/"
+
+# Anchor first: if the fields have left the skill, the guard below would pass
+# while guarding nothing.
+missing=""
+while IFS= read -r m; do
+  grep -qF "$m" "$NEXT" 2>/dev/null || missing="$missing [$m]"
+done <<FIELDEOF
+$FIELDS
+FIELDEOF
+if [ -z "$missing" ]; then pass "the skill states all four field names"
+else fail "field names left the skill:$missing — the guard below is guarding nothing"; fi
+
+# One field name in passing is prose; two is the format restated. Same rule as A4.
+clean=yes
+while IFS= read -r f; do
+  [ "$f" = "$NEXT" ] && continue
+  n=0; found=""
+  while IFS= read -r m; do
+    if grep -qF "$m" "$f"; then n=$((n+1)); found="$found [$m]"; fi
+  done <<FIELDEOF
+$FIELDS
+FIELDEOF
+  rel="${f#"$REPO"/}"
+  if [ "$n" -ge 2 ]; then
+    fail "$rel restates the block's fields:$found — reference the skill instead"
+    clean=no
+  fi
+done <<FILEEOF
+$(find "$TEMPLATES" -name '*.md' -type f | sort)
+FILEEOF
+[ "$clean" = "yes" ] && pass "no template outside the skill restates the four fields"
+fi
+
+# ---------------------------------------------------------------- N3
+# Every command a next step names actually ships. Two halves: the skill's own
+# examples resolve to template units, and no command or skill sends the user to
+# one of the two commands the flow catalogue lists but templates/commands/ does
+# not carry.
+#
+# Catches: the /close-ticket class of error — a next step pointing at something
+# the install does not have, which sends the user looking for a file. An AGENT may
+# still say which command owns what; a command or skill saying it is a step
+# somebody is being told to take.
+CATALOGUE_ONLY='close-ticket confirm-deployment'
+
+if want N3; then
+banner "N3 · every command a next step names actually ships"
+if command -v python3 >/dev/null 2>&1; then
+  mkdir -p "$SCRATCH"
+  ( cd "$REPO" && python3 install-lib.py discover templates "$SCRATCH/fakehome" ) \
+    > "$SCRATCH/discover-n3.json" 2> "$SCRATCH/discover-n3.err"
+  chk $? "install-lib.py discover runs (errors in $SCRATCH/discover-n3.err)"
+
+  # The same /command regex install-lib.py links edges with, so this asks the
+  # question the installer will answer rather than a lookalike of it.
+  N3="$(cd "$REPO" && python3 -c '
+import json, re, sys
+units = json.load(open(sys.argv[1]))
+names = {u.split(":", 1)[1] for u in units if u.split(":", 1)[0] in ("command", "skill")}
+body = open("templates/skills/next-steps/SKILL.md", encoding="utf-8").read()
+refs = sorted(set(re.findall(r"(?<![\w./-])/([a-z][a-z0-9-]+)", body)))
+print("refs %d" % len(refs))
+for r in refs:
+    if r not in names:
+        print("GHOST /" + r)
+' "$SCRATCH/discover-n3.json" 2>/dev/null)"
+
+  case "$N3" in *"refs 0"*|"")
+    fail "the skill names no command at all — N3 asserted nothing, so it proves nothing" ;;
+  *) pass "$(printf '%s\n' "$N3" | sed -n 's/^refs /commands named in the skill: /p')" ;; esac
+
+  if printf '%s\n' "$N3" | grep -q '^GHOST '; then
+    printf '%s\n' "$N3" | sed -n 's/^GHOST /          not a template unit: /p'
+    fail "the skill names a command that does not ship — the user goes looking for it"
+  else
+    pass "every command the skill names is a template unit"
+  fi
+else
+  printf '    SKIP  python3 — NOT INSTALLED on this machine, so half of N3 NOT run\n'
+fi
+
+clean=yes
+for stem in $(stems "$COMMANDS") $(skill_dirs); do
+  f="$(terminal_file "$stem")"
+  [ -f "$f" ] || continue
+  for c in $CATALOGUE_ONLY; do
+    if grep -qF "/$c" "$f"; then
+      fail "$stem names /$c, which the catalogue lists and templates/commands/ does not ship"
+      clean=no
+    fi
+  done
+done
+[ "$clean" = "yes" ] && pass "no command or skill sends the user to a catalogue-only command"
+fi
+
+# ---------------------------------------------------------------- N4
+# The installer edge resolves. Assert the EDGE, not the install: every terminal
+# unit carries skill:next-steps in its needs, which is what pulls the skill in
+# behind any selection holding one of them — preset_minimal included, through
+# command:start-ticket.
+#
+# Catches: a reword that breaks the backtick match, leaving 24 call sites pointing
+# at a skill that was never installed. That fails silently: a missing skill is not
+# an error, it is an absence.
+if want N4; then
+banner "N4 · discover puts skill:next-steps in every terminal unit's needs"
+if command -v python3 >/dev/null 2>&1; then
+  mkdir -p "$SCRATCH"
+  ( cd "$REPO" && python3 install-lib.py discover templates "$SCRATCH/fakehome" ) \
+    > "$SCRATCH/discover-n4.json" 2> "$SCRATCH/discover-n4.err"
+  chk $? "install-lib.py discover runs (errors in $SCRATCH/discover-n4.err)"
+
+  EDGES="$(python3 -c '
+import json, sys
+u = json.load(open(sys.argv[1]))
+print("theunit" if "skill:next-steps" in u else "nounit")
+for uid in sorted(u):
+    if "skill:next-steps" in u[uid]["needs"]:
+        print("edge " + uid)
+' "$SCRATCH/discover-n4.json" 2>/dev/null)"
+
+  case "$EDGES" in *theunit*)
+    pass "skill:next-steps is a discovered unit" ;;
+  *) fail "skill:next-steps is NOT a discovered unit" ;; esac
+
+  for stem in $(stems "$COMMANDS") $(skill_dirs); do
+    [ "$(terminal_class "$stem")" = "terminal" ] || continue
+    uid="$(terminal_uid "$stem")"
+    case "$EDGES" in *"edge $uid"*)
+      pass "$uid needs skill:next-steps" ;;
+    *)
+      fail "$uid does NOT need skill:next-steps — install it alone and its hand-back points at nothing" ;;
+    esac
+  done
+else
+  printf '    SKIP  python3 — NOT INSTALLED on this machine, so N4 NOT run\n'
 fi
 fi
 

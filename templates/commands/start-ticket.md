@@ -62,6 +62,13 @@ handoff. There are four dispatch sites below (steps 5 and 6); a weight read once
 7. **Land** — consolidate the ticket's handoffs into ONE durable memory (root cause /
    design / blast radius / recipes; tagged by functionality). Then tell the user the
    branch is ready. **Push it** where the allowlist permits; **they** open the MR/PR.
+8. **Say what they do now** — end with the `next-steps` block. On APPROVE: the branch, its
+   single sha and the memory id; the MR/PR description @repo-reviewer drafted, which is
+   theirs to paste; then `/test-ticket $ARGUMENTS` where the ticket needs proving against a
+   real environment, otherwise the next ticket — in a **fresh** session, because a ticket is
+   sized to one context. **Where the allowlist did not permit the push**, say plainly that
+   the branch is local and unpushed, and give them the one line to add to
+   `~/.claude/repo-allowlist`. Never say merge.
 
 ## Guardrails
 - Never write to the tracker. **Push the branch when `~/.claude/repo-allowlist` permits

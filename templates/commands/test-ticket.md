@@ -29,6 +29,14 @@ of the same scenario reuse it.
    - **confirm or correct the recipe** in memory (flip to `validated: <date>`, higher
      confidence — or fix a wrong step; never silently leave a wrong recipe validated).
 4. Write `test-report.md`.
+5. **Say what they do now** — end with the `next-steps` block, and the verdict picks which:
+   - **PASS** — the report's full path and the recipe banked or confirmed; whether every
+     acceptance criterion is now proven, which is what makes the ticket closeable, and that
+     closing it is theirs. Nothing to commit: this flow writes a report and a memory, not code.
+   - **FAIL** — `/fix-ticket $ARGUMENTS`, in a fresh session, because the fix is its own unit.
+   - **INCONCLUSIVE** — **not** FAIL, so the next step differs. Name what stopped the run —
+     the environment, the recipe, a missing seam — say that fixing it is theirs, and that
+     `/test-ticket $ARGUMENTS` re-runs once it is. Never send an INCONCLUSIVE to `/fix-ticket`.
 
 ## Guardrails
 Production forbidden. Read-first. **Staging where there is one; local where there is not.**

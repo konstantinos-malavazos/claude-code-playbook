@@ -73,3 +73,8 @@ The `>` under each question is the answer stub. Leave it empty. A recipient type
 
 Stop when the file exists and **every item from step 2 is covered by a question**. Sending
 it is the user's, not yours.
+
+**Then the `next-steps` block.** The file by path; **who it goes to**, by name, and that
+sending it is theirs; and what resumes when the answer lands — the ticket or the flow that was
+blocked on it, with its id filled in. There is no command to run until the reply arrives, so
+say that rather than leaving the field out.

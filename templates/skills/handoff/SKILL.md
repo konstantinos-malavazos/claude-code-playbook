@@ -111,3 +111,9 @@ skills apply to this subject, and naming them is cheap.
   document to it — what that focus needs carried, and what it does not.
 - **Do not write a handoff nobody will read.** If the work is finished and merged, and nothing
   is open, say so in one line rather than manufacturing a document.
+
+**Then the `next-steps` block.** The file by path; that **closing this session and opening a
+fresh one pointed at that file** is the whole reason it was written — the resume point is
+already inside it, and a fresh context is what it was sized for; and the skills the document
+names, so the next session opens with them instead of finding them. Nothing to commit: a
+handoff is session state, not a repo artifact.

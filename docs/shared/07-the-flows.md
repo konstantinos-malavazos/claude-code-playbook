@@ -22,6 +22,12 @@ re-driving the same ten steps by hand.
   `@release-reviewer` checks cross-repo blast radius (contract/payload coupling,
   downstream consumers, schema collisions).
 - **One commit per branch per repo.** Amend-as-you-go; the reviewer asserts it.
+- **Every flow ends by saying what the human does next.** A stop condition says what the
+  agent must not do; a report says what landed. Neither is a next step. Twenty-four terminal
+  points end in one four-field block — what landed and where, what is the user's, the literal
+  next command with its argument filled in, and whether it runs in this session or a fresh
+  one — defined once in
+  [`templates/skills/next-steps/`](../../templates/skills/next-steps/SKILL.md).
 - **Guardrails are hooks, not trust.** Push is blocked unless the repo is allowlisted. The
   tracker is read-only. AI-infra files are never committed, **except the repo's own
   `CLAUDE.md` and the generated `.claude/agents/` and `.claude/skills/`, which a fresh
@@ -100,6 +106,7 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 | **`/end-of-day`** | **daily memory nomination**: harvest the day's durable conclusions, dedupe vs memory, approve each item individually | deliberate memory — nothing enters the knowledge base un-reviewed. [10](10-memory-hygiene.md) |
 | **`/garden-memory`** | **periodic memory hygiene**: golden-query retrieval eval + duplicate/stale/orphan sweep with per-item approval | catches retrieval regressions; stops the memory decaying into a junk drawer. [10](10-memory-hygiene.md) |
 | **`/confirm-deployment`** | **release gate** (not ticket-scoped): review a tag-to-tag delta across repos before a production deploy — code review + deploy-risk scan (migrations, queues, config/secrets) → GO/NO-GO | a last read-only safety net before prod |
+| **`next-steps`** | the four-field block **every flow prints last**: what landed and where, what is yours because only you can do it, the literal next command with its **argument filled in**, and whether it runs in this session or a fresh one | **not a flow you type** — one definition that all twenty-four terminal points invoke, the same argument as `dispatch-weight` below. A stage that finishes and says nothing leaves you holding it, and nothing in the output says so. [`templates/skills/next-steps/`](../../templates/skills/next-steps/SKILL.md) |
 | ad-hoc: **investigation** | read-only forensic agent: writes parametrised queries, proves root cause from returned data only, no prod writes | drift/discrepancy analysis without risk |
 
 You don't need all of these. Start with `/start-ticket`. Add the others as the pain they
@@ -116,6 +123,10 @@ skill is shared, but the flow wrapped around it is not.
 command and no agents. It is a page ([`templates/views/`](../../templates/views/README.md))
 that two of the flows above fill with data and open, for the trackers that cannot draw
 their own dependencies.
+
+**`next-steps` is not a flow either and still gets a row**, on a different test: it is the
+last thing **every** flow above does, so a reader of this table who does not meet it writes
+an ending without one. The picture is optional and per-tracker; the block is neither.
 
 ---
 

@@ -125,3 +125,8 @@ Not yet specified: <one line each>.
 ```
 
 Then say the next command is `/resume-massive $ARGUMENTS`, and **stop**.
+
+**Close with the `next-steps` block**, after that paste-in text and never instead of it. It
+carries the two things the text above cannot: the chart folder's path and whether it is
+committed — this command writes files, so answer it — and that `/resume-massive $ARGUMENTS`
+runs in a **fresh** session, because one ticket per session is what the map is sized for.

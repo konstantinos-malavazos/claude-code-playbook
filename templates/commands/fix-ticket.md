@@ -25,6 +25,11 @@ stays one ticket / one commit per repo / one metrics row.
 5. **Review** — @repo-reviewer → @release-reviewer, same as /start-ticket.
 6. **Land** — update the ticket's durable memory with the root cause + fix (append, don't
    duplicate). Push the branch where allowlisted; the user merges.
+7. **Say what they do now** — end with the `next-steps` block: the branch and the amended
+   commit's **new** sha, plus the fact that this **amended**, so there is no new commit to
+   look for; the MR/PR description to re-paste; `/test-ticket $ARGUMENTS` to re-prove the
+   criterion that bounced, in a fresh session. Where the allowlist did not permit the push,
+   say the branch is local and unpushed and give the one line to add.
 
 ## Guardrails
 Same as /start-ticket: push the branch where allowlisted but never merge, tracker

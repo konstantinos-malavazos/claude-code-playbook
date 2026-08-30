@@ -125,3 +125,10 @@ user has confirmed you have reached a shared understanding. **A plan with three 
 deferrals is finished. A plan with one silent assumption is not.**
 
 Do not act on the plan until that confirmation.
+
+**Then the `next-steps` block**, and it differs by where the grilling ran. **In-pipeline** —
+the answers and the managed deferrals are recorded, the confirmation is theirs, and the flow
+that dispatched this resumes in **this** session with them. **Standalone** — name the plan's
+own next command with its id filled in, and say whether it is sized to a fresh session. Every
+deferral carries its owner into the block: a deferral with nobody named is the silent
+assumption this skill exists to catch.
