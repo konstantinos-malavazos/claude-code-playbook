@@ -431,7 +431,7 @@ preflight() {
       PY="$cand"; break
     fi
   done
-  [[ -n "$PY" ]] || die "python 3.7 or newer is required, and none was found. This installer needs it, and so do six of the seven guardrail hooks."
+  [[ -n "$PY" ]] || die "python 3.7 or newer is required, and none was found. This installer needs it, and so do all six guardrail hooks."
 
   [[ -f "$LIB" ]]       || die "install-lib.py is not next to this script. Run ./install.sh from inside the folder you cloned."
   [[ -d "$TEMPLATES" ]] || die "the templates/ folder is not next to this script. Run ./install.sh from inside the folder you cloned."
@@ -726,10 +726,10 @@ SERENA_PREFIX=""
 
 # serena_gate — Serena is MANDATORY, so no evidence means no install.
 #
-# 17 of the 21 agents declare Serena tools and every one of them carries a
+# 16 of the 20 agents declare Serena tools and every one of them carries a
 # "## HALTED — no Serena tools" block telling it to produce nothing; the global
 # CLAUDE.md says there is no Serena opt-out. So a no-Serena machine does not get
-# degraded agents, it gets seventeen agents that refuse to run. An installer that
+# degraded agents, it gets sixteen agents that refuse to run. An installer that
 # reports success over that is the silent failure this whole issue is about.
 #
 # CRITICAL: this prints and then EXITS. It must not route through stage(), screen()
@@ -745,7 +745,7 @@ serena_gate() {
   printf '  %sNothing has been installed and nothing has been changed.%s\n\n' "$BOLD" "$RESET"
   say "Serena is a separate tool that lets Claude find and edit code by symbol"
   say "name instead of re-reading whole files. This playbook does not merely"
-  say "prefer it — 17 of its 21 agents refuse to run at all without it."
+  say "prefer it — 16 of its 20 agents refuse to run at all without it."
   printf '\n'
   say "Installing now would leave you with something that reports success and"
   say "then does nothing, so the installer stops here instead."

@@ -226,7 +226,7 @@ downstream here and this doc will not pretend otherwise.
 | Exploratory / spike — **reading** | Investigation agent |
 | Exploratory / spike — **building something to look at** | `/prototype` |
 | First time in a new codebase | Manual discovery first |
-| Prod incident | `/hotfix` (lighter pipeline, same guardrails) |
+| Prod incident | a [`/hotfix` **pattern**](#incidents--hotfixes) — assembled by hand, not a command that ships |
 | Unstable requirements | Chat until the spec solidifies |
 | Recurring pattern, even if small | `/start-ticket` (the memory payoff is real) |
 

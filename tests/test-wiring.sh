@@ -3,6 +3,7 @@
 # call sites — and both failing OPEN when a call site drifts:
 #
 #   A1-A9  the per-dispatch model weight (issue #92)
+#   A10    the Serena halt block every navigating agent needs (issue #109)
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -631,6 +632,47 @@ print("SEP " + ("ok" if win in lib.NEVER_INSTALL else "broken(" + win + ")"))
 else
   printf '    SKIP  python3 — NOT INSTALLED on this machine, so A9 NOT run\n'
 fi
+fi
+
+# ---------------------------------------------------------------- A10
+# The halt block is the only defence that survives a renamed `mcp__` prefix. An
+# agent whose Serena names do not resolve is not told so: they are stripped at
+# launch with no error, and it runs on Read and Grep and produces an answer of
+# exactly the normal SHAPE. templates/agents/README.md records @repo-reviewer
+# doing that before the halt blocks existed, and issue #109 found that
+# @fixer-planner had never been given one.
+#
+# Derived, not listed: the set is every agent whose `tools:` names a Serena
+# navigation verb, so the next Serena-using agent is covered the day it lands.
+# Probed by VERB rather than by the `mcp__serena__` prefix, for the same reason
+# EDIT_VERBS is — an install that rewrites the prefix must not blind the check.
+#
+# Catches: a Serena-declaring agent with no halt instruction.
+serena_agents() {
+  local stem
+  stems "$AGENTS" | while read -r stem; do
+    fm_field "$AGENTS/$stem.md" tools | grep -qF 'find_symbol' && printf '%s
+' "$stem"
+  done
+}
+SERENA_AGENTS="$(serena_agents)"
+
+if want A10; then
+banner "A10 · every Serena-declaring agent carries a halt block"
+# Same positive control as A1: a probe that matches nothing would pass this
+# section by finding no agents to fail.
+if [ -n "$SERENA_AGENTS" ]; then
+  pass "the Serena-verb probe matches something at all"
+else
+  fail "the Serena-verb probe matched NOTHING — the probe is broken, not the tree"
+fi
+for stem in $SERENA_AGENTS; do
+  if grep -qF 'HALTED' "$AGENTS/$stem.md"; then
+    pass "$stem halts when Serena is missing"
+  else
+    fail "$stem declares Serena verbs and never says HALTED — strip the prefix and it greps instead"
+  fi
+done
 fi
 
 # ================================================================== N — next-steps

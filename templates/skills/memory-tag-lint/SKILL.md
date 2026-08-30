@@ -82,4 +82,4 @@ failed open.
 **On loops over a list.** Where this gate is implemented as a loop over patterns or assertions,
 every entry needs its own test case. A loop is only as tested as its least-tested entry, and
 the untested one is free to fail open — see the same lesson in
-[`../../README.md`](../../templates/README.md).
+[`../../README.md`](../../README.md).

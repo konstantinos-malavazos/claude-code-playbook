@@ -8,8 +8,8 @@
 # Desktop's utility VM accepted as a WSL distribution, and an apostrophe in a path
 # breaking both halves of the install. None of them were reachable from ubuntu-latest.
 #
-# So there are two jobs. The Linux one is the fast, authoritative run of the three
-# bash suites. The Windows one runs those same three under Git Bash — where the paths
+# So there are two jobs. The Linux one is the fast, authoritative run of the four
+# bash suites. The Windows one runs those same four under Git Bash — where the paths
 # and the python are Windows ones — and adds the install.ps1 suite, twice: once under
 # Windows PowerShell 5.1 and once under PowerShell 7. Three of the four bugs above
 # were invisible under 7 and only appeared under 5.1, which is what `powershell.exe`
@@ -63,6 +63,9 @@ jobs:
         env:
           PLAYBOOK_TEST_DIR: ${{ runner.temp }}/playbook-wiring
         run: bash tests/test-wiring.sh
+
+      - name: Docs scrub (tests/test-docs.sh)
+        run: bash tests/test-docs.sh
 
       - name: Hook patterns (templates/hooks/test-hooks.sh)
         run: bash templates/hooks/test-hooks.sh
@@ -136,6 +139,10 @@ jobs:
       - name: Wiring scrub (tests/test-wiring.sh)
         shell: bash
         run: PLAYBOOK_TEST_DIR="$(cygpath -u "$RUNNER_TEMP")/playbook-wiring" bash tests/test-wiring.sh
+
+      - name: Docs scrub (tests/test-docs.sh)
+        shell: bash
+        run: bash tests/test-docs.sh
 
       - name: Hook patterns (templates/hooks/test-hooks.sh)
         shell: bash
