@@ -38,6 +38,65 @@ with_serena() {
 JSON
 }
 
+# with_memory - a registered Forgetful, MERGED into whatever .claude.json is there.
+# Merged rather than written, so the call order of with_serena/with_memory cannot
+# silently decide which pillar the sandbox has.
+with_memory() {
+  mkdir -p "$HOME_DIR"
+  python3 - "$HOME_DIR/.claude.json" <<'PY'
+import json, os, sys
+p = sys.argv[1]
+d = {}
+if os.path.exists(p):
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except Exception:
+        d = {}
+if not isinstance(d, dict):
+    d = {}
+d.setdefault("mcpServers", {})["forgetful"] = {"command": "forgetful-mcp"}
+json.dump(d, open(p, "w", encoding="utf-8"), indent=2)
+PY
+}
+
+# with_memory_connector - Forgetful reached as a claude.ai CONNECTOR, which is a
+# FOURTH registration route: it never lands under mcpServers, only in this
+# historical list. This is the shape of the maintainer's own machine, where
+# mcpServers is empty and every server is a connector - the gate refused it.
+# The name is lower-case on purpose: the tool prefix keeps the case of whatever
+# is recorded here, so "claude.ai forgetful" is mcp__claude_ai_forgetful__.
+with_memory_connector() {
+  mkdir -p "$HOME_DIR"
+  python3 - "$HOME_DIR/.claude.json" <<'PY'
+import json, os, sys
+p = sys.argv[1]
+d = {}
+if os.path.exists(p):
+    try:
+        d = json.load(open(p, encoding="utf-8"))
+    except Exception:
+        d = {}
+if not isinstance(d, dict):
+    d = {}
+d["claudeAiMcpEverConnected"] = ["claude.ai Gmail", "claude.ai forgetful"]
+json.dump(d, open(p, "w", encoding="utf-8"), indent=2)
+PY
+}
+
+# with_servers - BOTH pillars. This is the only state a normal install runs in now,
+# so it is what every case that expects a completed install must set up. A case that
+# calls only with_serena is deliberately testing the memory gate.
+with_servers() { with_serena; with_memory; }
+
+# clone_repo DIR - the installer and its templates, in a sandbox directory, so a
+# case can run install.sh with a DIFFERENT $PWD without writing into the real repo.
+# The project-scope .mcp.json cases need this: $PWD is where install.sh looks for
+# one, and the real repo is not a scratch directory.
+clone_repo() {
+  mkdir -p "$1"
+  ( cd "$REPO" && tar -cf - install.sh install-lib.py templates ) | ( cd "$1" && tar xf - )
+}
+
 # keys LOG key...  — stage keystrokes for the next run of LOG
 keys()   { local log="$1"; shift; printf '%s\n' "$@" > "$LOGS/$log.in"; }
 nokeys() { : > "$LOGS/$1.in"; }
@@ -102,10 +161,15 @@ mkdir -p "$SANDBOX" "$LOGS"
 # The happy-path keystrokes for a fresh interactive install:
 #   banner · discover · menu:5 · tracker:4(local-markdown) · back · i
 #   serena route(default) · serena pause
-#   strong · fast · placeholder pause
+#   strong · fast · memory-READ · memory-WRITE · placeholder pause
 #   hooks-warning pause · "Write these?" y
 #   <workspace> · tracker pause
-FULL=( '' '' '5' '4' '' 'i' '' '' '' '' '' '' 'y' "$SANDBOX/ws" '' )
+#
+# The two memory entries are the #105 change. They are Enter, and Enter now TAKES
+# the suggested tool names - it used to delete the grant. Every array below that
+# drives a completed install carries them; leaving them out does not "skip" the
+# prompts, it feeds the following answer into them and shifts everything after.
+FULL=( '' '' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" '' )
 
 WANT="$*"
 want() { [ -z "$WANT" ] && return 0; case " $WANT " in *" $1 "*) return 0;; esac; return 1; }
@@ -239,7 +303,7 @@ fi
 # ---------------------------------------------------------------- 3 serena gate passes
 if want 3; then
 banner "3 · Serena gate PASSES (mcpServers.serena present)"
-fresh_env t3; with_serena; keys t3 "${FULL[@]}"; run install t3
+fresh_env t3; with_servers; keys t3 "${FULL[@]}"; run install t3
 notinlog t3 "Serena is not set up" "gate does not fire"
 inlog t3 "which tool names" "reaches the Serena route stage"
 inlog t3 "mcpServers.serena" "shows the evidence it found"
@@ -249,7 +313,7 @@ fi
 # ---------------------------------------------------------------- 4 tracker gate
 if want 4; then
 banner "4 · tracker is a required choice"
-fresh_env t4; with_serena
+fresh_env t4; with_servers
 keys t4 '' '' 'i' '' 'q'
 run install t4
 inlog t4 "No tracker is selected" "refuses i while tracker is none"
@@ -258,8 +322,8 @@ notinlog t4 "which tool names" "did NOT proceed past selection"
 yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "nothing written"
 
 banner "4b · the explicit 'later' escape"
-fresh_env t4b; with_serena
-keys t4b '' '' 'i' 'later' '' '' '' '' '' '' 'y' ''
+fresh_env t4b; with_servers
+keys t4b '' '' 'i' 'later' '' '' '' '' '' '' '' '' 'y' ''
 run install t4b
 inlog t4b "which tool names" "'later' lets the install proceed"
 inlog t4b "no tracker selected" "tracker stage still warns"
@@ -269,8 +333,8 @@ fi
 # ---------------------------------------------------------------- 5 confirm NO
 if want 5; then
 banner "5 · confirm stage — answering no"
-fresh_env t5; with_serena
-keys t5 '' '' '5' '4' '' 'i' '' '' '' '' '' '' 'n'
+fresh_env t5; with_servers
+keys t5 '' '' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'n'
 run install t5
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exits 0"
 inlog t5 "Nothing was written" "says nothing was written"
@@ -286,8 +350,8 @@ fi
 # ---------------------------------------------------------------- 6/7 confirm YES
 if want 6 || want 7 || want 9 || want 10; then
 banner "6 · confirm stage — answering yes (full install)"
-fresh_env t6; with_serena
-keys t6 '' '' 'r' '5' '4' '' 'i' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
+fresh_env t6; with_servers
+keys t6 '' '' 'r' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
 run install t6
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exits 0"
 for f in commands/start-ticket.md agents/ticket-analyzer.md hooks/block-dangerous-git.sh \
@@ -351,7 +415,7 @@ fi
 # ---------------------------------------------------------------- 11 remove
 if want 11; then
 banner "11 · remove reverses a normal install"
-fresh_env t11; with_serena
+fresh_env t11; with_servers
 mkdir -p "$CH"
 printf '{\n  "model": "my-own-model",\n  "verbose": true\n}\n' > "$CH/settings.json"
 keys t11 "${FULL[@]}"; run install t11
@@ -374,12 +438,12 @@ fi
 # ---------------------------------------------------------------- 8 adoption
 if want 8; then
 banner "8 · adopt a hand-install"
-fresh_env t8; with_serena
+fresh_env t8; with_servers
 mkdir -p "$CH/commands"
 cp "$REPO/templates/commands/end-of-day.md" "$CH/commands/end-of-day.md"
 BYHAND=$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/commands/end-of-day.md")
 # adopt_screen inserts: confirm(y) + pause, between the hooks pause and "Write these?"
-keys t8 '' '' '5' '4' '' 'i' '' '' '' '' '' '' 'y' '' 'y' "$SANDBOX/ws" ''
+keys t8 '' '' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' '' 'y' "$SANDBOX/ws" ''
 run install t8
 inlog t8 "Files already here that this script did not install" "offers adoption"
 inlog t8 "command:end-of-day" "names the foreign unit"
@@ -399,10 +463,10 @@ yn "$([ -f "$CH/commands/end-of-day.md" ] && echo 0 || echo 1)" "ADOPTED FILE SU
 yn "$([ ! -f "$CH/commands/start-ticket.md" ] && echo 0 || echo 1)" "non-adopted files still removed"
 
 banner "8b · adoption REFUSED leaves it foreign"
-fresh_env t8b; with_serena
+fresh_env t8b; with_servers
 mkdir -p "$CH/commands"
 cp "$REPO/templates/commands/end-of-day.md" "$CH/commands/end-of-day.md"
-keys t8b '' '' '5' '4' '' 'i' '' '' '' '' '' '' 'n' '' 'y' "$SANDBOX/ws" ''
+keys t8b '' '' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'n' '' 'y' "$SANDBOX/ws" ''
 run install t8b
 python3 - "$CH/.playbook-install.json" <<'PY'
 import json,sys
@@ -418,7 +482,7 @@ fi
 # an empty answer is legal at every menu here.
 if want 14; then
 banner "14 - install refuses when stdin is not a terminal"
-fresh_env t14; with_serena
+fresh_env t14; with_servers
 run_raw install t14
 yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "exits non-zero (rc=$RC)"
 yn "$([ "$(bytes t14)" -lt 20000 ] && echo 0 || echo 1)" "no runaway output ($(bytes t14) bytes)"
@@ -431,7 +495,7 @@ fi
 # changed" - a decline the user never made. Silence must not answer for them.
 if want 15; then
 banner "15 - remove refuses when stdin is not a terminal"
-fresh_env t15; with_serena
+fresh_env t15; with_servers
 keys t15 "${FULL[@]}"
 run install t15
 BEFORE=$(n_files)
@@ -457,7 +521,7 @@ fi
 # point, since the bug it covers only exists on one of them.
 if want 16; then
 banner "16 · a clone and a CLAUDE_HOME with an apostrophe in the path"
-fresh_env t16; with_serena
+fresh_env t16; with_servers
 APOS_REPO="$SANDBOX/t16/o'brien clone"
 APOS_HOME="$SANDBOX/t16/o'brien home/.claude"
 mkdir -p "$APOS_REPO" "$APOS_HOME"
@@ -472,6 +536,235 @@ notinlog t16 "discovery failed" "discovery does not fail"
 notinlog t16 "can't open file" "python opened every path it was handed"
 APOS_N=$(find "$APOS_HOME" -type f 2>/dev/null | wc -l | tr -d ' ')
 yn "$([ "$APOS_N" -gt 0 ] && echo 0 || echo 1)" "wrote into the apostrophe CLAUDE_HOME ($APOS_N files)"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# M1-M6 · issue #105 — the memory gate, and the prompt where Enter used to delete
+# ══════════════════════════════════════════════════════════════════════════
+# Each case names the failure it catches. The bug: placeholder_stage asked for
+# memory tool names with no suggested answer under a stage whose opening line says
+# "Press Enter at any question to take the suggested answer", so Enter deleted the
+# grant from 13 agents and the install reported success anyway.
+
+# run_in DIR MODE LOG — run() with a different $PWD. The project-scope .mcp.json
+# case needs one, and it must never be the real repo.
+run_in() {
+  local dir="$1" mode="$2" log="$3"
+  [ -f "$LOGS/$log.in" ] || : > "$LOGS/$log.in"
+  ( cd "$dir" && HOME="$HOME_DIR" CLAUDE_HOME="$CH" PLAYBOOK_SCRIPTED_INPUT=1 \
+    bash ./install.sh "$mode" ) \
+    < "$LOGS/$log.in" > "$LOGS/$log.out" 2> "$LOGS/$log.err"
+  RC=$?
+  return 0
+}
+
+# agents_with_memory — the agent FILENAMES whose template declares a memory tool.
+# Derived from the tree on every run. The number was written down by hand twice in
+# this repo and was wrong both times.
+agents_with_memory() {
+  ( cd "$REPO" && grep -lE '^tools:.*<memory-(read|write)-tools>' templates/agents/*.md ) \
+    | sed 's#.*/##'
+}
+
+# ---------------------------------------------------------------- M1
+# Catches: the gate silently regressing to a note(), which is what it was before.
+if want M1; then
+banner "M1 · the memory gate FIRES (Serena present, no memory server)"
+fresh_env m1; with_serena; keys m1 "${FULL[@]}"; run install m1
+yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "exits non-zero (rc=$RC)"
+inlog m1 "No memory server is set up on this machine" "prints the refusal"
+inlog m1 "mcpServers.forgetful in ~/.claude.json" "prints route A"
+inlog m1 "workspace .mcp.json" "prints route B"
+inlog m1 "claude.ai connector" "prints route C"
+inlog m1 "/mcp in Claude Code" "says how to check it worked"
+inlog m1 "docs/shared/03-setup.md" "points at the doc rather than copying it"
+notinlog m1 "Serena is not set up" "it is the MEMORY gate that fired, not Serena's"
+yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "CLAUDE_HOME still empty ($(n_files) files)"
+M1LAST="$(grep -v '^[[:space:]]*$' "$LOGS/m1.out" | tail -1)"
+case "$M1LAST" in *".claude/plugins"*) pass "the steps are the LAST thing on screen" ;;
+  *) fail "the steps are the LAST thing on screen (last line: $M1LAST)" ;; esac
+fi
+
+# ---------------------------------------------------------------- M2
+# Catches: project-scope, plugin and connector registrations still reading as
+# absent. The old server_registered read ~/.claude.json and nothing else, while
+# serena_detect had been reading three locations all along; the connector list is
+# the fourth, which NEITHER of them could see.
+if want M2; then
+banner "M2 · the memory gate PASSES and shows its evidence — all four locations"
+
+banner "M2a · registered globally in ~/.claude.json"
+fresh_env m2a; with_servers; keys m2a "${FULL[@]}"; run install m2a
+notinlog m2a "No memory server is set up" "gate does not fire"
+inlog m2a "found a memory server (forgetful)" "names the server it found"
+inlog m2a "mcpServers.forgetful" "shows the evidence"
+inlog m2a "Install complete" "runs to completion"
+
+banner "M2b · registered in the PROJECT .mcp.json"
+fresh_env m2b; with_serena
+M2DIR="$SANDBOX/m2b/clone"; clone_repo "$M2DIR"
+cat > "$M2DIR/.mcp.json" <<'JSON'
+{ "mcpServers": { "forgetful": { "command": "forgetful-mcp" } } }
+JSON
+keys m2b "${FULL[@]}"; run_in "$M2DIR" install m2b
+notinlog m2b "No memory server is set up" "gate does not fire"
+inlog m2b ".mcp.json" "names the file it found it in"
+inlog m2b "Install complete" "runs to completion"
+
+banner "M2c · installed as a PLUGIN, with no mcpServers entry at all"
+fresh_env m2c; with_serena
+mkdir -p "$HOME_DIR/.claude/plugins/cache/forgetful-mcp"
+printf '{}\n' > "$HOME_DIR/.claude/plugins/cache/forgetful-mcp/plugin.json"
+keys m2c "${FULL[@]}"; run install m2c
+notinlog m2c "No memory server is set up" "gate does not fire"
+inlog m2c "forgetful plugin files" "shows the evidence"
+inlog m2c "Install complete" "runs to completion"
+
+# M2d catches: the gate refusing the maintainer's OWN machine. mcpServers there is
+# empty and every server is reached as a claude.ai connector, a route _server_scan
+# could not see - so the gate fired on a machine that has a memory server and the
+# installer could not be run at all. Second half of the same gap: a connector's
+# tools are mcp__claude_ai_<name>__*, so detection alone would still have pre-filled
+# names that do not resolve, which is the exact failure #105 exists to remove.
+banner "M2d · reached as a claude.ai CONNECTOR, with mcpServers empty"
+fresh_env m2d; with_serena; with_memory_connector
+keys m2d "${FULL[@]}"; run install m2d
+notinlog m2d "No memory server is set up" "gate does not fire"
+inlog m2d "claude.ai forgetful" "names the connector it found"
+inlog m2d "ever connected" "says the list is historical, not a live connection"
+inlog m2d "Install complete" "runs to completion"
+M2D_TOOLS="$(sed -n '/^tools:/p' "$CH/agents/context-gatherer.md" 2>/dev/null)"
+case "$M2D_TOOLS" in
+  *mcp__claude_ai_forgetful__execute_forgetful_tool*)
+    pass "the agents carry the CONNECTOR-prefixed tool names" ;;
+  *) fail "the agents carry the CONNECTOR-prefixed tool names (tools: $M2D_TOOLS)" ;;
+esac
+case "$M2D_TOOLS" in
+  *mcp__forgetful__*) fail "the bare mcp__forgetful__ form is NOT used for a connector" ;;
+  *) pass "the bare mcp__forgetful__ form is NOT used for a connector" ;;
+esac
+# The agents and the memory-schema skill have to agree. The Forgetful variant
+# hardcodes the REGISTERED prefix, so shipping it unrewritten next to
+# connector-prefixed agents hands the model a call shape that does not resolve.
+M2D_SKILL="$CH/skills/memory-schema/SKILL.md"
+if [ -f "$M2D_SKILL" ]; then
+  if grep -qF 'mcp__claude_ai_forgetful__execute_forgetful_tool' "$M2D_SKILL"; then
+    pass "memory-schema SKILL.md carries the connector prefix too"
+  else
+    fail "memory-schema SKILL.md carries the connector prefix too"
+  fi
+  if grep -qF 'mcp__forgetful__' "$M2D_SKILL"; then
+    fail "no registered-form prefix left in the memory-schema skill"
+  else
+    pass "no registered-form prefix left in the memory-schema skill"
+  fi
+else
+  fail "memory-schema SKILL.md is installed (not found at $M2D_SKILL)"
+fi
+fi
+
+# ---------------------------------------------------------------- M8
+# Catches: the gate testing the LENGTH OF THE EVIDENCE LIST instead of what was
+# found. _server_scan appends an evidence row for an unparseable ~/.claude.json,
+# so a corrupt config counted as a reason to continue: the gate passed on a machine
+# with no memory server, placeholder_stage announced "found a memory server ()"
+# with an empty name and nothing to suggest, and the run died several unanswerable
+# prompts later. Serena is supplied as a PLUGIN here so its own gate is satisfied
+# and it is provably the MEMORY gate under test.
+if want M8; then
+banner "M8 · a corrupt ~/.claude.json does not open the memory gate"
+fresh_env m8
+mkdir -p "$HOME_DIR/.claude/plugins/cache/serena"
+printf '{}
+' > "$HOME_DIR/.claude/plugins/cache/serena/plugin.json"
+printf '{ this is not json
+' > "$HOME_DIR/.claude.json"
+keys m8 "${FULL[@]}"; run install m8
+yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "exits non-zero (rc=$RC)"
+inlog m8 "No memory server is set up on this machine" "the memory gate fires"
+notinlog m8 "Serena is not set up" "it is the MEMORY gate that fired, not Serena's"
+notinlog m8 "found a memory server" "it never claims to have found one"
+yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "CLAUDE_HOME still empty ($(n_files) files)"
+fi
+
+# ---------------------------------------------------------------- M3
+# Catches: THE regression this issue is about. Enter at both memory prompts must
+# leave the tools IN the agents.
+if want M3; then
+banner "M3 · Enter FILLS the memory tools — it does not delete them"
+# The `e` preset — everything — so this covers every memory-declaring agent the
+# installer can place, not just the handful in the default selection. #105's "done
+# when" asks for the tools present in all 13 that declare them; two of those 13,
+# layer-specialist and slice-layer-specialist, are in NEVER_INSTALL because they are
+# generated per repo, so 11 is the whole of what any install can produce.
+fresh_env m3; with_servers
+keys m3 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
+run install m3
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exits 0"
+M3_MISSING=""; M3_N=0
+while IFS= read -r a; do
+  [ -n "$a" ] || continue
+  [ -f "$CH/agents/$a" ] || continue
+  M3_N=$((M3_N + 1))
+  grep -qF 'mcp__forgetful__execute_forgetful_tool' "$CH/agents/$a" \
+    || M3_MISSING="$M3_MISSING $a"
+done < <(agents_with_memory)
+yn "$([ "$M3_N" -ge 11 ] && echo 0 || echo 1)" "$M3_N memory-declaring agents installed (every one that is installable)"
+yn "$([ -z "$M3_MISSING" ] && echo 0 || echo 1)" "every one of them carries the tools (missing:${M3_MISSING:- none})"
+notinlog m3 "take the blank out instead" "the old delete-by-default prompt is gone"
+# Only the tools: line. A `<memory-read-tools>` in a BODY is prose that is meant to
+# survive — apply_placeholders rewrites name:/model:/tools: and nothing else.
+if grep -rqE '^tools:.*<memory-(read|write)-tools>' "$CH/agents" 2>/dev/null; then
+  fail "no memory placeholder left unfilled in any tools: line"
+else
+  pass "no memory placeholder left unfilled in any tools: line"
+fi
+inlog m3 "Enter never removes a tool grant" "the stage says Enter cannot delete"
+fi
+
+# ---------------------------------------------------------------- M4 / M6
+# M4 catches: replacing a silent default with a silent impossibility — a deliberate
+#             delete must still be available, and must be reported.
+# M6 catches: the green tick over a memory-less install. verify_stage's original
+#             check greps for blanks STILL THERE, and a deleted token is not one.
+if want M4 || want M6; then
+banner "M4 · a deliberate delete is still possible, and is REPORTED"
+fresh_env m4; with_servers
+#        banner discover  5    4   back  i  route pause strong fast  READ  ok WRITE ok  pause hooks  y   ws   pause
+keys m4     ''    ''     '5'  '4'  ''  'i'  ''    ''    ''    ''    '-'  'y'  '-' 'y'   ''    ''   'y' "$SANDBOX/ws" ''
+run install m4
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exits 0 (rc=$RC)"
+inlog m4 "Removing that grant means" "says what it costs BEFORE accepting"
+inlog m4 "context-gatherer" "names the agents that lose it"
+inlog m4 "Remove it anyway?" "asks a second time rather than taking it on one key"
+if grep -qF 'mcp__forgetful' "$CH/agents/context-gatherer.md" 2>/dev/null; then
+  fail "the grant really was removed"; else pass "the grant really was removed"; fi
+inlog m4 "You removed <memory-read-tools>" "leaves a TODO naming what was lost"
+
+banner "M6 · verify REPORTS the missing tool grants (same run)"
+inlog m4 "Did the tools actually make it into the agents?" "verify asks the presence question"
+inlog m4 "NO memory" "verify names memory as missing"
+notinlog m4 "yes — nothing was silently dropped" "verify does NOT tick this install off"
+fi
+
+# ---------------------------------------------------------------- M5
+# Catches: the install shipping a placeholder skill to a user whose exact server
+# this repo already documents — the filled-in variant shipped beside it, unused,
+# and the `mv` its own header asks for was never performed by anything.
+if want M5; then
+banner "M5 · the Forgetful memory-schema is the one that loads"
+fresh_env m5; with_servers
+keys m5 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
+run install m5
+M5SK="$CH/skills/memory-schema/SKILL.md"
+yn "$([ -f "$M5SK" ] && echo 0 || echo 1)" "memory-schema/SKILL.md is installed"
+if grep -qF 'Memory schema — Forgetful' "$M5SK" 2>/dev/null; then
+  pass "it is the FILLED-IN Forgetful variant"; else fail "it is the FILLED-IN Forgetful variant"; fi
+if grep -qE '<[a-z][a-z-]*-tool>' "$M5SK" 2>/dev/null; then
+  fail "no <...> placeholder left in it"; else pass "no <...> placeholder left in it"; fi
+yn "$([ ! -f "$CH/skills/memory-schema/forgetful.SKILL.md" ] && echo 0 || echo 1)" \
+   "the unused duplicate is gone"
+inlog m5 "loaded the Forgetful variant" "the installer says it did the swap"
 fi
 
 printf '\n================================\n'

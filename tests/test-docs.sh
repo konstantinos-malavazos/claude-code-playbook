@@ -229,6 +229,11 @@ agent_files = [f for f in sorted(glob.glob(os.path.join(REPO, "templates/agents/
                if os.path.basename(f) != "README.md"]
 AGENTS = len(agent_files)
 SERENA = len([f for f in agent_files if "find_symbol" in R.read(os.path.relpath(f, REPO))])
+# M7.2 — the memory-declaring subset, derived the same way and by the exact command
+# #105's "Done when" pins:
+#   grep -lE '<memory-(read|write)-tools>' templates/agents/*.md | grep -v README.md | wc -l
+MEMTOK = re.compile(r"<memory-(?:read|write)-tools>")
+MEMORY = len([f for f in agent_files if MEMTOK.search(R.read(os.path.relpath(f, REPO)))])
 
 # The installer's own exclusion list, so a hook added to SKIP_HOOKS moves this
 # number without anyone editing this file.
@@ -238,7 +243,8 @@ skip = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
 hook_files = [os.path.basename(f) for f in sorted(glob.glob(os.path.join(REPO, "templates/hooks/*.sh")))]
 HOOKS = len([f for f in hook_files if f not in skip])
 
-print("DERIVED agents=%d serena=%d hooks=%d skip=%s" % (AGENTS, SERENA, HOOKS, ",".join(sorted(skip))))
+print("DERIVED agents=%d serena=%d memory=%d hooks=%d skip=%s"
+      % (AGENTS, SERENA, MEMORY, HOOKS, ",".join(sorted(skip))))
 
 WORDS = {"one":1,"two":2,"three":3,"four":4,"five":5,"six":6,"seven":7,"eight":8,
          "nine":9,"ten":10,"eleven":11,"twelve":12,"thirteen":13,"fourteen":14,
@@ -259,6 +265,10 @@ OF_AGENTS = re.compile(r"\b(%s) of (?:the|its) (%s) agents\b" % (NUM, NUM), re.I
 # found spelled out in words: "seventeen agents that refuse to run".
 BARE_AGENTS = re.compile(r"\b(%s) agents\b" % NUM, re.I)
 INVENTORY = re.compile(r"Serena|refuse to run", re.I)
+# A count of agents written in the same breath as MEMORY is a claim about the
+# memory-declaring subset, not the Serena one. Without this the two subsets share a
+# regex and any true memory count reads as a wrong Serena count.
+MEMCLAIM = re.compile(r"memory", re.I)
 # A count with a qualifier between it and the noun ("four blocking hooks") is a claim
 # about a subset, not the total, and deliberately does not match.
 HOOKS_RE = re.compile(r"\b(%s) (?:guardrail )?hooks\b" % NUM, re.I)
@@ -273,19 +283,27 @@ SOURCES = [f for f in R.tracked()
 bad, seen = [], 0
 for rel in SOURCES:
     for n, line in enumerate(R.strip_fences(R.read(rel)).splitlines(), 1):
+        # Which subset is this line claiming about? A line that says "memory" is
+        # claiming MEMORY; anything else with this shape is claiming SERENA.
+        mem = bool(MEMCLAIM.search(line))
+        subset, what = (MEMORY, "memory") if mem else (SERENA, "Serena")
         for m in OF_AGENTS.finditer(line):
             seen += 1
             a, b = val(m.group(1)), val(m.group(2))
-            if (a, b) != (SERENA, AGENTS):
-                bad.append("%s:%d  \"%s\" — the tree says %d of the %d agents"
-                           % (rel, n, m.group(0), SERENA, AGENTS))
+            if (a, b) != (subset, AGENTS):
+                bad.append("%s:%d  \"%s\" — the tree says %d of the %d agents declare %s tools"
+                           % (rel, n, m.group(0), subset, AGENTS, what))
+        # The INVENTORY gate stays exactly as it was: a bare "N agents" is almost
+        # always a flow's dispatch count ("5-7 agents", "three agents") and says
+        # nothing about the inventory. `mem` only chooses WHICH subset an inventory
+        # claim is about — it does not make a line into one.
         if INVENTORY.search(line) and not OF_AGENTS.search(line):
             for m in BARE_AGENTS.finditer(line):
                 seen += 1
                 v = val(m.group(1))
-                if v != SERENA:
-                    bad.append("%s:%d  \"%s\" — %d agents declare Serena tools, not %d"
-                               % (rel, n, m.group(0), SERENA, v))
+                if v != subset:
+                    bad.append("%s:%d  \"%s\" — %d agents declare %s tools, not %d"
+                               % (rel, n, m.group(0), subset, what, v))
         for m in HOOKS_RE.finditer(line):
             seen += 1
             v = val(m.group(1))
@@ -316,6 +334,64 @@ if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
   while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
 else
   pass "every written-down count matches the tree"
+fi
+fi
+
+# ---------------------------------------------------------------- M7
+# Issue #105 item (h). The gate and the docs have to agree, and they lived five
+# files apart: 02-prerequisites.md listed a memory server under **Required** while
+# 03-setup.md told you to "delete rather than fill a <memory-read-tools> ... you
+# have no server for". Fixing one alone just leaves the contradiction pointing the
+# other way, which is why #109 landed everything else it found and left this open.
+#
+# Catches: (h) being skipped or half-done, and the gate being removed while the
+# docs still claim it is there.
+if want M7; then
+banner "M7 · the memory gate and the docs agree"
+
+# Positive control first. A check that greps for a gate that is no longer called
+# would pass by finding neither half of the contradiction.
+if grep -q '^memory_gate()' "$REPO/install.sh" && grep -qE '^  memory_gate$' "$REPO/install.sh"; then
+  pass "install.sh defines memory_gate AND calls it"
+  M7_GATED=1
+else
+  fail "install.sh does not both define and call memory_gate — the rest of M7 is vacuous"
+  M7_GATED=0
+fi
+
+# The instruction that assumes memory is optional. Only a real instruction counts:
+# a line SAYING the old advice was wrong is the fix, not the bug, so the pattern
+# is the imperative itself.
+M7_DEL=$(grep -rnE 'Delete rather than fill a?n? *`?<memory-(read|write)-tools>' \
+           "$REPO/docs" "$REPO/README.md" "$REPO/templates" 2>/dev/null || true)
+if [ "$M7_GATED" = "1" ] && [ -n "$M7_DEL" ]; then
+  fail "a doc still says to delete the memory placeholders while install.sh gates on a server:"
+  printf '%s\n' "$M7_DEL" | sed 's/^/        /'
+else
+  pass "no doc tells the reader to delete the memory placeholders"
+fi
+
+# And the other half of (h): the Required table has to still say Required.
+if grep -qE '^\| \*\*A semantic-memory MCP server\*\*' "$REPO/docs/shared/02-prerequisites.md"; then
+  pass "02-prerequisites.md still lists a memory server under Required"
+else
+  fail "02-prerequisites.md no longer lists a memory server under Required"
+fi
+
+# M7.2 — the agent count, by the exact command #105's "Done when" pins. D-B does
+# the comparing; this asserts the derivation itself is not silently empty, which is
+# how a count check passes while pointing at nothing.
+# Globbed from $REPO rather than `cd "$REPO" && grep`: that spelling is
+# `A && B | C || true`, which shellcheck flags as SC2015 because the `|| true`
+# also catches a failing `cd`. The paths come out absolute instead of relative,
+# which the README filter and the count below do not care about.
+M7_N=$(grep -lE '<memory-(read|write)-tools>' "$REPO"/templates/agents/*.md \
+         | grep -vc 'README.md$' || true)
+M7_DERIVED=$(sed -n 's/^DERIVED .*memory=\([0-9]*\).*/\1/p' "$REPO/tests/.docs-out" 2>/dev/null)
+if [ -n "$M7_DERIVED" ] && [ "$M7_N" = "$M7_DERIVED" ]; then
+  pass "the memory-agent count derives to $M7_N by both routes"
+else
+  fail "memory-agent count disagrees: the pinned command says $M7_N, D-B derived '${M7_DERIVED:-nothing}' (run D-B first)"
 fi
 fi
 

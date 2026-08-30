@@ -133,13 +133,32 @@ The templates ship with **`mcp__serena__`**. On Route A, search-and-replace
 2. Register it as a **global** server in `~/.claude.json`
    ([`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet);
    the snippet ships a `tracker` entry too — delete it if you don't run one).
+   A project-scoped `.mcp.json` entry and a plugin install both work as well, and so does
+   connecting it as a **claude.ai connector** — that last route writes nothing to
+   `mcpServers` at all, and the installer reads the connector list to find it.
 3. Verify: create one test memory, then query it by meaning and confirm it comes back.
-4. **Swap the placeholder memory skill for the filled-in one.**
+4. **Note the tool names now — you will be asked for them.** Forgetful exposes a wrapper
+   trio and nothing per-operation, so the same three names answer *both* the read and the
+   write question: `mcp__forgetful__execute_forgetful_tool`,
+   `mcp__forgetful__discover_forgetful_tools`, `mcp__forgetful__how_to_use_forgetful_tool`.
+   `install.sh` offers exactly these pre-filled. There is no `query_memory` tool —
+   that is a `tool_name` *argument* to `execute_forgetful_tool`.
+
+   **The prefix depends on how you registered it.** The three names above are the
+   registered form. Reached as a claude.ai connector the *same three tools* are named
+   `mcp__claude_ai_<connector name>__…` instead — punctuation and spaces become
+   underscores and the capitalisation is the connector's own, so a connector listed as
+   `claude.ai forgetful` gives `mcp__claude_ai_forgetful__execute_forgetful_tool`.
+   `install.sh` derives this and pre-fills the matching form; if you are filling the
+   blanks by hand, run `/mcp` and copy the names it shows rather than assuming.
+5. **Swap the placeholder memory skill for the filled-in one.**
    `templates/skills/memory-schema/` ships two files: `SKILL.md`, a blank you fill in for
    whatever server you run, and `forgetful.SKILL.md`, already filled in for Forgetful. If
    you run Forgetful, `mv forgetful.SKILL.md SKILL.md` in the **installed** skill
    directory. Skip this and Claude loads the blank and invents call shapes — see
    [05-forgetful.md](05-forgetful.md).
+   **`install.sh` now does this for you** when it detects Forgetful; this step is for the
+   hand-install path, and for anyone who wants to check it happened.
 
 ## Step 4 — Lay down the CLAUDE.md layers
 
@@ -233,9 +252,37 @@ grep -rnE '^(name|model|tools):.*<[a-z][a-z-]*>' ~/.claude/agents/ ~/.claude/ski
 ```
 
 Expect no output. `<TICKET-ID>` and `<workspace>` inside a `description:` or a body are
-meant to stay, because the grep only reads those three keys. Delete rather than fill a
-`<memory-read-tools>` or `<tracker-read-tools>` you have no server for. Full table:
+meant to stay, because the grep only reads those three keys.
+
+**Fill the memory placeholders in — do not delete them.** A memory server is required
+([02-prerequisites.md](02-prerequisites.md)) and `install.sh` refuses to run without one, so
+"I have no memory server" is not a state this playbook supports. Running **Forgetful**, the
+answer to both `<memory-read-tools>` and `<memory-write-tools>` is its wrapper trio (step 3
+above). Running **something else**, fill them with your own server's tool names — `/mcp` in
+Claude Code lists them. Deleting them leaves the agents running, looking right, and
+remembering nothing.
+
+`<tracker-read-tools>` is the one placeholder still legitimately deleted, and only when your
+tracker adapter drives a CLI instead of an MCP server: the GitHub adapter is `gh`, so it
+needs none. Full table:
 [`../../templates/agents/README.md`](../../templates/agents/README.md#an-unfilled-placeholder-is-not-an-error).
+
+> **The grep above is only half the check.** It finds blanks that are *still there*, and a
+> deleted token is not a remaining token — which is exactly how an install with no memory
+> tools used to report success. The installer's verify step now checks the other half, that
+> the tools are actually *present*. By hand, from a clone of this repo, with `MEM` set to
+> any one tool name you filled in:
+>
+> ```bash
+> MEM=mcp__forgetful__execute_forgetful_tool
+> for t in $(grep -lE '<memory-(read|write)-tools>' templates/agents/*.md); do
+>   a=~/.claude/agents/$(basename "$t")
+>   [ -f "$a" ] && grep -q "$MEM" "$a" || echo "MISSING memory tools: $a"
+> done
+> ```
+>
+> Expect no output. Anything listed is an installed agent that was supposed to reach memory
+> and cannot.
 
 **The three `*-massive` commands are team-only, come later, and only together.**
 `/start-massive`, `/resume-massive` and `/build-chart-ticket` are one flow for tickets too

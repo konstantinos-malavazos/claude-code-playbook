@@ -737,9 +737,14 @@ SERENA_PREFIX=""
 # instructions off the screen at the exact moment the user needs to read them.
 serena_gate() {
   pb serena-detect "$HOME" "$PWD" > "$WORK/serena.json"
-  local n
-  n=$(py -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["evidence"]))' "$WORK/serena.json")
-  [[ "$n" -gt 0 ]] && return 0
+  # Gate on the FINDING, not on the length of the evidence list. _server_scan
+  # appends an evidence row for an unparseable ~/.claude.json, and counting rows
+  # read that row as a reason to continue — a corrupt config file let the gate
+  # through on a machine with no Serena at all. `route` cannot lie that way: it is
+  # only ever set by a real registration or a real plugin directory.
+  local route
+  route=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["route"] or "")' "$WORK/serena.json")
+  [[ -n "$route" ]] && return 0
 
   printf '\n  %s%s✗ Serena is not set up on this machine.%s\n\n' "$BOLD" "$RED" "$RESET"
   printf '  %sNothing has been installed and nothing has been changed.%s\n\n' "$BOLD" "$RESET"
@@ -771,6 +776,95 @@ serena_gate() {
   printf '    docs/shared/03-setup.md   (step 2)\n\n'
   printf '  %sPlaces this installer looked: %s/.claude.json, %s/.mcp.json,\n' "$DIM" "$HOME" "$PWD"
   printf '  and %s/.claude/plugins%s\n\n' "$HOME" "$RESET"
+  exit 1
+}
+
+# agents_declaring TOKEN — the agent names whose tools: line declares TOKEN.
+# Derived from the template tree every time it is asked, never written down: the
+# last two counts in this repo to be typed by hand were both wrong, and #109
+# existed to remove exactly that habit.
+agents_declaring() {
+  grep -lE "^tools:.*$1" "$TEMPLATES"/agents/*.md 2>/dev/null \
+    | sed 's#.*/##; s#\.md$##' | grep -v '^README$' || true
+}
+
+# memory_gate — memory is the SECOND pillar, and it is mandatory for the same
+# reason Serena is. The difference is how it fails: an agent with no Serena tools
+# halts and says so, while an agent with no memory tools runs to completion and
+# produces nothing durable. /encode-codebase, /end-of-day, /garden-memory,
+# /test-ticket's banked recipes, charting's one-memory-per-map close and
+# /start-ticket's consolidation step all no-op in silence.
+#
+# Before this gate, no memory server meant the two memory blanks were DELETED from
+# the agents and the installer printed "nothing left unfilled" over the result.
+# That is the silent success the Serena gate exists to prevent, applied to the
+# other required pillar — see docs/shared/02-prerequisites.md, which has listed
+# both under Required all along.
+#
+# CRITICAL: this prints and then EXITS. Like serena_gate it must not route through
+# stage(), screen() or install_finish() on the way out — all three call _clear,
+# which would wipe the instructions off the screen at the exact moment they are
+# needed.
+memory_gate() {
+  pb memory-detect "$HOME" "$PWD" > "$WORK/memory.json"
+  # Gate on the server that was FOUND, not on the length of the evidence list —
+  # see serena_gate for the same correction. Counting rows was worse here: an
+  # unparseable ~/.claude.json produced one row and no server, so the gate passed,
+  # placeholder_stage then announced "found a memory server ()" with an empty name
+  # and no suggestion to offer, and the run died five unanswerable prompts later.
+  # The gate exists to stop exactly that, on exactly that machine.
+  local server
+  server=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["server"] or "")' "$WORK/memory.json")
+  [[ -n "$server" ]] && return 0
+
+  local n_mem n_all=0 f
+  n_mem=$(agents_declaring '<memory-(read|write)-tools>' | grep -c . || true)
+  for f in "$TEMPLATES"/agents/*.md; do
+    [[ -e "$f" ]] || continue
+    [[ "${f##*/}" == "README.md" ]] && continue
+    n_all=$((n_all + 1))
+  done
+
+  printf '\n  %s%s✗ No memory server is set up on this machine.%s\n\n' "$BOLD" "$RED" "$RESET"
+  printf '  %sNothing has been installed and nothing has been changed.%s\n\n' "$BOLD" "$RESET"
+  say "A semantic-memory MCP server is the second of this playbook's two pillars."
+  say "It is what makes the work compound: what one session concluded, the next"
+  say "session can look up. $n_mem of the $n_all agents declare memory tools."
+  printf '\n'
+  say "Without one, those agents do not stop and complain. They run, they look"
+  say "right, and nothing they learn is ever written down. /end-of-day and"
+  say "/garden-memory have nothing to garden, /test-ticket cannot bank a recipe,"
+  say "and every ticket starts from zero."
+  printf '\n'
+  say "Installing now would leave you with something that reports success and"
+  say "then quietly forgets everything, so the installer stops here instead."
+  printf '\n'
+  printf '  %sDo this first:%s\n\n' "$BOLD" "$RESET"
+  printf '    1. Install a semantic-memory MCP server. Forgetful is the one this\n'
+  printf '       playbook documents and fills in for, and it needs a PostgreSQL +\n'
+  printf '       pgvector backend — Docker is the easy path.\n\n'
+  printf '    2. Register it. Two routes — pick ONE:\n\n'
+  printf '       Route A: register it under mcpServers.forgetful in ~/.claude.json,\n'
+  printf '                which makes it available in every project.\n\n'
+  printf '       Route B: register it under mcpServers.forgetful in the\n'
+  printf '                workspace .mcp.json, next to Serena. See\n'
+  printf '                templates/mcp/project.mcp.json.snippet\n\n'
+  printf '       Route C: connect it as a claude.ai connector, if it offers one.\n'
+  printf '                Nothing is written to mcpServers by this route, and the\n'
+  printf '                tools are named mcp__claude_ai_<name>__* rather than\n'
+  printf '                mcp__forgetful__* — this installer reads the connector\n'
+  printf '                list and fills in the matching names.\n\n'
+  printf '    3. Check it worked: run /mcp in Claude Code. You should see the server\n'
+  printf '       listed, AND its tools. A server that is registered but not running\n'
+  printf '       is not enough.\n\n'
+  printf '    4. Run this installer again.\n\n'
+  printf '  %sRunning a memory server other than Forgetful is fine — this installer\n' "$DIM"
+  printf '  asks for your own tool names. What it will not do is continue with no\n'
+  printf '  memory server at all. The full write-up is in:%s\n' "$RESET"
+  printf '    docs/shared/02-prerequisites.md\n'
+  printf '    docs/shared/03-setup.md   (step 3)\n\n'
+  printf '  %sPlaces this installer looked: %s/.claude.json (both mcpServers and\n' "$DIM" "$HOME"
+  printf '  the claude.ai connector list), %s/.mcp.json, and %s/.claude/plugins%s\n\n' "$PWD" "$HOME" "$RESET"
   exit 1
 }
 
@@ -820,28 +914,96 @@ PY
 # Asked once per distinct token, then applied across every file installed.
 PH_SPEC="$WORK/placeholders.json"
 
-# server_registered NAME — is there an mcpServers.NAME in ~/.claude.json?
-server_registered() {
-  py - "$HOME/.claude.json" "$1" <<'PY'
+# show_evidence FILE — the "here is what I found" block, in the shape serena_stage
+# already prints it. Detection that reports its evidence is the difference between
+# a suggestion the user can check and a decision made quietly on their behalf.
+show_evidence() {
+  py - "$1" <<'PY'
 import json, sys
-try:
-    with open(sys.argv[1], encoding="utf-8") as fh:
-        raw = fh.read().strip()
-    data = json.loads(raw) if raw else {}
-    print("yes" if sys.argv[2] in (data.get("mcpServers") or {}) else "no")
-except Exception:
-    print("no")
+d = json.load(open(sys.argv[1]))
+if not d["evidence"]:
+    print("      nothing — no registration or plugin files were found")
+for e in d["evidence"]:
+    print("      %-28s ← %s" % (e["found"], e["where"]))
 PY
+  printf '\n'
+}
+
+# ask_tools VAR PROMPT DEFAULT WHAT_IT_COSTS — one tool-name answer that cannot be
+# thrown away by accident.
+#
+# This is the whole point of #105. The old prompt printed
+# "[Enter = take the blank out instead]" under a stage whose opening line is
+# "Press Enter at any question to take the suggested answer", so the key the stage
+# told you to press deleted a tool grant from 13 agents and the install still
+# reported success. Here Enter TAKES the suggestion; where there is no suggestion
+# Enter re-asks; and removing the grant is an explicit '-' that says what it costs
+# and then asks again. Deleting a tool grant is a decision, so it needs an answer.
+ask_tools() {
+  local __var="$1" __prompt="$2" __default="$3" __cost="$4" __ans __tries=0
+  while :; do
+    printf '  %s%s%s\n' "$BOLD" "$__prompt" "$RESET"
+    if [[ -n "$__default" ]]; then
+      printf '  %s[Enter = %s]%s ' "$DIM" "$__default" "$RESET"
+    else
+      printf '  %s[type the names, comma-separated, or - to remove the grant]%s ' "$DIM" "$RESET"
+    fi
+    _read __ans
+    case "$__ans" in
+      "")
+        if [[ -n "$__default" ]]; then
+          printf -v "$__var" '%s' "$__default"
+          return 0
+        fi
+        printf '\n'
+        warn "There is no suggested answer to this one, so Enter cannot take it."
+        note "Run /mcp in Claude Code to see the exact tool names, then type them."
+        note "If you really do want the grant removed, type a single -"
+        ;;
+      "-")
+        printf '\n'
+        warn "Removing that grant means: $__cost"
+        note "They will not fail or complain. They will run and do that part badly."
+        if confirm "Remove it anyway?"; then
+          printf -v "$__var" '%s' ""
+          return 0
+        fi
+        ;;
+      *)
+        printf -v "$__var" '%s' "$__ans"
+        return 0
+        ;;
+    esac
+    __tries=$((__tries + 1))
+    # _read already ends the run at EOF, so this cannot spin on a closed stdin.
+    # The cap is for the other shape: a scripted answer list that keeps feeding
+    # an answer this prompt cannot use.
+    [[ "$__tries" -ge 5 ]] && die "five unusable answers in a row — stopping rather than picking one for you"
+    printf '\n'
+  done
 }
 
 placeholder_stage() {
   stage "Filling in the blanks"
+
+  # The second pillar's gate. It lives here rather than beside serena_gate because
+  # this is the stage that needs the answer — and like that one it runs before a
+  # single byte is written.
+  memory_gate
+
   say "Some of these files ship with blanks in them, written like <strong-model-id>."
   say "Each one has to be filled in before Claude Code can use the file. A blank"
   say "left behind is either ignored without a word, or fails the first time you"
   say "use that file."
   printf '\n'
-  say "Press Enter at any question to take the suggested answer."
+  say "Press Enter at any question that has a suggested answer, to take it."
+  # NOT "every question below has one": two of them may not. A server this repo
+  # ships no tool names for, and the tracker question, are both asked with an
+  # empty suggestion, and ask_tools then says so and re-asks. Claiming otherwise
+  # here contradicts the installer's own next screen.
+  note "Enter never removes a tool grant — that is an explicit  -  and it tells"
+  note "you what it costs first. Where a question has no suggestion, it says so"
+  note "and asks again rather than taking silence for an answer."
   printf '\n'
 
   local strong fast mem_read="" mem_write="" trk_read=""
@@ -853,28 +1015,99 @@ placeholder_stage() {
   _read fast; [[ -z "$fast" ]] && fast="claude-haiku-4-5-20251001"
   printf '\n'
 
-  # The MCP tool tokens: fill only when the server is actually registered,
-  # otherwise DELETE. Deleting is the documented right move for a server you do
-  # not run — a token left in a tools: list is stripped at launch, silently.
-  if [[ "$(server_registered forgetful)" == "yes" ]]; then
-    ok "found a memory server (forgetful) registered in ~/.claude.json"
-    say "Type its exact tool names, separated by commas."
-    printf '  %sMemory tools that READ   %s[Enter = take the blank out instead]%s ' "$BOLD" "$DIM" "$RESET"
-    _read mem_read
-    printf '  %sMemory tools that WRITE  %s[Enter = take the blank out instead]%s ' "$BOLD" "$DIM" "$RESET"
-    _read mem_write
-  else
-    note "No memory server is registered here, so the two memory blanks are taken"
-    note "out of the files rather than left in. Nothing else changes."
+  # ── memory ───────────────────────────────────────────────────────────────
+  # memory_gate has already proved a server is here and left the evidence in
+  # $WORK/memory.json, so this never has to ask "do you have one".
+  local mem_server mem_suggest mem_both mem_conn mem_short mem_cost_r mem_cost_w
+  mem_server=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["server"] or "")' "$WORK/memory.json")
+  mem_suggest=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["suggest"])' "$WORK/memory.json")
+  mem_conn=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["connector"])' "$WORK/memory.json")
+  # The whole-server short form is the prefix with the trailing __ taken off, so it
+  # has to be derived from the SAME prefix as the trio. Printing mcp__forgetful at
+  # a connector user would be the wrong-name failure this gate exists to remove,
+  # just moved from the default answer into the advice next to it.
+  mem_short=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["prefix"].rstrip("_"))' "$WORK/memory.json")
+  mem_both=$(py -c 'import json,sys;print("yes" if json.load(open(sys.argv[1]))["one_tool_does_both"] else "no")' "$WORK/memory.json")
+  mem_cost_r="these agents lose their memory sweep and start every ticket from zero — $(agents_declaring '<memory-read-tools>' | tr '\n' ' ')"
+  mem_cost_w="these agents can no longer bank what they learned — $(agents_declaring '<memory-write-tools>' | tr '\n' ' ')"
+
+  ok "found a memory server ($mem_server)"
+  heading "What this installer found on your machine:"
+  show_evidence "$WORK/memory.json"
+
+  # A connector was found in a list that records what has EVER been connected, so
+  # unlike a registered server its presence is not proof it is live. Say so here
+  # rather than letting the tick above imply more than was checked.
+  if [[ -n "$mem_conn" ]]; then
+    warn "Found via the claude.ai connector list, which records what has ever been"
+    note "connected — not what is connected now. The tool names below are built"
+    note "from the connector's name ($mem_conn), which is where the"
+    note "mcp__claude_ai_ prefix comes from."
+    TODO+=("Your memory server was found in the claude.ai connector list, which is a history rather than a live roster. Run /mcp in Claude Code and confirm $mem_conn is connected AND that its tools are listed.")
+    printf '\n'
   fi
-  if [[ "$(server_registered tracker)" == "yes" ]]; then
-    ok "found a tracker server registered in ~/.claude.json"
-    say "Type its exact tool names, separated by commas."
-    printf '  %sTracker tools that READ  %s[Enter = take the blank out instead]%s ' "$BOLD" "$DIM" "$RESET"
-    _read trk_read
+
+  if [[ -n "$mem_suggest" ]]; then
+    say "Forgetful has no per-operation tools. Every read and every write dispatches"
+    say "through the same wrapper trio, so the same three names are the right answer"
+    say "to both questions below, and Enter takes them."
+    printf '\n'
+    note "A shorter answer is also accepted:  $mem_short  on its own grants"
+    note "every tool the server exposes. Verified against Claude Code v2.1.251;"
+    note "the docs do not say which version introduced it, so the three explicit"
+    note "names are the default here because they work on any version."
   else
-    note "No tracker server is registered here, so that blank is taken out of the"
-    note "files rather than left in. Nothing else changes."
+    say "This installer does not ship the tool names for $mem_server, so it cannot"
+    say "suggest them. Run /mcp in Claude Code to see the exact names, then type"
+    say "them below. Enter will not answer this one for you."
+  fi
+  printf '\n'
+
+  # §4 of #105. Several agents state their read-only-on-memory scope as being
+  # enforced "by charter and by tool grant". Against a wrapper-trio server only
+  # the charter is real, and saying so is better than shipping a split the
+  # recommended server cannot honour.
+  if [[ "$mem_both" == "yes" ]]; then
+    warn "Worth knowing before you answer: Forgetful dispatches reads AND writes"
+    note "through one tool, so granting an agent memory read also grants it write."
+    note "The read/write split in the agent files is a charter, not a tool grant."
+    TODO+=("Forgetful runs every memory operation through one tool, so the read/write split in the agent files is enforced by their instructions, not by the tool grant. Do not rely on the grant to keep an agent read-only on memory.")
+    printf '\n'
+  fi
+
+  ask_tools mem_read  "Memory tools that READ"  "$mem_suggest" "$mem_cost_r"
+  ask_tools mem_write "Memory tools that WRITE" "$mem_suggest" "$mem_cost_w"
+  [[ -z "$mem_read" ]]  && TODO+=("You removed <memory-read-tools>. These agents have no memory sweep: $(agents_declaring '<memory-read-tools>' | tr '\n' ' ')")
+  [[ -z "$mem_write" ]] && TODO+=("You removed <memory-write-tools>. These agents cannot bank what they learn: $(agents_declaring '<memory-write-tools>' | tr '\n' ' ')")
+  printf '\n'
+
+  # ── tracker ──────────────────────────────────────────────────────────────
+  # The adapter was chosen back in the selection stage, so this no longer has to
+  # ask for tracker tool names before knowing whether a tracker MCP is even
+  # wanted. The GitHub adapter drives the gh CLI and needs none: for that one
+  # deletion is the RIGHT answer, not a loss, and the installer can now say so.
+  local chosen_tracker trk_server trk_cost
+  chosen_tracker=$(sed -n 's/^tracker://p' "$SELECTED" | head -1)
+  trk_cost="these agents can no longer read a ticket from the tracker — $(agents_declaring '<tracker-read-tools>' | tr '\n' ' ')"
+
+  if [[ "$chosen_tracker" == "github" ]]; then
+    ok "your tracker adapter is github, which drives the gh CLI"
+    note "It needs no tracker MCP server, so the tracker blank is taken out of the"
+    note "files. For this adapter that is the correct answer rather than a loss."
+  else
+    pb tracker-detect "$HOME" "$PWD" > "$WORK/tracker-mcp.json"
+    trk_server=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["server"] or "")' "$WORK/tracker-mcp.json")
+    if [[ -n "$trk_server" ]]; then
+      ok "found a tracker server ($trk_server)"
+      show_evidence "$WORK/tracker-mcp.json"
+      say "Run /mcp in Claude Code to see its exact tool names, then type them."
+      ask_tools trk_read "Tracker tools that READ" "" "$trk_cost"
+      [[ -z "$trk_read" ]] && TODO+=("You removed <tracker-read-tools>. These agents cannot read a ticket: $(agents_declaring '<tracker-read-tools>' | tr '\n' ' ')")
+    else
+      note "No tracker MCP server is registered, so the tracker blank is taken out"
+      note "of the files rather than left in. Your tracker adapter may not need one."
+      TODO+=("No tracker MCP was found, so <tracker-read-tools> was removed from: $(agents_declaring '<tracker-read-tools>' | tr '\n' ' ') — if your adapter needs one, register it and re-run the installer.")
+    fi
   fi
 
   py - "$PH_SPEC" "$strong" "$fast" "$mem_read" "$mem_write" "$trk_read" <<'PY'
@@ -1200,6 +1433,8 @@ PY
   pb apply-placeholders "$PH_SPEC" > "$WORK/ph-applied.json"
   ok "filled placeholders in $(py -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["changed"]))' "$WORK/ph-applied.json") file(s)"
 
+  memory_schema_swap
+
   # ── hook wiring, filtered to the hooks actually installed ─────────────
   local hooks_installed
   hooks_installed=$(sed -n 's/^hook://p' "$SELECTED" | tr '\n' ' ')
@@ -1217,6 +1452,59 @@ PY
     done < <(py -c 'import json,sys
 for c in json.load(open(sys.argv[1]))["conflicts"]:
     print("%s — kept yours (%r); ours would have been %r" % (c["path"], c["yours"], c["ours"]))' "$WORK/merge.json")
+  fi
+}
+
+# memory_schema_swap — load the filled-in memory-schema, not the placeholder one.
+#
+# skill:memory-schema installs as a whole DIRECTORY, so a Forgetful user ends up
+# with the unfilled placeholder SKILL.md loaded and the filled-in, already-verified
+# forgetful.SKILL.md sitting unused beside it. The variant's own header says to run
+# `mv forgetful.SKILL.md SKILL.md`, and nothing ever did it.
+#
+# verify_stage's blank-grep cannot catch this either: it reads only name:, model:
+# and tools: lines, and memory-schema's placeholders (<create-memory-tool> and the
+# rest) are all in the body.
+#
+# Runs inside install_stage_body, so it covers `install` and `update` both, and
+# write_manifest runs after it — the manifest therefore records the swapped
+# directory and the next run does not mistake this for a user edit.
+memory_schema_swap() {
+  local dir="$CLAUDE_HOME/skills/memory-schema"
+  local variant="$dir/forgetful.SKILL.md"
+  [[ -f "$variant" ]] || return 0
+  [[ -f "$WORK/memory.json" ]] || return 0
+
+  local server
+  server=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["server"] or "")' "$WORK/memory.json")
+  if [[ "$server" != "forgetful" ]]; then
+    note "memory-schema installed with its placeholder SKILL.md — fill it in for"
+    note "$server. The Forgetful variant beside it is a worked example."
+    TODO+=("Fill in $dir/SKILL.md with your memory server's real call shape. It ships as a placeholder, and its blanks are in the body where the installer's blank-check cannot see them. $variant is the same skill filled in for Forgetful, as a worked example.")
+    return 0
+  fi
+
+  backup_file "$dir/SKILL.md"
+  mv -f "$variant" "$dir/SKILL.md"
+
+  # The variant hardcodes mcp__forgetful__, which is the REGISTERED form. Reached
+  # as a connector the same server's tools carry the connector prefix, and the
+  # agents were just filled in with that form — so shipping the file unrewritten
+  # would hand the model a call shape that does not resolve while the tools: line
+  # beside it is correct. That is the same silent failure the tool-name prompt was
+  # fixed to remove, one file further down; detection and prefix travel together.
+  local prefix
+  prefix=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["prefix"])' "$WORK/memory.json")
+  if [[ -n "$prefix" && "$prefix" != "mcp__forgetful__" ]]; then
+    py - "$dir/SKILL.md" "$prefix" <<'PY'
+import io, sys
+path, prefix = sys.argv[1], sys.argv[2]
+text = io.open(path, encoding="utf-8").read()
+io.open(path, "w", encoding="utf-8").write(text.replace("mcp__forgetful__", prefix))
+PY
+    ok "memory-schema: loaded the Forgetful variant, renamed to ${prefix}*"
+  else
+    ok "memory-schema: loaded the Forgetful variant as SKILL.md"
   fi
 }
 
@@ -1517,6 +1805,36 @@ verify_stage() {
     TODO+=("Fill in or delete the blanks listed under 'Are all the blanks filled in?' above.")
   fi
 
+  # 1b — the other half of the same question. Check 1 above greps for blanks that
+  #      are STILL THERE, and a DELETED token is not a remaining token: it printed
+  #      "nothing left unfilled" over an install where the whole pipeline had lost
+  #      memory access. "Nothing is unfilled" and "the tools are there" are two
+  #      different claims and only the first was ever checked.
+  if [[ -d "$CLAUDE_HOME/agents" ]]; then
+    heading "1b. Did the tools actually make it into the agents?"
+    pb audit-grants "$PH_SPEC" "$TEMPLATES/agents" "$CLAUDE_HOME/agents" > "$WORK/grants.json"
+    py - "$WORK/grants.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+rows = d["agents"]
+if not rows:
+    print("      yes — every installed agent carries the tools its template declared")
+else:
+    for kind in ("memory", "tracker", "serena"):
+        names = d["missing"].get(kind) or []
+        if names:
+            print("      NO %-8s tools in %d agent(s): %s" % (kind, len(names), ", ".join(names)))
+PY
+    if py -c 'import json,sys;sys.exit(0 if json.load(open(sys.argv[1]))["agents"] else 1)' "$WORK/grants.json"; then
+      bad "some agents are installed without a capability their template declared"
+      TODO+=("Some agents were installed with no memory, tracker or Serena tools — see 'Did the tools actually make it into the agents?' above. They will not complain; they will run and do that part badly. Re-run ./install.sh to answer those prompts again.")
+    else
+      ok "yes — nothing was silently dropped"
+    fi
+  else
+    note "  no agents directory to check"
+  fi
+
   # 2 — wiring. Installing a hook is NOT wiring a hook, so this re-reads
   #     settings.json rather than trusting that the merge did what it said.
   local hooks_installed
@@ -1596,11 +1914,13 @@ update_mode() {
 
   discover_units_quiet
 
-  # Same hard gate as the install path, and for the same reason: refreshing 17
-  # agents that will halt on dispatch is not an upgrade. It runs here, before
-  # anything is written, and it exits without routing through a screen-clearing
-  # helper so its instructions survive the exit.
+  # The same two hard gates as the install path, and for the same reason:
+  # refreshing agents that will halt on dispatch is not an upgrade, and neither is
+  # refreshing agents that will run and quietly remember nothing. Both run here,
+  # before anything is written, and both exit without routing through a
+  # screen-clearing helper so their instructions survive the exit.
   serena_gate
+  memory_gate
 
   seed_from_manifest || die "the manifest records no units — run ./install.sh instead."
   local had
