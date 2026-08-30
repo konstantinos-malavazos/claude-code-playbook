@@ -11,7 +11,11 @@ from durable state. Don't redo finished work.
    record) and the branch's current state (commits, TODOs). Re-fetch the ticket
    (read-only).
 2. **Plain resume?** If nothing was deferred: load context, summarise where things stand,
-   and STOP — hand control back to the user.
+   and STOP — hand control back to the user. **Handing control back is not a next step**, so
+   end with the `next-steps` block: the branch, its sha and what is already done; the decision
+   or the piece of work that is theirs; and the concrete re-entry point — the next layer in
+   the chain, or review and land where the code is finished. This session, since it is
+   already rehydrated.
 3. **Deferred decisions pending?** Ask the user whether the open questions now have
    answers (from a tracker comment / a spec page / typed here / still open). Collect what
    you can, read-only. Partial answers are fine.
@@ -21,7 +25,9 @@ from durable state. Don't redo finished work.
    - **@planner** RE-PLAN (lift placeholders, promote parked slices, surface new
      questions),
    - a fresh **grilling** round for anything still open.
-   Loop until nothing's open.
+   Loop until nothing's open, then end with the `next-steps` block naming the re-entry point
+   the loop reached: back into the chain for the placeholders it lifted, or straight to review
+   and land where nothing changed the code. This session — the delta is in context.
 5. Merge metrics into the existing ledger row (don't create a new one).
 
 ## Guardrails

@@ -242,6 +242,13 @@ Handed to /garden-memory : <n> rename-map entries | none
 Left to do  : <n> units. Run again to continue.
 ```
 
+4. **Then the `next-steps` block.** *Run again to continue* is not a next step until it says
+   **in a fresh session** — context hygiene is this command's whole design, and the unit cap
+   exists for it. The rest: the watermark sha, or that it did not move and why; the run-state
+   folder by path; the golden questions still waiting on the user's one-at-a-time promotion;
+   and **nothing to commit and nothing to push**, which is this command's own rule, not a
+   general one.
+
 ## Step 10 — cross-repo report (`all` mode only)
 
 One table: repo, path, units done, units left, anomalies, watermark moved yes or no. Then one

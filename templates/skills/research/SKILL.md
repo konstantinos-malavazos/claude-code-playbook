@@ -68,3 +68,8 @@ Stop when the question is answered from a primary source with a citation, or whe
 agent can state precisely *why* the source doesn't answer it, and what it would take to
 find out (a spike, a support ticket, a paid tier). "I couldn't find anything" without
 that second half is not a finished research task.
+
+**Then the `next-steps` block.** The findings file by path; **who owns the decision this
+unblocks**, because findings are an input and not the call; and the command that resumes that
+decision, with its id filled in. This session where the owner is the person reading it, a
+fresh one where the decision is a ticket of its own.

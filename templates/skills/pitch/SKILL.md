@@ -255,6 +255,11 @@ not backed up, and this is personal data rather than configuration.
 Write the reason at the length past-them will need in a year, not the length that is
 convenient now.
 
+**On a kill or a park that entry is the whole of what landed, so end with the `next-steps`
+block**: which entry was written and where, nothing to commit and nothing to run, and no next
+command. On a park, name the trigger as the thing that reopens it — noticing it is the user's,
+not yours. A verdict with no next line reads as an unfinished conversation.
+
 ## On a build verdict
 
 1. **Confirm the repo name with the user.** Ask; do not pick one and announce it.
@@ -276,6 +281,11 @@ convenient now.
    phrase means it goes to *Not yet specified* instead.
 5. **Write the built line** into the ideas file, pointing at the new repo.
 6. **Stop.** Charting is the next session, not the rest of this one.
+
+**Then the `next-steps` block.** The repo and its issue #1 by name and url, plus the ideas
+file's `built` line; nothing to commit, because the repo is created empty on purpose; the next
+command is `/charting` against issue #1; and it is a fresh session, because charting is sized
+to one.
 
 ## Stop condition
 

@@ -233,6 +233,12 @@ A red report is a *finished* stage. This stage's job is to produce the verdict, 
 guarantee it is a good one. A stage that keeps working until everything passes is a
 stage that will quietly change a decision to get there.
 
+**Both reports end with the `next-steps` block, and their commit lines are opposites.**
+Green: the commit's sha and what it staged, nothing left for the user, and `/cut-backlog` in a
+fresh session because cutting re-reads the whole map. Red: **nothing committed**, and why;
+the failed rows the user has to classify as a wrong check or a wrong stack; and that
+`/bootstrap` is safe to re-run once they have, because every finished step skips itself.
+
 ## Safe to re-run
 
 **A session that dies partway is resumed by running `/bootstrap` again.** Each step checks

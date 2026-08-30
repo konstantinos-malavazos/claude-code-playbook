@@ -165,4 +165,10 @@ Review: <not yet — N makes left for this repo | verdict in reviews/<repo>.md>
 morning. The ticket is the durable record of what this child decided.
 
 If a human ran this command directly, say plainly: the ticket is still open and still
-claimed, and `/resume-massive <KEY>` is what closes it and regenerates the map.
+claimed, and `/resume-massive` — with this map's key, the `<KEY>` half of `$ARGUMENTS` —
+is what closes it and regenerates the map.
+
+**Then the `next-steps` block.** The wrong-operator case above is already its *Yours now* and
+its next command; the block adds the two it does not carry — the branch, the sha and the files,
+lifted from the comment rather than re-derived, and that `/resume-massive` runs in a **fresh**
+session, because one ticket per session is what the map is sized for.

@@ -189,7 +189,21 @@ Waiting on: <ticket — the thing, and who owns it>
 Progress: <n> of <m> resolved.
 ```
 
-Say the next command is `/resume-massive <KEY>`, and stop.
+Say the next command is `/resume-massive $ARGUMENTS`, and stop.
+
+**Then the `next-steps` block**, with the map's key filled in rather than a placeholder. One
+block per ending: §7's three, plus the ordinary one where a ticket resolved and the map stays
+open. They need four different next steps.
+
+- **A ticket resolved, map still open** — the ticket closed and its gist, and `/resume-massive`
+  again in a **fresh** session, because one ticket per session is what the map is sized for.
+- **Done** — the memory ids, the `State: closed` stamp, the review files by path, and that
+  nothing is left to run on this map.
+- **Stalled** — **no command to run.** What the user chases today, and who owns it.
+- **Abandoned** — nothing left to run, and where the record is.
+
+Commit state belongs in it too, and it is two answers, not one: the chart folder, and the repo
+branches this session touched.
 
 ## When the session ends mid-ticket
 

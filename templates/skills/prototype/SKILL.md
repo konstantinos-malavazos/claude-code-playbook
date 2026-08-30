@@ -117,3 +117,8 @@ running, has been shown, and the human is not available, in which case the progr
 the retained claim are the stop.
 
 **"It builds" is not a stop condition.** The prototype is not the output; the reaction is.
+
+**Then the `next-steps` block.** What the verdict settled and the ticket it is on; the
+throwaway branch by name, and that deleting it or parking it is the user's call, since the
+main line keeps only the decision; and the flow that resumes — the map, or the pipeline step
+that asked the question. Name which one. Never *carry on*.

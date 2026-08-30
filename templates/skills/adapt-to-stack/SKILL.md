@@ -305,3 +305,9 @@ Five stops, and none of them is a failure of the step:
 **The step is done when the report exists.** Not when every row says *created*, and not
 when the scaffolds are filled in. A report of nine *skipped* rows is a complete, correct
 run on a repo that was already adapted.
+
+**Then the `next-steps` block.** Where the restart line fired it **is** the next step and it
+goes first: nothing can dispatch to these files until the session restarts. The block carries
+the rest — every generated file by path, that this step commits nothing and staging them is
+the user's, and which flow resumes: the one that dispatched this, or `/bootstrap` when it ran
+as step 5.

@@ -182,6 +182,12 @@ Next: <the command, or the ticket that needs you>
 tickets closed on three guesses is not a good night, and a summary ordered by volume hides
 that.
 
+**Then the `next-steps` block**, under the summary. `.claude/lucky/guesses.md` is read
+**before** anything else, so it is the first thing the block hands the user. Say the commit
+state of every branch the walk touched — it ran unattended, and nobody watched those commits
+being made — and that the next command runs in a **fresh** session, because the walk spent
+this one.
+
 ## Never
 
 - **The shared-tracker guard is checked once and never re-interpreted later.** It does not

@@ -276,3 +276,8 @@ the solo path stops there.
 
 Everything after this is the shared pipeline. Do not start the first ticket. Hand over to
 `/start-ticket` and stop.
+
+**Then the `next-steps` block.** The ticket ids you created and the id of the **first unit in
+order**; nothing to commit, because this stage writes to the tracker and not to the repo;
+`/start-ticket` with that first id filled in; and a fresh session, because a work unit is
+sized to one.

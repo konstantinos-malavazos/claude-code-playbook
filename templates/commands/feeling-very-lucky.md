@@ -99,6 +99,11 @@ That first block holds the decisions the owner would have been asked about, take
 them, on something a ticket cannot undo. Burying them under a count of closed tickets is the
 one formatting choice here that could actually cost a map.
 
+**Then `/feeling-lucky`'s `next-steps` block, with one field changed.** What is theirs opens
+with the decided-anyway list: those answers stand until the owner overrules them, and the walk
+took them without asking, so the next run must not start before they have been read. The rest
+— the guess ledger first, the commit state of every branch, a fresh session — is unchanged.
+
 ## Never
 
 `/feeling-lucky`'s prohibitions all hold here unchanged. One of them changes weight:

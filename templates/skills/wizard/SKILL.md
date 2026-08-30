@@ -78,3 +78,8 @@ credential in version control wearing a helpful costume.
 
 Stop when the script parses, every scoped value traces to where it lands, and the user has
 been told how to run it. **Running it is theirs.**
+
+**Then the `next-steps` block.** The script by path and the **exact** command that runs it,
+written out rather than described; that running it is theirs, because every stage of it is;
+that the script is ephemeral by default and gets deleted when the job is done, unless they
+asked for a committed one; and then the flow the wizard was unblocking, by name.
