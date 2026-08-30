@@ -188,6 +188,47 @@ run $INFRA_HOOK Bash     "git add CLAUDE.md"                               2
 git -C "$REPO" remote set-url origin https://github.com/example/allowed-repo.git 2>/dev/null
 HOOK_HOME="$DENY_HOME"
 
+echo "block-infra-staging.sh — a never-stage name counts only at a path boundary"
+# The hook matches the three never-stage names against the COMMAND TEXT. While those
+# patterns were bare substrings, ANY path whose basename merely CONTAINED one was refused —
+# including this repo's own templates/commands/garden-memory.md, which is a tracked file
+# and was unstageable for as long as the pattern was unanchored. The suite was green the
+# whole time, because the only case it ever asserted was the true positive. Same shape as
+# the finding in issue #29: the direction nobody ran is the direction that breaks.
+#
+# So: one case per name, in BOTH directions. The true positives come first, because an
+# anchor loose enough to let the real thing through is the failure that actually costs
+# something.
+run $INFRA_HOOK Bash     "git add MEMORY.md"                               2
+run $INFRA_HOOK Bash     "git add docs/MEMORY.md"                          2
+run $INFRA_HOOK Bash     "git add .forgetful/index.json"                   2
+run $INFRA_HOOK Bash     "git add .serena"                                 2
+run $INFRA_HOOK PowerShell "git add .serena\\project.yml"                  2
+# -i STAYS, and this is the case that says so. Windows resolves .Serena and .serena to one
+# directory, so a different spelling of the real infra dir must not become a way through.
+run $INFRA_HOOK Bash     "git add .Serena/project.yml"                     2
+
+# ...and a path that merely CONTAINS a name goes through. These are the cases that were
+# never written, and every one of them was a false BLOCK.
+run $INFRA_HOOK Bash     "git add templates/commands/garden-memory.md"     0
+run $INFRA_HOOK Bash     "git add src/inmemory.md"                         0
+# .serenade, not .serenity — `.serenity` is `.seren`+`ity` and never contained the name at
+# all, so it passed before the anchor existed. A case that is green either way proves the
+# token is covered when it is not.
+run $INFRA_HOOK Bash     "git add docs/api.serenade.md"                    0
+run $INFRA_HOOK Bash     "git add notes.forgetfulness.md"                  0
+# The uppercase variant goes the SAME way as the lowercase one, and that is the point of
+# keeping -i: the ANCHOR is what makes this file stageable, not the case of its letters.
+run $INFRA_HOOK Bash     "git add garden-MEMORY.md"                        0
+
+echo "block-infra-staging.sh — CLAUDE.md is a path too, not a substring"
+# The allowlist flip had the identical unanchored defect, ten lines below the loop above.
+# Unlisted repo, so the real file is still refused — but a name that merely ends in it is
+# not the file the allowlist is being asked about.
+run $INFRA_HOOK Bash     "git add CLAUDE.md"                               2
+run $INFRA_HOOK Bash     "git add docs/about-claude.md"                    0
+run $INFRA_HOOK Bash     "git add CLAUDE.md.bak"                           0
+
 echo "block-infra-staging.sh — must ALLOW (exit 0)"
 run $INFRA_HOOK Bash     "git add src/main.py"                             0
 run $INFRA_HOOK Bash     "git commit -m 'docs: update readme'"             0
