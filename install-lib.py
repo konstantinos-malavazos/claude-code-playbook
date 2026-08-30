@@ -423,49 +423,293 @@ def apply_placeholders(paths, values, delete):
 
 
 # ---------------------------------------------------------------------------
-# Serena route detection
+# MCP server detection
 # ---------------------------------------------------------------------------
+# One scanner, three locations, every server. Detection used to be asymmetric:
+# serena_detect read ~/.claude.json, the project .mcp.json AND ~/.claude/plugins,
+# while install.sh's server_registered read ~/.claude.json alone — so a memory or
+# tracker server registered in project scope was invisible and took the DELETE
+# branch. Two readers of the same fact drifted apart, which is the bug. Everything
+# that asks "is this server here?" now asks the same function.
+
+# The mcpServers key a memory server registers under. Forgetful is the one this
+# playbook documents and fills in for; the rest are here so a machine that runs a
+# different memory server is detected rather than silently treated as bare.
+MEMORY_SERVER_KEYS = ("forgetful", "memory", "mem0", "basic-memory", "openmemory")
+
+# Tracker MCPs, by registered key. `tracker` used to be the ONLY key looked for,
+# but the repo's own templates/mcp/project.mcp.json.snippet names the server
+# `gitlab` — follow the shipped snippet and the tracker token was deleted from
+# every agent that has one.
+TRACKER_SERVER_KEYS = ("tracker", "gitlab", "jira", "atlassian", "linear", "youtrack")
+
+# Forgetful's wrapper trio. Every operation dispatches through
+# execute_forgetful_tool(tool_name, arguments) — there are no per-operation tools,
+# so this same list is the correct answer for READ and for WRITE both. See
+# templates/skills/memory-schema/forgetful.SKILL.md.
+FORGETFUL_TOOLS = (
+    "mcp__forgetful__execute_forgetful_tool",
+    "mcp__forgetful__discover_forgetful_tools",
+    "mcp__forgetful__how_to_use_forgetful_tool",
+)
+
+
+def _connector_prefix(name):
+    """The tool prefix for a claude.ai connector, DERIVED from its recorded name.
+
+    Runs of non-alphanumeric characters collapse to a single underscore and the
+    case is kept exactly as recorded. Checked against the connectors live on the
+    machine this was written on:
+
+        claude.ai Google Calendar          -> mcp__claude_ai_Google_Calendar__
+        claude.ai Booking.com              -> mcp__claude_ai_Booking_com__
+        claude.ai Interactive Brokers (IBKR)
+                                           -> mcp__claude_ai_Interactive_Brokers_IBKR__
+
+    Derived rather than hardcoded because the case is the server's, not ours: a
+    lower-case "claude.ai forgetful" is mcp__claude_ai_forgetful__, and guessing
+    the capitalisation is exactly how a tools: entry ends up unresolvable — the
+    silent failure this whole gate exists to remove.
+    """
+    return "mcp__%s__" % re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_")
+
+
+def _server_scan(home, cwd, keys, plugin_terms=(), connectors=True):
+    """Look for any of `keys` under mcpServers, in the four places a server lives.
+
+    Returns the evidence to show the user, plus which keys were found where. The
+    caller decides what that means — this reports, it does not judge.
+    """
+    evidence, registered, plugins, connected = [], [], [], []
+    home_json = os.path.join(home, ".claude.json")
+
+    for path in (home_json, os.path.join(cwd, ".mcp.json")):
+        try:
+            data = load_json(path)
+        except json.JSONDecodeError:
+            evidence.append({"where": path, "found": "unparseable JSON — ignored"})
+            continue
+        if not isinstance(data, dict):
+            continue
+        servers = data.get("mcpServers") or {}
+        if not isinstance(servers, dict):
+            continue
+        for key in keys:
+            if key in servers:
+                evidence.append({"where": path, "found": "mcpServers.%s" % key})
+                if key not in registered:
+                    registered.append(key)
+
+        # A claude.ai connector is the FOURTH route, and the one that broke this:
+        # it never lands under mcpServers at all, only in this list, so a machine
+        # whose mcpServers is empty because the user connects everything this way
+        # read as bare and the gate refused it. Only ~/.claude.json carries the
+        # key — it is account state, not project state.
+        if connectors and path == home_json:
+            for name in data.get("claudeAiMcpEverConnected") or []:
+                if not isinstance(name, str):
+                    continue
+                hit = next((k for k in keys if k in name.lower()), None)
+                if hit is None or any(c["key"] == hit for c in connected):
+                    continue
+                # "ever connected" is the literal name of the key and the literal
+                # truth of it: it is a history, not a live roster. Saying "found"
+                # flatly would claim more than the file supports.
+                evidence.append({
+                    "where": path,
+                    "found": "claude.ai connector %s — ever connected, "
+                             "may not be active now" % name,
+                })
+                connected.append({"key": hit, "name": name,
+                                  "prefix": _connector_prefix(name)})
+
+    # A plugin install leaves state under ~/.claude/plugins rather than in any
+    # mcpServers block, so a plugin-installed server is invisible to the scan above.
+    plugdir = os.path.join(home, ".claude", "plugins")
+    if plugin_terms and os.path.isdir(plugdir):
+        for dirpath, dirnames, filenames in os.walk(plugdir):
+            hit = next((t for t in plugin_terms
+                        if any(t in n for n in dirnames + filenames)), None)
+            if hit:
+                evidence.append({"where": dirpath, "found": "%s plugin files" % hit})
+                if hit not in plugins:
+                    plugins.append(hit)
+                break
+
+    return {"evidence": evidence, "registered": registered, "plugins": plugins,
+            "connectors": connected}
+
 
 def serena_detect(home, cwd):
     """Work out which Serena route this machine is on, and show the evidence.
 
-    A wrong prefix fails SILENTLY: an unresolvable name in a `tools:` list is stripped
-    at launch and the agent runs on without its code tools. So this reports what it
-    found rather than deciding quietly, and install.sh lets the user override.
+    A wrong prefix fails SILENTLY: in a `tools:` list with other working entries, an
+    unresolvable name is stripped at launch and the agent runs on without its code
+    tools. (Only a list where NOTHING resolves is refused, and only since v2.1.208.)
+    So this reports what it found rather than deciding quietly, and install.sh lets
+    the user override.
     """
-    evidence = []
-    route = None
+    # connectors=False, deliberately, and this is the asymmetry with memory_detect
+    # that #105 asks to be stated rather than left implicit. Serena is a local
+    # process that has to read the working tree; a claude.ai connector is a remote
+    # HTTP service that cannot. So there is no such thing as Serena-as-a-connector
+    # to detect, and inventing a third route for it would mean shipping a prefix
+    # nobody can ever be on. Were it accepted here it would be worse than useless:
+    # route would stay None, the gate would pass on the connector evidence, and
+    # the stage would then suggest B — mcp__serena__ — which is the wrong prefix,
+    # silently. Memory has no equivalent objection, which is why it takes the
+    # fourth route and this does not.
+    scan = _server_scan(home, cwd, ("serena",), ("serena",), connectors=False)
+    # Plugin evidence wins: it is route A, and it is checked last for that reason.
+    route = "A" if scan["plugins"] else ("B" if scan["registered"] else None)
+    return {"route": route, "evidence": scan["evidence"]}
 
-    global_json = os.path.join(home, ".claude.json")
+
+def memory_detect(home, cwd):
+    """Is a semantic-memory MCP server on this machine, and which one?
+
+    Memory is pillar 2, and the agents that declare memory tools lose them silently
+    without one, so install.sh gates on this the way it gates on Serena. `suggest` is
+    the pre-filled answer the prompt offers, which is why Enter can stop meaning
+    "delete the tool grant". The count is derived in tests/test-docs.sh, never here.
+    """
+    scan = _server_scan(home, cwd, MEMORY_SERVER_KEYS, ("forgetful",))
+    found = scan["registered"] + [p for p in scan["plugins"] if p not in scan["registered"]]
+    # Connectors come last on purpose. A live registration outranks a list that
+    # only says the server was connected at some point, so a machine with both
+    # gets the registered answer and the registered prefix.
+    live = list(found)
+    found += [c["key"] for c in scan["connectors"] if c["key"] not in found]
+    server = found[0] if found else None
+
+    # The prefix is half the fix and has to land with the other half. Detecting a
+    # connector and then pre-filling mcp__forgetful__ would swap one silent
+    # failure for another: the gate would pass and the names still would not
+    # resolve. The tool SUFFIXES are the server's own and do not change with the
+    # route — only the prefix does.
+    conn = next((c for c in scan["connectors"] if c["key"] == server), None)
+    via_connector = conn is not None and server not in live
+    prefix = conn["prefix"] if via_connector else "mcp__forgetful__"
+    return {
+        "server": server,
+        "found": found,
+        "evidence": scan["evidence"],
+        # Named so install.sh can warn that a history is not a live connection.
+        "connector": conn["name"] if via_connector else "",
+        "prefix": prefix if server == "forgetful" else "",
+        # Only Forgetful ships a documented tool list in this repo. For anything
+        # else the user types their own names — but the prompt still never
+        # defaults to deleting them.
+        "suggest": ", ".join(t.replace("mcp__forgetful__", prefix)
+                             for t in FORGETFUL_TOOLS) if server == "forgetful" else "",
+        # Forgetful dispatches reads and writes through ONE tool, so granting read
+        # grants write. Agents that rest their scope on the split need to be told.
+        "one_tool_does_both": server == "forgetful",
+    }
+
+
+def tracker_detect(home, cwd):
+    """Is a tracker MCP registered, under any of the keys a tracker uses?"""
+    scan = _server_scan(home, cwd, TRACKER_SERVER_KEYS)
+    # Connectors count here too, and for a stronger reason than symmetry: several
+    # trackers this repo names — GitHub, Linear, Jira — are offered as claude.ai
+    # connectors, so a connector is a LIKELIER route for a tracker than for a
+    # memory server. Ignoring them while still collecting their evidence was the
+    # worst of both: the fourth-route blindness this branch fixed for memory, left
+    # live for tracker, and the tracker blank silently deleted from every agent
+    # that has one. This makes no claim about tool NAMES — unlike memory, the
+    # stage asks the user to read them off /mcp — so there is no prefix to derive.
+    registered = scan["registered"]
+    found = registered + [c["key"] for c in scan["connectors"] if c["key"] not in registered]
+    return {
+        "server": found[0] if found else None,
+        "found": found,
+        "evidence": scan["evidence"],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Grant audit — presence, not absence
+# ---------------------------------------------------------------------------
+# verify_stage's original check greps for blanks that are STILL THERE. A deleted
+# token is not a remaining token, so it printed "nothing left unfilled" over an
+# install where the whole pipeline had lost memory access. "Nothing is unfilled"
+# and "the tools are there" are different claims; this function makes the second.
+
+# Which capability a placeholder token stands for. A file that declared the token
+# is a file that is supposed to end up with that capability.
+GRANT_TOKENS = {
+    "<memory-read-tools>": "memory",
+    "<memory-write-tools>": "memory",
+    "<tracker-read-tools>": "tracker",
+}
+
+
+def _tools_line(text):
+    """The `tools:` frontmatter line of an agent file, or None."""
+    for line in text.splitlines():
+        if line.split(":", 1)[0] == "tools":
+            return line
+    return None
+
+
+def audit_grants(spec_path, templates_agents, installed_agents):
+    """Which installed agents are missing a capability their template declared.
+
+    Reads the template to learn what each agent is SUPPOSED to have, and the
+    installed copy to see what it actually got. Serena is not a placeholder, so it
+    is checked by substring; memory and tracker are checked against the answers
+    actually recorded, which is the only way to tell a deliberate delete from a
+    filled-in grant that happens to be named something unexpected.
+    """
     try:
-        data = load_json(global_json)
-    except json.JSONDecodeError:
-        data = {}
-        evidence.append({"where": global_json, "found": "unparseable JSON — ignored"})
-    if isinstance(data, dict):
-        if "serena" in (data.get("mcpServers") or {}):
-            evidence.append({"where": global_json, "found": "mcpServers.serena"})
-            route = "B"
+        spec = json.loads(read(spec_path))
+    except (OSError, ValueError):
+        spec = {}
+    deleted = set(spec.get("delete") or [])
 
-    proj = os.path.join(cwd, ".mcp.json")
-    try:
-        pdata = load_json(proj)
-    except json.JSONDecodeError:
-        pdata = {}
-    if isinstance(pdata, dict) and "serena" in (pdata.get("mcpServers") or {}):
-        evidence.append({"where": proj, "found": "mcpServers.serena"})
-        route = "B"
+    rows, missing = [], {"memory": [], "tracker": [], "serena": []}
+    if not os.path.isdir(templates_agents):
+        return {"agents": [], "missing": missing, "checked": 0}
 
-    # Route A leaves plugin state under ~/.claude/plugins.
-    plugdir = os.path.join(home, ".claude", "plugins")
-    if os.path.isdir(plugdir):
-        for dirpath, dirnames, filenames in os.walk(plugdir):
-            if any("serena" in n for n in dirnames + filenames):
-                evidence.append({"where": dirpath, "found": "serena plugin files"})
-                route = "A"
-                break
+    for fn in sorted(os.listdir(templates_agents)):
+        if not fn.endswith(".md") or fn in SKIP_NAMES:
+            continue
+        inst = os.path.join(installed_agents, fn)
+        if not os.path.exists(inst):
+            continue
+        try:
+            tpl_line = _tools_line(read(os.path.join(templates_agents, fn)))
+            got_line = _tools_line(read(inst))
+        except (OSError, UnicodeDecodeError):
+            continue
+        if tpl_line is None or got_line is None:
+            continue
 
-    return {"route": route, "evidence": evidence}
+        values = spec.get("values") or {}
+        name, lost = fn[:-3], []
+        for tok, kind in sorted(GRANT_TOKENS.items()):
+            if tok not in tpl_line or kind in lost:
+                continue
+            if tok in deleted:
+                lost.append(kind)          # deleted on purpose — still a loss
+                continue
+            # Filled, but did the fill survive into the installed file? Compare on
+            # the first name in the answer; a whole list is too brittle to match.
+            first = (values.get(tok) or "").split(",")[0].strip()
+            if not first or first not in got_line:
+                lost.append(kind)
+        if "serena" in tpl_line and "serena" not in got_line:
+            lost.append("serena")
+
+        if lost:
+            rows.append({"agent": name, "missing": sorted(lost)})
+            for kind in lost:
+                missing[kind].append(name)
+
+    return {"agents": rows, "missing": missing,
+            "checked": len([f for f in os.listdir(templates_agents)
+                            if f.endswith(".md") and f not in SKIP_NAMES])}
 
 
 def rewrite_serena(paths, prefix_to):
@@ -843,6 +1087,12 @@ def main(argv):
         out({"changed": apply_placeholders(spec["paths"], spec["values"], spec["delete"])})
     elif cmd == "serena-detect":
         out(serena_detect(a[0], a[1]))
+    elif cmd == "memory-detect":
+        out(memory_detect(a[0], a[1]))
+    elif cmd == "tracker-detect":
+        out(tracker_detect(a[0], a[1]))
+    elif cmd == "audit-grants":
+        out(audit_grants(a[0], a[1], a[2]))
     elif cmd == "serena-rewrite":
         out({"changed": rewrite_serena(json.loads(read(a[0])), a[1])})
     elif cmd == "merge-json":

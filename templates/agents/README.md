@@ -77,9 +77,13 @@ shape. `context-gatherer`, `map-reviewer`, `planner` and `release-reviewer` stri
 way. The other two rows are loud by comparison: they fail on first dispatch, and they name
 the placeholder while doing it.
 
-So **fill or delete every placeholder before you dispatch anything** — deleting is the
-right move for a `<memory-read-tools>` you have no server for — and use
+So **fill every placeholder before you dispatch anything** — and use
 [`../README.md`](../README.md) check 10, the one grep that catches all three rows.
+Deleting a `<memory-read-tools>` is no longer the right move for anybody: a memory
+server is required, `install.sh` gates on one, and the installer offers the tool names
+pre-filled rather than making Enter mean *remove the grant*. A `<tracker-read-tools>`
+is the one that is still legitimately deleted, and only where the tracker adapter drives
+a CLI rather than an MCP — the GitHub adapter is `gh`, so it needs none.
 
 **And every body that calls a tool set mandatory now checks it has that set, and halts if
 it does not.** This is the only defence here that does not depend on someone running a
@@ -156,9 +160,22 @@ directory name. Same placeholder, opposite consequence:
   never writes to memory." These negative constraints are as important as the positive
   steps.
 - **Replace `<memory-read-tools>` / `<memory-write-tools>` / `<tracker-read-tools>`** with
-  your actual MCP tool names (e.g. Forgetful's `query_memory`), or **delete them** if you run
-  no such server. Left in place they are stripped at launch without a word — see above.
-  **Serena is not a placeholder**, see below.
+  your actual MCP tool names. Left in place they are stripped at launch without a word —
+  see above. **Serena is not a placeholder**, see below.
+  - **For Forgetful the answer is the wrapper trio**, and it is the same answer for read
+    and for write: `mcp__forgetful__execute_forgetful_tool`,
+    `mcp__forgetful__discover_forgetful_tools`, `mcp__forgetful__how_to_use_forgetful_tool`.
+    Every operation dispatches through `execute_forgetful_tool(tool_name, arguments)` —
+    see [`../skills/memory-schema/forgetful.SKILL.md`](../skills/memory-schema/forgetful.SKILL.md).
+  - **`query_memory` is not a tool name.** This bullet used to give it as the example, and
+    it is a `tool_name` *argument* to `execute_forgetful_tool`, not an MCP tool. Anyone who
+    copied it typed a name that does not resolve — and per the row above, an unresolvable
+    name in a `tools:` list is stripped at launch with no error. This file documented that
+    trap two paragraphs earlier and then walked into it.
+  - A `tools:` entry may also name a **whole server**: `mcp__forgetful` (or
+    `mcp__forgetful__*`) grants every tool it exposes. Verified against the Claude Code
+    subagent docs at **v2.1.251**; the docs do not say which version introduced it, so the
+    explicit names remain the safer default.
 - **Memory writes have one rule: an agent may write only what its own run settled.** Durable
   knowledge normally reaches memory through a command with a human APPROVE step, because a
   conclusion drawn in conversation deserves a second reader. The exception is the case where
@@ -167,6 +184,16 @@ directory name. Same placeholder, opposite consequence:
   precisely because it has not run. That is why `<memory-write-tools>` appears on those two
   files and nowhere else. Widening it is a decision, not a copy-paste — say what the agent
   executed that makes its write self-evident.
+- **The read/write split is a charter, and against some servers that is all it is.**
+  Forgetful has no per-operation tools: reads and writes both dispatch through
+  `execute_forgetful_tool`, so an agent granted memory *read* is thereby granted memory
+  *write*. Wherever an agent says it is read-only on memory "by charter **and by tool
+  grant**" — `encode-recon.md` says exactly that — only the charter half survives on a
+  wrapper-trio server. The instruction still binds the agent; the frontmatter does not
+  enforce it. `install.sh` says so out loud when it detects Forgetful, rather than shipping
+  a split the recommended server cannot honour. If you run a memory server that *does*
+  expose separate read and write tools, fill the two placeholders differently and the
+  grant enforces the split for real.
 - **The write's *discipline* lives in a skill; the write's *permission* cannot.** Both agents
   load [`memory-schema`](../skills/memory-schema/SKILL.md) before writing, so call shape, caps
   and tagging are stated once and these files cannot drift from them. But a skill preloads

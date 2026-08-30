@@ -15,6 +15,16 @@ What you need before [03-setup.md](03-setup.md).
 | **Node** | most MCP servers are Node processes | Node LTS, as required by the servers you pick |
 | **Python** | **every hook parses its payload with it**, and most of the rest of the MCP servers are Python processes | on `PATH` for the shell the hooks run in, as `python3` or `python`. The hooks need only the standard library, so any Python 3 will do. **An MCP server may want 3.11+**, so check the ones you pick. Without a Python the four blocking hooks exit `2` and **block**. That is loud and safe rather than silent; see [`templates/hooks/README.md`](../../templates/hooks/README.md) |
 
+**Both MCP servers are hard requirements, and `install.sh` enforces both.** With no
+code-navigation server the installer refuses to run; with no memory server it now refuses
+too, and for a worse reason. A Serena-less agent *halts and says so*. A memory-less agent
+runs, returns something normal-shaped, and never writes anything down — so the failure is
+invisible until you notice, months later, that nothing ever compounded. **13 of the 20
+agents** declare memory tools, and none of them halts without them.
+
+Running a memory server other than Forgetful is fine: the installer asks for your own tool
+names. What it will not do is continue with no memory server at all.
+
 ---
 
 ## Optional but recommended

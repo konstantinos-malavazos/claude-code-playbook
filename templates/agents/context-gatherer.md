@@ -48,7 +48,10 @@ No sweep was done. Fix the tool names (see templates/agents/README.md) and re-ru
 exactly like one built from symbols, and the planner downstream cannot tell which it got —
 which is why this is a halt and not a caveat. The same applies to your **memory** tools: if
 `<memory-read-tools>` was never filled in you have no memory sweep, so say *memory
-unavailable* in the brief rather than letting silence pass for *nothing found*.
+unavailable* in the brief rather than letting silence pass for *nothing found*. That is now
+the rare case rather than the default — `install.sh` refuses to run without a memory server
+and fills these names in for you — so if you find yourself in it, say so loudly. Somebody
+removed the grant on purpose.
 
 ## Steps
 1. Read `ticket-analyzer.md` for the topic terms and open questions.
