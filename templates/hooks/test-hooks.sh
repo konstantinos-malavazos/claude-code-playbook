@@ -110,6 +110,18 @@ run $GIT_HOOK Bash       "cd /tmp && git push"                             2
 run $GIT_HOOK Bash       "git reset --hard origin/main"                    2
 run $GIT_HOOK Bash       "git clean -fd"                                   2
 run $GIT_HOOK Bash       "git branch -D feature"                           2
+# `-D` is one of EIGHT spellings git accepts for the same destructive operation, and for
+# a long time it was the only one blocked — measured, seven of these sailed through (#115).
+# A guardrail that stops one spelling of eight is not a guardrail, and nothing in a green
+# run said so, because no case here had ever asked.
+run $GIT_HOOK Bash       "git branch --delete --force feature"             2
+run $GIT_HOOK Bash       "git branch --force --delete feature"             2
+run $GIT_HOOK Bash       "git branch -d --force feature"                   2
+run $GIT_HOOK Bash       "git branch -fd feature"                          2
+run $GIT_HOOK Bash       "git branch -df feature"                          2
+# --force on git branch MOVES a ref over existing history. Destructive without deleting.
+run $GIT_HOOK Bash       "git branch -f main origin/other"                 2
+run $GIT_HOOK Bash       "git branch --force main origin/other"            2
 run $GIT_HOOK Bash       "git commit --no-verify -m x"                     2
 run $GIT_HOOK Bash       "git add -A"                                      2
 # PowerShell is a SEPARATE tool from Bash and populates the same tool_input.command.
@@ -129,6 +141,18 @@ run $GIT_HOOK Bash       "$(printf 'git status\r\ngit push')"              2
 echo "block-dangerous-git.sh — must ALLOW (exit 0)"
 run $GIT_HOOK Bash       "git status"                                      0
 run $GIT_HOOK Bash       "git log --oneline -5"                            0
+# The pair above at :112 is only half a test. `-d` REFUSES an unmerged branch and `-D`
+# throws it away, so blocking both is not "cautious" — it stops the safe form and then
+# reports the dangerous one, which is what #115 hit. A pattern asserted only in the
+# blocking direction cannot tell you it blocks too much; this is the other direction.
+run $GIT_HOOK Bash       "git branch -d merged-feature"                    0
+run $GIT_HOOK Bash       "git branch --delete merged-feature"              0
+# The force pattern keys on a SHORT cluster containing D or f. These three prove it does
+# not spill onto the long options and the harmless short ones — `--format` in particular
+# begins with an f one character after a dash, which a looser pattern would swallow.
+run $GIT_HOOK Bash       "git branch --format=%(refname)"                  0
+run $GIT_HOOK Bash       "git branch -a"                                   0
+run $GIT_HOOK Bash       "git branch -m oldname newname"                   0
 run $GIT_HOOK PowerShell "Get-ChildItem"                                   0
 run $GIT_HOOK Bash       "git add src/main.py
 git commit -m 'x'"                                                         0
