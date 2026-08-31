@@ -629,6 +629,50 @@ def tracker_detect(home, cwd):
 
 
 # ---------------------------------------------------------------------------
+# Tracker routes — what the CHOSEN adapter actually needs
+# ---------------------------------------------------------------------------
+# `~/.claude/tracker.md` is one file with four possible bodies, and they do not
+# reach a tracker the same way. Two drive a command-line tool, one drives an MCP
+# server, one reads markdown off the disk. Everything that has to answer "was this
+# blank supposed to be filled in?" reads the answer from here, so it lives in ONE
+# place rather than being re-derived by each caller.
+#
+#   shell — what `<tracker-shell-tools>` is filled with. @ticket-analyzer is the
+#           only agent declaring `<tracker-read-tools>` that grants no Bash of its
+#           own, so on a CLI adapter it is the only one the delete actually
+#           disables — and it is the one that runs FIRST.
+#   mcp   — whether `<tracker-read-tools>` has anything to be filled in WITH.
+#
+# Edit HERE when an adapter is added. The keys are the tracker unit ids, i.e. the
+# file names under templates/trackers/ without the .md.
+TRACKER_ROUTES = {
+    "github":         {"shell": "Bash", "mcp": False},  # drives `gh`
+    "gitlab-shape":   {"shell": "Bash", "mcp": False},  # a shape, written around `glab`
+    "jira":           {"shell": "",     "mcp": True},   # an MCP server
+    "local-markdown": {"shell": "",     "mcp": False},  # files on disk — Read/Glob ARE the tracker
+}
+
+# No adapter chosen at all — the "decide later" escape adds no tracker: line, so
+# this is what reaches the audit there.
+#
+# mcp=True matters in exactly one case: a tracker server IS registered and the
+# token was deleted anyway. With no server the audit already calls the delete
+# not-applicable on the `not tracker_server` half of the test below, whichever way
+# this flag goes. So the rule here is narrower than "we cannot say": with no
+# adapter we cannot rule out that the registered server was the tracker, and a
+# delete against a server we might have named is the loss worth reporting.
+#
+# shell="" is the safe half: no adapter means nothing is known to need a CLI, and
+# claiming a shell was owed would invent a loss rather than miss one.
+TRACKER_ROUTE_UNKNOWN = {"shell": "", "mcp": True}
+
+
+def tracker_route(adapter):
+    """How the chosen tracker adapter is reached — see TRACKER_ROUTES."""
+    return dict(TRACKER_ROUTES.get((adapter or "").strip()) or TRACKER_ROUTE_UNKNOWN)
+
+
+# ---------------------------------------------------------------------------
 # Grant audit — presence, not absence
 # ---------------------------------------------------------------------------
 # verify_stage's original check greps for blanks that are STILL THERE. A deleted
@@ -642,6 +686,10 @@ GRANT_TOKENS = {
     "<memory-read-tools>": "memory",
     "<memory-write-tools>": "memory",
     "<tracker-read-tools>": "tracker",
+    # The shell an agent needs when the adapter is a CLI rather than a server.
+    # Same capability, different half of it: naming a tracker tool is no use to an
+    # agent that has no way to run `gh`.
+    "<tracker-shell-tools>": "tracker",
 }
 
 
@@ -709,7 +757,8 @@ def _tools_line(text):
     return None
 
 
-def audit_grants(spec_path, templates_agents, installed_agents):
+def audit_grants(spec_path, templates_agents, installed_agents,
+                 adapter="", tracker_server=""):
     """Which installed agents are missing a capability their template declared.
 
     Reads the template to learn what each agent is SUPPOSED to have, and the
@@ -717,6 +766,18 @@ def audit_grants(spec_path, templates_agents, installed_agents):
     is checked by substring; memory and tracker are checked against the answers
     actually recorded, which is the only way to tell a deliberate delete from a
     filled-in grant that happens to be named something unexpected.
+
+    A delete is not always a loss. For two of the tracker routes there was never
+    anything to fill in: the github adapter drives `gh` from the shell and
+    registers no MCP server, and local-markdown reads files off the disk. Deleting
+    the token there is the CORRECT answer, so counting it as a lost grant paints a
+    correct install red — which teaches the reader to ignore the check. That is a
+    third state beside present and lost, and only *lost* may go red.
+
+    `adapter` is the chosen tracker unit id and `tracker_server` the name of a
+    registered tracker MCP, or "" for neither. Both default to empty, which is the
+    cautious reading: no adapter and no server means a delete is still judged a
+    loss rather than waved through.
     """
     try:
         spec = json.loads(read(spec_path))
@@ -724,9 +785,21 @@ def audit_grants(spec_path, templates_agents, installed_agents):
         spec = {}
     deleted = set(spec.get("delete") or [])
 
+    # Which tokens this install had nothing to fill in. Derived from the route
+    # rather than recorded at answer time on purpose: an install that predates the
+    # token recorded no answer for it, and a rule that reads the manifest would
+    # need a migration to say anything about those.
+    route = tracker_route(adapter)
+    not_applicable = set()
+    if not route["shell"]:
+        not_applicable.add("<tracker-shell-tools>")
+    if not route["mcp"] or not (tracker_server or "").strip():
+        not_applicable.add("<tracker-read-tools>")
+
     rows, missing = [], {"memory": [], "tracker": [], "serena": []}
     if not os.path.isdir(templates_agents):
-        return {"agents": [], "missing": missing, "checked": 0}
+        return {"agents": [], "missing": missing, "checked": 0,
+                "not_applicable": sorted(not_applicable)}
 
     for fn in sorted(os.listdir(templates_agents)):
         if not fn.endswith(".md") or fn in SKIP_NAMES:
@@ -748,7 +821,8 @@ def audit_grants(spec_path, templates_agents, installed_agents):
             if tok not in tpl_line or kind in lost:
                 continue
             if tok in deleted:
-                lost.append(kind)          # deleted on purpose — still a loss
+                if tok not in not_applicable:
+                    lost.append(kind)      # deleted although the route could fill it
                 continue
             # Filled, but did the fill survive into the installed file? Compare on
             # the first name in the answer; a whole list is too brittle to match.
@@ -764,6 +838,7 @@ def audit_grants(spec_path, templates_agents, installed_agents):
                 missing[kind].append(name)
 
     return {"agents": rows, "missing": missing,
+            "not_applicable": sorted(not_applicable),
             "checked": len([f for f in os.listdir(templates_agents)
                             if f.endswith(".md") and f not in SKIP_NAMES])}
 
@@ -1211,8 +1286,12 @@ def main(argv):
         out(memory_detect(a[0], a[1]))
     elif cmd == "tracker-detect":
         out(tracker_detect(a[0], a[1]))
+    elif cmd == "tracker-route":
+        out(tracker_route(a[0] if a else ""))
     elif cmd == "audit-grants":
-        out(audit_grants(a[0], a[1], a[2]))
+        # Optional 4th/5th args: the chosen adapter and the registered tracker MCP,
+        # which together say whether a deleted tracker token was the right answer.
+        out(audit_grants(a[0], a[1], a[2], *a[3:5]))
     elif cmd == "contract-check":
         out(contract_check(a[0]))
     elif cmd == "contract-version":
