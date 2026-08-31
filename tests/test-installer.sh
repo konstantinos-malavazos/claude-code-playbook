@@ -767,6 +767,199 @@ yn "$([ ! -f "$CH/skills/memory-schema/forgetful.SKILL.md" ] && echo 0 || echo 1
 inlog m5 "loaded the Forgetful variant" "the installer says it did the swap"
 fi
 
+# ══════════════════════════════════════════════════════════════════════════
+# U1-U6 · issue #106 — what an `update` may and may not carry forward
+# ══════════════════════════════════════════════════════════════════════════
+# `update` is non-interactive: it replays the answers recorded at install time.
+# These six ask what that replay is allowed to do. U1/U2 lock in behaviour that
+# already worked; U3-U6 are the new behaviour this branch adds.
+#
+# A case that has to MUTATE a template does it in a throwaway clone_repo, never in
+# $REPO: the mutation IS the case, and the real tree must not move underneath the
+# rest of the suite.
+#
+# What may NOT be asserted here. Check 1b ("NO tracker tools in 6 agent(s)") and
+# check 3 ("Fill in <repo>") are ALREADY RED on a clean sandbox install, so a case
+# keying on the generic tick, on the ✗ line, or on "verify is clean" is born green
+# and proves nothing. Every string below is either absent from the tree before this
+# branch, or specific to that case's own planted mutation.
+
+# ---------------------------------------------------------------- U1
+# Catches: the update path silently no-opping — a fixed template that never
+# reaches an install which already exists. This is the question that opened #106.
+if want U1; then
+banner "U1 · a changed template REACHES an existing install"
+fresh_env u1; with_servers; clone_repo "$SANDBOX/u1/repo"
+keys u1 "${FULL[@]}"; run_in "$SANDBOX/u1/repo" install u1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+yn "$([ -f "$CH/commands/start-ticket.md" ] && echo 0 || echo 1)" "start-ticket.md is installed"
+# Asserted BEFORE the update as well as after: without this, a marker that was
+# somehow present all along would read as a successful update.
+if grep -qF 'U1-CHANGED-TEMPLATE-MARKER' "$CH/commands/start-ticket.md" 2>/dev/null; then
+  fail "the marker is absent before the update"; else pass "the marker is absent before the update"; fi
+printf '\nU1-CHANGED-TEMPLATE-MARKER\n' >> "$SANDBOX/u1/repo/templates/commands/start-ticket.md"
+nokeys u1u; run_in "$SANDBOX/u1/repo" update u1u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update exits 0 (rc=$RC)"
+if grep -qF 'U1-CHANGED-TEMPLATE-MARKER' "$CH/commands/start-ticket.md" 2>/dev/null; then
+  pass "the template edit reached the installed command"
+else fail "the template edit reached the installed command"; fi
+fi
+
+# ---------------------------------------------------------------- U2
+# Catches: an edge-discovery regression stranding every new skill — a skill added
+# upstream and referenced from a command you already have, that no update installs.
+if want U2; then
+banner "U2 · a NEW referenced unit is pulled in by the update"
+fresh_env u2; with_servers; clone_repo "$SANDBOX/u2/repo"
+keys u2 "${FULL[@]}"; run_in "$SANDBOX/u2/repo" install u2
+yn "$([ -f "$CH/commands/start-ticket.md" ] && echo 0 || echo 1)" "start-ticket.md is installed to reference from"
+# The skill did not exist when the install ran, so it cannot have been selected:
+# the only route into $CLAUDE_HOME is the backtick edge out of start-ticket.
+mkdir -p "$SANDBOX/u2/repo/templates/skills/u2-newskill"
+printf -- '---\nname: u2-newskill\ndescription: shipped after the install ran\n---\n\nBody.\n' \
+  > "$SANDBOX/u2/repo/templates/skills/u2-newskill/SKILL.md"
+# The backticks are the POINT — _link_dependencies greps `name` out of the body to
+# find the skill edge — so they must reach the file literally, not run as a command.
+# shellcheck disable=SC2016
+printf '\nLoad the `u2-newskill` skill before starting.\n' \
+  >> "$SANDBOX/u2/repo/templates/commands/start-ticket.md"
+yn "$([ ! -d "$CH/skills/u2-newskill" ] && echo 0 || echo 1)" "the new skill is absent before the update"
+nokeys u2u; run_in "$SANDBOX/u2/repo" update u2u
+yn "$([ -f "$CH/skills/u2-newskill/SKILL.md" ] && echo 0 || echo 1)" "the backtick reference dragged the new skill in"
+fi
+
+# ---------------------------------------------------------------- U3
+# Catches: THE finding this whole ticket exists for — a recorded answer whose
+# meaning has since changed, replayed onto every file forever, under a green tick.
+if want U3; then
+banner "U3 · a STALE recorded answer does not silently survive an update"
+fresh_env u3; with_servers
+keys u3 "${FULL[@]}"; run install u3
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+# Age the manifest into a pre-#105 install: contract 0, and <memory-read-tools>
+# recorded as DELETED. That is exactly what pressing Enter used to record. A fresh
+# install stamps contract 2 and FILLS the token in, so this state cannot arise by
+# accident here — the gate fires for no other case in this suite.
+python3 - "$CH/.playbook-install.json" <<'PY'
+import json, sys
+p = sys.argv[1]
+m = json.load(open(p, encoding="utf-8"))
+ph = m["config"]["placeholders"]
+ph["contract"] = 0
+ph["values"].pop("<memory-read-tools>", None)
+ph["delete"] = sorted(set(ph.get("delete") or []) | {"<memory-read-tools>"})
+json.dump(m, open(p, "w", encoding="utf-8"), indent=2)
+PY
+chk $? "aged the manifest to a pre-#105 install"
+nokeys u3u; run update u3u
+yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "the update REFUSES (rc=$RC)"
+# inboth, not inlog: contract_gate prints alongside die(), which writes to stderr.
+inboth u3u "Some of your recorded answers are no longer valid." "says the recorded answers are stale"
+inboth u3u "your recorded answer for <memory-read-tools> was given under older rules" "names the token"
+inboth u3u "Run ./install.sh — it asks the question again." "says how to clear it"
+# The remedy is a mode `update` never calls require_tty for, so on a machine with no
+# terminal the two modes used to refer the user to each other forever. Assert the
+# caveat, not just the pointer: the pointer alone is what made the loop.
+inboth u3u "That one needs a terminal." "says the remedy needs a terminal"
+inboth u3u "update stopped — nothing was written." "stops instead of warning and carrying on"
+notinboth u3u "Update complete" "the refused update did not complete"
+fi
+
+# ---------------------------------------------------------------- U4
+# Catches: a dead command reported as healthy — a unit renamed or removed upstream
+# that `list` keeps calling `current`, i.e. "the same version this clone ships".
+if want U4; then
+banner "U4 · a renamed template leaves an ORPHAN, not a healthy unit"
+fresh_env u4; with_servers; clone_repo "$SANDBOX/u4/repo"
+keys u4 "${FULL[@]}"; run_in "$SANDBOX/u4/repo" install u4
+yn "$([ -f "$CH/commands/fix-ticket.md" ] && echo 0 || echo 1)" "fix-ticket.md is installed to orphan"
+mv "$SANDBOX/u4/repo/templates/commands/fix-ticket.md" \
+   "$SANDBOX/u4/repo/templates/commands/fix-ticket-renamed.md"
+nokeys u4l; run_in "$SANDBOX/u4/repo" list u4l
+# grep -E rather than the -F helpers, and the uid on the SAME line as the state:
+# list_mode prints the word "orphaned" unconditionally in its legend, so keying on
+# the bare word would pass with no row at all.
+if grep -qE 'orphaned +command:fix-ticket' "$LOGS/u4l.out"; then
+  pass "list reports command:fix-ticket as orphaned"
+else fail "list reports command:fix-ticket as orphaned"; fi
+if grep -qE 'current +command:fix-ticket' "$LOGS/u4l.out"; then
+  fail "list does NOT call the orphan current"; else pass "list does NOT call the orphan current"; fi
+nokeys u4u; run_in "$SANDBOX/u4/repo" update u4u
+inlog u4u "is still installed, but this clone no longer ships command:fix-ticket" \
+  "the update TODO names the orphaned file"
+fi
+
+# ---------------------------------------------------------------- U5
+# Catches: a frozen file mentioned once and never again — skip-edited summarised
+# into a class that scrolls past, and absent from the list of things left to do.
+if want U5; then
+banner "U5 · an edited file is raised as a TODO, with its diff command"
+fresh_env u5; with_servers
+keys u5 "${FULL[@]}"; run install u5
+yn "$([ -f "$CH/commands/end-of-day.md" ] && echo 0 || echo 1)" "end-of-day.md is installed to edit"
+printf '\nU5-EDITED-BY-HAND-AFTER-INSTALL\n' >> "$CH/commands/end-of-day.md"
+nokeys u5u; run update u5u
+inlog u5u "was kept, so this update did not refresh it" "the edited file is raised as a TODO"
+inlog u5u "See what this clone would have written: diff " "the TODO carries the diff command"
+if grep -qF 'U5-EDITED-BY-HAND-AFTER-INSTALL' "$CH/commands/end-of-day.md" 2>/dev/null; then
+  pass "skip-edited still means LEFT ALONE"; else fail "skip-edited still means LEFT ALONE"; fi
+fi
+
+# ---------------------------------------------------------------- U6
+# Catches: a stranded user told a blank exists but not how to fill it. The TODO
+# assertion is the real control here: check 1 going red is the setup half, and the
+# case proves check 1 was GREEN beforehand so that half is not born red either.
+if want U6; then
+banner "U6 · a NEW unfilled token tells the user how to answer it"
+fresh_env u6; with_servers; clone_repo "$SANDBOX/u6/repo"
+keys u6 "${FULL[@]}"; run_in "$SANDBOX/u6/repo" install u6
+inlog u6 "yes — nothing left unfilled" "check 1 is GREEN before the token is planted"
+# A token this installer never asks about, on a tools: line of ONE agent template.
+# Check 1 greps agents/ and skills/ for ^(name|model|tools): lines carrying
+# <[a-z][a-z-]*>, so the name must be letters and hyphens only — a digit in it
+# would never be seen, and the case would pass for the wrong reason.
+sed -i 's/^tools: .*/&, <never-asked-token>/' "$SANDBOX/u6/repo/templates/agents/aligner.md"
+if grep -qF '<never-asked-token>' "$SANDBOX/u6/repo/templates/agents/aligner.md"; then
+  pass "planted the token in one agent template"; else fail "planted the token in one agent template"; fi
+nokeys u6u; run_in "$SANDBOX/u6/repo" update u6u
+inlog u6u "no — these blanks were not filled in:" "check 1 goes RED on the update"
+inlog u6u "<never-asked-token>" "check 1 names the planted token"
+inlog u6u "or re-run ./install.sh, which asks for it." "the TODO says HOW to answer it"
+fi
+
+
+# ---------------------------------------------------------------- U7
+# Catches: the contract stamp never being WRITTEN. U3 hand-plants the stamp it then
+# reads, so it proves contract_gate REACTS to one and nothing more - delete all three
+# stamp sites and U3 still passes, green. The stamp is what tells a later run which
+# rules an answer was given under, so an install that never records one is the same
+# silent replay this ticket exists to stop, arriving one release later.
+if want U7; then
+banner "U7 - the contract stamp is WRITTEN by install and SURVIVES an update"
+fresh_env u7; with_servers
+# Derived, never written down: the expected number comes from the same constant the
+# installer stamps with, so a deliberate bump cannot leave this case pinned to an old
+# value that then has to be remembered.
+WANT_CONTRACT="$(python3 "$REPO/install-lib.py" contract-version)"
+chk $? "read the current contract from install-lib.py"
+keys u7 "${FULL[@]}"; run install u7
+stamp_is() {
+  python3 - "$CH/.playbook-install.json" "$WANT_CONTRACT" <<'PYSTAMP'
+import json, sys
+ph = json.load(open(sys.argv[1], encoding="utf-8"))["config"]["placeholders"]
+sys.exit(0 if ph.get("contract") == int(sys.argv[2]) else 1)
+PYSTAMP
+}
+# Locks stamp sites 1 and 2 - placeholder_stage writing it into the spec, and
+# write_manifest carrying it from the spec into the manifest. Remove either, red.
+stamp_is; chk $? "install RECORDS contract $WANT_CONTRACT in the manifest"
+nokeys u7u; run update u7u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update completes (rc=$RC)"
+# Locks stamp site 3 - load_recorded_config carrying it back into the replayed spec.
+# Without it this run's own write_manifest resets the stamp to 0, which arms a false
+# stop later that cannot be cleared. This is the assertion that fails on its own.
+stamp_is; chk $? "the update KEEPS the stamp instead of resetting it"
+fi
 printf '\n================================\n'
 printf '  passed %s   failed %s\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then

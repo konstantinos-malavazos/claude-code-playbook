@@ -645,6 +645,62 @@ GRANT_TOKENS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# The placeholder contract — what a recorded answer MEANS
+# ---------------------------------------------------------------------------
+# `update` is non-interactive: it replays the answers recorded at install time.
+# That is right for as long as the question still means what it meant then, and
+# wrong the moment the playbook changes what an answer stands for. #105 changed
+# exactly that — a bare Enter at the memory prompts used to DELETE the tools and
+# now fills them in — so every install predating it carries a recorded "delete"
+# that was never a decision, and replays it onto every file, forever.
+#
+# Bump PLACEHOLDER_CONTRACT when the MEANING of an existing answer changes.
+# Do NOT bump it because a token was added or removed. A token set cannot express
+# this at all: #105 added no token and removed none, so anything derived from the
+# template tree is stable across the exact change this exists to catch.
+#
+# CONTRACT_SUSPECT names, per bump, the recorded answers that bump invalidated.
+# The gate is "a recorded delete that a bump invalidated" — never "the recorded
+# number is lower than the current one". A bare version compare would also
+# condemn a <tracker-read-tools> delete that was correct (the github adapter, or
+# no tracker MCP registered, both delete it on purpose — install.sh:1094-1097 and
+# :1106-1110), which is a permanent false stop no user could ever clear.
+PLACEHOLDER_CONTRACT = 2
+
+CONTRACT_SUSPECT = {
+    # 2 — #105: Enter at the two memory prompts used to mean "remove the tools".
+    #     A recorded delete for either is an accident, not an answer.
+    2: ["<memory-read-tools>", "<memory-write-tools>"],
+}
+
+# What to TELL the user, per bump. Kept beside the table so that bumping the
+# contract stays one edit in one file — install.sh prints whatever it is given
+# here rather than carrying its own copy of the explanation.
+CONTRACT_WHY = {
+    2: ["Pressing Enter at that question used to REMOVE the tools. It now fills",
+        "them in — so what was recorded was never a decision you made."],
+}
+
+# One bump, three places: the constant, the suspect list and the explanation. Tie
+# them together here rather than trusting three edits to stay in step, because the
+# drift is not survivable. A suspect key ABOVE the constant arms a stop for an
+# answer nobody has been asked about yet — and re-running the installer records the
+# current contract, which is still below that key, so the stop it arms can never be
+# cleared. That is precisely the unclearable false stop CONTRACT_SUSPECT exists to
+# prevent, reintroduced by a forgotten line.
+for _bump in CONTRACT_SUSPECT:
+    if _bump > PLACEHOLDER_CONTRACT:
+        raise RuntimeError(
+            "CONTRACT_SUSPECT names bump %d but PLACEHOLDER_CONTRACT is %d — bump the "
+            "constant too, or the stop this arms can never be cleared"
+            % (_bump, PLACEHOLDER_CONTRACT))
+_unexplained = sorted(set(CONTRACT_WHY) - set(CONTRACT_SUSPECT))
+if _unexplained:
+    raise RuntimeError(
+        "CONTRACT_WHY explains bump(s) %s that name no suspect answer" % _unexplained)
+
+
 def _tools_line(text):
     """The `tools:` frontmatter line of an agent file, or None."""
     for line in text.splitlines():
@@ -710,6 +766,45 @@ def audit_grants(spec_path, templates_agents, installed_agents):
     return {"agents": rows, "missing": missing,
             "checked": len([f for f in os.listdir(templates_agents)
                             if f.endswith(".md") and f not in SKIP_NAMES])}
+
+
+def contract_check(manifest_path):
+    """Recorded answers that this installer's contract has since invalidated.
+
+    Reads the stamp the answers were recorded under. Absent means the install
+    predates stamping altogether, i.e. 0, which makes every bump apply to it.
+
+    Only a recorded DELETE can go stale. A filled-in value is still that user's
+    own answer whatever the default later became; a delete under rules where the
+    delete was the accident is not an answer at all.
+    """
+    try:
+        manifest = json.loads(read(manifest_path))
+    except (OSError, ValueError):
+        manifest = {}
+    ph = ((manifest.get("config") or {}).get("placeholders")) or {}
+
+    recorded = ph.get("contract")
+    if not isinstance(recorded, int) or isinstance(recorded, bool):
+        recorded = 0
+    deleted = set(ph.get("delete") or [])
+
+    suspect, why = set(), []
+    for bump in sorted(CONTRACT_SUSPECT):
+        if bump > recorded:
+            hit = set(CONTRACT_SUSPECT[bump]) & deleted
+            if hit:
+                suspect |= hit
+                why.extend(CONTRACT_WHY.get(bump) or [])
+
+    stale = sorted(suspect)
+    return {
+        "recorded": recorded,
+        "current": PLACEHOLDER_CONTRACT,
+        "stale": stale,
+        "answers": {tok: "deleted" for tok in stale},
+        "why": why,
+    }
 
 
 def rewrite_serena(paths, prefix_to):
@@ -964,12 +1059,13 @@ def manifest_classify(manifest, units):
 def plan_install(units, manifest, selected):
     """Decide, per selected unit, what an install run may actually do to it.
 
-    Five actions, and only two of them write:
+    Six actions, and only two of them write:
       * install        — nothing there yet
       * upgrade        — there, and still byte-identical to what we last wrote
       * current        — there, ours, and already the version we ship
       * skip-edited    — there, but changed since we wrote it. Left alone. Reported.
       * skip-foreign   — there, and no record of us putting it there. Left alone.
+      * orphan         — recorded, but this clone no longer ships it. Reported only.
 
     'skip-edited' is decision 8 and half of decision 7 in one line: an upgrade that
     clobbers an edited file is the same bug as a bad uninstall.
@@ -978,11 +1074,25 @@ def plan_install(units, manifest, selected):
     rows = []
     for uid in selected:
         unit = units.get(uid)
+        rec = recorded.get(uid)
         if not unit:
+            # Recorded once, and this clone no longer ships a template for it: a
+            # rename or a removal. `continue` dropped it from the plan entirely,
+            # so nothing reported it and write_manifest carried the dead record
+            # forward on every run, forever. Report it; deleting the installed
+            # file without asking is out of scope.
+            if rec is not None:
+                # "-" and not "": install.sh reads these rows with `read -r` under
+                # IFS=$'\t', and TAB is IFS WHITESPACE, so a run of tabs collapses
+                # into ONE delimiter. An empty src column therefore does not arrive
+                # as an empty field — it vanishes, and every column after it shifts
+                # left, which silently emptied the destination path this row exists
+                # to report. Never emit an empty column into a TSV read this way.
+                rows.append(("orphan", uid, rec.get("kind", "?"), "-",
+                             rec.get("dest", "")))
             continue
         dest = unit["dest"]
         current = hash_path(dest)
-        rec = recorded.get(uid)
         if current is None:
             action = "install"
         elif rec is None:
@@ -1019,7 +1129,17 @@ def plan_state(manifest, units):
             state = "missing"
         elif current != rec.get("hash"):
             state = "edited"
-        elif unit and unit["source_hash"] != rec.get("source_hash"):
+        elif unit is None:
+            # Recorded, still on disk, byte-identical to what we wrote — and this
+            # clone no longer ships a template for it. A rename or a removal. The
+            # `unit and ...` guard below short-circuits falsy here, so the else
+            # used to call it "current", i.e. "the same version this clone ships",
+            # about a unit this clone does not ship at all.
+            #
+            # After missing/edited on purpose: a file that is gone, or that the
+            # user has since changed, is better described by those.
+            state = "orphaned"
+        elif unit["source_hash"] != rec.get("source_hash"):
             state = "outdated"
         else:
             state = "current"
@@ -1093,6 +1213,10 @@ def main(argv):
         out(tracker_detect(a[0], a[1]))
     elif cmd == "audit-grants":
         out(audit_grants(a[0], a[1], a[2]))
+    elif cmd == "contract-check":
+        out(contract_check(a[0]))
+    elif cmd == "contract-version":
+        out(PLACEHOLDER_CONTRACT)
     elif cmd == "serena-rewrite":
         out({"changed": rewrite_serena(json.loads(read(a[0])), a[1])})
     elif cmd == "merge-json":

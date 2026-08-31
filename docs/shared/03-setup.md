@@ -22,8 +22,8 @@ after step 4. Steps 5–8 are additive.
 > | | |
 > |---|---|
 > | `./install.sh` | pick what you want; on a machine that already has an install it pre-ticks what is there |
-> | `./install.sh update` | after a `git pull` — refresh what you have, no questions |
-> | `./install.sh list` | what is installed, outdated, edited or available |
+> | `./install.sh update` | after a `git pull` — refresh what you have, no questions, though it can refuse outright |
+> | `./install.sh list` | what is installed, outdated, edited, missing, orphaned or available |
 > | `./install.sh remove` | take back what it installed |
 >
 > **None of them ever overwrites or deletes a file you have edited.** An edited file is
@@ -36,6 +36,14 @@ after step 4. Steps 5–8 are additive.
 > machine, and print the steps below instead. That is step 2 being enforced rather than
 > warned about: 16 of the 20 agents declare Serena tools and every one of them halts
 > without them, so a no-Serena install is a success message over a setup that cannot run.
+>
+> **It also stops if a recorded answer no longer means what it meant.** `update` replays
+> what you answered at first install without asking again — correct only for as long as
+> those answers still hold. When a playbook change invalidates one — specifically, a
+> recorded delete of `<memory-read-tools>` or `<memory-write-tools>`, which pressing Enter
+> used to mean — it refuses before writing anything, names the token and why, and tells
+> you to run `./install.sh` again to answer it fresh. Still no prompt: `update` stays
+> non-interactive. It stops and hands the question back instead of guessing for you.
 >
 > **It shows you the whole plan before it writes.** Every destination path, every
 > `settings.json` key the hook wiring adds, then a yes/no. No writes nothing.

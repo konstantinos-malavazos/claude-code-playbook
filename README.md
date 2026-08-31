@@ -350,11 +350,16 @@ either, it tells you exactly what to install and changes nothing.
 It walks `templates/`, lets you pick, pulls in the agents a command needs, fills the
 placeholders, wires the hooks, and then proves the wiring by re-reading `settings.json`.
 
-Four things worth knowing before you run it:
+Five things worth knowing before you run it:
 
 - **It stops if Serena is not set up**, before writing anything, and prints the steps.
   16 of the 20 agents halt and produce nothing without Serena, so a no-Serena install
   would be a success message over a setup that refuses to work.
+- **`update` also stops if a recorded answer no longer means what it meant.** It replays
+  what you answered at first install without asking again — correct only as long as those
+  answers still hold. A recorded delete of `<memory-read-tools>` or `<memory-write-tools>`,
+  which pressing Enter used to mean, no longer qualifies: it refuses before writing
+  anything, names the token, and tells you to run `./install.sh` again to answer it fresh.
 - **It shows you every file it is about to write**, and every `settings.json` key the
   hooks add, and asks. Answering no writes nothing at all.
 - **It makes you choose a tracker adapter**, or say out loud that you are leaving it for
@@ -368,8 +373,8 @@ Four things worth knowing before you run it:
 
 | Command | What it does |
 |---|---|
-| `./install.sh update` | after a `git pull` — refresh what you have, ask nothing, name what is new |
-| `./install.sh list` | what is installed, outdated, edited or available. Changes nothing |
+| `./install.sh update` | after a `git pull` — refresh what you have, ask nothing, name what is new — though it can refuse outright |
+| `./install.sh list` | what is installed, outdated, edited, missing, orphaned or available. Changes nothing |
 | `./install.sh remove` | take back what it installed |
 
 On Windows the same four words go to `install.ps1`, launched the same way as above:
@@ -383,8 +388,12 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 update
 
 **None of them overwrite or delete anything you have edited** — they report it and move on.
 
-`install` and `remove` are interactive and will refuse to run with no terminal attached;
-`update` and `list` ask nothing and are safe in a script or in CI.
+`install` and `remove` are interactive and will refuse to run with no terminal attached.
+`list` changes nothing and is always safe. `update` asks nothing either — but it can still
+refuse: when one of the answers it recorded no longer means what it meant, it stops without
+writing, and clearing that needs `./install.sh` from a real terminal. So an unattended
+`update` can fail, and that is deliberate. Replaying a stale answer with nobody watching is
+the worse outcome.
 
 ---
 
