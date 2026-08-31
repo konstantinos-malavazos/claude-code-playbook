@@ -1110,7 +1110,13 @@ placeholder_stage() {
     fi
   fi
 
-  py - "$PH_SPEC" "$strong" "$fast" "$mem_read" "$mem_write" "$trk_read" <<'PY'
+  # Stamp the answers with the contract they were given under, so a later `update`
+  # can tell "still your answer" from "given under rules that no longer hold".
+  # Read from install-lib.py rather than hardcoded here: two copies of one constant
+  # is the anti-pattern already called out for the tracker token list below.
+  local ph_contract
+  ph_contract=$(pb contract-version)
+  py - "$PH_SPEC" "$strong" "$fast" "$mem_read" "$mem_write" "$trk_read" "$ph_contract" <<'PY'
 import json, sys
 out = sys.argv[1]
 values = {"<strong-model-id>": sys.argv[2], "<fast-model-id>": sys.argv[3]}
@@ -1122,7 +1128,8 @@ for tok, val in (("<memory-read-tools>",  sys.argv[4]),
         values[tok] = val.strip()
     else:
         delete.append(tok)
-json.dump({"paths": [], "values": values, "delete": delete}, open(out, "w"), indent=2)
+json.dump({"paths": [], "values": values, "delete": delete,
+           "contract": int(sys.argv[7])}, open(out, "w"), indent=2)
 PY
   printf '\n'
   pause "Press Enter to continue"
@@ -1277,6 +1284,7 @@ TITLES = [
     ("current",      "UNCHANGED — already exactly this version"),
     ("skip-edited",  "LEFT ALONE — you edited these yourself since installing them"),
     ("skip-foreign", "LEFT ALONE — already here, and this installer did not put them there"),
+    ("orphan",       "LEFT ALONE — installed once, and this clone no longer ships them"),
 ]
 
 wrote_any = False
@@ -1398,6 +1406,19 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
         ;;
       skip-edited)
         LEFT_ALONE+=("$uid — you edited it since install; diff against $src")
+        # The summary line above says it once, in a class that scrolls past. An
+        # edited file is frozen until somebody does something about it, which makes
+        # it a to-do, not a footnote — and the to-do has to carry the actual command.
+        # Separators normalised because this one is meant to be COPIED AND RUN:
+        # python builds these paths with os.path.join, so on Windows they come back
+        # as C:/...\commands\x.md, and backslashes in a shell command are escapes.
+        TODO+=("${dest//\\//} was kept, so this update did not refresh it — you changed it after it was installed. See what this clone would have written: diff ${dest//\\//} ${src//\\//} — then either keep yours, or copy the new one over it by hand.")
+        ;;
+      orphan)
+        # Recorded, still on disk, and this clone no longer ships it: renamed or
+        # removed upstream. Say so and name the file. Deleting it without being
+        # asked is not this script's call.
+        TODO+=("${dest//\\//} is still installed, but this clone no longer ships $uid — it was renamed or removed since you installed it. Nothing was changed. Delete the file by hand if you do not want it any more.")
         ;;
       skip-foreign)
         # Decision 3: adopted only when the user said yes on the confirm stage.
@@ -1545,8 +1566,12 @@ manifest["repo"] = repo
 config = manifest.get("config") or {}
 if os.path.exists(ph_path):
     spec = json.load(open(ph_path))
+    # This REPLACES config["placeholders"] wholesale on every run, so the contract
+    # stamp has to be carried through here too. Absent in the spec means the answers
+    # predate stamping, which is 0, not "current".
     config["placeholders"] = {"values": spec.get("values", {}),
-                              "delete": spec.get("delete", [])}
+                              "delete": spec.get("delete", []),
+                              "contract": spec.get("contract", 0)}
     config["serena_prefix"] = serena_prefix
 if os.path.exists(tracker_path):
     # Merge rather than replace: a run where the user pressed Enter past a field
@@ -1802,7 +1827,7 @@ verify_stage() {
     bad "no — these blanks were not filled in:"
     printf '%s\n' "$hits" | sed 's/^/        /'
     say "      Each one has to be filled in or deleted before the file works."
-    TODO+=("Fill in or delete the blanks listed under 'Are all the blanks filled in?' above.")
+    TODO+=("Fill in or delete the blanks listed under 'Are all the blanks filled in?' above, or re-run ./install.sh, which asks for it.")
   fi
 
   # 1b — the other half of the same question. Check 1 above greps for blanks that
@@ -1813,7 +1838,7 @@ verify_stage() {
   if [[ -d "$CLAUDE_HOME/agents" ]]; then
     heading "1b. Did the tools actually make it into the agents?"
     pb audit-grants "$PH_SPEC" "$TEMPLATES/agents" "$CLAUDE_HOME/agents" > "$WORK/grants.json"
-    py - "$WORK/grants.json" <<'PY'
+    py - "$WORK/grants.json" "$CLAUDE_HOME/agents" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 rows = d["agents"]
@@ -1824,10 +1849,29 @@ else:
         names = d["missing"].get(kind) or []
         if names:
             print("      NO %-8s tools in %d agent(s): %s" % (kind, len(names), ", ".join(names)))
+    # Which FILE lost WHICH tools. These rows were computed on every run and then
+    # thrown away: the summary above names a capability and a count, and leaves you
+    # to work out which file to open.
+    print("")
+    # Joined by hand, not with os.path.join: on Windows that returns a backslash
+    # and the directory arrives with forward slashes, so the path printed back to
+    # the user came out mixed. Every other path this installer prints is /-joined.
+    base = sys.argv[2].rstrip("/\\")
+    for row in rows:
+        print("      %s/%s.md — lost: %s"
+              % (base, row["agent"], ", ".join(row["missing"])))
 PY
     if py -c 'import json,sys;sys.exit(0 if json.load(open(sys.argv[1]))["agents"] else 1)' "$WORK/grants.json"; then
       bad "some agents are installed without a capability their template declared"
-      TODO+=("Some agents were installed with no memory, tracker or Serena tools — see 'Did the tools actually make it into the agents?' above. They will not complain; they will run and do that part badly. Re-run ./install.sh to answer those prompts again.")
+      # Same finding, different cause, so different advice. On an update nobody was
+      # asked anything: the missing grant was REPLAYED from the answers recorded at
+      # install time, and saying "re-run and answer those prompts" without saying so
+      # reads as if the user had just chosen it.
+      if [[ "$MODE" == "update" || "$MODE" == "upgrade" ]]; then
+        TODO+=("Some agents were installed with no memory, tracker or Serena tools — the files are named under 'Did the tools actually make it into the agents?' above. This update did not choose that: it replayed the answers recorded when you first installed. Run ./install.sh to answer those questions again.")
+      else
+        TODO+=("Some agents were installed with no memory, tracker or Serena tools — see 'Did the tools actually make it into the agents?' above. They will not complain; they will run and do that part badly. Re-run ./install.sh to answer those prompts again.")
+      fi
     else
       ok "yes — nothing was silently dropped"
     fi
@@ -1901,10 +1945,70 @@ cfg = m.get("config") or {}
 ph = cfg.get("placeholders")
 if not ph:
     sys.exit(1)
-json.dump({"paths": [], "values": ph.get("values", {}), "delete": ph.get("delete", [])},
+# Carry the contract stamp through with the answers. Without it, this run's own
+# write_manifest re-records contract 0 from the replayed spec and DOWNGRADES the
+# stamp. That does not SILENCE the stop — a stopped run dies before write_manifest
+# and writes nothing at all. It arms a FALSE one: an answer the user has since
+# given deliberately, under today's rules, gets re-tested against an older bump's
+# suspect list and stops an update that should have run. And it cannot be cleared,
+# because the refusal writes nothing and the next successful update downgrades the
+# stamp again.
+json.dump({"paths": [], "values": ph.get("values", {}), "delete": ph.get("delete", []),
+           "contract": ph.get("contract", 0)},
           open(sys.argv[2], "w"), indent=2)
 print(cfg.get("serena_prefix") or "")
 PY
+}
+
+# contract_gate — refuse to replay an answer whose MEANING has since changed.
+#
+# `update` replays the recorded answers without asking, and that is correct for
+# exactly as long as those answers still mean what they meant when they were
+# given. When a contract bump has invalidated one, there is no safe thing to
+# replay: filling the token in needs an answer only the user can give, and
+# leaving it blank writes a broken `tools:` line, which is worse than the delete
+# it would replace. So this stops — it does not warn and carry on — and it stops
+# BEFORE anything is written, so a refused update changes nothing at all.
+#
+# The gate is "a recorded delete that a bump invalidated", never "the recorded
+# number is lower". See CONTRACT_SUSPECT in install-lib.py for why: a blanket
+# compare would condemn every pre-#105 install including the ones whose
+# <tracker-read-tools> delete was right, and that stop could never be cleared.
+contract_gate() {
+  local report="$WORK/contract.json"
+  pb contract-check "$MANIFEST" > "$report" 2>/dev/null || return 0
+  py -c 'import json,sys
+sys.exit(0 if json.load(open(sys.argv[1]))["stale"] else 1)' "$report" || return 0
+
+  # To stderr, alongside die's own line, so the whole explanation arrives together
+  # and survives however the run was invoked.
+  {
+    printf '\n  %sSome of your recorded answers are no longer valid.%s\n\n' "$BOLD" "$RESET"
+    py - "$report" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+for tok in d["stale"]:
+    print("      your recorded answer for %s was given under older rules" % tok)
+    print("      it was recorded as: %s — the token was taken out of your files"
+          % d["answers"][tok])
+    print("")
+why = d.get("why") or []
+if why:
+    for line in why:
+        print("      %s" % line)
+    print("")
+print("      This update will not replay that answer onto your files, and it has")
+print("      written nothing.")
+print("")
+print("      Run ./install.sh — it asks the question again.")
+print("")
+print("      That one needs a terminal. This update normally runs fine unattended;")
+print("      ./install.sh never can — it refuses to start where there is nobody to")
+print("      answer it. So if this run came from a script, an ssh command or a CI")
+print("      job, clear this from a real shell rather than from there.")
+PY
+  } >&2
+  die "update stopped — nothing was written."
 }
 
 update_mode() {
@@ -1931,6 +2035,10 @@ update_mode() {
   local prefix
   if prefix=$(load_recorded_config); then
     SERENA_PREFIX="$prefix"
+    # Before reusing them, check they are still answers to the questions that were
+    # actually asked. This is a hard stop and it must stay ABOVE `stage "Update"`
+    # and install_stage_body: a refused update writes nothing.
+    contract_gate
     ok "reusing the recorded placeholder values and Serena prefix"
   else
     # The legacy path asks one question, and that question is a whole extra stage.
@@ -2091,6 +2199,7 @@ list_mode() {
         outdated)  printf '   %s%-10s%s %s\n' "$YELLOW" "outdated" "$RESET" "$uid"; n_out=$((n_out + 1)) ;;
         edited)    printf '   %s%-10s%s %s\n' "$BOLD" "edited"   "$RESET" "$uid" ;;
         missing)   printf '   %-10s %s\n' "missing"   "$uid" ;;
+        orphaned)  printf '   %s%-10s%s %s\n' "$YELLOW" "orphaned" "$RESET" "$uid" ;;
         available) printf '   %s%-10s%s %s\n' "$DIM" "available" "$RESET" "$uid"; n_new=$((n_new + 1)) ;;
       esac
     done < <(pb plan-state "$MANIFEST" "$UNITS")
@@ -2099,6 +2208,7 @@ list_mode() {
     note "outdated  = this clone has a newer version than the one you installed"
     note "edited    = you changed it yourself; update and remove both leave it be"
     note "missing   = installed once, but the file is gone from disk now"
+    note "orphaned  = you installed it, but this clone no longer ships it (renamed or removed)"
     note "available = this clone ships it and you have not installed it"
     printf '\n'
     [[ "$n_out" -gt 0 ]] && say "$n_out would be brought up to date by:  ./install.sh update"
