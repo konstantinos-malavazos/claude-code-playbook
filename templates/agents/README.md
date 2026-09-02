@@ -81,9 +81,22 @@ So **fill every placeholder before you dispatch anything** — and use
 [`../README.md`](../README.md) check 10, the one grep that catches all three rows.
 Deleting a `<memory-read-tools>` is no longer the right move for anybody: a memory
 server is required, `install.sh` gates on one, and the installer offers the tool names
-pre-filled rather than making Enter mean *remove the grant*. A `<tracker-read-tools>`
-is the one that is still legitimately deleted, and only where the tracker adapter drives
-a CLI rather than an MCP — the GitHub adapter is `gh`, so it needs none.
+pre-filled rather than making Enter mean *remove the grant*. **The two tracker blanks are
+the ones still legitimately deleted, and neither is a question** — the installer fills or
+deletes both from the adapter you picked, because the adapter is what decides the answer:
+
+| Adapter | `<tracker-read-tools>` | `<tracker-shell-tools>` |
+|---|---|---|
+| GitHub (`gh`) | deleted — it registers no MCP server | `Bash` |
+| GitLab (the shape, `glab`) | deleted — same | `Bash` |
+| Jira | its MCP tool names | deleted — it needs no shell |
+| Local markdown | deleted — `Read`/`Glob` **are** the tracker | deleted — same |
+
+`<tracker-shell-tools>` exists for exactly one agent. `ticket-analyzer` is the only
+template declaring `<tracker-read-tools>` that grants no `Bash` of its own, so on a CLI
+adapter it was the only one the delete actually disabled — and it is the first agent
+`/start-ticket` dispatches, so the whole pipeline halted on its first line. The other five
+templates carrying the token grant `Bash` in the same line and never lost the route.
 
 **And every body that calls a tool set mandatory now checks it has that set, and halts if
 it does not.** This is the only defence here that does not depend on someone running a
@@ -162,6 +175,9 @@ directory name. Same placeholder, opposite consequence:
 - **Replace `<memory-read-tools>` / `<memory-write-tools>` / `<tracker-read-tools>`** with
   your actual MCP tool names. Left in place they are stripped at launch without a word —
   see above. **Serena is not a placeholder**, see below.
+  - **`<tracker-shell-tools>` is not MCP tool names.** It is the shell an agent needs when
+    the tracker adapter is a CLI, and its only two answers are `Bash` and deleted — see the
+    adapter table above.
   - **For Forgetful the answer is the wrapper trio**, and it is the same answer for read
     and for write: `mcp__forgetful__execute_forgetful_tool`,
     `mcp__forgetful__discover_forgetful_tools`, `mcp__forgetful__how_to_use_forgetful_tool`.

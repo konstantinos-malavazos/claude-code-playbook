@@ -369,6 +369,10 @@ assert d.get("hooks"), "no hooks block"
 PY
 chk $? "settings.json has a hooks block"
 inlog t6 "github.com/you/weekend-project    yes    yes" "closing summary repeats the allowlist line"
+# #122's own reproduction: this is the run whose log said "NO tracker tools in 6
+# agent(s)" on a correct install. local-markdown reads files off the disk, so the
+# deleted tracker token was never a lost grant.
+inlog t6 "every installed agent carries the tools its template declared"          "check 1b is GREEN on a clean local-markdown install"
 fi
 
 if want 7; then
@@ -778,11 +782,13 @@ fi
 # $REPO: the mutation IS the case, and the real tree must not move underneath the
 # rest of the suite.
 #
-# What may NOT be asserted here. Check 1b ("NO tracker tools in 6 agent(s)") and
-# check 3 ("Fill in <repo>") are ALREADY RED on a clean sandbox install, so a case
-# keying on the generic tick, on the ✗ line, or on "verify is clean" is born green
-# and proves nothing. Every string below is either absent from the tree before this
-# branch, or specific to that case's own planted mutation.
+# What may NOT be asserted here. Check 3 ("Fill in <repo>") is ALREADY RED on a clean
+# sandbox install, so a case keying on the generic tick, on the ✗ line, or on "verify
+# is clean" is born green and proves nothing. Every string below is either absent from
+# the tree before this branch, or specific to that case's own planted mutation.
+# Check 1b used to be listed here too — it went red on every sandbox install because a
+# deleted <tracker-read-tools> counted as a lost grant whatever the route. That was the
+# bug, not the baseline; T1-T3 below are what hold it green now.
 
 # ---------------------------------------------------------------- U1
 # Catches: the update path silently no-opping — a fixed template that never
@@ -960,6 +966,214 @@ yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update completes (rc=$RC)"
 # stop later that cannot be cleared. This is the assertion that fails on its own.
 stamp_is; chk $? "the update KEEPS the stamp instead of resetting it"
 fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# T1-T3 · issues #122 / #123 — what a DELETED tracker token means
+# ══════════════════════════════════════════════════════════════════════════
+# Two halves of one fact. On a route with no MCP server to name, deleting
+# <tracker-read-tools> is the CORRECT answer, so counting it a lost grant painted a
+# correct install red (#122). And on the CLI routes that same delete is what left
+# @ticket-analyzer — the FIRST agent /start-ticket dispatches — with no way to run a
+# single `gh` command (#123). One is a check that has to stop going red; the other
+# is a grant that has to start being made.
+#
+# Test 6 already carries the local-markdown half of #122: it is the FULL keystroke
+# path, and a red 1b there now fails that case.
+
+# ---------------------------------------------------------------- T1
+# Catches: #123 on the route it was reported from. github is CLI-driven, so the read
+# token is correctly deleted and a shell has to arrive in its place.
+if want T1 || want T2; then
+banner "T1 · the github adapter grants @ticket-analyzer a shell"
+fresh_env t1; with_servers
+#       banner discover menu:5 tracker:1(github) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · owner · repo · tracker pause
+keys t1 '' '' '5' '1' '' 'i' '' '' '' '' '' '' '' '' 'y' 'octo' 'weekend-project' ''
+run install t1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exits 0 (rc=$RC)"
+T1TOOLS="$(sed -n '/^tools:/p' "$CH/agents/ticket-analyzer.md" 2>/dev/null)"
+printf '    (%s)\n' "$T1TOOLS"
+case "$T1TOOLS" in
+  *Bash*) pass "@ticket-analyzer installs WITH a shell" ;;
+  *)      fail "@ticket-analyzer installs WITH a shell ($T1TOOLS)" ;;
+esac
+case "$T1TOOLS" in
+  *"<tracker-"*) fail "no tracker placeholder left in its tools: line" ;;
+  *)             pass "no tracker placeholder left in its tools: line" ;;
+esac
+inlog t1 "@ticket-analyzer gets Bash" "the installer says it granted the shell"
+# #122, on the same run.
+inlog t1 "every installed agent carries the tools its template declared" \
+         "check 1b is GREEN on a correct github install"
+notinlog t1 "some agents are installed without a capability" "1b does not go red"
+fi
+
+# ---------------------------------------------------------------- T2
+# Catches: #122's fix going too far, so that 1b can no longer go red at ALL. The two
+# answers differ only in what the audit is told about the route, which is exactly
+# what the fix added — so this drives the audit directly over T1's finished install
+# rather than re-walking the installer three times to change one argument.
+if want T1 || want T2; then
+banner "T2 · a genuinely stripped grant still turns 1b red"
+T2SPEC="$LOGS/t2-spec.json"
+t2audit() {
+  python3 "$REPO/install-lib.py" audit-grants \
+    "$T2SPEC" "$REPO/templates/agents" "$CH/agents" "$1" "$2" \
+  | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["agents"]))'
+}
+# T1's OWN recorded answers, read back out of its manifest, so this is the real spec
+# rather than a hand-written stand-in that could drift from what install.sh writes.
+python3 - "$CH/.playbook-install.json" "$T2SPEC" <<'PYT2'
+import json, sys
+ph = json.load(open(sys.argv[1], encoding="utf-8"))["config"]["placeholders"]
+json.dump({"paths": [], "values": ph.get("values", {}), "delete": ph.get("delete", [])},
+          open(sys.argv[2], "w"), indent=2)
+PYT2
+chk $? "read T1's recorded answers back out of its manifest"
+yn "$([ "$(t2audit github '')" = "0" ] && echo 0 || echo 1)" \
+   "green on the github route it was actually installed with"
+# Same files, same answers, a different route: an adapter that reads through an MCP
+# server, with one registered. There the delete threw away a grant that could have
+# been filled in, and that is a real loss.
+yn "$([ "$(t2audit jira tracker)" != "0" ] && echo 0 || echo 1)" \
+   "red when the route HAD a server to name and the token was deleted anyway"
+# The other half — revert #123's grant by hand, on the route that needs it.
+python3 - "$CH/agents/ticket-analyzer.md" <<'PYT2B'
+import io, sys
+p = sys.argv[1]
+lines = io.open(p, encoding="utf-8").read().split("\n")
+for i, line in enumerate(lines):
+    if line.startswith("tools:"):
+        lines[i] = ", ".join(x for x in line.split(", ") if x.strip() != "Bash")
+io.open(p, "w", encoding="utf-8", newline="").write("\n".join(lines))
+PYT2B
+chk $? "stripped Bash back out of the installed @ticket-analyzer"
+yn "$([ "$(t2audit github '')" != "0" ] && echo 0 || echo 1)" \
+   "red once the shell grant is taken away again"
+fi
+
+# ---------------------------------------------------------------- T3
+# Catches: the #123 token landing on an install that predates it. `update` replays
+# the recorded answers and there IS no recorded answer for a token nothing ever asked
+# about — so it survives apply-placeholders and reaches the installed file as a
+# literal blank, which is the silent-strip failure 1b exists to catch, arriving one
+# release later. Installs from a clone carrying the pre-#123 template, then restores
+# the current one, which is what a `git pull` does.
+if want T3; then
+banner "T3 · an update fills a token the recorded answers never had"
+fresh_env t3; with_servers; clone_repo "$SANDBOX/t3/repo"
+T3TPL="$SANDBOX/t3/repo/templates/agents/ticket-analyzer.md"
+python3 - "$T3TPL" <<'PYT3A'
+import io, sys
+p = sys.argv[1]
+t = io.open(p, encoding="utf-8", newline="").read()
+old = "tools: Read, Write, Glob, <tracker-shell-tools>, <tracker-read-tools>"
+new = "tools: Read, Write, Glob, <tracker-read-tools>"
+assert t.count(old) == 1, "pre-#123 tools line not found"
+io.open(p, "w", encoding="utf-8", newline="").write(t.replace(old, new))
+PYT3A
+chk $? "planted the pre-#123 template in the clone"
+keys t3 '' '' '5' '1' '' 'i' '' '' '' '' '' '' '' '' 'y' 'octo' 'weekend-project' ''
+run_in "$SANDBOX/t3/repo" install t3
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+# Rewind the recording too. The pre-#123 installer never wrote an answer for the
+# token, either way, so leaving one here would test nothing.
+python3 - "$CH/.playbook-install.json" <<'PYT3'
+import json, sys
+p = sys.argv[1]
+m = json.load(open(p, encoding="utf-8"))
+ph = m["config"]["placeholders"]
+ph["values"].pop("<tracker-shell-tools>", None)
+ph["delete"] = [x for x in ph.get("delete", []) if x != "<tracker-shell-tools>"]
+json.dump(m, open(p, "w", encoding="utf-8"), indent=2)
+PYT3
+chk $? "rewound the manifest to a pre-#123 recording"
+cp "$REPO/templates/agents/ticket-analyzer.md" "$T3TPL"
+nokeys t3u; run_in "$SANDBOX/t3/repo" update t3u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update completes (rc=$RC)"
+T3TOOLS="$(sed -n '/^tools:/p' "$CH/agents/ticket-analyzer.md" 2>/dev/null)"
+printf '    (%s)\n' "$T3TOOLS"
+case "$T3TOOLS" in
+  *"<tracker-shell-tools>"*) fail "the token is not left in the file as a literal blank" ;;
+  *)                         pass "the token is not left in the file as a literal blank" ;;
+esac
+case "$T3TOOLS" in
+  *Bash*) pass "the update derives the shell grant from the recorded adapter" ;;
+  *)      fail "the update derives the shell grant from the recorded adapter ($T3TOOLS)" ;;
+esac
+notinlog t3u "no — these blanks were not filled in:" "check 1 stays green on the update"
+fi
+
+
+# ---------------------------------------------------------------- T4
+# Catches: the #123 backfill reading the adapter from the WRONG place. It took
+# config.tracker.adapter from the manifest, while its three sibling call sites all
+# read $SELECTED. Those two disagree for any adapter tracker_stage returns early
+# on — gitlab-shape has no fields to ask about, so tracker.json is never written
+# and write_manifest leaves config.tracker unset. The manifest then answers "",
+# which routes to TRACKER_ROUTE_UNKNOWN, whose shell is "" — so the update DELETED
+# the shell grant on the one other adapter whose route says Bash. And because the
+# backfill only ever adds, the wrong answer would never be revisited.
+#
+# github cannot catch this: it records an adapter, so both sources agree there.
+if want T4; then
+banner "T4 · the update reads the adapter from the selection, not the manifest"
+fresh_env t4t; with_servers; clone_repo "$SANDBOX/t4t/repo"
+T4TPL="$SANDBOX/t4t/repo/templates/agents/ticket-analyzer.md"
+python3 - "$T4TPL" <<'PYT4'
+import io, sys
+p = sys.argv[1]
+t = io.open(p, encoding="utf-8", newline="").read()
+old = "tools: Read, Write, Glob, <tracker-shell-tools>, <tracker-read-tools>"
+new = "tools: Read, Write, Glob, <tracker-read-tools>"
+assert t.count(old) == 1, "pre-#123 tools line not found"
+io.open(p, "w", encoding="utf-8", newline="").write(t.replace(old, new))
+PYT4
+chk $? "planted the pre-#123 template in the clone"
+#       banner discover menu:5 tracker:2(gitlab-shape) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · the shape warning's pause
+keys t4t '' '' '5' '2' '' 'i' '' '' '' '' '' '' '' '' 'y' ''
+run_in "$SANDBOX/t4t/repo" install t4t
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+yn "$(grep -qF 'tracker:gitlab-shape' "$CH/.playbook-install.json" && echo 0 || echo 1)" \
+   "gitlab-shape is the adapter that got installed"
+# The precondition that makes the bug reachable, asserted rather than assumed: if
+# this ever starts recording an adapter, this case stops testing what it says.
+python3 - "$CH/.playbook-install.json" <<'PYT4M'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+rec = ((m.get("config") or {}).get("tracker") or {}).get("adapter") or ""
+print("recorded adapter: %r" % rec)
+sys.exit(1 if rec else 0)
+PYT4M
+chk $? "gitlab-shape records no config.tracker.adapter (the trap the bug fell into)"
+# Rewind the recording, exactly as T3 does — a pre-#123 install wrote no answer.
+python3 - "$CH/.playbook-install.json" <<'PYT4'
+import json, sys
+p = sys.argv[1]
+m = json.load(open(p, encoding="utf-8"))
+ph = m["config"]["placeholders"]
+ph["values"].pop("<tracker-shell-tools>", None)
+ph["delete"] = [x for x in ph.get("delete", []) if x != "<tracker-shell-tools>"]
+json.dump(m, open(p, "w", encoding="utf-8"), indent=2)
+PYT4
+chk $? "rewound the manifest to a pre-#123 recording"
+cp "$REPO/templates/agents/ticket-analyzer.md" "$T4TPL"
+nokeys t4u; run_in "$SANDBOX/t4t/repo" update t4u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update completes (rc=$RC)"
+T4TOOLS="$(sed -n '/^tools:/p' "$CH/agents/ticket-analyzer.md" 2>/dev/null)"
+printf '    (%s)\n' "$T4TOOLS"
+case "$T4TOOLS" in
+  *Bash*) pass "gitlab-shape keeps the shell grant its route says it needs" ;;
+  *)      fail "gitlab-shape keeps the shell grant its route says it needs ($T4TOOLS)" ;;
+esac
+case "$T4TOOLS" in
+  *"<tracker-shell-tools>"*) fail "no literal blank left in the tools: line" ;;
+  *)                         pass "no literal blank left in the tools: line" ;;
+esac
+notinlog t4u "some agents are installed without a capability" "check 1b stays green"
+fi
+
 printf '\n================================\n'
 printf '  passed %s   failed %s\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then

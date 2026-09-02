@@ -270,9 +270,15 @@ above). Running **something else**, fill them with your own server's tool names 
 Claude Code lists them. Deleting them leaves the agents running, looking right, and
 remembering nothing.
 
-`<tracker-read-tools>` is the one placeholder still legitimately deleted, and only when your
-tracker adapter drives a CLI instead of an MCP server: the GitHub adapter is `gh`, so it
-needs none. Full table:
+The two tracker placeholders are the ones still legitimately deleted, and neither is a
+question the installer asks — both follow from the adapter you picked.
+`<tracker-read-tools>` is MCP tool names, so it is deleted wherever there is no MCP server:
+the GitHub adapter is `gh`, and local markdown is files on your own disk.
+`<tracker-shell-tools>` is the other half of the same question and goes the other way — it
+is filled with `Bash` on those CLI adapters and deleted on Jira and on local markdown, which
+need no shell to reach a ticket. It exists because
+`ticket-analyzer` is the one agent whose whole job is reading the tracker and which grants
+no shell of its own, and it is the first agent `/start-ticket` runs. Full table:
 [`../../templates/agents/README.md`](../../templates/agents/README.md#an-unfilled-placeholder-is-not-an-error).
 
 > **The grep above is only half the check.** It finds blanks that are *still there*, and a

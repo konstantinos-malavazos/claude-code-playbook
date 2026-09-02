@@ -1086,12 +1086,30 @@ placeholder_stage() {
   # ask for tracker tool names before knowing whether a tracker MCP is even
   # wanted. The GitHub adapter drives the gh CLI and needs none: for that one
   # deletion is the RIGHT answer, not a loss, and the installer can now say so.
-  local chosen_tracker trk_server trk_cost
+  #
+  # Two blanks, two different questions. <tracker-read-tools> is MCP tool names,
+  # which only a registered server can supply. <tracker-shell-tools> is the shell
+  # @ticket-analyzer needs when the adapter is a CLI instead — it is the ONLY agent
+  # declaring the read token that grants no Bash of its own, so it is the only one
+  # the delete actually disables, and it is the FIRST agent /start-ticket runs.
+  # Neither is a question here: both follow from the adapter picked back in the
+  # selection stage. install-lib.py owns that table, so there is one copy of it.
+  local chosen_tracker trk_server trk_cost trk_shell trk_mcp
   chosen_tracker=$(sed -n 's/^tracker://p' "$SELECTED" | head -1)
   trk_cost="these agents can no longer read a ticket from the tracker — $(agents_declaring '<tracker-read-tools>' | tr '\n' ' ')"
+  pb tracker-route "$chosen_tracker" > "$WORK/tracker-route.json"
+  trk_shell=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["shell"])' \
+              "$WORK/tracker-route.json")
+  trk_mcp=$(py -c 'import json,sys;print("yes" if json.load(open(sys.argv[1]))["mcp"] else "")' \
+            "$WORK/tracker-route.json")
 
-  if [[ "$chosen_tracker" == "github" ]]; then
-    ok "your tracker adapter is github, which drives the gh CLI"
+  # Branch on the ROUTE, not on the adapter name. Naming github here was a second
+  # copy of the table the comment above says lives in install-lib.py, and it sent
+  # gitlab-shape — which drives glab and registers no server either — down the MCP
+  # path, where it drew a pointless probe and a TODO telling the user to register
+  # a server their adapter never reads.
+  if [[ -z "$trk_mcp" ]]; then
+    ok "your tracker adapter is $chosen_tracker, which does not read through an MCP server"
     note "It needs no tracker MCP server, so the tracker blank is taken out of the"
     note "files. For this adapter that is the correct answer rather than a loss."
   else
@@ -1110,26 +1128,35 @@ placeholder_stage() {
     fi
   fi
 
+  if [[ -n "$trk_shell" ]]; then
+    ok "$chosen_tracker is driven from the command line, so @ticket-analyzer gets $trk_shell"
+    note "It is the one agent whose whole job is reading the tracker and which holds"
+    note "no shell of its own. Without this it cannot run a single adapter command,"
+    note "and it is the first thing /start-ticket dispatches."
+  fi
+
   # Stamp the answers with the contract they were given under, so a later `update`
   # can tell "still your answer" from "given under rules that no longer hold".
   # Read from install-lib.py rather than hardcoded here: two copies of one constant
   # is the anti-pattern already called out for the tracker token list below.
   local ph_contract
   ph_contract=$(pb contract-version)
-  py - "$PH_SPEC" "$strong" "$fast" "$mem_read" "$mem_write" "$trk_read" "$ph_contract" <<'PY'
+  py - "$PH_SPEC" "$strong" "$fast" "$mem_read" "$mem_write" "$trk_read" \
+       "$trk_shell" "$ph_contract" <<'PY'
 import json, sys
 out = sys.argv[1]
 values = {"<strong-model-id>": sys.argv[2], "<fast-model-id>": sys.argv[3]}
 delete = []
-for tok, val in (("<memory-read-tools>",  sys.argv[4]),
-                 ("<memory-write-tools>", sys.argv[5]),
-                 ("<tracker-read-tools>", sys.argv[6])):
+for tok, val in (("<memory-read-tools>",   sys.argv[4]),
+                 ("<memory-write-tools>",  sys.argv[5]),
+                 ("<tracker-read-tools>",  sys.argv[6]),
+                 ("<tracker-shell-tools>", sys.argv[7])):
     if val.strip():
         values[tok] = val.strip()
     else:
         delete.append(tok)
 json.dump({"paths": [], "values": values, "delete": delete,
-           "contract": int(sys.argv[7])}, open(out, "w"), indent=2)
+           "contract": int(sys.argv[8])}, open(out, "w"), indent=2)
 PY
   printf '\n'
   pause "Press Enter to continue"
@@ -1837,7 +1864,20 @@ verify_stage() {
   #      different claims and only the first was ever checked.
   if [[ -d "$CLAUDE_HOME/agents" ]]; then
     heading "1b. Did the tools actually make it into the agents?"
-    pb audit-grants "$PH_SPEC" "$TEMPLATES/agents" "$CLAUDE_HOME/agents" > "$WORK/grants.json"
+    # A deleted token is not always a LOST one. Two of the tracker routes have
+    # nothing to fill <tracker-read-tools> in with — the github adapter drives `gh`
+    # and registers no server, local-markdown reads files off the disk — so counting
+    # the delete as a loss painted a correct install red. A check that is red when
+    # nothing is wrong teaches the reader to ignore it, which is #105's silent
+    # failure inverted. The chosen adapter and the registered server are what tell
+    # the two apart, so both are passed in.
+    local trk_adapter trk_mcp
+    trk_adapter=$(sed -n 's/^tracker://p' "$SELECTED" | head -1)
+    pb tracker-detect "$HOME" "$PWD" > "$WORK/tracker-mcp-verify.json"
+    trk_mcp=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["server"] or "")' \
+              "$WORK/tracker-mcp-verify.json")
+    pb audit-grants "$PH_SPEC" "$TEMPLATES/agents" "$CLAUDE_HOME/agents" \
+       "$trk_adapter" "$trk_mcp" > "$WORK/grants.json"
     py - "$WORK/grants.json" "$CLAUDE_HOME/agents" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -1960,6 +2000,55 @@ print(cfg.get("serena_prefix") or "")
 PY
 }
 
+# backfill_tracker_shell — answer a token that did not exist when these answers
+# were recorded.
+#
+# `update` replays what was recorded, and an install predating <tracker-shell-tools>
+# recorded neither a value nor a delete for it. The upgrade rewrites
+# @ticket-analyzer from the current template, which puts the token back, and a token
+# with no recorded answer survives apply-placeholders and lands in the installed
+# file as a literal blank — the silent-strip failure the grant audit exists to
+# remove.
+#
+# It is not asked, because it was never a question: it follows from the adapter,
+# which the manifest already records. Same table and same rule as a fresh install.
+backfill_tracker_shell() {
+  local adapter shell
+  # The adapter comes from $SELECTED, NOT from config.tracker.adapter in the
+  # manifest, and the difference is not cosmetic. tracker_stage returns early for
+  # any adapter with no fields to ask about — gitlab-shape is one — so it never
+  # writes tracker.json, and write_manifest's os.path.exists guard then leaves
+  # config.tracker unset. Reading it there yields "", which routes to
+  # TRACKER_ROUTE_UNKNOWN, whose shell is "" — so the backfill would DELETE the
+  # shell grant on an adapter whose route says Bash, and only ever adds, so the
+  # wrong answer would stick forever. $SELECTED is seeded from the manifest's unit
+  # ids by seed_from_manifest, which runs above this, and is what the other three
+  # call sites read.
+  adapter=$(sed -n 's/^tracker://p' "$SELECTED" | head -1)
+  pb tracker-route "$adapter" > "$WORK/tracker-route.json"
+  shell=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["shell"])' \
+          "$WORK/tracker-route.json")
+  py - "$PH_SPEC" "$shell" <<'PY'
+import json, sys
+path, val = sys.argv[1], sys.argv[2].strip()
+try:
+    spec = json.load(open(path))
+except Exception:
+    sys.exit(0)
+tok = "<tracker-shell-tools>"
+# Only ever ADDS a missing answer. A recorded one is the user's, whichever way it
+# went, and overwriting it here would be the replay-what-was-never-decided bug.
+if tok in (spec.get("values") or {}) or tok in (spec.get("delete") or []):
+    sys.exit(0)
+if val:
+    spec.setdefault("values", {})[tok] = val
+else:
+    spec.setdefault("delete", []).append(tok)
+json.dump(spec, open(path, "w"), indent=2)
+PY
+}
+
+
 # contract_gate — refuse to replay an answer whose MEANING has since changed.
 #
 # `update` replays the recorded answers without asking, and that is correct for
@@ -2039,6 +2128,7 @@ update_mode() {
     # actually asked. This is a hard stop and it must stay ABOVE `stage "Update"`
     # and install_stage_body: a refused update writes nothing.
     contract_gate
+    backfill_tracker_shell
     ok "reusing the recorded placeholder values and Serena prefix"
   else
     # The legacy path asks one question, and that question is a whole extra stage.
