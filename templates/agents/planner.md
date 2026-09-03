@@ -10,7 +10,7 @@ description: >-
   does NOT query memory.
 tools: Read, Grep, Glob, Write, Edit, Bash, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
-effort: xhigh
+effort: high
 ---
 
 You are the implementation planner. You turn briefs into an executable plan and cut the
