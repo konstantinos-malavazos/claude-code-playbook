@@ -1174,6 +1174,332 @@ esac
 notinlog t4u "some agents are installed without a capability" "check 1b stays green"
 fi
 
+# ---------------------------------------------------------------- T5
+# Catches: the #122-era damage that no re-run ever repaired. An agent whose
+# TEMPLATE still declares <memory-read-tools>/<memory-write-tools>, but whose
+# INSTALLED file lost the filled-in names to the pre-#105 "Enter deletes a grant"
+# bug, plans as `current` — its template has not moved since install — so
+# install_stage_body never re-copies it, and apply_placeholders has no literal
+# token left in the file to fill. The file stays dead through every update.
+#
+# Three wrong-greens this case is SHAPED to dodge. Each one goes green with the
+# fix reverted, which is why T3/T4 must not be copied blindly here:
+#   1. Mutating the template in the clone (the T3/T4 idiom) changes source_hash,
+#      flips the unit to `upgrade`, and repairs it by the ORDINARY path. So the
+#      clone's template is left byte-identical — and that is asserted, not assumed.
+#   2. Damaging the installed file without rewriting the recorded hash classifies
+#      it `skip-edited`, which is deliberately left alone. So the manifest's
+#      units[<uid>].hash is recomputed with the installer's own hasher.
+#   3. Rewinding the recorded memory answer to a delete trips contract_gate and the
+#      update refuses — that is U3, not this. So config.placeholders is left alone:
+#      this population has a CORRECT recorded answer and a DEAD installed file.
+if want T5; then
+banner "T5 · an update repairs a memory grant lost from an UNCHANGED agent"
+fresh_env t5; with_servers; clone_repo "$SANDBOX/t5/repo"
+T5TPL="$SANDBOX/t5/repo/templates/agents/encoder.md"
+T5AGENT="$CH/agents/encoder.md"
+# The `e` preset, as M3 uses it: @encoder is not in the recommended selection, and
+# it is one of the three agents this actually happened to.
+keys t5 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
+run_in "$SANDBOX/t5/repo" install t5
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+yn "$([ -f "$T5AGENT" ] && echo 0 || echo 1)" "@encoder is installed"
+# The healthy file, kept byte for byte. The repair must restore the lost fill and
+# change NOTHING ELSE, so the repaired file has to come back identical to this.
+cp "$T5AGENT" "$SANDBOX/t5/encoder.healthy"
+# The damage: the memory tool names deleted from the installed tools: line, which
+# is exactly what the pre-#105 run left behind. Only that line, and only within it,
+# so the file's line endings and everything else survive untouched.
+python3 - "$T5AGENT" <<'PYT5D'
+import io, re, sys
+p = sys.argv[1]
+t = io.open(p, encoding="utf-8", newline="").read()
+m = re.search(r"(?m)^tools:.*$", t)
+assert m, "no tools: line in the installed @encoder"
+old = m.group(0).rstrip("\r")
+names = [x.strip() for x in old.split(":", 1)[1].split(",") if x.strip()]
+mem = [x for x in names if x.startswith("mcp__forgetful__")]
+assert mem, "the installed tools: line carries no memory tools to strip"
+new = "tools: " + ", ".join(x for x in names if x not in mem)
+io.open(p, "w", encoding="utf-8", newline="").write(t.replace(old, new, 1))
+PYT5D
+chk $? "stripped the memory tools out of the installed @encoder"
+# Control. A blanking step that silently no-ops is a fourth wrong-green.
+yn "$(grep -qE '^tools:.*mcp__forgetful__' "$T5AGENT" && echo 1 || echo 0)" \
+   "the damaged tools: line really has lost the memory tools"
+# Record the damaged file's OWN hash, so it plans `current` and not `skip-edited`.
+# source_hash is deliberately left alone: the template did not move.
+python3 - "$SANDBOX/t5/repo" "$CH/.playbook-install.json" "$T5AGENT" <<'PYT5H'
+import json, subprocess, sys
+repo, manifest_path, dest = sys.argv[1], sys.argv[2], sys.argv[3]
+h = json.loads(subprocess.check_output(
+    [sys.executable, repo + "/install-lib.py", "hash", dest]))["hash"]
+m = json.load(open(manifest_path, encoding="utf-8"))
+units = m["units"]
+uids = [u for u, r in units.items()
+        if (r.get("dest") or "").replace("\\", "/").endswith("/agents/encoder.md")]
+assert len(uids) == 1, "expected exactly one recorded unit for @encoder: %r" % uids
+assert units[uids[0]]["hash"] != h, "the damage did not change the file's hash"
+units[uids[0]]["hash"] = h
+json.dump(m, open(manifest_path, "w", encoding="utf-8"), indent=2)
+sys.stdout.write("    (damaged unit: %s)\n" % uids[0])
+PYT5H
+chk $? "recorded the damaged file's own hash (so it plans \`current\`, not \`skip-edited\`)"
+# A2 — the guard on wrong-green 1. If the template had moved, source_hash would
+# differ, the unit would plan `upgrade`, and the ordinary path would repair it.
+yn "$(cmp -s "$REPO/templates/agents/encoder.md" "$T5TPL" && echo 0 || echo 1)" \
+   "the clone's @encoder template never moved (so the unit really is \`current\`)"
+nokeys t5u; run_in "$SANDBOX/t5/repo" update t5u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update completes (rc=$RC)"
+T5TOOLS="$(sed -n '/^tools:/p' "$T5AGENT" 2>/dev/null)"
+printf '    (%s)\n' "$T5TOOLS"
+# A1 — THE assertion. Check 1b is not proof: audit_grants matches the first name
+# only, so this greps for the tool name itself.
+case "$T5TOOLS" in
+  *mcp__forgetful__execute_forgetful_tool*)
+    pass "A1 the update puts the lost memory grant back into @encoder" ;;
+  *)
+    fail "A1 the update puts the lost memory grant back into @encoder ($T5TOOLS)" ;;
+esac
+# A3 — only ADDS. The repair re-copies from the template and replays the whole
+# answer set, so this is where a replayed delete would show up.
+case "$T5TOOLS" in
+  *mcp__serena__find_symbol*) pass "A3 the repaired @encoder kept its non-memory tools" ;;
+  *) fail "A3 the repaired @encoder kept its non-memory tools ($T5TOOLS)" ;;
+esac
+case "$(sed -n '/^tools:/p' "$CH/agents/context-gatherer.md" 2>/dev/null)" in
+  *mcp__forgetful__execute_forgetful_tool*)
+    pass "A3 an undamaged memory agent still carries its memory tools" ;;
+  *)
+    fail "A3 an undamaged memory agent still carries its memory tools" ;;
+esac
+# The re-copy is a whole-file rewrite, so "it only added the grant back" has to be
+# proved on the whole file, not on the tools: line.
+yn "$(cmp -s "$SANDBOX/t5/encoder.healthy" "$T5AGENT" && echo 0 || echo 1)" \
+   "the repair restored the lost fill and changed nothing else in the file"
+# A4
+notinlog t5u "some agents are installed without a capability" "check 1b is green on the update"
+fi
+
+# ------------------------------------------- T6 the confirm screen tells the truth
+# The repair in #127 is computed by install_stage_body. But confirm_stage does NOT
+# reuse that plan — it runs the SAME subcommand a second time, from its own inputs,
+# to show the user what is about to happen. The two calls drifted: only one of them
+# was handed the recorded answers, so a damaged agent was listed on the consent
+# screen under "UNCHANGED — already exactly this version" and was then rewritten by
+# the very run the user had just approved. The comment above that call promises the
+# opposite in so many words: "the plan shown here is the plan that runs".
+#
+# It matters on this path specifically, because the interactive ./install.sh re-run
+# is the remedy #127 names for the damaged population — so it is the screen every
+# affected user reads.
+#
+# The case asserts AGREEMENT across the two calls, on one damaged unit, in one run:
+#   the preview classifies it `upgrade`  AND  the run really does rewrite it.
+# The second half is green with the fix reverted. That is deliberate: it is the
+# control that proves the two halves DISAGREED, which is the whole bug. Without it
+# the case would only be a slower restatement of T5.
+#
+# The damaged fixture is T5's, step for step (see T5's header for the three
+# wrong-greens it is shaped to dodge, all of which apply here too). It is rebuilt
+# rather than shared because T5 must answer the confirm screen only once, and this
+# case needs a SECOND interactive run against an already-damaged install.
+if want T6; then
+banner "T6 · the confirm preview and the plan that runs agree about a damaged agent"
+fresh_env t6p; with_servers; clone_repo "$SANDBOX/t6p/repo"
+T6TPL="$SANDBOX/t6p/repo/templates/agents/encoder.md"
+T6AGENT="$CH/agents/encoder.md"
+keys t6p '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
+run_in "$SANDBOX/t6p/repo" install t6p
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+yn "$([ -f "$T6AGENT" ] && echo 0 || echo 1)" "@encoder is installed"
+# The damage, exactly as T5 inflicts it: the memory tool names deleted from the
+# installed tools: line and nothing else, which is what the pre-#105 run left.
+python3 - "$T6AGENT" <<'PYT6D'
+import io, re, sys
+p = sys.argv[1]
+t = io.open(p, encoding="utf-8", newline="").read()
+m = re.search(r"(?m)^tools:.*$", t)
+assert m, "no tools: line in the installed @encoder"
+old = m.group(0).rstrip("\r")
+names = [x.strip() for x in old.split(":", 1)[1].split(",") if x.strip()]
+mem = [x for x in names if x.startswith("mcp__forgetful__")]
+assert mem, "the installed tools: line carries no memory tools to strip"
+new = "tools: " + ", ".join(x for x in names if x not in mem)
+io.open(p, "w", encoding="utf-8", newline="").write(t.replace(old, new, 1))
+PYT6D
+chk $? "stripped the memory tools out of the installed @encoder"
+yn "$(grep -qE '^tools:.*mcp__forgetful__' "$T6AGENT" && echo 1 || echo 0)" \
+   "the damaged tools: line really has lost the memory tools"
+python3 - "$SANDBOX/t6p/repo" "$CH/.playbook-install.json" "$T6AGENT" <<'PYT6H'
+import json, subprocess, sys
+repo, manifest_path, dest = sys.argv[1], sys.argv[2], sys.argv[3]
+h = json.loads(subprocess.check_output(
+    [sys.executable, repo + "/install-lib.py", "hash", dest]))["hash"]
+m = json.load(open(manifest_path, encoding="utf-8"))
+units = m["units"]
+uids = [u for u, r in units.items()
+        if (r.get("dest") or "").replace("\\", "/").endswith("/agents/encoder.md")]
+assert len(uids) == 1, "expected exactly one recorded unit for @encoder: %r" % uids
+assert units[uids[0]]["hash"] != h, "the damage did not change the file's hash"
+units[uids[0]]["hash"] = h
+json.dump(m, open(manifest_path, "w", encoding="utf-8"), indent=2)
+PYT6H
+chk $? "recorded the damaged file's own hash (so it plans \`current\`, not \`skip-edited\`)"
+yn "$(cmp -s "$REPO/templates/agents/encoder.md" "$T6TPL" && echo 0 || echo 1)" \
+   "the clone's @encoder template never moved (so the unit really is \`current\`)"
+# The remedy #127 tells these users to run: a plain interactive re-install, and the
+# consent screen is answered `y` so the preview can be held against what happened.
+keys t6p2 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
+run_in "$SANDBOX/t6p/repo" install t6p2
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the re-run exits 0 (rc=$RC)"
+# THE assertion — which heading of the consent screen owns the damaged agent? The
+# headings are matched on ASCII fragments, never on the em-dash, and the tally is
+# reset at every "What this will write" so only the final screen is read.
+python3 - "$LOGS/t6p2.out" <<'PYT6P'
+import io, sys
+HEADS = [
+    ("do not exist yet",             "install"),
+    ("will replace them",            "upgrade"),
+    ("already exactly this version", "current"),
+    ("you edited these yourself",    "skip-edited"),
+    ("did not put them there",       "skip-foreign"),
+    ("no longer ships them",         "orphan"),
+]
+cur, hits = None, []
+for line in io.open(sys.argv[1], encoding="utf-8", errors="replace"):
+    s = line.strip()
+    if "last question before anything is written" in s:
+        break
+    if "What this will write" in s:
+        cur, hits = None, []
+        continue
+    head = [a for frag, a in HEADS if frag in s]
+    if head:
+        cur = head[0]
+        continue
+    if cur is not None and s.replace("\\", "/").endswith("/agents/encoder.md"):
+        hits.append(cur)
+sys.stdout.write("    (previewed as: %s)\n" % (", ".join(hits) or "<not listed at all>"))
+sys.exit(0 if hits == ["upgrade"] else 1)
+PYT6P
+chk $? "the confirm preview classifies the damaged @encoder as \`upgrade\`"
+# The control. This half is green either way: install_stage_body always had the
+# answers, so the run rewrites the file whatever the screen said. Holding the two
+# together is what makes the screen's claim falsifiable.
+case "$(sed -n '/^tools:/p' "$T6AGENT" 2>/dev/null)" in
+  *mcp__forgetful__execute_forgetful_tool*)
+    pass "the run really did rewrite the file, as the preview must have said" ;;
+  *)
+    fail "the run really did rewrite the file, as the preview must have said" ;;
+esac
+fi
+
+# ------------------------------------------- T7 `list` tells the truth as well
+# The same divergence as T6, surviving on the OTHER consumer of the plan.
+# `list_mode` plans through `pb plan-state`, which was never handed the recorded
+# answers, so a unit whose fill was lost prints as `current` — under the legend
+# "you have the same version this clone ships" — is left out of the closing
+# "N would be brought up to date by: ./install.sh update" count, and is then
+# rewritten by the very update the listing said was unnecessary.
+#
+# `list` writes nothing, so this is a reporting bug and not a data-loss one. It
+# matters because `list` is how a user decides whether to run `update` at all.
+#
+# The damaged fixture is T5's, step for step — see T5's header for the three
+# wrong-greens it is shaped to dodge, all of which apply here unchanged. It is
+# rebuilt rather than shared for the same reason T6 rebuilds it: T5's damaged
+# install is consumed by T5's own update, and this case needs one that is still
+# damaged at the moment `list` runs.
+#
+# The counting assertion is separate from the row assertion on purpose. A row can
+# be printed in the right colour and still not reach n_out, and the sentence the
+# user acts on is the count, not the row.
+if want T7; then
+banner "T7 · \`list\` calls a damaged agent outdated, and counts it in the update total"
+fresh_env t7; with_servers; clone_repo "$SANDBOX/t7/repo"
+T7TPL="$SANDBOX/t7/repo/templates/agents/encoder.md"
+T7AGENT="$CH/agents/encoder.md"
+keys t7 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
+run_in "$SANDBOX/t7/repo" install t7
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+yn "$([ -f "$T7AGENT" ] && echo 0 || echo 1)" "@encoder is installed"
+# The damage, exactly as T5 and T6 inflict it: the memory tool names deleted from
+# the installed tools: line and nothing else, which is what the pre-#105 run left.
+python3 - "$T7AGENT" <<'PYT7D'
+import io, re, sys
+p = sys.argv[1]
+t = io.open(p, encoding="utf-8", newline="").read()
+m = re.search(r"(?m)^tools:.*$", t)
+assert m, "no tools: line in the installed @encoder"
+old = m.group(0).rstrip("\r")
+names = [x.strip() for x in old.split(":", 1)[1].split(",") if x.strip()]
+mem = [x for x in names if x.startswith("mcp__forgetful__")]
+assert mem, "the installed tools: line carries no memory tools to strip"
+new = "tools: " + ", ".join(x for x in names if x not in mem)
+io.open(p, "w", encoding="utf-8", newline="").write(t.replace(old, new, 1))
+PYT7D
+chk $? "stripped the memory tools out of the installed @encoder"
+yn "$(grep -qE '^tools:.*mcp__forgetful__' "$T7AGENT" && echo 1 || echo 0)" \
+   "the damaged tools: line really has lost the memory tools"
+# Record the damaged file's OWN hash, so it lists `current` and not `edited`, and
+# hand the unit id back out: the row assertions must key on the state AND the uid
+# on the same line, because list_mode prints every state word in its legend too.
+python3 - "$SANDBOX/t7/repo" "$CH/.playbook-install.json" "$T7AGENT" "$SANDBOX/t7/uid.txt" <<'PYT7H'
+import json, io, subprocess, sys
+repo, manifest_path, dest, uid_out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+h = json.loads(subprocess.check_output(
+    [sys.executable, repo + "/install-lib.py", "hash", dest]))["hash"]
+m = json.load(open(manifest_path, encoding="utf-8"))
+units = m["units"]
+uids = [u for u, r in units.items()
+        if (r.get("dest") or "").replace("\\", "/").endswith("/agents/encoder.md")]
+assert len(uids) == 1, "expected exactly one recorded unit for @encoder: %r" % uids
+assert units[uids[0]]["hash"] != h, "the damage did not change the file's hash"
+units[uids[0]]["hash"] = h
+json.dump(m, open(manifest_path, "w", encoding="utf-8"), indent=2)
+io.open(uid_out, "w", encoding="utf-8").write(uids[0])
+PYT7H
+chk $? "recorded the damaged file's own hash (so it lists \`current\`, not \`edited\`)"
+T7UID="$(cat "$SANDBOX/t7/uid.txt" 2>/dev/null)"
+yn "$([ -n "$T7UID" ] && echo 0 || echo 1)" "recovered the damaged unit id from the manifest ($T7UID)"
+# The guard on wrong-green 1. If the template had moved, source_hash would differ
+# and plan_state would say `outdated` for the ordinary reason, proving nothing.
+yn "$(cmp -s "$REPO/templates/agents/encoder.md" "$T7TPL" && echo 0 || echo 1)" \
+   "the clone's @encoder template never moved (so the unit really is version-current)"
+nokeys t7l; run_in "$SANDBOX/t7/repo" list t7l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+# A1 — the row. grep -E with the uid anchored to end of line, as U4 does: the
+# legend line "outdated  = this clone has a newer version..." starts with the same
+# word, so the bare word would pass with no row at all.
+if grep -qE "outdated +$T7UID\$" "$LOGS/t7l.out"; then
+  pass "A1 list reports the damaged $T7UID as \`outdated\`"
+else fail "A1 list reports the damaged $T7UID as \`outdated\`"; fi
+# A2 — and does not still call it current.
+if grep -qE "current +$T7UID\$" "$LOGS/t7l.out"; then
+  fail "A2 list does NOT call the damaged $T7UID \`current\`"
+else pass "A2 list does NOT call the damaged $T7UID \`current\`"; fi
+# A3 — the count. The sentence the user acts on. Held against the rows actually
+# printed, so a count that drifts from its own listing fails here too.
+python3 - "$LOGS/t7l.out" "$T7UID" <<'PYT7C'
+import io, re, sys
+log, uid = sys.argv[1], sys.argv[2]
+rows, counted = [], 0
+for line in io.open(log, encoding="utf-8", errors="replace"):
+    s = re.sub(r"\x1b\[[0-9;]*m", "", line).strip()
+    m = re.match(r"^outdated\s+(\S+)$", s)
+    if m:
+        rows.append(m.group(1))
+    m = re.match(r"^(\d+) would be brought up to date", s)
+    if m:
+        counted = int(m.group(1))
+sys.stdout.write("    (outdated rows: %s | counted: %d)\n"
+                 % (", ".join(rows) or "<none>", counted))
+sys.exit(0 if uid in rows and counted == len(rows) and counted >= 1 else 1)
+PYT7C
+chk $? "A3 the damaged unit is counted in \"N would be brought up to date\""
+fi
+
 printf '\n================================\n'
 printf '  passed %s   failed %s\n' "$PASS" "$FAIL"
 if [ "$FAIL" -gt 0 ]; then

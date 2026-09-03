@@ -757,6 +757,32 @@ def _tools_line(text):
     return None
 
 
+def lost_fills(tpl_line, got_line, values):
+    """Tokens the template declared, with a RECORDED value, whose fill is gone.
+
+    One definition of "this file lost a grant it was supposed to have", used by
+    the audit that REPORTS the loss and by the install plan that REPAIRS it. Two
+    definitions would eventually disagree, and the one that disagreed quietly
+    would be the planner's.
+
+    Compared on the FIRST name in the answer. A whole-list match is too brittle:
+    nothing promises the installed line kept the answer's order, or that a later
+    edit did not reorder it.
+
+    A token with NO recorded value is deliberately NOT returned. There was never
+    a fill to lose, so it is a different finding: audit_grants still reports it,
+    but a planner has nothing to replay and must not rewrite the file over it.
+    """
+    lost = []
+    for tok in sorted(GRANT_TOKENS):
+        if tok not in tpl_line:
+            continue
+        first = (values.get(tok) or "").split(",")[0].strip()
+        if first and first not in got_line:
+            lost.append(tok)
+    return lost
+
+
 def audit_grants(spec_path, templates_agents, installed_agents,
                  adapter="", tracker_server=""):
     """Which installed agents are missing a capability their template declared.
@@ -816,6 +842,7 @@ def audit_grants(spec_path, templates_agents, installed_agents,
             continue
 
         values = spec.get("values") or {}
+        gone = set(lost_fills(tpl_line, got_line, values))
         name, lost = fn[:-3], []
         for tok, kind in sorted(GRANT_TOKENS.items()):
             if tok not in tpl_line or kind in lost:
@@ -824,10 +851,12 @@ def audit_grants(spec_path, templates_agents, installed_agents,
                 if tok not in not_applicable:
                     lost.append(kind)      # deleted although the route could fill it
                 continue
-            # Filled, but did the fill survive into the installed file? Compare on
-            # the first name in the answer; a whole list is too brittle to match.
+            # Filled, but did the fill survive into the installed file? That is
+            # lost_fills' question. Never asked for, either — no recorded answer
+            # at all is a loss this check reports and the planner cannot repair,
+            # which is why it is tested here and not inside lost_fills.
             first = (values.get(tok) or "").split(",")[0].strip()
-            if not first or first not in got_line:
+            if not first or tok in gone:
                 lost.append(kind)
         if "serena" in tpl_line and "serena" not in got_line:
             lost.append("serena")
@@ -1131,7 +1160,26 @@ def manifest_classify(manifest, units):
     return state
 
 
-def plan_install(units, manifest, selected):
+def _lost_a_recorded_fill(unit, dest, spec):
+    """Did this unit's installed file lose a grant the answers file can restore?
+
+    Unreadable either side is not a finding: a unit whose src is a directory, or
+    whose dest is not text, has no `tools:` line to lose anything from.
+    """
+    values = (spec or {}).get("values") or {}
+    if not values:
+        return False
+    try:
+        tpl_line = _tools_line(read(unit["src"]))
+        got_line = _tools_line(read(dest))
+    except (OSError, UnicodeDecodeError):
+        return False
+    if tpl_line is None or got_line is None:
+        return False
+    return bool(lost_fills(tpl_line, got_line, values))
+
+
+def plan_install(units, manifest, selected, spec=None):
     """Decide, per selected unit, what an install run may actually do to it.
 
     Six actions, and only two of them write:
@@ -1144,6 +1192,10 @@ def plan_install(units, manifest, selected):
 
     'skip-edited' is decision 8 and half of decision 7 in one line: an upgrade that
     clobbers an edited file is the same bug as a bad uninstall.
+
+    `spec` is the recorded placeholder answers, and it is what turns `current` into
+    `upgrade` for a file that lost a grant. Optional because a fresh install has no
+    answers on record yet, and every unit is `install` there anyway.
     """
     recorded = manifest.get("units") or {}
     rows = []
@@ -1181,18 +1233,40 @@ def plan_install(units, manifest, selected):
             action = "skip-edited"
         elif rec.get("source_hash") == unit["source_hash"]:
             action = "current"
+            # ...unless the file lost a grant we have an answer for. The template
+            # has not moved, so nothing here is out of date — but the pre-#105
+            # installer could DELETE a token from the installed file, and once the
+            # literal token is gone apply_placeholders has nothing left to match,
+            # so a `current` unit is never copied and never filled again. Rewriting
+            # it from the template is the only thing that puts the token back where
+            # the existing fill can reach it.
+            #
+            # ANSWER SOURCE: spec["values"] — $PH_SPEC, the same recorded answers
+            # every other unit is filled from, and populated before planning on both
+            # the install and the update path. VALUES ONLY, never `delete`: a
+            # recorded delete is a decision somebody made, and triggering on one
+            # would mean rewriting a file in order to re-apply a deletion. Reading
+            # only values means this can put a grant back and can never take one
+            # away.
+            if _lost_a_recorded_fill(unit, dest, spec):
+                action = "upgrade"
         else:
             action = "upgrade"
         rows.append((action, uid, unit["kind"], unit["src"], dest))
     return rows
 
 
-def plan_state(manifest, units):
+def plan_state(manifest, units, spec=None):
     """The `list` view: what an update would do, without doing it.
 
     Adds two things plan_remove cannot know, because they need the current
     templates: whether a unit is OUTDATED (the template moved since we installed
     it), and which units this clone ships that are not installed at all.
+
+    `spec` is the recorded placeholder answers, and it plays the same part here
+    that it plays in plan_install: a unit that lost a fill is something an update
+    would change, so it is not `current`. Optional, because a machine with no
+    recorded answers has nothing to have lost.
     """
     rows = []
     recorded = manifest.get("units") or {}
@@ -1218,6 +1292,16 @@ def plan_state(manifest, units):
             state = "outdated"
         else:
             state = "current"
+            # ...unless the file lost a grant we have an answer for. Same
+            # condition and the SAME detector as plan_install's `current` ->
+            # `upgrade`: one definition of "lost a fill", so the listing and the
+            # run it describes cannot drift apart. `outdated` because that is
+            # already the state meaning "an update would change this" — which is
+            # the question `list` is asked — and because it is the only state
+            # n_out counts. Calling it `current` kept the unit out of the "N would
+            # be brought up to date" total, and then `update` rewrote it anyway.
+            if _lost_a_recorded_fill(unit, dest, spec):
+                state = "outdated"
         rows.append((state, uid, rec.get("kind", "?")))
     for uid in sorted(units):
         if uid not in recorded:
@@ -1310,9 +1394,19 @@ def main(argv):
         units = json.loads(read(a[0]))
         manifest = load_json(a[1])
         selected = [l.strip() for l in read(a[2]).splitlines() if l.strip()]
-        tsv(plan_install(units, manifest, selected))
+        # Optional 4th arg: the recorded placeholder answers, which are what let
+        # a `current` unit be reclassified when it lost a fill. Absent on a fresh
+        # install — load_json returns {} for a path that is not there — and every
+        # unit is `install` in that run, so the check has nothing to do anyway.
+        spec = load_json(a[3]) if len(a) > 3 else None
+        tsv(plan_install(units, manifest, selected, spec))
     elif cmd == "plan-state":
-        tsv(plan_state(load_json(a[0]), json.loads(read(a[1]))))
+        # Optional 3rd arg: the recorded placeholder answers, for the same reason
+        # plan-install takes an optional 4th — a unit that lost a fill is not
+        # `current`. Absent, or a path that is not there, means load_json reads {}
+        # and the check has nothing to find.
+        spec = load_json(a[2]) if len(a) > 2 else None
+        tsv(plan_state(load_json(a[0]), json.loads(read(a[1])), spec))
     elif cmd == "plan-remove":
         tsv(plan_remove(load_json(a[0])))
     elif cmd == "units-tsv":
