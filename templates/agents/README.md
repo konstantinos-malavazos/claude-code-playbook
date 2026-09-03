@@ -151,9 +151,21 @@ directory name. Same placeholder, opposite consequence:
   The test is **what happens to the answer**. Where the output is a judgement somebody acts on
   without re-deriving it — a plan, a verdict, a review, a diagnosis, a build/kill call — the
   cost of thinking too little is paid by everyone downstream, and nothing in the output reveals
-  it: a thin verdict and a thorough one arrive in the same shape. Those are `xhigh`. Where the
-  work is bounded but one call inside it still needs judgement, `high` — `tester` executes an
-  approved plan, but deciding FAIL versus INCONCLUSIVE is not mechanical. Where the job is
+  it: a thin verdict and a thorough one arrive in the same shape.
+
+  **Then ask the second question: does anything check it?** A judgement a later stage
+  re-examines can afford `high`; one that closes a gate with nothing behind it stays `xhigh`.
+  That is why the `/start-ticket` spine — `context-gatherer`, `planner`, `repo-reviewer`,
+  `release-reviewer` — runs `high` rather than `xhigh`: the gatherer's brief is re-verified by
+  the planner, the plan meets a human at the grilling gate, and each verdict is consolidated
+  by the orchestrator before a human opens the PR. `xhigh` is kept for the agents whose answer
+  is the last word — `map-reviewer` closing a map, `pitch-judge` killing an idea,
+  `decision-steward` answering unattended, and `aligner`, `fixer-planner`, `test-planner` and
+  the two encode auditors, none of which has a reviewer of its own.
+
+  Where the work is bounded but one call inside it still needs judgement, `high` — `tester`
+  executes an approved plan, but deciding FAIL versus INCONCLUSIVE is not mechanical. Where
+  the job is
   parse-and-restate with a fast model behind it, dial it **down**: `ticket-analyzer` is
   `medium`, and that is a saving, not a compromise.
 
