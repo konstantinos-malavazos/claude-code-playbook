@@ -1011,8 +1011,8 @@ placeholder_stage() {
   printf '  %s[Enter = claude-opus-5]%s ' "$DIM" "$RESET"
   _read strong; [[ -z "$strong" ]] && strong="claude-opus-5"
   printf '  %sWhich model for the quick, cheap lookups?%s\n' "$BOLD" "$RESET"
-  printf '  %s[Enter = claude-haiku-4-5-20251001]%s ' "$DIM" "$RESET"
-  _read fast; [[ -z "$fast" ]] && fast="claude-haiku-4-5-20251001"
+  printf '  %s[Enter = claude-sonnet-5]%s ' "$DIM" "$RESET"
+  _read fast; [[ -z "$fast" ]] && fast="claude-sonnet-5"
   printf '\n'
 
   # ── memory ───────────────────────────────────────────────────────────────
@@ -1269,7 +1269,10 @@ confirm_stage() {
   pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
   py -c 'import json,sys
 for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.json" > "$WORK/closed.txt"
-  pb plan-install "$UNITS" "$MANIFEST" "$WORK/closed.txt" > "$WORK/plan-preview.tsv"
+  # $PH_SPEC is passed here for the same reason install_stage_body passes it, and
+  # it has to be the SAME argument list or the promise above is false: a unit that
+  # lost a recorded fill is `upgrade`, and the screen must say so before it happens.
+  pb plan-install "$UNITS" "$MANIFEST" "$WORK/closed.txt" "$PH_SPEC" > "$WORK/plan-preview.tsv"
 
   local hooks_selected
   hooks_selected=$(sed -n 's/^hook://p' "$WORK/closed.txt" | tr '\n' ' ')
@@ -1405,7 +1408,9 @@ install_stage_body() {
   py -c 'import json,sys
 for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.json" > "$SELECTED"
 
-  pb plan-install "$UNITS" "$MANIFEST" "$SELECTED" > "$WORK/plan.tsv"
+  # $PH_SPEC is the 4th argument so the plan can spot a file that lost a grant it
+  # has an answer for, and reclassify it from `current` to `upgrade`.
+  pb plan-install "$UNITS" "$MANIFEST" "$SELECTED" "$PH_SPEC" > "$WORK/plan.tsv"
 
   local action uid kind src dest
   : > "$WORK/written.txt"
@@ -2282,6 +2287,13 @@ list_mode() {
   discover_units_quiet
   stage "What you have installed"
   if [[ -f "$MANIFEST" ]]; then
+    # The recorded answers, for the same reason install_stage_body hands them to
+    # plan-install: a unit whose fill was lost is not `current`, and this listing
+    # is how you decide whether to run the update that would repair it. It only
+    # reads the manifest and writes into $WORK, and it returns 1 harmlessly when
+    # there is nothing recorded — plan-state then gets a path load_json reads as
+    # {}. Its stdout is the Serena prefix, which nothing here wants.
+    load_recorded_config >/dev/null || true
     local state uid kind n_out=0 n_new=0
     while IFS=$'\t' read -r state uid kind; do
       case "$state" in
@@ -2292,7 +2304,7 @@ list_mode() {
         orphaned)  printf '   %s%-10s%s %s\n' "$YELLOW" "orphaned" "$RESET" "$uid" ;;
         available) printf '   %s%-10s%s %s\n' "$DIM" "available" "$RESET" "$uid"; n_new=$((n_new + 1)) ;;
       esac
-    done < <(pb plan-state "$MANIFEST" "$UNITS")
+    done < <(pb plan-state "$MANIFEST" "$UNITS" "$PH_SPEC")
     printf '\n'
     note "current   = you have the same version this clone ships"
     note "outdated  = this clone has a newer version than the one you installed"

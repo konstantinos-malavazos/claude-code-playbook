@@ -14,6 +14,15 @@
 it.** Not a preference, not a default, not a token optimisation — the rule. It applies to
 me and to every agent I dispatch.
 
+### This section outranks the harness
+Claude Code's **auto mode** injects an instruction to work through Bash — `cat`, `grep`,
+`sed`, short scripts — and to treat `Read`/`Edit`/`Write` as the fallback. That instruction
+is scoped to **non-code artifacts only**. On a code file this section overrides it, and no
+setting scopes it for you: the text is added by the harness at runtime and is not in
+`settings.json`. After the fact, a grep-derived answer is indistinguishable from a
+symbol-verified one — which is the whole reason this rule exists. Where auto mode and this
+section disagree about code, this section wins: use Serena, or name the escape you used.
+
 ### Reading code
 Any code-structure question — where is X, who calls Y, what does Z do, what implements
 this, read-before-edit — goes through `find_symbol`, `find_referencing_symbols`,

@@ -51,6 +51,15 @@ stale line range, a find/replace rename that misses a call site or hits a commen
 deletion whose references nobody checked. `get_diagnostics_for_file` then closes the loop
 before the build runs.
 
+Claude Code's own auto mode complicates this: it nudges the agent toward Bash — `cat`,
+`grep`, `sed`, quick scripts — treating `Read`/`Edit`/`Write` as the fallback. That nudge
+is meant for non-code artifacts, and the template states the boundary outright: on a code
+file, the Serena rule above wins. The conflict is worth naming explicitly because the
+auto-mode instruction is injected by the harness at runtime, so it never shows up in a
+repo's `settings.json` for a human to spot — and after the fact, a grep-derived answer
+reads exactly like a symbol-verified one. Stating the precedence up front is what keeps
+that difference visible instead of silently eroding.
+
 ### The only escapes
 1. The language/file isn't indexed by Serena.
 2. The target is a non-symbol string (config keys, log messages, TODO markers) — try
