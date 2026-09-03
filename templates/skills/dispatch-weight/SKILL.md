@@ -48,7 +48,7 @@ signature"*, never *"this looks tricky"*.
 
 ## Classify `heavy` when the dispatch
 
-- touches **more files than your threshold** — `<FILE-COUNT-THRESHOLD>`,
+- touches **more than 3 files** — 3 or fewer is `light`,
 - spans **more than one repo**,
 - changes a **shared contract or signature with multiple callers**,
 - has to work around a **placeholder seam** left by a deferred decision.

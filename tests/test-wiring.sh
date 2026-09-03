@@ -261,13 +261,14 @@ fi
 #
 # Markers are the criteria's own wording. One in passing is fine (a tracker
 # adapter may say "more than one repo" about something else); two is a restated
-# rule. The threshold placeholder is fatal on its own — it exists only for the
-# skill, so a second copy is a second threshold.
+# rule. The threshold clause carries the one concrete number in the whole design
+# and is fatal on its own — it exists only for the skill, so a second copy is a
+# second threshold, and it going missing means the number was silently re-blanked.
 MARKERS='placeholder seam
 multiple callers
 more than one repo
 several findings against one track'
-FATAL_MARKER='<FILE-COUNT-THRESHOLD>'
+FATAL_MARKER='touches **more than 3 files**'
 
 if want A4; then
 banner "A4 · the criteria live in the skill and nowhere else under templates/"
