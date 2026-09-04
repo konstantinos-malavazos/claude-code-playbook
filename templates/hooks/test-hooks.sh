@@ -44,6 +44,11 @@ fi
 # a PATH assignment governs the lookup of the command it prefixes.
 BASH_BIN=$(command -v bash)
 
+# Both counters are DERIVED by running. Nothing in this repo writes the case count down by
+# hand any more: three passes of #117 hand-set it in the README (84, then 162, then 187) and
+# it was wrong at some point in every one of them. A number nobody derives is a number that
+# rots, and a suite is the one place that can always count itself.
+ran=0
 fail=0
 
 # --- the allowlist, both ways --------------------------------------------------
@@ -84,6 +89,7 @@ run() { # <script> <tool-name> <command> <expected-exit>
     local got=$?
     local shown
     shown=$(printf '%s' "$3" | tr '\n' '~' | tr '\r' '^')
+    ran=$((ran + 1))
     if [ "$got" = "$4" ]; then
         printf '  ok   [%s] %s\n' "$2" "$shown"
     else
@@ -95,6 +101,7 @@ run() { # <script> <tool-name> <command> <expected-exit>
 run_raw() { # <script> <label> <raw-payload> <expected-exit>
     printf '%s' "$3" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" >/dev/null 2>&1
     local got=$?
+    ran=$((ran + 1))
     if [ "$got" = "$4" ]; then
         printf '  ok   [%s]\n' "$2"
     else
@@ -137,6 +144,222 @@ git push"                                                                  2
 run $GIT_HOOK Bash       "git add .
 git commit -m x"                                                           2
 run $GIT_HOOK Bash       "$(printf 'git status\r\ngit push')"              2
+# Q3 — `%(refname)` splits at '(' / ')' during tokenizing (measured fail-open, risk R2):
+# the stripped placeholder must not swallow the force-delete flag that follows it.
+run $GIT_HOOK Bash       "git branch --format=%(refname) -D feature"              2
+# Exact-equality on --force would silently stop blocking a real force flag once ported —
+# guard against that regression directly.
+run $GIT_HOOK Bash       "git push --force-with-lease"                            2
+# --no-verify/--no-gpg-sign are deliberately NOT git-scoped (Q2): they stay raw-text
+# greps so the guard still covers non-git commands. No `git` appears in this payload —
+# that absence is the point.
+run $GIT_HOOK Bash       "npm publish --no-verify"                                2
+# A command we cannot tokenise is a BLOCK, for the same reason an unreadable payload is:
+# the hook did not find out what it was being asked to do, so it does not allow it.
+run $GIT_HOOK Bash       "git push 'unterminated"                                 2
+
+# --- The command is not always the first word (#117 re-pass) ----------------------
+# Every case below was BLOCKED by the text scan this hook replaces and ALLOWED by the
+# first cut of the tokenizer, which required word 0 of a segment to be `git` and gave up
+# otherwise. Measured against both hooks, not read off a diff. They are here because the
+# four must-BLOCK cases added in the first pass were all ALREADY GREEN on master: they
+# asserted the old grep, not the new code, and this whole class went untested while the
+# suite stayed green.
+#
+# A wrapper carries the command:
+run $GIT_HOOK Bash       "sudo git push --force"                                  2
+run $GIT_HOOK Bash       "env git branch -D x"                                    2
+run $GIT_HOOK Bash       "time git push --force"                                  2
+run $GIT_HOOK Bash       "command git push --force"                               2
+run $GIT_HOOK Bash       "sudo env git branch -D x"                               2
+# xargs, and the canonical delete-merged-branches idiom. CLAUDE.md forbids deleting a
+# branch unasked, so this is the shape that must not be allowed to slip.
+run $GIT_HOOK Bash       "xargs -n1 git push --force"                             2
+run $GIT_HOOK Bash       "git branch --merged | xargs git branch -D"              2
+run $GIT_HOOK Bash       "git branch --format='%(refname:short)' --merged | xargs git branch -D"  2
+# A shell keyword leads the segment after the separator. Single-quoted on purpose: the
+# `$b` and the backticks below must reach the hook as literal text, exactly as the harness
+# would deliver them, so no expansion may happen here.
+run $GIT_HOOK Bash       "if true; then git branch -D f; fi"                      2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'for b in a b; do git branch -D $b; done'                2
+# Backticks are command substitution. shlex does not know that, so without an explicit
+# separator the whole span is ONE token whose basename is not `git`.
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'echo `git branch -D f`'                                 2
+# The percent-paren strip must not run out of one command and into the next. With an
+# unbounded span these collapsed to `echo %` and the git command in the middle vanished.
+run $GIT_HOOK Bash       "echo '%(' ; git branch -D feature ; echo ')'"           2
+run $GIT_HOOK Bash       "echo '%(' && git push --force && echo ')'"              2
+# A literal `git` as an ARGUMENT VALUE must not eat the scan. The tokenizer judges EVERY
+# git occurrence in a segment, not the first: in the first case below the first `git` is
+# the value of `-u`, so `git` became the "subcommand" and the real command was never
+# judged. All three measured 0 at 94d7d66 and 2 on the text scan this hook replaces.
+run $GIT_HOOK Bash       "sudo -u git git push --force"                          2
+run $GIT_HOOK Bash       "sudo -u git git branch -D feature"                     2
+run $GIT_HOOK Bash       "docker run --user git img git push --force"            2
+
+# --- A line continuation is ONE command, not two (#117 re-review) -----------------
+# Turning every newline into a segment separator split a continued command in half, and
+# the flag landed in a segment nothing judged. Measured 0 at 94d7d66, 2 on master.
+#
+# SINGLE-QUOTED on purpose, and this is the trap the shape sets: in a DOUBLE-quoted case
+# the continuation is eaten by THIS script's own shell, the hook is handed the one-line
+# command, it blocks, and the case goes green having tested the control instead of the
+# shape it was written for.
+#
+# `git push` is NOT here — see the allowlisted section at the bottom. Unlisted, the
+# orphaned bare `git push` is still caught by the plain-push rule, so a push case here
+# would pass at 94d7d66 too and prove nothing.
+run $GIT_HOOK Bash       'git branch \
+-D f'                                                                            2
+run $GIT_HOOK Bash       'git reset \
+--hard HEAD~1'                                                                   2
+run $GIT_HOOK Bash       'git clean \
+-fd'                                                                             2
+run $GIT_HOOK Bash       'git add \
+-A'                                                                              2
+# PowerShell continues a line with a BACKTICK, and PowerShell is a wired matcher. The same
+# bytes mean different things in the two shells, so each shell gets its own case.
+# shellcheck disable=SC2016
+run $GIT_HOOK PowerShell 'git branch `
+-D f'                                                                            2
+
+# --- The SAME continuations, with a CRLF line ending (#117 third re-review) --------
+# The cases above are LF-only, and the join they assert was defeated by a CRLF payload:
+# parse() wrote its output in TEXT mode, which doubled the CR; python then read those
+# three bytes back as TWO newlines, the join ate one, and the flag was orphaned again. Every
+# LF case above stayed green through all of it — LF-only coverage is what let it ship.
+# Built with printf, exactly like the CRLF payload in the must-BLOCK section above
+# (`"$(printf 'git status\r\ngit push')"`): this suite already conceded
+# that a CRLF payload is a real shape, so the omission was the continuation, not the shape.
+# CRLF is what a Windows editor produces by default, and this repo is Windows-primary.
+run $GIT_HOOK Bash       "$(printf 'git branch \\\r\n-D f')"                     2
+run $GIT_HOOK Bash       "$(printf 'git reset \\\r\n--hard HEAD~1')"             2
+run $GIT_HOOK Bash       "$(printf 'git clean \\\r\n-fd')"                       2
+run $GIT_HOOK Bash       "$(printf 'git add \\\r\n-A')"                          2
+# shellcheck disable=SC2016
+run $GIT_HOOK PowerShell "$(printf 'git branch `\r\n-D f')"                      2
+# The twin of the must-ALLOW unicode cases below: a payload can carry a character outside
+# the machine ANSI codepage AND be a real force push. Fixing the false positive must not
+# turn this one into an allow.
+run $GIT_HOOK Bash       "$(printf 'git push --force # \344\275\240\345\245\275')" 2
+
+# --- A backslash before the hyphen is not a path (#117 fifth re-review) ------------
+# lex.escape is "" so the tokenizer keeps a backslash LITERAL — deliberate, and a Windows
+# path depends on it (the must-ALLOW twins are further down). But bash removes that
+# backslash before git runs, so the flag was filed as kind=path and every rule is gated on
+# kind=opt. Measured with a git shim on PATH: bash really ran `add -A`, `reset --hard` and
+# `clean -fd`. These three were 0 in BOTH allowlist states on master AND at 23eb109, so they
+# are a TIGHTENING this fix brings with it rather than a regression it repairs — red at
+# 23eb109 either way. NOT allowlist-scoped: `git add -A` is one nothing can unlock.
+# SINGLE-QUOTED on purpose, or the backslash never reaches the hook.
+run $GIT_HOOK Bash       'git add \-A'                                           2
+run $GIT_HOOK Bash       'git reset \--hard HEAD~1'                              2
+run $GIT_HOOK Bash       'git clean \-fd'                                        2
+
+# --- The forward scan is a TRADE, and both directions are recorded here ------------
+# Scanning forward for the git program means an UNQUOTED mention is judged as a command.
+# These four were ALLOWED by the text scan this hook replaces — its plain-push rule was
+# the one ANCHORED pattern in the file — and are BLOCKED now. They are genuine FALSE
+# POSITIVES on harmless commands, and they are the price paid for the tightenings below.
+# Green before this re-review and after it: they record the cost, they prove no fix.
+# A QUOTED mention still passes, which is the must-ALLOW section further down.
+run $GIT_HOOK Bash       "man git push"                                          2
+run $GIT_HOOK Bash       "type git push"                                         2
+run $GIT_HOOK Bash       "apropos git push"                                      2
+run $GIT_HOOK Bash       "echo git push origin main"                             2
+# The other side of the same trade: real dangerous commands the text scan let through,
+# because its regexes demanded `git` and the verb be adjacent. All four were 0 on master.
+run $GIT_HOOK Bash       "git -C /tmp/repo branch -D f"                          2
+run $GIT_HOOK Bash       "git --no-pager branch -D f"                            2
+run $GIT_HOOK Bash       "git.exe push --force"                                  2
+run $GIT_HOOK Bash       '"git" push --force'                                    2
+
+# --- A heredoc line is not only a heredoc (#117 fourth re-review) ------------------
+# strip_heredocs() truncated the line AT the operator and threw the rest away. In bash the
+# BODY starts on the next line, so whatever follows the operator on this one is a real
+# command — measured with a git shim on PATH that records the argv bash actually passed,
+# and every one of these ran. All were 2 on the text scan this hook replaces.
+#
+# This class is NOT allowlist-scoped, which is why it lives here in the unlisted section:
+# `git add -A` and `git add .` returned 0 in BOTH states, and those two are the ones
+# repo-allowlist.sample says nothing can unlock. Every heredoc case written before this
+# pass put the operator LAST on its line, where the discarded remainder is empty — which is
+# how four passes and 199 green cases went by without one of them asking.
+run $GIT_HOOK Bash       "cat <<EOF ; git branch -D feature
+body
+EOF"                                                                              2
+run $GIT_HOOK Bash       "cat <<EOF > n.txt && git add -A
+body
+EOF"                                                                              2
+run $GIT_HOOK Bash       "cat <<EOF ; git add .
+body
+EOF"                                                                              2
+run $GIT_HOOK Bash       "cat <<EOF ; git reset --hard HEAD~1
+body
+EOF"                                                                              2
+run $GIT_HOOK Bash       "cat <<EOF ; git clean -fd
+body
+EOF"                                                                              2
+run $GIT_HOOK Bash       "cat <<EOF ; git push --force
+body
+EOF"                                                                              2
+run $GIT_HOOK Bash       "read x <<EOF ; git branch -D feature
+body
+EOF"                                                                              2
+# The quoted-terminator and tab-indent spellings take the same path and must not be a
+# second way in, and a pipe before the separator must not hide it either.
+run $GIT_HOOK Bash       "cat <<'EOF' ; git branch -D feature
+body
+EOF"                                                                              2
+run $GIT_HOOK Bash       "cat <<-EOF ; git branch -D feature
+body
+EOF"                                                                              2
+run $GIT_HOOK Bash       "cat <<EOF | grep x ; git add -A
+body
+EOF"                                                                              2
+
+# --- A <<WORD that is not a heredoc must not blind the rest of the payload ---------
+# The heredoc regex fires on <<WORD ANYWHERE on the line — inside a # comment, inside a
+# quoted string, in prose — and the old loop then discarded every following line until one
+# equalled the terminator. When the terminator never comes, that is the whole rest of the
+# command, judged by nothing. Both states, all shim-confirmed as really running.
+#
+# An unterminated heredoc is a shape bash itself refuses to run, so refusing to swallow
+# here cannot cost a real false positive — the must-ALLOW twin two sections down proves the
+# ordinary comment case still passes.
+run $GIT_HOOK Bash       "git status   # the notes use <<EOF below
+git add -A"                                                                       2
+run $GIT_HOOK Bash       "npm test  # see the <<PY note
+git push --force"                                                                 2
+run $GIT_HOOK Bash       "# build the file with <<EOF
+git reset --hard HEAD~1"                                                          2
+run $GIT_HOOK Bash       "# use <<'EOF' to stop expansion
+git clean -fd"                                                                    2
+
+# --- The six shapes that used to block BY ACCIDENT --------------------------------
+# These were green before this pass and are green after it, and they are the point of the
+# section. At 84ae124 they blocked for the wrong reason: truncating at the operator cut the
+# quoted mention in half, shlex raised ValueError and the hook exited 3 — fail-closed by
+# accident. The obvious one-line repair of the truncation above REPAIRS THE QUOTE TOO, and
+# all six then walk into the swallow and return 0 in both states. That fix was measured and
+# rejected for exactly this: an accidental fail-closed becoming a deliberate fail-open.
+# They are here so a future refactor of strip_heredocs cannot make that trade silently.
+run $GIT_HOOK Bash       "echo \"use <<EOF for multiline\"
+git push --force"                                                                 2
+run $GIT_HOOK Bash       "echo \"see <<EOF\"
+git add -A"                                                                       2
+run $GIT_HOOK Bash       "echo \"the <<PY idiom\"
+git reset --hard HEAD~1"                                                          2
+run $GIT_HOOK Bash       "echo \"docs mention <<-EOF here\"
+git clean -fd"                                                                    2
+# A C++ stream shift reads as a heredoc operator to that regex, and this one is not
+# hypothetical: it is what someone reviewing this hook types.
+run $GIT_HOOK Bash       "grep -n \"cout << endl\" a.cpp
+git branch -D feature"                                                            2
+run $GIT_HOOK Bash       "grep -n \"<<'PY'\" install.sh
+git push --force"                                                                 2
 
 echo "block-dangerous-git.sh — must ALLOW (exit 0)"
 run $GIT_HOOK Bash       "git status"                                      0
@@ -158,6 +381,111 @@ run $GIT_HOOK Bash       "git add src/main.py
 git commit -m 'x'"                                                         0
 run $GIT_HOOK Bash       "npm test
 npm run build"                                                             0
+# A character OUTSIDE the machine ANSI codepage. parse() used to write its output in text
+# mode, which encodes with that codepage, so this raised UnicodeEncodeError; `2>/dev/null`
+# ate the traceback and `|| block` reported "the payload did not parse as JSON" — a false
+# positive carrying a false diagnostic, in the hook that exists to remove false positives.
+# It was invisible for as long as it was because no payload in this suite held a non-ANSI
+# byte. Written with printf octal escapes so the bytes are UTF-8 whatever wrote this file.
+run $GIT_HOOK Bash       "$(printf 'echo \344\275\240\345\245\275')"       0
+run $GIT_HOOK Bash       "$(printf 'git commit -m \344\275\240\345\245\275')" 0
+
+# The direction the fix above must NOT move. A backslash is a Windows path separator here,
+# which is the whole reason lex.escape is empty, and deb() reads through it for the OPTION
+# decision only — a path word is still emitted exactly as it was written. None of these is
+# an option, and all four were 0 before the escape-aware option test and are 0 after it.
+run $GIT_HOOK PowerShell 'git add C:\Users\kmala\notes\release.md'         0
+run $GIT_HOOK Bash       'git add ..\docs\a.md'                            0
+run $GIT_HOOK PowerShell 'git commit -F C:\tmp\msg.txt'                    0
+run $GIT_HOOK Bash       'git checkout -- src\a.cs'                        0
+
+echo "block-dangerous-git.sh — must ALLOW (exit 0), the mention is not the act"
+# The five false positives from issue #117 — measured exit=2 want=0 on master before this
+# fix landed. A guard that reads command TEXT instead of command ARGUMENTS blocks any of
+# these, because the dangerous string merely appears in the payload.
+run $GIT_HOOK Bash       "echo \"never run git push --force here\""                    0
+run $GIT_HOOK Bash       "git commit -m \"document why git add -A is banned\""          0
+run $GIT_HOOK Bash       "grep -rn \"git branch -D\" docs/"                             0
+run $GIT_HOOK Bash       "printf \"%s\" \"git branch -D feature\" > case.txt"           0
+run $GIT_HOOK Bash       "cat > note.md <<'EOF'
+Do not use git push --force on this repo.
+EOF"                                                                                    0
+# A commit message that names the flag it explains is prose, not the act — the same shape
+# that blocked writing this ticket's own grilling notes (.claude/handoffs/117/grilling.md).
+run $GIT_HOOK Bash       "git commit -m 'explain why git branch -D is dangerous'"       0
+# A heredoc body is DATA, not a command — the same push line as a REAL command still
+# blocks (`run $GIT_HOOK Bash "git push origin master" 2`, in the must-BLOCK section);
+# only the heredoc form is data.
+run $GIT_HOOK Bash       "cat > note.md <<'EOF'
+git push origin main
+EOF"                                                                                    0
+# The other direction of the two heredoc fixes above, and the reason they cost no false
+# positives. Keeping the rest of the operator line must not invent a command where there is
+# none, and refusing to swallow an UNTERMINATED heredoc must not turn an ordinary comment
+# that mentions one into a block.
+run $GIT_HOOK Bash       "cat <<EOF ; echo done
+body
+EOF"                                                                                    0
+run $GIT_HOOK Bash       "# the <<EOF form
+git status"                                                                             0
+run $GIT_HOOK Bash       "echo \"a << EOF b\" ; echo done"                              0
+# The repo's own house style for a multi-line python program — install.sh and
+# tests/test-docs.sh both write it, with a redirection after the operator, which is the
+# same syntactic slot the fix above stopped discarding.
+run $GIT_HOOK Bash       "python - <<'PY' > out.txt
+print(1)
+PY"                                                                                     0
+# Backticks became segment separators in the #117 re-pass so `` `git branch -D f` `` cannot
+# hide a command. This is the other direction: a backtick inside a QUOTED argument is still
+# prose. Green before that change and after it — it records the boundary, it does not prove
+# the fix. (The blocking half is in the must-BLOCK section above.)
+run $GIT_HOOK Bash       "git commit -m 'use \`git branch -D\` only when asked'"        0
+# The rules are case-SENSITIVE on long options, where the text greps they replace folded
+# case. Recorded here as a decision rather than left in a handoff: git's own parser is
+# case-sensitive, so `--HARD` is not a command git would run — it exits 129, unknown
+# option. Green before the re-pass and after it; these assert the narrowing is intended.
+run $GIT_HOOK Bash       "git reset --HARD origin/main"                                 0
+run $GIT_HOOK Bash       "git branch --Force x"                                         0
+run $GIT_HOOK Bash       "git clean --FORCE"                                            0
+
+echo "block-dangerous-git.sh — must ALLOW (exit 0), the KNOWN GAP filed as issue #140"
+# These four REALLY EXECUTE, and the text scan this hook replaces blocked them. They are
+# allowed here knowingly: git_args() reads the command it was handed, and none of these
+# puts the git command where a tokenizer can see it — it is DATA inside another command's
+# argument, or a substitution inside double quotes that never separates into words.
+# Closing them properly means parsing a shell rather than tokenizing one, and a half-fix
+# that catches `bash -c` but not `sh -c` reads as coverage and stops the next person
+# looking. Inherited from block-infra-staging.sh (#112), which behaves identically.
+# The same boundary is written at the tokenizer's call site in the hook.
+# Green before this re-review and after it — they record a decision, they prove nothing.
+run $GIT_HOOK Bash       'bash -c "git push --force"'                                   0
+run $GIT_HOOK Bash       "sh -c 'git reset --hard HEAD~1'"                              0
+run $GIT_HOOK Bash       "eval 'git push --force'"                                      0
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'echo "$(git branch -D f)"'                                    0
+# Unquoted, both of these still block — it is the double-quoted form that gets through.
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       '$(git push --force)'                                          2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'echo `git push --force`'                                      2
+
+echo "block-dangerous-git.sh — must ALLOW (exit 0), the RECORDED RESIDUE of the heredoc fix"
+# One shape, and it is a REGRESSION this pass takes knowingly rather than a gap it
+# inherited. A FALSE heredoc — the operator is inside a quoted string, so bash never sees
+# one — whose terminator WORD then happens to appear alone on a later line. Refusing to
+# swallow an unterminated heredoc is what closed the whole comment/quote class above; when
+# the word does coincide, the lines between are still read as a body and the force push in
+# them is not judged. It measured 2 at 84ae124, by the same shlex accident as the six cases
+# above, and it is 0 now.
+#
+# Not closable at this size: it needs the tokenizer to decide whether <<WORD is a real
+# operator — not inside quotes, not after a # — which is parsing a shell rather than
+# tokenizing one, the same boundary #140 draws. Written down here so the trade is a
+# decision in the suite and not a discovery in the next review.
+run $GIT_HOOK Bash       "echo \"use <<EOF now\"
+git push --force
+EOF
+git status"                                                                             0
 
 echo "block-dangerous-git.sh — the allowlist, listed repo"
 HOOK_HOME="$ALLOW_HOME"
@@ -167,6 +495,55 @@ run $GIT_HOOK PowerShell "git push"                                        0
 run $GIT_HOOK Bash       "git push --force"                                2
 run $GIT_HOOK Bash       "git add -A"                                      2
 run $GIT_HOOK Bash       "git reset --hard origin/main"                    2
+# A line continuation must not orphan the force flag, and THIS is the only state where
+# that regressed: unlisted, the leftover bare `git push` is caught by the plain-push rule
+# and the call exits 2 anyway, so the same case there would go green against nothing.
+# Allowlisted, it returned 0 at 94d7d66 and the force push ran. Single-quoted on purpose
+# — a double-quoted case is a continuation to this script's own shell, not to the hook.
+run $GIT_HOOK Bash       'git push \
+--force'                                                                   2
+run $GIT_HOOK Bash       'git push \
+--force-with-lease'                                                        2
+# shellcheck disable=SC2016
+run $GIT_HOOK PowerShell 'git push `
+--force'                                                                   2
+# And the same three with a CRLF line ending — the shapes that still ran at 6fc17b4, when
+# the three LF cases above were already green. Here, and only here, they were 0 and the
+# force push went to the remote. Same reason as the LF trio for living in this section.
+run $GIT_HOOK Bash       "$(printf 'git push \\\r\n--force')"              2
+run $GIT_HOOK Bash       "$(printf 'git push \\\r\n--force-with-lease')"   2
+# shellcheck disable=SC2016
+run $GIT_HOOK PowerShell "$(printf 'git push `\r\n--force')"               2
+# A CRLF chain in front of the continuation: the newline that separates two commands and
+# the newline inside a continuation are the same two bytes, and only one of them splits.
+run $GIT_HOOK Bash       "$(printf 'echo a\r\ngit push \\\r\n--force')"    2
+# A DOUBLED line ending, which is the same bug through a different door. The payload is
+# read with universal newlines, where a lone \r is a line ending too, so \r\r\n, \n\r and
+# \r\r each arrive as TWO newlines — a single-\n join eats one and the survivor orphans the
+# flag exactly as no join at all did. parse() was fixed to stop MANUFACTURING that
+# doubling; these assert the join survives one that arrives in the payload. Measured 0 here
+# at 84ae124 with all four cases above already green.
+run $GIT_HOOK Bash       "$(printf 'git push \\\r\r\n--force')"            2
+run $GIT_HOOK Bash       "$(printf 'git push \\\n\r--force')"              2
+run $GIT_HOOK Bash       "$(printf 'git push \\\r\r--force')"              2
+# shellcheck disable=SC2016
+run $GIT_HOOK PowerShell "$(printf 'git push `\r\r\n--force')"             2
+# THE FIFTH FAIL-OPEN CLASS, and the only allowlist state it lives in. lex.escape is ""
+# so a backslash stays literal and a Windows path survives — but bash strips it before git
+# runs, so an escaped flag arrived as a token that did not start with a hyphen, was filed
+# as kind=path, and every rule below is gated on kind=opt. No rule ever looked at it. A
+# git shim on PATH recorded bash passing the real flag to git while the hook returned 0.
+# Unlisted, the leftover bare `git push` is caught by the plain-push rule and the call
+# exits 2 anyway, so these four would go green against nothing there — the same trap as
+# the continuation cases above. Allowlisted, push is permitted by design and stopping the
+# force flag is the whole job that rule has left. All four measured 0 here at 23eb109 with
+# every case above already green. Single-quoted, or the backslash never reaches the hook.
+run $GIT_HOOK Bash       'git push \--force'                               2
+run $GIT_HOOK Bash       'git push \-f'                                    2
+run $GIT_HOOK Bash       'git push \--force-with-lease'                    2
+# Not an evasion trick: $'...' is ordinary ANSI-C quoting anyone may type, and shlex
+# leaves the dollar sign glued to the front of the word where bash does not pass it on.
+run $GIT_HOOK Bash       "git push \$'--force'"                            2
 HOOK_HOME="$DENY_HOME"
 
 echo "block-infra-staging.sh — must BLOCK (exit 2), repo not listed"
@@ -396,8 +773,8 @@ fi
 
 echo ""
 if [ "$fail" -eq 0 ]; then
-    echo "All cases behaved: the patterns match, and every blocking hook fails closed."
+    echo "All $ran cases behaved: the patterns match, and every blocking hook fails closed."
     exit 0
 fi
-echo "$fail case(s) FAILED — a guardrail is not guarding."
+echo "$fail of $ran case(s) FAILED — a guardrail is not guarding."
 exit 1
