@@ -100,6 +100,7 @@ From `templates/agents/layer-specialist.md`, one file per layer, into the repo's
 | the **build / test commands** in its verify block | *build / test / run* |
 | the **contract** it reads and the one it writes | the layers either side of it in the chain |
 | the **engineering-standards skill it loads** | the skill step 4 generates for this layer, by name |
+| every `<…>` placeholder on the **`tools:`** line — today that is `<memory-read-tools>` | see *The tool placeholders* below |
 | `model` | see below |
 
 **The template's description opens with a line about where the file comes from and how many
@@ -108,14 +109,55 @@ addressed to whoever is holding the template. And a description is what the harn
 to decide whether to route work here, so on a generated file it is the one sentence that
 must say *which layer*.
 
+#### The tool placeholders
+
+The template's `tools:` line carries `<memory-read-tools>`. **Fill it. Never delete it, and
+never leave the brackets in.** This field fails in the one way nothing reports: an
+unresolvable name in a `tools:` list is stripped at launch with no error, so the specialist
+runs, says nothing is wrong, and does its optional memory step by skipping it.
+
+| Where you get the value | |
+|---|---|
+| `~/.claude/.playbook-install.json` → `config.placeholders.values["<memory-read-tools>"]` | the answers the installer already recorded. **Read them back rather than asking the same question twice.** |
+| That file does not exist (a hand-install) | **Stop and ask the user** for their memory server's read-tool names — `/mcp` in Claude Code lists them. Then write **the specialist**. |
+
+**Read that file; never create it.** It is the installer's own record of a machine, and this
+step is scoped to one repo. On a hand-install there is nothing to read and nothing to write:
+you ask, and the answer goes into the specialist alone.
+
+Asking is the fallback, not a default value. The playbook does name Forgetful, and the
+installer pre-fills its wrapper trio — but a reader running something else gets the wrong
+three names from a hardcoded answer and no error to tell them so. **Never write the file
+with a bracket still on the `tools:` line**: that is the failure this row exists to prevent,
+and it is silent.
+
+Derive the set rather than trusting this paragraph, and scope the question to the `tools:`
+line: if the template you are holding carries a placeholder on **`tools:`** that neither
+this subsection nor step 2's fill table tells you what to write, that is a gap in this
+skill. **Stop and say so.** `<layer>` is not one of those — the table's first row fills it,
+and `name:` is where it lives.
+
 #### The model field
 
 | `CLAUDE.md` | What you write |
 |---|---|
-| States a model for that layer | that id, in `model:` |
-| States none, or leaves `<model-id>` unfilled | **omit the field entirely** |
+| States a model for that layer | that id, in `model:` — **and delete the template's whole `# model:` comment block**, every `#` line of it, because it explains an omission this file no longer has |
+| States none, or leaves `<model-id>` unfilled | **omit the field entirely**, and leave the `#` comment exactly as it is |
 
 An unfilled `<model-id>` counts as **absent**, never as a model called `<model-id>`.
+
+The two branches are exclusive and the comment belongs to only one of them. A pinned
+specialist that keeps the comment ships a file which states a model on one line and explains
+why it states none over the next several — permanently, because this flow never overwrites.
+The comment is not documentation of the field; it is documentation of the *omission*.
+
+**It is a block, not a line** — seven `#` lines on the base template, four on the slice
+variant, and it runs to the last one before `---` or before `# effort:`. Delete all of them
+or none. A partial delete is the worst outcome available: it strips the `# model:` marker
+and leaves the rest as orphaned `#` prose, which no longer reads as being about anything —
+and the *stale model comment* check in step 6 keys on that marker, so it cannot see the
+residue it would otherwise catch. The `# effort:` comment on the slice variant is a
+different field and stays either way.
 
 When you omit it, the template already carries the `#` comment that belongs in its place —
 a `#` line, so it reaches a human reading the file and never the agent's prompt. **Leave
@@ -129,9 +171,16 @@ cheap for a light dispatch and strong for a heavy one — and a stated model is 
 under that layer, which a weight can raise above but never drop below. Pinning one is not a
 half-finished decision someone left for you to complete.
 
-> If the template you are holding still says the omission means the specialist *"inherits
-> the session's model"*, it is stale — that is the behaviour the flows now set a tier
-> precisely to avoid. **Stop and say so** rather than copying it forward.
+> **Read the sense, not the string.** The current template *names* the session-inheritance
+> reading in order to deny it — its comment says the omission does **NOT** mean the
+> specialist inherits the session's model. That is the healthy text. It is stale only if the
+> comment **asserts** inheritance — offers it as what the omission means, with nothing
+> denying it. Both current templates deny it, in different words: the base says it does NOT
+> mean that, and the slice variant says the flow sets the tier per run *rather than* letting
+> it inherit. Neither is stale. Halting on a denial is a false stop, on a downstream repo's
+> setup, so read the sentence rather than matching the phrase. If the comment really does
+> assert inheritance, **stop and say so** rather than copying it forward — that is the
+> behaviour the flows now set a tier precisely to avoid.
 
 The standards skills get no such line: they carry no model of their own, because they are
 loaded by the specialist and run on whatever it is running on.
@@ -147,6 +196,7 @@ the specialist step 2 just wrote for the same layer.
 | `name` — `slice-<layer>-specialist` — and every `<layer>` in the description and the body | the layer's name |
 | the **base agent file it Reads first** | the file step 2 wrote for this layer, `.claude/agents/<layer>-specialist.md` |
 | the **next layer's slice variant** it hands on to | the layer after this one in the chain |
+| every `<…>` placeholder on the **`tools:`** line — today that is `<memory-read-tools>` | the same rule as step 2, and the same value: this variant carries the same `tools:` line as its base |
 | `model` | the same rule as step 2, on the same layer |
 
 **There is almost nothing to fill in, and that is the point.** This file is an override
@@ -158,9 +208,12 @@ edited. If you find yourself restating a rule, you are writing the wrong file.
 once per layer. It is addressed to whoever is holding the template, and a generated file is
 past that. Step 2 replaces its base's opener for the same reason.
 
-**`model` follows step 2 exactly**: the id if `CLAUDE.md` states one for this layer, the
-field omitted with its `#` comment if it does not. Same layer, same declaration, same
-answer, so a specialist and its slice variant never disagree. **`effort` you never write.**
+**`model` follows step 2 exactly**: the id if `CLAUDE.md` states one for this layer — with
+the `# model:` comment deleted, because it explains an omission the file no longer has — and
+the field omitted with that comment left intact if it does not. Same layer, same
+declaration, same answer, so a specialist and its slice variant never disagree. The
+`# effort:` comment below it is not part of this and stays either way. **`effort` you never
+write.**
 The chain declares none, and how hard a layer has to think is a fact about the chain rather
 than about slice mode. Leave the template's `#` comment as it is.
 
@@ -228,10 +281,10 @@ Chain: **schema** ──► **api** ──► **web** (3 layers, shape A)
 | `.claude/agents/schema-specialist.md` | schema | **created** | — |
 | `.claude/agents/slice-schema-specialist.md` | schema | **created** | — |
 | `.claude/skills/schema-standards/SKILL.md` | schema | **created** | **still a scaffold** — 7 `<…>` brackets |
-| `.claude/agents/api-specialist.md` | api | **skipped** | — |
+| `.claude/agents/api-specialist.md` | api | **skipped** | **stale model comment** — its `# model:` line says the omission means it inherits the session's model |
 | `.claude/agents/slice-api-specialist.md` | api | **created** | — |
 | `.claude/skills/api-standards/SKILL.md` | api | **skipped** | — |
-| `.claude/agents/web-specialist.md` | web | **skipped** | **disagrees with `CLAUDE.md`** — names `src/ui`; the chain says `src/web` |
+| `.claude/agents/web-specialist.md` | web | **skipped** | **disagrees with `CLAUDE.md`** — names `src/ui`; the chain says `src/web` · **still a scaffold** — 1 `<…>` bracket, on `tools:` |
 | `.claude/agents/slice-web-specialist.md` | web | **skipped** | — |
 | `.claude/skills/web-standards/SKILL.md` | web | **skipped** | **still a scaffold** — 12 `<…>` brackets |
 
@@ -247,10 +300,10 @@ not among them. The files are on disk and every check that reads the disk passes
 does not work is the *dispatch*, in this session, which is the one failure a report whose
 every row says **created** would otherwise hide.
 
-**The four rows sit on two axes.** *Created* and *skipped* are what **you did** and are
-exclusive; *disagrees* and *still a scaffold* are what **you found** and are orthogonal to
-both. A standards skill generated one minute ago is *created* **and** *still a scaffold*,
-every time.
+**The values sit on two axes.** *Created* and *skipped* are what **you did** and are
+exclusive; *disagrees*, *still a scaffold* and *stale model comment* are what **you found**,
+are orthogonal to both, and can appear together on one row. A standards skill generated one
+minute ago is *created* **and** *still a scaffold*, every time.
 
 | Row | What it means |
 |---|---|
@@ -258,10 +311,31 @@ every time.
 | **skipped** | already existed, untouched |
 | **disagrees with `CLAUDE.md`** | the file names a path, command or layer the chain no longer says |
 | **still a scaffold** | the file still carries the template's `<PLACEHOLDER>` angle brackets |
+| **stale model comment** | the file's `# model:` comment **asserts** that the omission means the specialist inherits the session's model |
 
 **"Still a scaffold" costs no state.** No timestamps, no ledger, no marker file. You detect
 it by reading the file for angle brackets. The convention that makes a template fillable is
 what makes un-filled-ness detectable.
+
+**Run that bracket check on the generated agents too, not only on the standards skills.**
+On a skill a leftover bracket is expected and honest — the rules are the human's to write.
+On an agent it is a defect, and the worst-behaved of the three: a bracket left on `tools:`
+is stripped at launch in silence, and the agent runs looking correct without the tools its
+own body calls mandatory. So an agent row with an unfilled `tools:` placeholder carries
+**still a scaffold** with the bracket count and the field it sits on, and never a bare
+**created**. A row that says only *created* is a claim that the file is finished.
+
+**`stale model comment` is scoped to what you did not write.** A file you generated this
+run took its comment from the current template, so the value can only land on a **skipped**
+row — a specialist generated by an older copy of this skill, in a repo that has been adapted
+before. Behaviour there is already correct: the tier is set by the dispatching flow, which
+is installed globally, so the file is wrong about itself and about nothing else. Reporting
+it is the whole remedy. **Do not edit the file** — *never overwrite* covers this exactly as
+it covers a *disagrees* row.
+
+Detect it the way the step-2 stop-rule says: the phrase alone is not the finding. The
+current template names session inheritance in order to **deny** it, so a line carrying the
+phrase *and* a negation is healthy. Only an assertion is stale.
 
 **Every row carries evidence** — the bracket count, the path that disagrees, the layer it
 belongs to. A row with nothing beside it is an opinion.

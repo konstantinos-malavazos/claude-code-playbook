@@ -116,7 +116,13 @@ once per layer and fills in what `CLAUDE.md` already knows:
 | its **build/test commands** | the *build / test / run* section |
 | the **contract** it reads from the previous layer and writes for the next | chain **order** — the neighbours either side |
 | the **engineering standards** skill it loads | the skill generated in step 4, named for the layer |
-| its **model** | the optional per-layer id as a floor, or omitted so the weight sets the tier per run |
+| every `<…>` placeholder on its **`tools:`** line — today that is `<memory-read-tools>` | the answers the installer recorded in `~/.claude/.playbook-install.json`; with no such record the flow stops and asks you |
+| its **model** | the optional per-layer id as a floor, or omitted so the weight sets the tier per run. Pinning one also deletes the template's `# model:` comment, which explains an omission a pinned file no longer has |
+
+**The `tools:` row is not decoration.** An unresolvable name in a `tools:` list is stripped
+at launch with **no error**, so a specialist that shipped with the bracket still in it runs,
+declares nothing wrong, and quietly does its memory step by skipping it. That is the flow's
+failure to fill, not yours to notice.
 
 **Why generated rather than copied by hand:** a specialist file is *facts about this
 codebase* — its paths, its build command, its layer — and every one of those facts is
@@ -177,19 +183,26 @@ reliable boundary between the template's lines and yours, so a patcher that gues
 **destroys hand-written standards silently**. That is the worst failure available here,
 because standards are the thing you would least notice going missing.
 
-The honest cost is drift the flow will never fix. So it ends with a report of four rows.
-Like [the bootstrap's exit test](../solo/04-the-bootstrap.md#the-exit-test), it
-**reports every row and classifies nothing**:
+The honest cost is drift the flow will never fix. So it ends with a report. Like
+[the bootstrap's exit test](../solo/04-the-bootstrap.md#the-exit-test), it
+**reports every value and classifies nothing**:
 
-| Row | What it means |
+| Value | What it means |
 |---|---|
 | **created** | generated this run |
 | **skipped** | already existed, untouched |
 | **disagrees with `CLAUDE.md`** | the file names a path, command or layer the chain no longer says. Yours to reconcile |
 | **still a scaffold** | the file is still carrying the template's `<PLACEHOLDER>` angle brackets |
+| **stale model comment** | a specialist generated before the weight rules landed, whose `# model:` comment **asserts** that the omission means it inherits the session's model. Prose drift only — the tier is set by the dispatching flow, which is installed globally — so reporting it is the whole remedy |
 
-That last row costs no state at all — no timestamps, no ledger. **The convention that makes
-a template fillable is what makes un-filled-ness detectable.**
+*Created* and *skipped* are what the flow **did** and are exclusive. The other three are what
+it **found**, and can appear together on one row.
+
+**Still a scaffold** costs no state at all — no timestamps, no ledger. **The convention that
+makes a template fillable is what makes un-filled-ness detectable.** It is read on the
+generated **agents** as well as the standards skills, and the two mean opposite things: on a
+skill a leftover bracket is expected and honest, because the rules are yours to write; on an
+agent it is a defect that never announces itself.
 
 ### 5. Wire the order into `/start-ticket`
 
@@ -224,8 +237,14 @@ The first item is yours. The rest are read off the flow's report.
 - [ ] The report shows **one standards skill per layer** in `.claude/skills/`.
 - [ ] Nothing came back as **disagrees with `CLAUDE.md`** — or if it did, I reconciled it
       by hand.
-- [ ] I know which files are **still a scaffold**, and that filling them in is mine and not
-      the flow's.
+- [ ] I know which **standards skills** are **still a scaffold**, and that filling those in
+      is mine and not the flow's.
+- [ ] **No generated agent** came back as **still a scaffold**. On an agent that is the
+      flow's failure to fill, not mine — a bracket left on `tools:` is stripped at launch in
+      silence — so it goes back to the flow rather than into my editor.
+- [ ] Nothing came back as **stale model comment** — or if it did, I know it is prose drift
+      in a specialist generated before the weight rules landed, and that the behaviour is
+      already correct.
 - [ ] `/start-ticket` dispatches the specialists in order.
 
 ---

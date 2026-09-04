@@ -256,11 +256,21 @@ anyway. One in `model:` fails on first dispatch. One in `name:` registers the ag
 the literal placeholder and then refuses to dispatch it. One line catches all three:
 
 ```bash
-grep -rnE '^(name|model|tools):.*<[a-z][a-z-]*>' ~/.claude/agents/ ~/.claude/skills/
+grep -rnE '^(name|model|tools):.*<[a-z][a-z-]*>' ~/.claude/agents/ ~/.claude/skills/ <repo>/.claude/
 ```
 
 Expect no output. `<TICKET-ID>` and `<workspace>` inside a `description:` or a body are
 meant to stay, because the grep only reads those three keys.
+
+**`<repo>/.claude/` is in that list on purpose** — swap in a repo you have run
+`/adapt-to-stack` on. The layer specialists are never installed into `~/.claude/`; they are
+generated into the repo's own `.claude/agents/`
+([11-adapting-to-your-stack.md](11-adapting-to-your-stack.md)), and their `tools:` line
+carries a placeholder exactly as the agent templates you just copied do. A grep that stops
+at the two home directories cannot see the one set of agents no installer check reaches
+either. This is the same command as check 10 in
+[`templates/README.md`](../../templates/README.md), and the two copies are meant to stay
+identical: fix one and you have left the other pointing the wrong way.
 
 **Then prove the model ids landed too**, because the grep above cannot see them. It reads
 three frontmatter keys, and the model ids are named in the *body* of `/start-ticket`,
@@ -275,11 +285,13 @@ grep -rnE --include='*.md' '<(fast|strong)-model-id>' \
 
 Expect no output. Exactly these two tokens and nothing wider: a healthy install
 legitimately carries dozens of `<repo>`, `<workspace>` and `<n>` in prose, and all of
-those are meant to stay. Scoped to the three **managed** directories for the same reason
-the grep above is — the installer only fills what it installs, so either token quoted in
-a hand-written note under `~/.claude/projects/` is not a defect it could fix, and a check
-that goes red when nothing is wrong teaches you to ignore it. `install.sh` runs this as
-verify check `1c`.
+those are meant to stay. Scoped to the three directories the **installer** fills, and no
+wider — a narrower fence than the grep above, which adds `<repo>/.claude/` because
+`/adapt-to-stack` fills the specialists there. These two tokens have no second filler: the
+installer writes them or nothing does. The rule under both fences is the same one — look
+only where something actually fills, so either token quoted in a hand-written note under
+`~/.claude/projects/` is not a defect anything here could fix, and a check that goes red
+when nothing is wrong teaches you to ignore it. `install.sh` runs this as verify check `1c`.
 
 **Fill the memory placeholders in — do not delete them.** A memory server is required
 ([02-prerequisites.md](02-prerequisites.md)) and `install.sh` refuses to run without one, so
