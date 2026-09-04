@@ -7,6 +7,8 @@
 #   D-B  no prose count contradicts the tree
 #   D-C  every /command named in prose ships a template, or is allowlisted
 #   D-D  the README layout tree names every top-level entry
+#   D-E  the two copies of the placeholder acceptance grep agree, and
+#        /adapt-to-stack names every placeholder its templates carry
 #
 #   bash tests/test-docs.sh              # all sections
 #   bash tests/test-docs.sh D-B D-D      # only these
@@ -542,6 +544,129 @@ if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
   while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
 else
   pass "every tracked top-level entry appears in the layout tree"
+fi
+fi
+
+# ---------------------------------------------------------------- D-E
+# Two assertions about the placeholder acceptance grep and the skill that fills
+# the placeholders in (#119, #137).
+#
+# A1 catches the drift found in #119 §3: one command, copied into two docs, and
+# the copy inside the numbered setup walkthrough — the one a reader actually runs
+# — was a path short. It could not see the generated layer specialists, which are
+# the one set of agents no installer check reaches either.
+#
+# A2 catches #119 itself: both specialist templates carry <memory-read-tools> on
+# their tools: line, and /adapt-to-stack reasoned carefully about model: and said
+# nothing about it. So every generated specialist shipped with the bracket intact,
+# and an unresolvable name in a tools: list is stripped at launch in silence. The
+# token set is DERIVED from the templates, so the next placeholder added to either
+# one without a matching instruction fails here too.
+#
+# What neither one covers, so nobody reads more into a green run than is there:
+#   * A1 asserts the two copies AGREE, not what they say. Delete <repo>/.claude/
+#     from both and this stays green while the defect is fully restored. That is
+#     #119's A1 as specified, and the content is check 10's job in templates/README.md.
+#   * A2's bar is "mentioned anywhere in SKILL.md". Today the derived set is
+#     {<layer>, <memory-read-tools>}, and <layer> is unfalsifiable — the skill is
+#     about layers. So the assertion that can actually fail rests on the tools:
+#     token, which is the one that ships broken. The `model:` third of KEY matches
+#     nothing today: neither template has a model: KEY, only a `#` comment. It stays
+#     because it mirrors the acceptance grep this section is about, and it starts
+#     working the day a template pins a model.
+if want D-E; then
+banner "D-E · the acceptance grep and the skill that fills its placeholders"
+DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
+import os, re, importlib.util
+spec = importlib.util.spec_from_file_location(
+    "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+# ---- A1 · the two copies of the acceptance grep agree -------------------
+# Read RAW, not through strip_fences: one copy lives in a ```bash block and the
+# other is inline code in a markdown table, so stripping fences would drop half
+# the evidence. The README copy escapes its pipes for the table (\|); unescape
+# before comparing or two identical commands read as different.
+CMD = re.compile(r"grep -rnE '([^']*)'([^`\n]*)")
+COPIES = ("docs/shared/03-setup.md", "templates/README.md")
+
+parsed = {}
+for rel in COPIES:
+    hits = []
+    for pat, paths in CMD.findall(R.read(rel)):
+        clean = pat.replace("\\|", "|")
+        if "name" in clean and "model" in clean and "tools" in clean:
+            hits.append((clean, tuple(paths.split())))
+    if len(hits) != 1:
+        print("BAD %s  expected exactly 1 copy of the (name|model|tools) "
+              "acceptance grep, parsed %d — the parser is broken, or the "
+              "command moved" % (rel, len(hits)))
+        continue
+    parsed[rel] = hits[0]
+
+print("A1PARSED %d" % len(parsed))
+if len(parsed) == len(COPIES):
+    a, b = (parsed[r] for r in COPIES)
+    print("A1PATHS %d" % len(a[1]))
+    if a[1] != b[1]:
+        print("BAD %s vs %s  the acceptance grep's path list has drifted: "
+              "%s  vs  %s" % (COPIES[0], COPIES[1],
+                              " ".join(a[1]) or "(none)", " ".join(b[1]) or "(none)"))
+    if a[0] != b[0]:
+        print("BAD %s vs %s  the acceptance grep's pattern has drifted: "
+              "%s  vs  %s" % (COPIES[0], COPIES[1], a[0], b[0]))
+else:
+    print("A1PATHS 0")
+
+# ---- A2 · the skill names every placeholder its templates carry ---------
+# Anchored to the same three frontmatter keys the acceptance grep is anchored to,
+# so what this asserts is exactly what that grep would go red about.
+TEMPLATES = ("templates/agents/layer-specialist.md",
+             "templates/agents/slice-layer-specialist.md")
+SKILL = "templates/skills/adapt-to-stack/SKILL.md"
+KEY = re.compile(r"^(name|model|tools):")
+TOK = re.compile(r"<([a-z][a-z0-9-]*)>")
+
+# Keep the token -> file mapping. Reporting `rel` after the loop names whichever
+# template happened to be last, which is a lie on half the findings.
+tokens = {}
+for rel in TEMPLATES:
+    for line in R.read(rel).splitlines():
+        if KEY.match(line):
+            for t in TOK.findall(line):
+                tokens.setdefault(t, rel)
+
+print("A2TOKENS %d" % len(tokens))
+skill = R.read(SKILL)
+for t, rel in sorted(tokens.items()):
+    if ("<%s>" % t) not in skill:
+        print("BAD %s  carries <%s> on a name:/model:/tools: line and %s never "
+              "mentions it — every generated specialist ships the bracket, and an "
+              "unresolvable tools: name is stripped at launch with no error"
+              % (rel, t, SKILL))
+PYEOF
+A1_PARSED="$(sed -n 's/^A1PARSED //p' "$REPO/tests/.docs-out")"
+A1_PATHS="$(sed -n 's/^A1PATHS //p' "$REPO/tests/.docs-out")"
+# Positive control: two copies parsed, each with a real path list. Without it the
+# check passes by comparing nothing to nothing the day someone reflows the command.
+if [ "${A1_PARSED:-0}" = "2" ] && [ "${A1_PATHS:-0}" -ge 2 ]; then
+  pass "A1 · parsed both copies of the acceptance grep, ${A1_PATHS} paths each"
+else
+  fail "A1 · parsed ${A1_PARSED:-0}/2 copies of the acceptance grep (${A1_PATHS:-0} paths) — the parser is broken, not the docs"
+fi
+A2_TOKENS="$(sed -n 's/^A2TOKENS //p' "$REPO/tests/.docs-out")"
+# Positive control: the templates really do carry placeholders on those keys. A
+# zero here means the derivation found nothing, and "every token is mentioned" is
+# vacuously true over an empty set.
+if [ "${A2_TOKENS:-0}" -ge 2 ]; then
+  pass "A2 · derived ${A2_TOKENS} frontmatter placeholders from the two specialist templates"
+else
+  fail "A2 · derived only ${A2_TOKENS:-0} placeholders from the specialist templates — the derivation is broken, not the skill"
+fi
+if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
+  while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
+else
+  pass "the two acceptance greps agree, and the skill names every placeholder its templates carry"
 fi
 fi
 

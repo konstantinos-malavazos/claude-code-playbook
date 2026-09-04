@@ -1867,7 +1867,12 @@ PY
 verify_stage() {
   stage "Checking it worked"
 
-  # 1 — the acceptance grep from 03-setup.md step 8
+  # 1 — the acceptance grep from 03-setup.md step 8, minus its third path. That
+  #     copy also scans <repo>/.claude/, where /adapt-to-stack generates the layer
+  #     specialists. The narrowing is deliberate and not drift: the installer does
+  #     not know which repo you mean, and it never wrote those files. They are the
+  #     one set of agents no check here can reach — which is why the doc's copy has
+  #     the path and this one does not.
   heading "1. Are all the blanks filled in?"
   local hits
   hits=$(grep -rnE '^(name|model|tools):.*<[a-z][a-z-]*>' \
@@ -1962,9 +1967,17 @@ PY
   #
   #      MANAGED ROOTS ONLY — commands/, agents/, skills/, the same fence check 1
   #      above uses, plus commands/ because that is where this fault lives. `.md`
-  #      is NOT the same set as `managed`: $CLAUDE_HOME also holds ~/.claude/CLAUDE.md,
-  #      hand-written agents, and projects/**/memory/, the file-based memory store,
-  #      which is where the end-of-session writeback lands. A memory note about this
+  #      is NOT the same set as `managed`: $CLAUDE_HOME also holds projects/**/memory/,
+  #      the file-based memory store, which is where the end-of-session writeback lands.
+  #      That one example is the whole argument, and it is enough. Two others that look
+  #      like they belong here do not: ~/.claude/CLAUDE.md IS a managed dest (registered
+  #      as claude-md:global in install-lib.py), and a hand-written agent or skill of
+  #      your own sits INSIDE agents/ or skills/, which this check scans — so neither
+  #      argues for the fence, and the second is a real hole rather than a reason:
+  #      quote either token in a personal agent and 1c goes red for good. Out of scope
+  #      here; the fence is about roots, not about who wrote the file.
+  #
+  #      A memory note about this
   #      very ticket quotes both token names by their name, and nothing the installer
   #      can do would ever remove it — so an unfenced check goes red the first time
   #      the user writes one, stays red forever, and the remedy it prints is a lie.
