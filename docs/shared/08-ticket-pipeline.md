@@ -74,8 +74,11 @@ honour). If two or more layers were touched, an **alignment gate** checks they a
 **Dispatch each track on the weight for that dispatch.** Every implementer dispatch carries
 one, classified by the `dispatch-weight` skill
 ([`templates/skills/dispatch-weight/`](../../templates/skills/dispatch-weight/SKILL.md)) —
-here by the planner, which has the plan. **`light` → no override**, so the specialist runs on
-its own pinned model; **`heavy` → the stronger tier**, for that run. The orchestrator does not
+here by the planner, which has the plan. **`light` → the cheaper tier, set explicitly** —
+setting nothing is not the same thing, because a specialist that pins no `model:` would then
+inherit the orchestrator's own model, the strong one; **`heavy` → the stronger tier**, for
+that run. A specialist's own pinned `model:` is a floor either way: where the pin is already
+higher than the weight asks for, set nothing. The orchestrator does not
 classify; it reads the weight and routes. The invariants — asymmetry, ratchet, floor — and
 why the weight rather than the pipeline position decides this:
 [07](07-the-flows.md#model-escalation-cheap-by-default-escalated-by-weight).

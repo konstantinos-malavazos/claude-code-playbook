@@ -4,6 +4,7 @@
 #
 #   A1-A9  the per-dispatch model weight (issue #92)
 #   A10    the Serena halt block every navigating agent needs (issue #109)
+#   A11    the two model-id tokens are lowercase and reach a live install (issue #135)
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -264,11 +265,25 @@ fi
 # rule. The threshold clause carries the one concrete number in the whole design
 # and is fatal on its own — it exists only for the skill, so a second copy is a
 # second threshold, and it going missing means the number was silently re-blanked.
+#
+# The last two markers are #135's addition. The skill gained a SECOND body of
+# content — the id-to-tier alias table — and the original four markers are the
+# CLASSIFICATION criteria only, so A4 was guarding half the file it guards. Both
+# strings come from the table's header row, so a template that copies the header
+# scores 2 and is caught on its own. The row regex below covers the other half:
+# copying the ROWS without the header. That is the real freeze risk here — the
+# alias set is a fact about the harness, not about this playbook, and a second
+# copy of it rots silently, which is exactly what A4 exists to stop.
 MARKERS='placeholder seam
 multiple callers
 more than one repo
-several findings against one track'
+several findings against one track
+the model id contains
+dispatch alias'
 FATAL_MARKER='touches **more than 3 files**'
+# An id-to-alias row: first two cells carrying the same family word. Prose that
+# merely mentions sonnet cannot match it; a copied table row cannot avoid it.
+FATAL_ROW_RE='^\|[^|]*sonnet[^|]*\|[^|]*sonnet[^|]*\|'
 
 if want A4; then
 banner "A4 · the criteria live in the skill and nowhere else under templates/"
@@ -284,6 +299,7 @@ done <<EOF
 $MARKERS
 EOF
 grep -qF "$FATAL_MARKER" "$SKILL" 2>/dev/null || missing="$missing [$FATAL_MARKER]"
+grep -qE "$FATAL_ROW_RE" "$SKILL" 2>/dev/null || missing="$missing [id-to-alias row]"
 if [ -z "$missing" ]; then pass "the skill still states every criterion the guard looks for"
 else fail "criteria left the skill:$missing — the guard below is guarding nothing"; fi
 
@@ -299,6 +315,10 @@ EOF
   rel="${f#"$REPO"/}"
   if grep -qF "$FATAL_MARKER" "$f"; then
     fail "$rel carries $FATAL_MARKER — a second copy of the threshold"
+    clean=no
+  fi
+  if grep -qE "$FATAL_ROW_RE" "$f"; then
+    fail "$rel carries an id-to-alias table row — a second copy of the alias set"
     clean=no
   fi
   if [ "$n" -ge 2 ]; then
@@ -434,6 +454,83 @@ for stem in $(printf '%s\n' "$EDITORS" | sed '/^$/d'); do
     fail "@$stem edits code, is excluded from weighting, and pins '$m' instead of <strong-model-id>"
   fi
 done
+fi
+
+# ---------------------------------------------------------------- A11
+# Catches: issue #135. The two model-id placeholders shipped UPPERCASE, which
+# is this repo's reserved namespace for prose the installer must never fill —
+# so even a working fill mechanism could never reach them. And a filled-in id
+# is not itself usable: the dispatch `model:` field takes a tier alias, never
+# a full id (docs/shared/07-the-flows.md), so a table has to map one to the
+# other, and the three commands have to point at it.
+if want A11; then
+banner "A11 · the model-id tokens are lowercase and a live install can act on them"
+
+# A11a — Catches: the tokens still living in the UPPERCASE, never-fill
+# namespace anywhere under templates/.
+if grep -rlE '<MODEL-(CHEAP|STRONG)-ID>' "$TEMPLATES" >/dev/null 2>&1; then
+  fail "A11a: <MODEL-CHEAP-ID> / <MODEL-STRONG-ID> appear nowhere under templates/"
+else
+  pass "A11a: <MODEL-CHEAP-ID> / <MODEL-STRONG-ID> appear nowhere under templates/"
+fi
+
+# A11b — Catches: a command that drops one of the two ids while rewriting the
+# light/heavy arms. Each of the three dispatch sites must reference BOTH
+# backticked tokens, exactly once each.
+A11B_MISSING=""
+for c in start-ticket fix-ticket build-chart-ticket; do
+  f="$COMMANDS/$c.md"
+  if [ ! -f "$f" ]; then A11B_MISSING="$A11B_MISSING $c(missing-file)"; continue; fi
+  # shellcheck disable=SC2016
+  n_strong=$(grep -oF -- '`<strong-model-id>`' "$f" 2>/dev/null | wc -l | tr -d ' ')
+  # shellcheck disable=SC2016
+  n_fast=$(grep -oF -- '`<fast-model-id>`' "$f" 2>/dev/null | wc -l | tr -d ' ')
+  [ "$n_strong" = "1" ] || A11B_MISSING="$A11B_MISSING $c(strong=$n_strong)"
+  [ "$n_fast" = "1" ] || A11B_MISSING="$A11B_MISSING $c(fast=$n_fast)"
+done
+chk "$([ -z "$A11B_MISSING" ] && echo 0 || echo 1)" \
+   "A11b: all three commands reference \`<strong-model-id>\` and \`<fast-model-id>\` exactly once (missing:${A11B_MISSING:- none})"
+
+# A11c — Anchor first (the A4 shape): assert the id-to-tier table lives in
+# SKILL.md BEFORE asserting the three commands reference it, so the guard
+# below can never pass while guarding nothing. The ORDER is the important half
+# and does not change: the anchor is checked first, and both assertions fail in
+# the else arm, so the guard can never pass over a missing table.
+#
+# The anchor is the MAPPING, not the word. `\|.*sonnet.*\|` matched any table row
+# anywhere in the skill that happened to name sonnet — the table could have been
+# replaced wholesale by an unrelated row and the anchor would still have held.
+# Assert the two things that make it a mapping: the header cell that names what
+# the left column is, and a row whose FIRST TWO cells both carry the same family
+# word, which is what an id-to-alias row looks like and what a prose mention
+# never does.
+A11C_ANCHOR=0
+grep -qF 'the model id contains' "$SKILL" 2>/dev/null || A11C_ANCHOR=1
+grep -qE '^\|[^|]*sonnet[^|]*\|[^|]*sonnet[^|]*\|' "$SKILL" 2>/dev/null || A11C_ANCHOR=1
+if [ "$A11C_ANCHOR" = "0" ]; then
+  pass "A11c: an id-to-tier mapping row (not just the word sonnet) exists in SKILL.md"
+  A11C_MISSING=""
+  for c in start-ticket fix-ticket build-chart-ticket; do
+    f="$COMMANDS/$c.md"
+    # The two words must be in the SAME pointer sentence, not merely both
+    # present somewhere in the file — `dispatch-weight` is named several times
+    # for unrelated reasons, so a bare co-occurrence test guards nothing.
+    # Newlines are flattened first: the sentence wraps in two of the three. CRs are
+    # stripped BEFORE the flatten — on Windows the wrap is "\r\n", so flattening
+    # newlines alone leaves a stray \r inside the span this pattern has to cross.
+    if [ -f "$f" ] && tr -d '\r' <"$f" | tr '\n' ' ' \
+         | grep -qE 'id-to-tier mapping[^.]*dispatch-weight'; then
+      :
+    else
+      A11C_MISSING="$A11C_MISSING $c"
+    fi
+  done
+  chk "$([ -z "$A11C_MISSING" ] && echo 0 || echo 1)" \
+     "A11c: all three commands point at the SKILL.md mapping (missing:${A11C_MISSING:- none})"
+else
+  fail "A11c: an id-to-tier mapping row (not just the word sonnet) exists in SKILL.md — the guard below would be guarding nothing"
+  fail "A11c: all three commands point at the SKILL.md mapping (skipped — anchor missing)"
+fi
 fi
 
 # ---------------------------------------------------------------- A8

@@ -262,6 +262,25 @@ grep -rnE '^(name|model|tools):.*<[a-z][a-z-]*>' ~/.claude/agents/ ~/.claude/ski
 Expect no output. `<TICKET-ID>` and `<workspace>` inside a `description:` or a body are
 meant to stay, because the grep only reads those three keys.
 
+**Then prove the model ids landed too**, because the grep above cannot see them. It reads
+three frontmatter keys, and the model ids are named in the *body* of `/start-ticket`,
+`/fix-ticket` and `/build-chart-ticket` — prose, in a directory it does not look at. A
+dispatch that reads an unfilled one cannot tell which tier to use and will guess, so the
+cheap tier and the strong tier stop meaning anything:
+
+```bash
+grep -rnE --include='*.md' '<(fast|strong)-model-id>' \
+  ~/.claude/commands/ ~/.claude/agents/ ~/.claude/skills/
+```
+
+Expect no output. Exactly these two tokens and nothing wider: a healthy install
+legitimately carries dozens of `<repo>`, `<workspace>` and `<n>` in prose, and all of
+those are meant to stay. Scoped to the three **managed** directories for the same reason
+the grep above is — the installer only fills what it installs, so either token quoted in
+a hand-written note under `~/.claude/projects/` is not a defect it could fix, and a check
+that goes red when nothing is wrong teaches you to ignore it. `install.sh` runs this as
+verify check `1c`.
+
 **Fill the memory placeholders in — do not delete them.** A memory server is required
 ([02-prerequisites.md](02-prerequisites.md)) and `install.sh` refuses to run without one, so
 "I have no memory server" is not a state this playbook supports. Running **Forgetful**, the

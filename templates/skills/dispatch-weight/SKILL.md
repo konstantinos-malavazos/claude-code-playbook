@@ -93,9 +93,50 @@ never lowers one below the tier pinned in its frontmatter.
 
 ---
 
+## For whoever dispatches — mapping an id to a tier alias
+
+**This section is not addressed to the classifier.** The classifier emits a weight and
+stops. It lives here because this file is the one thing already loaded at the moment a
+dispatch is made, so it is the only place a dispatching agent is guaranteed to read.
+
+The dispatch `model` field takes a **tier alias** — `sonnet`, `opus`, `haiku` or `fable` —
+**never a full model id**. The ids recorded at install therefore *name* a tier; they are not
+values you can pass. Map before you dispatch:
+
+| the model id contains | dispatch alias |
+|---|---|
+| `opus` | `opus` |
+| `sonnet` | `sonnet` |
+| `haiku` | `haiku` |
+| `fable` | `fable` |
+| none of these | **no override** |
+
+Two rules go with the table:
+
+- **Match on the family word, not the whole id.** An exact-id table has no row for someone
+  who answered `claude-sonnet-4-5` at install, and the installer accepts any string.
+- **An unmappable id means no override — never a guess downward.** That is invariant 1
+  applied: no override reproduces the old behaviour for that one setup, which is expensive
+  but never wrong.
+
+The alias set is a property of the harness, not of this playbook. Verified against Claude
+Code `2.1.226`; re-check it after an upgrade.
+
+**Why `light` sets a tier explicitly instead of overriding nothing.** The two layer
+specialists are the only agent templates that pin no `model:` — which is exactly what makes
+them weight-eligible — and an agent with no pin defaults to `inherit`, i.e. the
+**orchestrator's** model, the strong one. So "no override" silently handed every light
+dispatch the expensive tier. `light` therefore sets the cheap tier outright, and invariant 3
+still decides the rest: where the specialist pins something higher, set nothing.
+
+---
+
 ## You must NOT
 
-- Set, suggest or write a `model:` value. You emit a weight. The orchestrator maps it.
+- Set, suggest or write a `model:` value — **as the classifier**. You emit a weight; the
+  agent that dispatches maps it through the table above. The prohibition is on the
+  classification step, not on that mapping: the table is for whoever dispatches, and this
+  skill still never writes anybody's `model:` frontmatter.
 - Classify the ticket, the track's history, or how hard the last pass was.
 - Reuse a weight from a previous dispatch instead of making a new one.
 - Emit a weight with no reason line.

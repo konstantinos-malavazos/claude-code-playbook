@@ -18,14 +18,15 @@ Every time you hand work to an implementation specialist, that dispatch carries 
 classified by the `dispatch-weight` skill. **You never classify it yourself** — the agent
 holding the evidence does, and you read its answer and route:
 
-- `weight: light` → dispatch with **no model override**. The specialist runs on its own
-  pinned model, normally `<MODEL-CHEAP-ID>`.
-- `weight: heavy` → dispatch on the tier `<MODEL-STRONG-ID>` belongs to, **for that run
-  only**. (These two are the ids you filled in at install as `<fast-model-id>` and
-  `<strong-model-id>`.)
+- `weight: light` → dispatch on the tier `<fast-model-id>` belongs to, and **set it
+  explicitly** — the id-to-tier mapping is in the `dispatch-weight` skill. Setting nothing
+  is not the same thing: a specialist with no pinned `model:` then inherits **your** model,
+  the strong one.
+- `weight: heavy` → dispatch on the tier `<strong-model-id>` belongs to, **for that run
+  only** — same mapping.
 - **Ratchet:** never dispatch a track below the tier it last ran at.
 - **Floor:** never dispatch a specialist below its own pinned `model:`, whatever the weight
-  says.
+  says — where that pin is already higher, set nothing.
 
 Record the dispatched model, the weight, the reason and the pass number in that track's
 handoff. There are four dispatch sites below (steps 5 and 6); a weight read once from

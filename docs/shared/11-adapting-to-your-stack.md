@@ -87,18 +87,22 @@ generates that repo's layer, from that repo's own file.
 
 **Optionally, name a model per layer.** The chain section takes an optional model id
 against each layer. If you state one, the flow writes it into that specialist's `model:`.
-If you leave it out, the flow omits the field entirely and the specialist inherits
-whatever you picked for the session. Leaving it out is **the normal day-one answer**.
-Three reasons for that on a new repo:
+If you leave it out, the flow omits the field entirely — and **that omission is what makes
+the specialist weight-eligible**: the dispatching flow then sets its tier for each run,
+cheap for a light dispatch and strong for a heavy one. It does not mean the specialist
+inherits whatever you picked for the session; the flows set a tier on the light arm
+precisely so that inheritance never happens. Leaving it out is **the normal day-one
+answer**. Three reasons for that on a new repo:
 
 - On day one the repo is a stub. Knowing a layer is mechanical means having worked in it.
 - Deriving *schema is mechanical, frontend is design-heavy* from a layer's **name** is the
   artifact guessing.
-- **Model ids rot.** A written-in id is N files to update the day it changes. Inheriting
+- **Model ids rot.** A written-in id is N files to update the day it changes. Omitting it
   is zero.
 
-State one when you genuinely know. That is usually months later, or on an existing
-codebase whose layers you have lived in.
+State one only when you want a **floor** under that layer — a weight can raise a dispatch
+above the pin, never below it. That is usually months later, or on an existing codebase
+whose layers you have lived in.
 
 ### 2. One specialist agent per layer — generated
 
@@ -112,7 +116,7 @@ once per layer and fills in what `CLAUDE.md` already knows:
 | its **build/test commands** | the *build / test / run* section |
 | the **contract** it reads from the previous layer and writes for the next | chain **order** — the neighbours either side |
 | the **engineering standards** skill it loads | the skill generated in step 4, named for the layer |
-| its **model** | the optional per-layer id, or omitted so it inherits |
+| its **model** | the optional per-layer id as a floor, or omitted so the weight sets the tier per run |
 
 **Why generated rather than copied by hand:** a specialist file is *facts about this
 codebase* — its paths, its build command, its layer — and every one of those facts is

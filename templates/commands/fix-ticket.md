@@ -15,10 +15,12 @@ stays one ticket / one commit per repo / one metrics row.
    weight per track classified with the `dispatch-weight` skill — a QA bounce-back is its own
    dispatch and gets its own classification, never the shipped ticket's.
 3. **Fix** — dispatch the responsible layer specialist(s), **each on its track's weight**:
-   `light` → no override, so the specialist runs on its own pinned model (normally
-   `<MODEL-CHEAP-ID>`); `heavy` → the tier `<MODEL-STRONG-ID>` belongs to, for that run only.
+   `light` → the tier `<fast-model-id>` belongs to, and **set it explicitly** — setting
+   nothing is not the same thing, since a specialist with no pinned `model:` then inherits
+   **your** model, the strong one; `heavy` → the tier `<strong-model-id>` belongs to, for
+   that run only. Both go through the id-to-tier mapping in the `dispatch-weight` skill.
    Never below the tier that track last ran at, and never below the specialist's pinned
-   `model:`. Write a **failing test that
+   `model:` — where that pin is already higher, set nothing. Write a **failing test that
    reproduces the bug first** (`tdd` skill), then make it pass.
 4. **Amend, don't add** — the fix amends the existing branch commit (amend-as-you-go).
    No `fix: address QA` follow-up commits.

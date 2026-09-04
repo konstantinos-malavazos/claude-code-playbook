@@ -107,10 +107,11 @@ every ticket that touches it.
 its layer ships tests.
 
 **Dispatch it on a weight, classified by the `dispatch-weight` skill.** The planner in step 3
-runs it over what this ticket actually changes; you read the answer and route. `light` → no
-model override, so the specialist runs on its own pinned model (normally `<MODEL-CHEAP-ID>`);
-`heavy` → the tier `<MODEL-STRONG-ID>` belongs to, for that run only. Never below the
-specialist's own pinned `model:`. **The label chose the layer, not the tier** — a `make` can
+runs it over what this ticket actually changes; you read the answer and route. `light` → set,
+explicitly, the tier `<fast-model-id>` belongs to; `heavy` → the tier `<strong-model-id>`
+belongs to, for that run only. Both go through the id-to-tier mapping in the
+`dispatch-weight` skill. Never below the specialist's own pinned `model:` — where that pin is
+already higher, set nothing. **The label chose the layer, not the tier** — a `make` can
 be one file or a contract with callers in three repos, and the label says nothing about
 which. If the ticket is re-dispatched after a review sends it back, classify again and never
 drop below the tier it last ran at.

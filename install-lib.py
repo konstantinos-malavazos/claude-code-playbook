@@ -60,10 +60,20 @@ SKIP_NAMES = {"README.md"}
 SKIP_HOOKS = {"test-hooks.sh"}
 
 # The frontmatter keys the harness resolves. A placeholder left in any of these fails
-# silently or on first dispatch; anywhere else in the file it is prose and stays.
+# silently or on first dispatch; anywhere else in the file it is prose and stays --
+# with one allow-listed exception, BODY_FILL_TOKENS below.
 BLOCKING_KEYS = ("name", "model", "tools")
 BLOCKING_RE = re.compile(r"^(name|model|tools):.*?(<[a-z][a-z-]*>)", re.MULTILINE)
 TOKEN_RE = re.compile(r"<[a-z][a-z-]*>")
+
+# The exception. These two are named in PROSE -- the commands state which model tier a
+# dispatch weight maps onto -- so a body-only fill is the only way they ever get a value,
+# and an unfilled one leaves the orchestrator to guess the tier. They are filled anywhere
+# in the file, from `values` only and never from `delete`: a prose token deleted to the
+# empty string leaves a mangled sentence with no marker that anything was lost, which is
+# strictly worse than an unfilled token, which at least announces itself. Every other
+# lowercase token (<repo>, <workspace>, <n>, the memory tools) stays prose and survives.
+BODY_FILL_TOKENS = ("<strong-model-id>", "<fast-model-id>")
 
 
 # ---------------------------------------------------------------------------
@@ -380,11 +390,13 @@ def scan_placeholders(paths):
 
 
 def apply_placeholders(paths, values, delete):
-    """Fill or delete blocking tokens, in the three frontmatter keys only.
+    """Fill or delete blocking tokens in the three frontmatter keys, plus a narrow body fill.
 
     Deleting a token from a `tools:` list must take its comma with it, or the list is
-    left with a dangling separator. Filling and deleting are both restricted to the
-    blocking keys so prose placeholders survive untouched.
+    left with a dangling separator. Deleting is restricted to the blocking keys, and so
+    is filling -- with one exception: the tokens in BODY_FILL_TOKENS are filled anywhere
+    in the file, from `values` only. Every other prose placeholder survives untouched,
+    and nothing outside the blocking keys is ever deleted.
     """
     changed = []
     for path in paths:
@@ -401,6 +413,15 @@ def apply_placeholders(paths, values, delete):
             for i, line in enumerate(lines):
                 key = line.split(":", 1)[0]
                 if key not in BLOCKING_KEYS:
+                    # body line: fill the allow-listed tokens only, and never delete
+                    new = line
+                    for tok in BODY_FILL_TOKENS:
+                        val = values.get(tok)
+                        if val and tok in new:
+                            new = new.replace(tok, val)
+                    if new != line:
+                        lines[i] = new
+                        dirty = True
                     continue
                 new = line
                 for tok, val in values.items():

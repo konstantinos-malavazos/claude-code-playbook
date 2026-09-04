@@ -717,7 +717,11 @@ yn "$([ "$M3_N" -ge 11 ] && echo 0 || echo 1)" "$M3_N memory-declaring agents in
 yn "$([ -z "$M3_MISSING" ] && echo 0 || echo 1)" "every one of them carries the tools (missing:${M3_MISSING:- none})"
 notinlog m3 "take the blank out instead" "the old delete-by-default prompt is gone"
 # Only the tools: line. A `<memory-read-tools>` in a BODY is prose that is meant to
-# survive — apply_placeholders rewrites name:/model:/tools: and nothing else.
+# survive. apply_placeholders rewrites name:/model:/tools: lines and, since #135,
+# the two token names in BODY_FILL_TOKENS (<strong-model-id>, <fast-model-id>)
+# anywhere in the file — nothing else. The memory tokens are NOT in that allow-list,
+# so this assertion is the standing proof that the #135 narrowing did not leak: a
+# body <memory-read-tools> still survives, and a tools: one still gets filled.
 if grep -rqE '^tools:.*<memory-(read|write)-tools>' "$CH/agents" 2>/dev/null; then
   fail "no memory placeholder left unfilled in any tools: line"
 else
@@ -769,6 +773,131 @@ if grep -qE '<[a-z][a-z-]*-tool>' "$M5SK" 2>/dev/null; then
 yn "$([ ! -f "$CH/skills/memory-schema/forgetful.SKILL.md" ] && echo 0 || echo 1)" \
    "the unused duplicate is gone"
 inlog m5 "loaded the Forgetful variant" "the installer says it did the swap"
+fi
+
+# ---------------------------------------------------------------- P1
+# Catches: issue #135, two stacked faults. (1) the two model-id placeholders
+# shipped UPPERCASE — this repo's reserved namespace for prose the installer
+# must never fill. (2) even lowercased, apply_placeholders only ever
+# substitutes into the three frontmatter blocking keys (name/model/tools), so
+# a prose BODY token had no path to be filled at all. start-ticket.md already
+# carries the correct lowercase tokens in prose and ships them blank today —
+# this case is the control experiment, run for real.
+if want P1; then
+banner "P1 · the two model-id tokens are FILLED in command bodies, never left blank"
+fresh_env p1; with_servers
+keys p1 "${FULL[@]}"; run install p1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exits 0 (rc=$RC)"
+
+# P1a — whole-file, not anchored to any key: neither lowercase token may
+# survive in any installed .md once the install has run. Mirrors verify check 1c
+# exactly, INCLUDING its --include='*.md'. That is not a loosening: the fill path
+# only ever opens .md, and .playbook-install.json legitimately RECORDS both token
+# names as the keys of the answers an update replays, so an unrestricted grep is
+# red on a perfectly healthy install and asserts nothing.
+if grep -rlE --include='*.md' '<(fast|strong)-model-id>' "$CH" >/dev/null 2>&1; then
+  fail "P1a: <fast-model-id> / <strong-model-id> appear nowhere in an installed .md"
+else
+  pass "P1a: <fast-model-id> / <strong-model-id> appear nowhere in an installed .md"
+fi
+
+# P1b — read the RECORDED answer back out of the manifest (same pattern as
+# U3/U7/T2 above); do NOT hardcode claude-opus-5, so this still means
+# something for a user who typed a different id at the prompt.
+P1_STRONG="$(python3 -c 'import json,sys
+d=json.load(open(sys.argv[1],encoding="utf-8"))
+print(d["config"]["placeholders"]["values"].get("<strong-model-id>",""))' \
+  "$CH/.playbook-install.json" 2>/dev/null)"
+P1_FAST="$(python3 -c 'import json,sys
+d=json.load(open(sys.argv[1],encoding="utf-8"))
+print(d["config"]["placeholders"]["values"].get("<fast-model-id>",""))' \
+  "$CH/.playbook-install.json" 2>/dev/null)"
+P1_MISSING=""
+if [ -z "$P1_STRONG" ] || [ -z "$P1_FAST" ]; then
+  P1_MISSING="ids-not-recorded-in-manifest"
+else
+  for c in start-ticket fix-ticket build-chart-ticket; do
+    f="$CH/commands/$c.md"
+    if [ ! -f "$f" ]; then P1_MISSING="$P1_MISSING $c(missing-file)"; continue; fi
+    grep -qF -- "$P1_STRONG" "$f" || P1_MISSING="$P1_MISSING $c(no-strong)"
+    grep -qF -- "$P1_FAST" "$f" || P1_MISSING="$P1_MISSING $c(no-fast)"
+  done
+fi
+yn "$([ -z "$P1_MISSING" ] && echo 0 || echo 1)" \
+   "P1b: all three commands carry the RECORDED ids (missing:${P1_MISSING:- none})"
+
+# P1c — Catches a regression back to the deleted-cheap-id design (Q2): the
+# fast id must be load-bearing in start-ticket.md too, and the light arm must
+# SET a tier rather than disclaim one.
+# All THREE commands, not just start-ticket: the light arm was reworded in every
+# one of them, so checking a single file leaves two of the three fixes untested.
+#
+# The negative half matches the wording all three files ACTUALLY had, which is not
+# one string. start-ticket.md said "no model override"; fix-ticket.md said "no
+# override, so the specialist runs on its own pinned model"; build-chart-ticket.md
+# said the same thing with the line wrapped between "no" and "model override".
+# So: flatten newlines first (the wrap is real, and a per-line grep cannot see
+# across it), and accept the optional "model" word. Keyed to the literal
+# "no model override" this guarded exactly one of the three files while its label
+# claimed all three.
+#
+# `tr -d '\r'` BEFORE the flatten, and it is load-bearing, not hygiene. These .md
+# files reach the sandbox through git on Windows, so the wrap point is "no\r\n" —
+# flattening newlines alone leaves "no\r model override" and the pattern misses the
+# one variant the flatten was added for. Watched: with the CR left in, the wrapped
+# file passes a check that should fail it.
+P1C_MISSING=""
+for c in start-ticket fix-ticket build-chart-ticket; do
+  f="$CH/commands/$c.md"
+  if [ -f "$f" ] && [ -n "$P1_FAST" ] \
+     && grep -qF -- "$P1_FAST" "$f" \
+     && ! tr -d '\r' <"$f" | tr '\n' ' ' | grep -qE 'no( model)? override'; then
+    :
+  else
+    P1C_MISSING="$P1C_MISSING $c"
+  fi
+done
+if [ -z "$P1C_MISSING" ]; then
+  pass "P1c: all three commands carry the fast id, and no light arm still disclaims a tier"
+else
+  fail "P1c: all three commands carry the fast id, and no light arm still disclaims a tier (missing:$P1C_MISSING)"
+fi
+
+# P1d/P1e — verify check 1c's OTHER arm. P1a only ever exercises the green side:
+# it proves a healthy install has no surviving token, which is also what a check
+# that had been deleted would report. Plant one and watch it fire, the U3 shape.
+#
+# The two halves are planted separately on purpose, because 1c's fence is the thing
+# under test as much as its grep is. $CLAUDE_HOME is NOT the same set as "files this
+# installer manages": it also holds projects/**/memory/, the file-based memory store
+# the end-of-session writeback lands in. A note about THIS ticket quotes both token
+# names, no installer run could ever remove it, and a check that goes permanently red
+# over a file nobody can fix teaches the reader to ignore it — with a TODO naming a
+# remedy that does nothing. So: an unmanaged .md must NOT fire 1c, and a managed one
+# must, in the same install.
+mkdir -p "$CH/projects/p1proj/memory"
+cat > "$CH/projects/p1proj/memory/session-note.md" <<'MEMO'
+# what #135 was about
+The installer fills <fast-model-id> and <strong-model-id> in command bodies now.
+MEMO
+nokeys p1u; run update p1u
+inlog p1u "yes — both model ids were filled in everywhere they are named" \
+  "P1d: a memory note quoting both tokens does NOT turn 1c red — it is not a managed file"
+notinlog p1u "session-note.md" "P1d: and 1c does not name it"
+
+# Now the managed half. Appending makes the file user-edited, so the update leaves it
+# alone (skip-edited) and the planted token is still there when verify runs.
+# shellcheck disable=SC2016
+printf '\nDispatch on the tier `<strong-model-id>` belongs to.\n' >> "$CH/commands/start-ticket.md"
+nokeys p1e; run update p1e
+inlog p1e "no — these files still say <fast-model-id> or <strong-model-id>:" \
+  "P1e: 1c goes RED when a managed command still carries a token"
+inlog p1e "commands/start-ticket.md" "P1e: and it names the file"
+notinlog p1e "session-note.md" "P1e: still without dragging in the unmanaged memory note"
+inlog p1e "Re-run ./install.sh: it asks for both ids" \
+  "P1e: the TODO fires, and names a remedy that works on a file the installer owns"
+inlog p1e "the installer will not rewrite it" \
+  "P1e: and says what to do for the one file re-running cannot fix"
 fi
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -1286,7 +1415,8 @@ fi
 # reuse that plan — it runs the SAME subcommand a second time, from its own inputs,
 # to show the user what is about to happen. The two calls drifted: only one of them
 # was handed the recorded answers, so a damaged agent was listed on the consent
-# screen under "UNCHANGED — already exactly this version" and was then rewritten by
+# screen under the `current` heading — "UNCHANGED — already this version", which at the
+# time said "already exactly this version" and nothing else — and was then rewritten by
 # the very run the user had just approved. The comment above that call promises the
 # opposite in so many words: "the plan shown here is the plan that runs".
 #

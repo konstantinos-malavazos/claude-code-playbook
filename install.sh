@@ -1013,6 +1013,13 @@ placeholder_stage() {
   printf '  %sWhich model for the quick, cheap lookups?%s\n' "$BOLD" "$RESET"
   printf '  %s[Enter = claude-sonnet-5]%s ' "$DIM" "$RESET"
   _read fast; [[ -z "$fast" ]] && fast="claude-sonnet-5"
+  # One model for everything is a legitimate setup, so this notes and does not
+  # re-ask. But the two ids are what tell a light dispatch from a heavy one, so
+  # when they are the same the escalation rule still runs and changes nothing.
+  # Nothing else catches this: both tokens ARE filled, so verify check 1c is green.
+  if [[ "$strong" == "$fast" ]]; then
+    TODO+=("You gave the same model id ($strong) for both the heavy and the quick work, so weight-based model escalation is effectively off — a heavy dispatch and a light one land on the same model. That is a fine setup if you meant it. Re-run ./install.sh if you want two tiers.")
+  fi
   printf '\n'
 
   # ── memory ───────────────────────────────────────────────────────────────
@@ -1311,7 +1318,12 @@ for line in open(plan_path, encoding="utf-8"):
 TITLES = [
     ("install",      "NEW — do not exist yet, will be created"),
     ("upgrade",      "UPDATED — this installer wrote these before, and will replace them"),
-    ("current",      "UNCHANGED — already exactly this version"),
+    # Not "we will not touch this file" any more, and the screen must not imply it.
+    # Since #135 the body fill runs over every planned dest, `current` included, so a
+    # file already at this version still gets rewritten if it carries an unfilled
+    # <fast-model-id> / <strong-model-id>. Saying only "UNCHANGED" is the shape the
+    # consent screen must never take: promising less writing than the run performs.
+    ("current",      "UNCHANGED — already this version (model ids in them are still filled in)"),
     ("skip-edited",  "LEFT ALONE — you edited these yourself since installing them"),
     ("skip-foreign", "LEFT ALONE — already here, and this installer did not put them there"),
     ("orphan",       "LEFT ALONE — installed once, and this clone no longer ships them"),
@@ -1434,6 +1446,13 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
         if [[ "$action" == "install" ]]; then INSTALLED+=("$uid"); else UPGRADED+=("$uid"); fi
         ;;
       current)
+        # Nothing is copied — the file on disk is already this version. It still goes
+        # into written.txt, because written.txt becomes spec["paths"] for the
+        # apply-placeholders pass below: a file can be byte-identical to what this
+        # clone ships and STILL carry an unfilled placeholder, which is precisely the
+        # #135 case for the two model ids in a command body. Leaving it out here would
+        # make "already up to date" mean "never gets its blanks filled". The confirm
+        # screen's `current` label says so too — the two have to agree.
         printf '%s\n' "$dest" >> "$WORK/written.txt"
         ;;
       skip-edited)
@@ -1922,6 +1941,53 @@ PY
     fi
   else
     note "  no agents directory to check"
+  fi
+
+  # 1c — the two model ids, anywhere in a file. Check 1 above is anchored to
+  #      ^name:/model:/tools: lines under agents/ and skills/, so it could never
+  #      have seen these: the commands name their model tier in PROSE, in a
+  #      directory check 1 does not even look at. Both ids always have a value —
+  #      the prompts default rather than accepting empty — so neither token may
+  #      ever survive in an installed file. Exactly these two, nothing wider: a
+  #      healthy install legitimately carries dozens of <repo>, <workspace> and <n>
+  #      in prose.
+  #
+  #      .md only, and that is not a loosening. The fill path itself only ever
+  #      opens .md (install-lib.py apply_placeholders skips everything else), so a
+  #      token anywhere else was never fillable and is not what this asks about.
+  #      It also keeps the check off .playbook-install.json, which RECORDS the two
+  #      token names as the keys of the answers it replays on update — a healthy
+  #      install always contains them there, and a check that is red when nothing
+  #      is wrong teaches the reader to ignore it.
+  #
+  #      MANAGED ROOTS ONLY — commands/, agents/, skills/, the same fence check 1
+  #      above uses, plus commands/ because that is where this fault lives. `.md`
+  #      is NOT the same set as `managed`: $CLAUDE_HOME also holds ~/.claude/CLAUDE.md,
+  #      hand-written agents, and projects/**/memory/, the file-based memory store,
+  #      which is where the end-of-session writeback lands. A memory note about this
+  #      very ticket quotes both token names by their name, and nothing the installer
+  #      can do would ever remove it — so an unfenced check goes red the first time
+  #      the user writes one, stays red forever, and the remedy it prints is a lie.
+  #      A hard stop needs a remedy that is reachable from where the stop fires;
+  #      inside the managed roots, re-running the installer IS that remedy.
+  heading "1c. Do the commands say which model to use?"
+  local model_hits
+  model_hits=$(grep -rlE --include='*.md' '<(fast|strong)-model-id>' \
+                 "$CLAUDE_HOME/commands" "$CLAUDE_HOME/agents" "$CLAUDE_HOME/skills" \
+                 2>/dev/null || true)
+  if [[ -z "$model_hits" ]]; then
+    ok "yes — both model ids were filled in everywhere they are named"
+  else
+    bad "no — these files still say <fast-model-id> or <strong-model-id>:"
+    printf '%s\n' "$model_hits" | sed 's/^/        /'
+    say "      A dispatch reading one of these cannot tell which model tier to use"
+    say "      and will guess, so the cheap tier and the strong tier stop meaning"
+    say "      anything. The value has to be supplied, not deleted."
+    # The remedy has to work from here. Every file this check can name is one the
+    # installer owns, so re-running it fixes them — EXCEPT one it deliberately will
+    # not touch: a file you edited yourself is skip-edited and left alone forever, so
+    # for that one the only remedy is your own editor. Say both, and say which is which.
+    TODO+=("Some installed files still say <fast-model-id> or <strong-model-id> — they are named under 'Do the commands say which model to use?' above. Re-run ./install.sh: it asks for both ids and writes them into every file it manages. If one of those files was listed as 'LEFT ALONE — you edited these yourself', the installer will not rewrite it — open that one and put the id in by hand. The ids you gave last time are in ${CLAUDE_HOME//\\//}/.playbook-install.json under config.placeholders.values.")
   fi
 
   # 2 — wiring. Installing a hook is NOT wiring a hook, so this re-reads

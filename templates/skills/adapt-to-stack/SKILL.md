@@ -117,14 +117,21 @@ must say *which layer*.
 
 An unfilled `<model-id>` counts as **absent**, never as a model called `<model-id>`.
 
-When you omit it, write the comment in its place, in the frontmatter — a `#` line, so it
-reaches a human reading the file and never the agent's prompt:
+When you omit it, the template already carries the `#` comment that belongs in its place —
+a `#` line, so it reaches a human reading the file and never the agent's prompt. **Leave
+that comment exactly as it is, and do not write one of your own.** Step 3 says the same
+thing about the slice variant, and taking the text from the template in both places is what
+keeps a specialist and its slice variant from ever disagreeing about this field.
 
-```yaml
-# model: omitted on purpose — this specialist inherits the session's model. Set one per
-# layer in CLAUDE.md's chain section once you know which layer is mechanical and which is
-# design-heavy. That is a tuning act, not a day-one decision.
-```
+What the comment says, so you can recognise the right one: **the omission is what makes the
+specialist weight-eligible** — with no pin, the dispatching flow sets the tier for each run,
+cheap for a light dispatch and strong for a heavy one — and a stated model is a **floor**
+under that layer, which a weight can raise above but never drop below. Pinning one is not a
+half-finished decision someone left for you to complete.
+
+> If the template you are holding still says the omission means the specialist *"inherits
+> the session's model"*, it is stale — that is the behaviour the flows now set a tier
+> precisely to avoid. **Stop and say so** rather than copying it forward.
 
 The standards skills get no such line: they carry no model of their own, because they are
 loaded by the specialist and run on whatever it is running on.

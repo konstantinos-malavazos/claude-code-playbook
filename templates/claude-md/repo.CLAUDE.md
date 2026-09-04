@@ -66,10 +66,12 @@ settled none — empty is a valid answer, not a gap.>
 - Reads the contract from: `<upstream layer / handoff>`.
 - Writes the contract for: `<downstream layer / handoff>`.
 
-**Model per layer — OPTIONAL, and normally omitted.** State one only where you genuinely
-know that layer is mechanical or design-heavy; a stated id is written into that
-specialist's `model:`, and an absent one means the field is left out and the specialist
-inherits whatever you picked for the session. **Omitting is the right day-one answer** —
+**Model per layer — OPTIONAL, and normally omitted.** State one only where you want a
+**floor** under that layer — a dispatch weight can raise a run above the pin, never drop it
+below. A stated id is written into that specialist's `model:`; an absent one means the field
+is left out, which is what makes the specialist **weight-eligible**: the dispatching flow
+then sets its tier per run, cheap for a light dispatch and strong for a heavy one, rather
+than letting it inherit your session's model. **Omitting is the right day-one answer** —
 on a new repo nobody knows yet, guessing from a layer's name is guessing, and model ids
 rot. Delete these lines if you are stating none — and an unfilled `<model-id>` left behind
 counts as absent, never as a model called `<model-id>`.
