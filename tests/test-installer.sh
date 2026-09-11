@@ -14,6 +14,56 @@ SCRATCH="${PLAYBOOK_TEST_DIR:-${TMPDIR:-/tmp}/playbook-install-tests}"
 SANDBOX="$SCRATCH/sandbox"
 LOGS="$SCRATCH/logs"
 
+# --- python ---------------------------------------------------------------------
+# This suite drives install.sh and then reads back the JSON it wrote, and every one of
+# those reads is a python process. WHICH python matters here. On Windows `python3` on
+# PATH is often the Microsoft Store app-execution alias, which resolves like a real
+# program and, where the Store package is not installed, prints an advert and exits
+# 9009. `with_memory()` below pipes a heredoc into it with no error check, so a stub
+# would build the sandbox wrong and every later failure would point at the installer
+# instead of at the interpreter — correct by luck, and the diagnostic lies (#146).
+#
+# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in all six hooks and in
+# templates/hooks/test-hooks.sh, and it has to be: a suite that picked its interpreter
+# by a different rule from the code it tests is testing something else. Why a
+# WindowsApps python3 goes to the END of the list and is never dropped is written out
+# in templates/hooks/block-dangerous-git.sh — a guardrail that bricks the machine is
+# not the safer failure, so this is a preference, not a ban.
+PY_LIST=()
+PY_LAST=()
+# ONE command substitution, not one per candidate. A fork costs ~30ms on Windows, so
+# asking twice cost measurably more than the whole ordering decision it feeds. The
+# `true` keeps the list non-fatal when neither name resolves; the empty-line guard is
+# what a missing candidate looks like here.
+while IFS= read -r _p; do
+    [ -n "$_p" ] || continue
+    case "${_p,,}" in
+        */windowsapps/*) PY_LAST+=("$_p") ;;
+        *)               PY_LIST+=("$_p") ;;
+    esac
+done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
+PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
+
+# Probed once, here, rather than letting the first real use decide. A driver that
+# cannot read the files install.sh writes has no tests to run at all, and finding that
+# out now beats finding it out thirty spawns in, with a sandbox that was built wrong
+# and a failure list that blames install.sh. The hooks are in the opposite position —
+# one invocation, no spare process to pay — and do the opposite thing.
+PY=""
+for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
+    if "$_c" -c "pass" >/dev/null 2>&1; then
+        PY="$_c"
+        break
+    fi
+done
+if [ -z "$PY" ]; then
+    echo "SKIP: no working python3 or python available — cannot run the installer suite." >&2
+    if [ "${#PY_LIST[@]}" -gt 0 ]; then
+        echo "       on PATH, but not a working python: ${PY_LIST[*]}" >&2
+    fi
+    exit 1
+fi
+
 PASS=0; FAIL=0
 FAILED_NAMES=()
 
@@ -43,7 +93,7 @@ JSON
 # silently decide which pillar the sandbox has.
 with_memory() {
   mkdir -p "$HOME_DIR"
-  python3 - "$HOME_DIR/.claude.json" <<'PY'
+  "$PY" - "$HOME_DIR/.claude.json" <<'PY'
 import json, os, sys
 p = sys.argv[1]
 d = {}
@@ -67,7 +117,7 @@ PY
 # is recorded here, so "claude.ai forgetful" is mcp__claude_ai_forgetful__.
 with_memory_connector() {
   mkdir -p "$HOME_DIR"
-  python3 - "$HOME_DIR/.claude.json" <<'PY'
+  "$PY" - "$HOME_DIR/.claude.json" <<'PY'
 import json, os, sys
 p = sys.argv[1]
 d = {}
@@ -178,7 +228,7 @@ want() { [ -z "$WANT" ] && return 0; case " $WANT " in *" $1 "*) return 0;; esac
 if want 13; then
 banner "13 · static checks"
 ( cd "$REPO" && bash -n install.sh ) ; chk $? "bash -n install.sh"
-( cd "$REPO" && python3 -m py_compile install-lib.py && rm -rf __pycache__ ) >/dev/null 2>&1
+( cd "$REPO" && "$PY" -m py_compile install-lib.py && rm -rf __pycache__ ) >/dev/null 2>&1
 chk $? "python3 -m py_compile install-lib.py"
 if command -v shellcheck >/dev/null 2>&1; then
   ( cd "$REPO" && shellcheck install.sh ) ; chk $? "shellcheck install.sh"
@@ -207,7 +257,7 @@ fi
 if want 17; then
 banner "17 · the docs give a Windows command that actually runs"
 
-DOCFAIL=$(cd "$REPO" && python3 - <<'PY'
+DOCFAIL=$(cd "$REPO" && "$PY" - <<'PY'
 import os, re
 
 targets = ["README.md"]
@@ -362,7 +412,7 @@ yn "$([ -d "$CH/skills/adapt-to-stack" ] && echo 0 || echo 1)" "wrote skills/ada
 if grep -vE '^[[:space:]]*#|^[[:space:]]*$' "$CH/repo-allowlist" | grep -q .; then
   fail "repo-allowlist installs EMPTY"
 else pass "repo-allowlist installs EMPTY (comments only)"; fi
-python3 - "$CH/settings.json" <<'PY'
+"$PY" - "$CH/settings.json" <<'PY'
 import json,sys
 d=json.load(open(sys.argv[1]))
 assert d.get("hooks"), "no hooks block"
@@ -377,7 +427,7 @@ fi
 
 if want 7; then
 banner "7 · recommended includes the two new units"
-python3 - "$CH/.playbook-install.json" <<'PY'
+"$PY" - "$CH/.playbook-install.json" <<'PY'
 import json,sys
 m=json.load(open(sys.argv[1]))
 u=m["units"]
@@ -428,7 +478,7 @@ keys rm1 '' 'y'; run remove rm1
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "remove exits 0"
 yn "$([ ! -e "$CH/commands/start-ticket.md" ] && echo 0 || echo 1)" "files gone"
 yn "$([ ! -e "$CH/.playbook-install.json" ] && echo 0 || echo 1)" "manifest gone"
-python3 - "$CH/settings.json" <<'PY'
+"$PY" - "$CH/settings.json" <<'PY'
 import json,sys
 d=json.load(open(sys.argv[1]))
 assert d.get("model")=="my-own-model", "user key lost: %r" % d
@@ -445,13 +495,13 @@ banner "8 · adopt a hand-install"
 fresh_env t8; with_servers
 mkdir -p "$CH/commands"
 cp "$REPO/templates/commands/end-of-day.md" "$CH/commands/end-of-day.md"
-BYHAND=$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/commands/end-of-day.md")
+BYHAND=$("$PY" -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/commands/end-of-day.md")
 # adopt_screen inserts: confirm(y) + pause, between the hooks pause and "Write these?"
 keys t8 '' '' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' '' 'y' "$SANDBOX/ws" ''
 run install t8
 inlog t8 "Files already here that this script did not install" "offers adoption"
 inlog t8 "command:end-of-day" "names the foreign unit"
-python3 - "$CH/.playbook-install.json" <<'PY'
+"$PY" - "$CH/.playbook-install.json" <<'PY'
 import json,sys
 m=json.load(open(sys.argv[1]))
 rec=m["units"].get("command:end-of-day")
@@ -459,7 +509,7 @@ assert rec, "not recorded in manifest"
 assert rec.get("adopted") is True, 'no "adopted": true -- %r' % rec
 PY
 chk $? 'manifest records "adopted": true'
-NOW=$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/commands/end-of-day.md")
+NOW=$("$PY" -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/commands/end-of-day.md")
 yn "$([ "$BYHAND" = "$NOW" ] && echo 0 || echo 1)" "the user's file was not rewritten"
 keys rm8 '' 'y'; run remove rm8
 inlog rm8 "adopted" "remove reports keep-adopted"
@@ -472,7 +522,7 @@ mkdir -p "$CH/commands"
 cp "$REPO/templates/commands/end-of-day.md" "$CH/commands/end-of-day.md"
 keys t8b '' '' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'n' '' 'y' "$SANDBOX/ws" ''
 run install t8b
-python3 - "$CH/.playbook-install.json" <<'PY'
+"$PY" - "$CH/.playbook-install.json" <<'PY'
 import json,sys
 m=json.load(open(sys.argv[1]))
 assert "command:end-of-day" not in m["units"], "adopted without consent!"
@@ -804,11 +854,11 @@ fi
 # P1b — read the RECORDED answer back out of the manifest (same pattern as
 # U3/U7/T2 above); do NOT hardcode claude-opus-5, so this still means
 # something for a user who typed a different id at the prompt.
-P1_STRONG="$(python3 -c 'import json,sys
+P1_STRONG="$("$PY" -c 'import json,sys
 d=json.load(open(sys.argv[1],encoding="utf-8"))
 print(d["config"]["placeholders"]["values"].get("<strong-model-id>",""))' \
   "$CH/.playbook-install.json" 2>/dev/null)"
-P1_FAST="$(python3 -c 'import json,sys
+P1_FAST="$("$PY" -c 'import json,sys
 d=json.load(open(sys.argv[1],encoding="utf-8"))
 print(d["config"]["placeholders"]["values"].get("<fast-model-id>",""))' \
   "$CH/.playbook-install.json" 2>/dev/null)"
@@ -975,7 +1025,7 @@ yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
 # recorded as DELETED. That is exactly what pressing Enter used to record. A fresh
 # install stamps contract 2 and FILLS the token in, so this state cannot arise by
 # accident here — the gate fires for no other case in this suite.
-python3 - "$CH/.playbook-install.json" <<'PY'
+"$PY" - "$CH/.playbook-install.json" <<'PY'
 import json, sys
 p = sys.argv[1]
 m = json.load(open(p, encoding="utf-8"))
@@ -1075,11 +1125,11 @@ fresh_env u7; with_servers
 # Derived, never written down: the expected number comes from the same constant the
 # installer stamps with, so a deliberate bump cannot leave this case pinned to an old
 # value that then has to be remembered.
-WANT_CONTRACT="$(python3 "$REPO/install-lib.py" contract-version)"
+WANT_CONTRACT="$("$PY" "$REPO/install-lib.py" contract-version)"
 chk $? "read the current contract from install-lib.py"
 keys u7 "${FULL[@]}"; run install u7
 stamp_is() {
-  python3 - "$CH/.playbook-install.json" "$WANT_CONTRACT" <<'PYSTAMP'
+  "$PY" - "$CH/.playbook-install.json" "$WANT_CONTRACT" <<'PYSTAMP'
 import json, sys
 ph = json.load(open(sys.argv[1], encoding="utf-8"))["config"]["placeholders"]
 sys.exit(0 if ph.get("contract") == int(sys.argv[2]) else 1)
@@ -1146,13 +1196,13 @@ if want T1 || want T2; then
 banner "T2 · a genuinely stripped grant still turns 1b red"
 T2SPEC="$LOGS/t2-spec.json"
 t2audit() {
-  python3 "$REPO/install-lib.py" audit-grants \
+  "$PY" "$REPO/install-lib.py" audit-grants \
     "$T2SPEC" "$REPO/templates/agents" "$CH/agents" "$1" "$2" \
-  | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["agents"]))'
+  | "$PY" -c 'import json,sys;print(len(json.load(sys.stdin)["agents"]))'
 }
 # T1's OWN recorded answers, read back out of its manifest, so this is the real spec
 # rather than a hand-written stand-in that could drift from what install.sh writes.
-python3 - "$CH/.playbook-install.json" "$T2SPEC" <<'PYT2'
+"$PY" - "$CH/.playbook-install.json" "$T2SPEC" <<'PYT2'
 import json, sys
 ph = json.load(open(sys.argv[1], encoding="utf-8"))["config"]["placeholders"]
 json.dump({"paths": [], "values": ph.get("values", {}), "delete": ph.get("delete", [])},
@@ -1167,7 +1217,7 @@ yn "$([ "$(t2audit github '')" = "0" ] && echo 0 || echo 1)" \
 yn "$([ "$(t2audit jira tracker)" != "0" ] && echo 0 || echo 1)" \
    "red when the route HAD a server to name and the token was deleted anyway"
 # The other half — revert #123's grant by hand, on the route that needs it.
-python3 - "$CH/agents/ticket-analyzer.md" <<'PYT2B'
+"$PY" - "$CH/agents/ticket-analyzer.md" <<'PYT2B'
 import io, sys
 p = sys.argv[1]
 lines = io.open(p, encoding="utf-8").read().split("\n")
@@ -1192,7 +1242,7 @@ if want T3; then
 banner "T3 · an update fills a token the recorded answers never had"
 fresh_env t3; with_servers; clone_repo "$SANDBOX/t3/repo"
 T3TPL="$SANDBOX/t3/repo/templates/agents/ticket-analyzer.md"
-python3 - "$T3TPL" <<'PYT3A'
+"$PY" - "$T3TPL" <<'PYT3A'
 import io, sys
 p = sys.argv[1]
 t = io.open(p, encoding="utf-8", newline="").read()
@@ -1207,7 +1257,7 @@ run_in "$SANDBOX/t3/repo" install t3
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
 # Rewind the recording too. The pre-#123 installer never wrote an answer for the
 # token, either way, so leaving one here would test nothing.
-python3 - "$CH/.playbook-install.json" <<'PYT3'
+"$PY" - "$CH/.playbook-install.json" <<'PYT3'
 import json, sys
 p = sys.argv[1]
 m = json.load(open(p, encoding="utf-8"))
@@ -1249,7 +1299,7 @@ if want T4; then
 banner "T4 · the update reads the adapter from the selection, not the manifest"
 fresh_env t4t; with_servers; clone_repo "$SANDBOX/t4t/repo"
 T4TPL="$SANDBOX/t4t/repo/templates/agents/ticket-analyzer.md"
-python3 - "$T4TPL" <<'PYT4'
+"$PY" - "$T4TPL" <<'PYT4'
 import io, sys
 p = sys.argv[1]
 t = io.open(p, encoding="utf-8", newline="").read()
@@ -1268,7 +1318,7 @@ yn "$(grep -qF 'tracker:gitlab-shape' "$CH/.playbook-install.json" && echo 0 || 
    "gitlab-shape is the adapter that got installed"
 # The precondition that makes the bug reachable, asserted rather than assumed: if
 # this ever starts recording an adapter, this case stops testing what it says.
-python3 - "$CH/.playbook-install.json" <<'PYT4M'
+"$PY" - "$CH/.playbook-install.json" <<'PYT4M'
 import json, sys
 m = json.load(open(sys.argv[1], encoding="utf-8"))
 rec = ((m.get("config") or {}).get("tracker") or {}).get("adapter") or ""
@@ -1277,7 +1327,7 @@ sys.exit(1 if rec else 0)
 PYT4M
 chk $? "gitlab-shape records no config.tracker.adapter (the trap the bug fell into)"
 # Rewind the recording, exactly as T3 does — a pre-#123 install wrote no answer.
-python3 - "$CH/.playbook-install.json" <<'PYT4'
+"$PY" - "$CH/.playbook-install.json" <<'PYT4'
 import json, sys
 p = sys.argv[1]
 m = json.load(open(p, encoding="utf-8"))
@@ -1339,7 +1389,7 @@ cp "$T5AGENT" "$SANDBOX/t5/encoder.healthy"
 # The damage: the memory tool names deleted from the installed tools: line, which
 # is exactly what the pre-#105 run left behind. Only that line, and only within it,
 # so the file's line endings and everything else survive untouched.
-python3 - "$T5AGENT" <<'PYT5D'
+"$PY" - "$T5AGENT" <<'PYT5D'
 import io, re, sys
 p = sys.argv[1]
 t = io.open(p, encoding="utf-8", newline="").read()
@@ -1358,7 +1408,7 @@ yn "$(grep -qE '^tools:.*mcp__forgetful__' "$T5AGENT" && echo 1 || echo 0)" \
    "the damaged tools: line really has lost the memory tools"
 # Record the damaged file's OWN hash, so it plans `current` and not `skip-edited`.
 # source_hash is deliberately left alone: the template did not move.
-python3 - "$SANDBOX/t5/repo" "$CH/.playbook-install.json" "$T5AGENT" <<'PYT5H'
+"$PY" - "$SANDBOX/t5/repo" "$CH/.playbook-install.json" "$T5AGENT" <<'PYT5H'
 import json, subprocess, sys
 repo, manifest_path, dest = sys.argv[1], sys.argv[2], sys.argv[3]
 h = json.loads(subprocess.check_output(
@@ -1445,7 +1495,7 @@ yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
 yn "$([ -f "$T6AGENT" ] && echo 0 || echo 1)" "@encoder is installed"
 # The damage, exactly as T5 inflicts it: the memory tool names deleted from the
 # installed tools: line and nothing else, which is what the pre-#105 run left.
-python3 - "$T6AGENT" <<'PYT6D'
+"$PY" - "$T6AGENT" <<'PYT6D'
 import io, re, sys
 p = sys.argv[1]
 t = io.open(p, encoding="utf-8", newline="").read()
@@ -1461,7 +1511,7 @@ PYT6D
 chk $? "stripped the memory tools out of the installed @encoder"
 yn "$(grep -qE '^tools:.*mcp__forgetful__' "$T6AGENT" && echo 1 || echo 0)" \
    "the damaged tools: line really has lost the memory tools"
-python3 - "$SANDBOX/t6p/repo" "$CH/.playbook-install.json" "$T6AGENT" <<'PYT6H'
+"$PY" - "$SANDBOX/t6p/repo" "$CH/.playbook-install.json" "$T6AGENT" <<'PYT6H'
 import json, subprocess, sys
 repo, manifest_path, dest = sys.argv[1], sys.argv[2], sys.argv[3]
 h = json.loads(subprocess.check_output(
@@ -1486,7 +1536,7 @@ yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the re-run exits 0 (rc=$RC)"
 # THE assertion — which heading of the consent screen owns the damaged agent? The
 # headings are matched on ASCII fragments, never on the em-dash, and the tally is
 # reset at every "What this will write" so only the final screen is read.
-python3 - "$LOGS/t6p2.out" <<'PYT6P'
+"$PY" - "$LOGS/t6p2.out" <<'PYT6P'
 import io, sys
 HEADS = [
     ("do not exist yet",             "install"),
@@ -1556,7 +1606,7 @@ yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
 yn "$([ -f "$T7AGENT" ] && echo 0 || echo 1)" "@encoder is installed"
 # The damage, exactly as T5 and T6 inflict it: the memory tool names deleted from
 # the installed tools: line and nothing else, which is what the pre-#105 run left.
-python3 - "$T7AGENT" <<'PYT7D'
+"$PY" - "$T7AGENT" <<'PYT7D'
 import io, re, sys
 p = sys.argv[1]
 t = io.open(p, encoding="utf-8", newline="").read()
@@ -1575,7 +1625,7 @@ yn "$(grep -qE '^tools:.*mcp__forgetful__' "$T7AGENT" && echo 1 || echo 0)" \
 # Record the damaged file's OWN hash, so it lists `current` and not `edited`, and
 # hand the unit id back out: the row assertions must key on the state AND the uid
 # on the same line, because list_mode prints every state word in its legend too.
-python3 - "$SANDBOX/t7/repo" "$CH/.playbook-install.json" "$T7AGENT" "$SANDBOX/t7/uid.txt" <<'PYT7H'
+"$PY" - "$SANDBOX/t7/repo" "$CH/.playbook-install.json" "$T7AGENT" "$SANDBOX/t7/uid.txt" <<'PYT7H'
 import json, io, subprocess, sys
 repo, manifest_path, dest, uid_out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 h = json.loads(subprocess.check_output(
@@ -1611,7 +1661,7 @@ if grep -qE "current +$T7UID\$" "$LOGS/t7l.out"; then
 else pass "A2 list does NOT call the damaged $T7UID \`current\`"; fi
 # A3 — the count. The sentence the user acts on. Held against the rows actually
 # printed, so a count that drifts from its own listing fails here too.
-python3 - "$LOGS/t7l.out" "$T7UID" <<'PYT7C'
+"$PY" - "$LOGS/t7l.out" "$T7UID" <<'PYT7C'
 import io, re, sys
 log, uid = sys.argv[1], sys.argv[2]
 rows, counted = [], 0

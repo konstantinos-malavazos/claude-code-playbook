@@ -447,8 +447,12 @@ Your memory store, handoffs, Serena's index and generated views fail it and neve
 [PHILOSOPHY.md §5](PHILOSOPHY.md) and, for the solo case,
 [docs/solo/07-guardrails-when-solo.md](docs/solo/07-guardrails-when-solo.md).
 
-> **The hooks need python on `PATH`** (`python3` or `python`, standard library only) to
-> parse their payload. Without it the four blocking hooks **exit `2` and block** rather
-> than waving the call through. A guard that cannot read the command stops it. Loud beats
-> silent. But a missing python does turn into blocked tool calls, so check it in the same
-> shell Claude Code uses, not just your usual terminal.
+> **The hooks need python on `PATH`** (reachable as `python3` or `python`, standard library
+> only) to parse their payload. Both names are collected and tried in a preferred order,
+> with a Microsoft Store app-execution alias moved to the end and never dropped — so the
+> real interpreter beside it wins, and a machine where the alias is all there is still
+> works. With nothing on `PATH` that is actually python, the four blocking hooks **exit `2`
+> and block** rather than waving the call through, and say which interpreters they tried by
+> resolved path. A guard that cannot read the command stops it. Loud beats silent. But a
+> missing python does turn into blocked tool calls, so check it in the same shell Claude
+> Code uses, not just your usual terminal.
