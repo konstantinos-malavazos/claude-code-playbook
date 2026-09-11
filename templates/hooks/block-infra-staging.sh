@@ -37,8 +37,14 @@ else:
 
 cmd="$(parse command)" || block "the payload did not parse as JSON — refusing to guess what this command stages."
 
-# Newlines become ';' — see block-dangerous-git.sh. A separate line is a separate command,
-# and `git add .` on any line but the first would otherwise slip past the pattern below.
+# Newlines and \r become ';' so a CRLF payload behaves the same as an LF one — see
+# block-dangerous-git.sh.
+#
+# This used to say `git add .` on any line but the first would otherwise slip past "the
+# pattern below". Untrue since #112: the only pattern below that reads $norm is the
+# unanchored `git` pre-filter at the hard-blocks section, which nothing slips past on the
+# grounds of which line it is on. staged_args() reads "$cmd", not $norm, and converts
+# newlines to separators itself. The line is kept for symmetry with the sibling hook.
 norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
 
 # --- The allowlist -------------------------------------------------------------
@@ -82,6 +88,26 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 #
 # A command that will not tokenize is a BLOCK, exactly as an unreadable payload is: the
 # hook did not find out what it was being asked to clear, so it does not clear it.
+# A parameterised second copy of this tokenizer lives in block-dangerous-git.sh as
+# git_args(), deliberately — same reasoning as the allowlist note above. It is NOT a
+# verbatim copy: it emits every subcommand rather than a fixed SUB map, emits a row for
+# the subcommand itself, reads VAL with .get(), strips percent-paren spans, scans forward
+# for the git program instead of demanding word 0 (and judges every git occurrence in a
+# segment, not the first), joins line continuations before splitting on newlines, and folds
+# no case beyond the subcommand. Its own note numbers them and why. A change to the shared
+# parts here — strip_heredocs, the newline separator, the lexer settings, the redirection
+# drop, the binary stdout write — is a change to make there too.
+#
+# ONE SHARED PART HAS DELIBERATELY DIVERGED, and it is recorded here so the divergence is
+# not read as an oversight. block-dangerous-git.sh joins a LINE CONTINUATION (a trailing
+# backslash or backtick before a newline) before turning newlines into separators; this
+# tokenizer does not, so `git add \` + newline + `.claude/hooks/x.sh` still tokenizes as
+# two commands and is allowed, where the one-line form is blocked. It was left because
+# #117 was scoped to the git hook and this file is comment-only in that ticket, and
+# because the exposure differs: there, the orphaned flag was a force push in a repo
+# allowlisted to push, which is unrecoverable. Here it is a staged infra path, which is
+# recoverable and which the reviewer measured as pre-existing rather than a regression.
+# It is issue #140, thread 2. Port the one-line join when that is picked up.
 staged_args() { # prints "<subcommand>\t<opt|path>\t<word>" per argument; exit 3 = unparsable
     printf '%s' "$cmd" | "$PY" -c '
 import re, shlex, sys

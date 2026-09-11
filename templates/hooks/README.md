@@ -80,9 +80,16 @@ re-opens the multi-line flatten bug this directory has already shipped once.
 bash templates/hooks/test-hooks.sh
 ```
 
-84 cases across all four blocking hooks: what must be blocked, what must be allowed, `Bash`
-and `PowerShell` payloads, multi-line commands, and **both sides of every conditional
-line**: a listed repo and an unlisted one, `.claude/agents/` and `.claude/handoffs/`.
+It covers all four blocking hooks: what must be blocked, what must be allowed, `Bash` and
+`PowerShell` payloads, multi-line commands, LF **and** CRLF line endings, and **both sides
+of every conditional line**: a listed repo and an unlisted one, `.claude/agents/` and
+`.claude/handoffs/`.
+
+**The suite counts itself** — the last line of a run says how many cases ran. There is no
+number written down here on purpose. This one was hand-set three times over the life of
+#117 (84, then 162, then 187) and was wrong at some point in every one of them; a count
+written next to the thing it counts is a count that rots, and the suite is the only place
+that can always be right about it.
 
 **A green run now means two things, and it needs both:** the patterns match, **and** every
 blocking hook fails closed. The second half is its own section — each blocking hook is
@@ -110,9 +117,13 @@ by that, and only by that.
 
 ### The multi-line gap, and why it is worth knowing
 
-The three command-reading blocking hooks flatten the command before matching. They used to
-turn newlines into **spaces**, and the patterns anchor on start-of-string or a `[;&|]`
-separator — so in
+**This is history. No hook in this directory anchors on a separator today** — the claim is
+recorded here because the *shape* of the bug outlives the code, and because a stale copy of
+this explanation survived inside the hook files themselves until #117's re-review found it.
+
+It happened in `block-dangerous-git.sh`. Its plain-push rule was written
+`(^|[;&|] *)git +push` — the one anchored pattern this directory ever had — and the hook
+flattened newlines into **spaces** before matching. So in
 
 ```
 git add -p
@@ -120,13 +131,34 @@ git commit -m x
 git push origin main
 ```
 
-the `git push` was preceded by a space, matched nothing, and **sailed through**. `cd /tmp &&
-git push` was caught. The far more common multi-line form was not. Newlines now become `;`,
-because a separate line is a separate command. `\r` maps too, so a CRLF payload behaves the
-same.
+the `git push` was preceded by a space, matched the anchor nothing, and **sailed through**.
+`cd /tmp && git push` was caught. The far more common multi-line form was not. Newlines
+became `;` to close it, and `\r` maps too so a CRLF payload behaves the same.
 
 The general shape: **when you flatten input before matching, you erase the very boundaries
 the pattern depends on.** Worth checking in any guardrail that normalises before it greps.
+
+**Where the code stands now.** Both git-reading hooks tokenize instead of matching text —
+`block-infra-staging.sh` since #112, `block-dangerous-git.sh` since #117 — so neither has an
+anchored pattern left and neither judges the flattened string. `block-secret-staging.sh`
+does still read it, but every one of its patterns is unanchored, so the gap above cannot
+occur there either. The raw-text greps that remain (`--no-verify` and `--no-gpg-sign` in
+`block-dangerous-git.sh`) are bare unanchored substrings **on purpose**, so they keep
+catching non-git commands such as `npm publish --no-verify`.
+
+A **line continuation** is the same lesson one level down, and #117 shipped it before the
+re-review caught it: turning every newline into a separator splits `git push \` ⏎ `--force`
+into two commands and the flag lands where no rule judges it. A continuation is now joined
+before the split.
+
+And one level down again, which is where #117's third re-review found it: **the join can
+only be right about the bytes it is handed.** `block-dangerous-git.sh` reads the payload
+with one python process and tokenizes it with a second, and the first one wrote its output
+in *text* mode — which on Windows rewrites every `\n` as CR LF, so a payload that already
+carried CRLF arrived at the tokenizer with a **doubled** CR. That became two newlines, the
+join ate one, and the flag was orphaned exactly as before — while every LF test stayed
+green. Both ends of that pipe are binary writes now. The general shape, again: **when you
+harden one end of a transform chain, the other end is where the bug goes to live.**
 
 ## The set
 
