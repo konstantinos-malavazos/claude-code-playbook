@@ -16,9 +16,6 @@ block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
 # directory has already shipped once. The dependency is swapped, not removed — python is
 # a dependency too, and it wins on being present and on being a real JSON reader.
 #
-# python3 first, then python. On Windows the Microsoft Store `python` stub resolves but
-# is not python: it fails the parse, which blocks — correct on purpose, not by luck.
-#
 # NO PARSER, OR A PARSE THAT ERRORS, IS A BLOCK. Claude Code treats every exit code
 # other than 2 as a non-blocking error and lets the tool call through, so 127 is not a
 # near-miss of 2 — it is the same class as success, and a hook that cannot read the
@@ -26,20 +23,91 @@ block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
 # "ask"` needs no parser and is the honest verdict, but "yes, and don't ask again" makes
 # the approval durable, so one keystroke turns the guard off for good. A prompt is not a
 # guardrail; it is trust with an extra keystroke. See README.md.
-PY="$(command -v python3 || command -v python || true)"
-[ -n "$PY" ] || block "no python3 or python on PATH — this hook cannot read the command it exists to check."
+# --- CHOOSING THE INTERPRETER, AND SAYING WHICH ONE -----------------------------
+# DUPLICATED VERBATIM into all six hooks and into test-hooks.sh, on purpose, exactly as
+# the allowlist lookup and the argument tokenizer below are. A shared file cannot work
+# here: install-lib.py discovers every templates/hooks/*.sh and installs each one as a
+# hook, so a helper file is either a phantom seventh hook or never installed at all — and
+# the hooks that ship are standalone copies in ~/.claude/hooks/ with nothing to source.
+#
+# ORDER, NEVER EXCLUSION. On Windows `command -v python3` usually resolves to the
+# Microsoft Store app-execution alias under AppData/Local/Microsoft/WindowsApps. That
+# alias is not one thing: where the Store package is installed it forwards to a real
+# interpreter (measured on the reference machine at 163ms a spawn against 60ms for the
+# real python sitting beside it on PATH), and where it is not, it prints an advert and
+# exits 9009. So a WindowsApps path goes to the END of the list, and is never dropped: on
+# a machine where the alias is the only python, refusing it would block every command
+# these hooks exist to judge. A guardrail that bricks the machine is not the safer
+# failure — this is a preference, not a ban.
+#
+# NOTHING IS PROBED HERE, and that is the point. A `-c` probe is a whole extra process on
+# every single invocation, against a hook whose entire job is one. The parse below already
+# IS the probe: a stub fails it exactly the way a missing interpreter does, so the next
+# candidate is tried and the happy path pays nothing at all. Only the refusal path — where
+# the call is being blocked anyway — asks each candidate whether it is python, so the
+# message can name the RESOLVED PATH it tried. `python3` names the thing the user already
+# typed; the path is the thing they can act on.
+PY_LIST=()
+PY_LAST=()
+# ONE command substitution, not one per candidate. A fork costs ~30ms on Windows and this
+# runs on every single hook invocation, so asking twice cost measurably more than the
+# whole ordering decision it feeds. The `true` keeps the list non-fatal when neither name
+# resolves; the empty-line guard is what a missing candidate looks like here.
+while IFS= read -r _p; do
+    [ -n "$_p" ] || continue
+    case "${_p,,}" in
+        */windowsapps/*) PY_LAST+=("$_p") ;;
+        *)               PY_LIST+=("$_p") ;;
+    esac
+done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
+PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
 
-payload="$(cat)"
+py_tried() { # the refusal's evidence: every candidate by resolved path, with a verdict
+    local _c _out=""
+    for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
+        if "$_c" -c "pass" >/dev/null 2>&1; then
+            _out="${_out}${_out:+, }${_c} (is python)"
+        else
+            _out="${_out}${_out:+, }${_c} (on PATH, but not a working python)"
+        fi
+    done
+    printf 'interpreter tried: %s' "${_out:-none — no python3 or python on PATH}"
+}
+
+py_run() { # <stdin> <program> [args…] — first candidate that answers wins
+    local _in="$1" _prog="$2" _c _rc=127
+    shift 2
+    for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
+        _rc=0
+        printf '%s' "$_in" | "$_c" -c "$_prog" "$@" 2>/dev/null || _rc=$?
+        [ "$_rc" -eq 0 ] && return 0
+        # 3 is the PROGRAM saying no, not the interpreter failing to be python. Handing
+        # the same input to a different interpreter would get the same answer.
+        [ "$_rc" -eq 3 ] && return 3
+    done
+    return "$_rc"
+}
+
+[ "${#PY_LIST[@]}" -gt 0 ] || block "no python3 or python on PATH — this hook cannot read the command it exists to check."
+
+# `read -d ""` rather than $(cat). A command substitution forks a subshell and then execs
+# cat, which measured 37ms on Windows — more than choosing the interpreter above and more
+# than the parse itself on an ordinary payload, for reading one string off stdin. `-d ""`
+# reads to EOF (a JSON payload carries no NUL), `-r` keeps backslashes literal, `IFS=`
+# keeps leading and trailing whitespace, and the non-zero exit at EOF is the expected
+# outcome, not a failure. The only difference from $(cat) is that a trailing newline
+# survives, and no JSON reader cares. Measured faster at 4KB as well as at 60 bytes.
+IFS= read -r -d '' payload || true
 
 # BOTH FIELDS ARE WRITTEN THROUGH THE BINARY BUFFER. This is the INPUT side of the very
-# hazard git_args()'s OUTPUT was hardened against (see the note at its final write). One
+# hazard the tokenizer's OUTPUT was hardened against (see the note at its final write). One
 # end of a pipe was hardened and the other was not, and that is not a coincidence: no
 # duplication note in this directory has ever listed parse() as a shared part, so nobody
 # checked it. Two measured failures came out of the text-mode write:
 #
 #   1. CR DOUBLING, and it re-opened a fixed force push. On Windows a text-mode stdout
 #      rewrites every "\n" as CR LF, so a payload that already carried CRLF reached
-#      git_args() as "\r\r\n" — and python reads text with UNIVERSAL NEWLINES, where a
+#      the tokenizer as "\r\r\n" — and python reads text with UNIVERSAL NEWLINES, where a
 #      lone "\r" is a line ending too, so those three bytes arrive as TWO newlines
 #      (measured: b"a\r\r\nb" reads back as "a\n\nb"). The line continuation join can only
 #      eat one of the two, and the surviving newline orphans the flag exactly as the
@@ -65,49 +133,32 @@ payload="$(cat)"
 # doubled CR into a wrong answer — and block-infra-staging.sh's own note says it intends to
 # add that join. So "inert" there has a shelf life. Recorded on issue #140, thread 2, with
 # this file named as the worked example.
-parse() { # <command|cwd> — prints the field; non-zero if the payload will not parse
-    printf '%s' "$payload" | "$PY" -c '
-import json, sys
-d = json.load(sys.stdin)
-if sys.argv[1] == "cwd":
-    out = d.get("cwd") or ""
-else:
-    ti = d.get("tool_input") or {}
-    out = ti.get("command") or ti.get("script") or ""
-sys.stdout.buffer.write(out.encode("utf-8"))
-' "$1" 2>/dev/null
-}
-
-cmd="$(parse command)" || block "the payload did not parse as JSON — refusing to guess what this command does."
-
-# Normalize for matching. Newlines and \r become ';' so a CRLF payload behaves the same as
-# an LF one and a separate LINE stays a separate command.
-#
-# NOTHING IN THIS HOOK ANCHORS ON THAT SEPARATOR ANY MORE. An earlier version of this
-# comment said "the patterns below anchor on a start-of-string or a [;&|] separator" —
-# they did then, they do not now, and the file contradicted itself about it. $norm has
-# exactly three readers left: the `git` pre-filter and the two --no-verify/--no-gpg-sign
-# rules, and all three are bare unanchored substrings (see the note at those rules). The
-# git rules read git_args() output instead, which does its own newline handling. The tr is
-# kept because block-infra-staging.sh has the same line and a difference between the two
-# would be read as meaning something. It does not.
-norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
+# THE FIELDS ARE NOT PULLED OUT HERE ANY MORE. parse() used to sit at this point and run
+# its own python process; it is now the head of payload_fields() further down, which is
+# the same program as the tokenizer. The note above is unchanged and still describes the
+# write that program makes, because it is still the same write — see the merge note at
+# payload_fields() for why the two became one, and why the binary buffer matters MORE now
+# rather than less. Nothing between here and there reads the payload.
 
 # --- The allowlist -------------------------------------------------------------
 # ~/.claude/repo-allowlist answers two questions per repo, keyed by REMOTE URL, both
 # defaulting to no. See repo-allowlist.sample. This lookup is duplicated verbatim in
-# block-infra-staging.sh on purpose — and so is the argument tokenizer below, git_args(),
+# block-infra-staging.sh on purpose — and so is the argument tokenizer below, payload_fields(),
 # which is a parameterised second copy of staged_args() in that same file. A shared file
 # you can forget to copy turns a guardrail into one that silently stops guarding, which is
 # the failure this whole directory is built to avoid. Duplication is loud; a missing
-# include is not. The divergences between the two tokenizers are listed at git_args().
+# include is not. The divergences between the two tokenizers are listed at payload_fields().
 allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
     local field="$1" file="$HOME/.claude/repo-allowlist" dir remote key push own
     [ -r "$file" ] || return 1
     # Prefer the payload's cwd if the harness sends one; fall back to ours. A payload
     # that PARSES and simply carries no cwd is the fallback case; a payload that will
-    # not parse at all is the fail-closed case, same rule as the command above.
-    dir="$(parse cwd)" || block "the payload did not parse as JSON — refusing to guess which repo this is."
+    # not parse at all was the fail-closed case — and it is now handled once, up front,
+    # before this function can be reached. This used to re-parse the payload in a second
+    # python process, which only ran on the push and claude-md paths; folding it into the
+    # single parse removed a spawn without adding one, because the field comes back from
+    # a program that was going to run anyway.
+    dir="$payload_cwd"
     [ -n "$dir" ] && [ -d "$dir" ] || dir="$PWD"
     remote="$(git -C "$dir" config --get remote.origin.url 2>/dev/null || true)"
     [ -n "$remote" ] || return 1
@@ -193,9 +244,50 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 # is taken for options only and never for a path.
 #
 # A command that will not tokenize is a BLOCK, exactly as an unreadable payload is.
-git_args() { # prints "<subcommand>\t<sub|opt|path>\t<word>" per argument; exit 3 = unparsable
-    printf '%s' "$cmd" | "$PY" -c '
-import re, shlex, sys
+# ONE PYTHON PROCESS PER INVOCATION, and this is where the second one went. Reading the
+# fields out of the JSON and tokenizing the command used to be two separate programs, so
+# an ordinary git command paid two process spawns and a push paid three — on the one
+# platform where a process spawn is the most expensive thing a hook does. They are one
+# program now: it reads the payload once, and returns everything the shell below needs.
+#
+# THE TOKENIZER ITSELF DID NOT MOVE AND WAS NOT REFLOWED. Everything from strip_heredocs
+# to the final write is the text that was here before, at the same indentation, because
+# issue #140 is queued to change exactly those lines and a reflow would cost it a clean
+# rebase. What changed is the head (the JSON read, which used to be a separate program
+# above) and the tail (one write instead of one write per program). Two tokenizer lines
+# moved with them: the import, and the line that used to call sys.stdin.read().
+#
+# THE THREE FIELDS COME BACK IN ONE STRING, separated by a record separator (\x1e), and
+# the command comes LAST on purpose. The command is the only field that can itself contain
+# newlines, so it has to be the one that is "everything after the last separator"; a
+# line-per-field format would have been ambiguous for exactly that field.
+#
+# STILL WRITTEN THROUGH THE BINARY BUFFER, for both of the measured reasons in the note
+# further up — and the merge makes the first of them REACHABLE where it was not. A
+# text-mode stdout rewrites every \n as CR LF, and the CR travels on the last field of the
+# line; the old parse() emitted a single field with no newline in it at all, so it had no
+# line for that to happen on. This program emits several. Do not take the buffer off.
+#
+# NO GIT, NO TOKENIZER. The early exit below is the pre-filter that used to be a `grep
+# -Eiq git` in the shell: it exists so an ordinary non-git Bash call does not pay for
+# tokenizing, and just as importantly so a non-git command that will not tokenize is not
+# suddenly a block. It is expressed once, here, and the shell now branches on whether any
+# rows came back rather than testing the command text a second time.
+payload_fields() { # prints cwd \x1e <tokenized rows> \x1e command; exit 3 = unparsable
+    py_run "$payload" '
+import json, re, shlex, sys
+
+_d = json.load(sys.stdin)
+_ti = _d.get("tool_input") or {}
+CWD = _d.get("cwd") or ""
+CMD = _ti.get("command") or _ti.get("script") or ""
+
+def emit(rows):
+    sys.stdout.buffer.write((CWD + "\x1e" + rows + "\x1e" + CMD).encode("utf-8"))
+
+if "git" not in CMD.lower():
+    emit("")
+    sys.exit(0)
 
 # The options git itself takes BEFORE the subcommand. These take a separate value.
 GLOBAL_VAL = {"-C", "-c", "--git-dir", "--work-tree", "--exec-path", "--namespace"}
@@ -313,7 +405,7 @@ def strip_heredocs(s):
             # else: not a heredoc after all — judge those lines, do not discard them
     return "\n".join(out)
 
-src = strip_heredocs(sys.stdin.read())
+src = strip_heredocs(CMD)
 
 # A LINE CONTINUATION is ONE command written over two lines, not two commands, so it has
 # to be joined BEFORE any newline becomes a separator. Splitting there put the flag in a
@@ -335,10 +427,11 @@ src = strip_heredocs(sys.stdin.read())
 # it came from, and a per-shell tokenizer is a much larger change than #117. Recorded so
 # the next reader knows this is a decision and not an oversight.
 #
-# THE NEWLINE CLASS IS GREEDY, and the + is load-bearing. sys.stdin.read() above is a
-# universal-newline TEXT read, which treats a lone \r as a line ending too, so a payload
-# carrying \r\r\n, \n\r or \r\r arrives here as TWO newlines (measured: b"a\r\r\nb" reads
-# back as "a\n\nb"). A single-\n join eats one of the two and the surviving newline
+# THE NEWLINE CLASS IS GREEDY, and the + is load-bearing. strip_heredocs above turns \r\n
+# and a lone \r alike into \n — exactly as the universal-newline text read that used to
+# feed this program did, which is why taking that read away changed nothing here — so a
+# payload carrying \r\r\n, \n\r or \r\r arrives as TWO newlines (measured: b"a\r\r\nb"
+# reads back as "a\n\nb"). A single-\n join eats one of the two and the surviving newline
 # orphans the flag exactly as no join at all did: git push, a backslash, \r\r\n, --force
 # returned 0 in an allowlisted repo while the plain CRLF form returned 2. parse() was
 # fixed to stop MANUFACTURING that doubling; this makes the join proof against one that
@@ -436,19 +529,73 @@ for seg in segs:
 # THE OTHER END OF THIS PIPE IS parse(), and it shipped text-mode while this end did not —
 # see the long note there. Same hazard, same platform, opposite direction; hardening one
 # end and not the other is what let a fixed force push run again under a CRLF payload.
-sys.stdout.buffer.write("".join(line + "\n" for line in out).encode("utf-8"))
-' 2>/dev/null
+emit("".join(line + "\n" for line in out))
+'
 }
+
+# The one read of the payload, and the one place this hook can fail to read it. Three
+# outcomes, three different things to say:
+#   0  the payload parsed and the command tokenized (possibly to nothing)
+#   3  python ran, and shlex refused the command — a command we cannot read is a block,
+#      exactly as an unreadable payload is
+#   *  no candidate interpreter could run the program at all, or the payload is not JSON.
+#      py_tried then asks each candidate whether it is python, so the message can tell
+#      "your payload is malformed" apart from "the python3 on your PATH is not python".
+_rc=0
+fields="$(payload_fields)" || _rc=$?
+case "$_rc" in
+    0) ;;
+    3) block "this command could not be read well enough to tell what it does — refusing rather than guessing." ;;
+    *) block "the payload did not parse as JSON — refusing to guess what this command does. $(py_tried)" ;;
+esac
+
+# Split on the record separator. cwd first, tokenized rows second, the command last —
+# see the format note at payload_fields().
+payload_cwd="${fields%%$'\x1e'*}"
+_rest="${fields#*$'\x1e'}"
+args="${_rest%%$'\x1e'*}"
+cmd="${_rest#*$'\x1e'}"
+
+# Normalize for matching. Newlines and \r become ';' so a CRLF payload behaves the same as
+# an LF one and a separate LINE stays a separate command.
+#
+# NOTHING IN THIS HOOK ANCHORS ON THAT SEPARATOR ANY MORE. An earlier version of this
+# comment said "the patterns below anchor on a start-of-string or a [;&|] separator" —
+# they did then, they do not now, and the file contradicted itself about it. $norm has
+# exactly two readers left: the --no-verify and --no-gpg-sign rules, and both are bare
+# unanchored substrings (see the note at those rules). The `git` pre-filter used to be a
+# third; it now lives inside payload_fields(), and the shell branches on whether any rows
+# came back. The git rules read the tokenized rows instead, which do their own newline
+# handling.
+#
+# PARAMETER EXPANSION, NOT `tr`. This was two processes per invocation for a transform
+# bash can do in the shell it is already running, and on Windows a spawn costs more than
+# the whole rest of this hook. The squeeze loop is `tr -s ' '`: runs of spaces collapse to
+# one. The line is kept at all, rather than dropped, because block-infra-staging.sh and
+# block-secret-staging.sh compute the same $norm. They still do it the way this hook used
+# to, with `printf | tr '\r\n' ';;' | tr -s ' '`: the TRANSFORM is equivalent — same output
+# on every input, including runs of spaces, the all-spaces string and the empty one — and
+# only the FORM differs. The divergence is deliberate and means nothing more than this:
+# this hook is the hot path that was measured, so it is the one that got the builtin.
+norm="${cmd//[$'\r\n']/;}"
+while [ "${norm#*  }" != "$norm" ]; do
+    norm="${norm//  / }"
+done
 
 # --- Hard blocks ---------------------------------------------------------------
 # The pre-filter is deliberately just "git": `git -C <dir> push` does not put the verb
 # next to the program name, and a filter that demanded that let the whole command past.
-# It exists so an ordinary non-git Bash call does not pay for a second python spawn. It
-# is safe ONLY because the two raw-text rules further down run OUTSIDE it — see there.
-if printf '%s' "$norm" | grep -Eiq 'git'; then
+# It is safe ONLY because the two raw-text rules further down run OUTSIDE it — see there.
+#
+# IT IS NOW EXPRESSED ONCE, inside payload_fields(), and this line reads the RESULT rather
+# than testing the command text a second time. Two copies of "does this mention git" in
+# two languages is a shared contract that can drift, and the drift would be silent: the
+# rows are empty exactly when the tokenizer was not run or found no git invocation, which
+# is the same set of commands the text filter used to let through to an empty $args.
+if [ -n "$args" ]; then
     # WHAT THIS TOKENIZER DOES NOT SEE — a known, deliberate gap. Filed as issue #140.
     #
-    # git_args() reads the command it was handed. It does not read a command that is DATA
+    # payload_fields() reads the command it was handed. It does not read a command that is DATA
     # inside that command, so both of these run and both return 0 where the text scan this
     # hook replaces returned 2:
     #
@@ -465,8 +612,6 @@ if printf '%s' "$norm" | grep -Eiq 'git'; then
     # catches `bash -c` but not `sh -c` reads as coverage, and the next person stops
     # looking. So the boundary is written down here instead, and the user accepted it
     # rather than growing #117 into a shell parser. If you close it, close all of it.
-    args="$(git_args)" || block "this command could not be read well enough to tell what it does — refusing rather than guessing."
-
     push_checked=""
     while IFS="$(printf '\t')" read -r sub kind arg; do
         [ -n "$sub" ] || continue
@@ -527,7 +672,7 @@ if printf '%s' "$norm" | grep -Eiq 'git'; then
             #   allowed   -d  --delete  -a  -r  -m  -v  --list  --format=…
             #   blocked   any SHORT cluster containing D or f, and --force in any position
             #
-            # Case-SENSITIVE on purpose, and the reason git_args() folds nothing but the
+            # Case-SENSITIVE on purpose, and the reason payload_fields() folds nothing but the
             # subcommand: `-D` blocks, `-d` does not. Every spelling above is a case in
             # templates/hooks/test-hooks.sh, in BOTH directions — the missing allow-case
             # is why this survived so long.
@@ -558,7 +703,12 @@ fi
 # for (#117) involve these two flags. Accepted cost, chosen with eyes open — a commit
 # message that merely QUOTES `--no-verify` still false-positives. The FP class survives
 # for exactly these two flags, by decision, not by oversight.
-printf '%s' "$norm" | grep -Eiq -- '--no-verify'   && block "--no-verify (bypasses hooks)"
-printf '%s' "$norm" | grep -Eiq -- '--no-gpg-sign' && block "--no-gpg-sign"
+#
+# `grep -Eiq` was CASE-INSENSITIVE, and these are bash substring tests now — two more
+# processes off every single invocation, git or not. The `,,` is therefore load-bearing
+# and not a tidy-up: without it `--No-Verify` stops being blocked, which is a security
+# guardrail quietly narrowing. Both patterns below are already lower case.
+[[ ${norm,,} == *--no-verify* ]]   && block "--no-verify (bypasses hooks)"
+[[ ${norm,,} == *--no-gpg-sign* ]] && block "--no-gpg-sign"
 
 exit 0

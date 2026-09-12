@@ -32,8 +32,17 @@ unanchored**, the moment any other character appears. So `Bash` matches only `Ba
 suffix. The bare server prefix matches nothing.
 
 > These templates are written for a POSIX shell (Git Bash on Windows works). They parse
-> their payload with **python** (`python3`, then `python`) using only the standard
-> library. Test each hook in a scratch repo before trusting it.
+> their payload with **python**, using only the standard library. `command -v python3` and
+> `command -v python` are collected as an **ordered preference, never an exclusion**: a
+> path under `AppData/Local/Microsoft/WindowsApps` — the Microsoft Store app-execution
+> alias — is moved to the **end** of the list and is never dropped, because on a machine
+> where the alias is the only python, refusing it would block every command these hooks
+> exist to judge. Nothing is probed on the happy path: **the parse itself is the probe**,
+> and a candidate that is not python fails it exactly the way a missing one does, so the
+> next candidate is tried at no cost. Only a refusal asks each candidate whether it is
+> python, so the message can name them **by resolved path** — `python3` names what you
+> already typed; the path is the thing you can act on. Test each hook in a scratch repo
+> before trusting it.
 
 ### Failing closed, and the three layers it is one of
 
@@ -42,12 +51,13 @@ blind to exactly one failure, so the answer is layered rather than picked:
 
 | Layer | What it does | What it structurally cannot see |
 |---|---|---|
-| Pick the parser most likely to be present | python, not `jq` | a machine with no python either |
+| Pick the parser most likely to be present, and prefer a *working* one | python, not `jq`; candidates tried in order, a Store alias last, none dropped | a machine where no candidate is a working python — and any python not reachable as `python3` or `python` |
 | **Fail closed** | the hook exits **2** when it cannot parse | the script never running at all |
 | Check the wiring at setup | run a hook live and confirm it blocks | anything that changes afterwards |
 
 **The four blocking hooks exit `2` when they cannot read their payload**: no parser on
-`PATH`, or a payload that will not parse. This matters because of the box above: Claude
+`PATH`, nothing on `PATH` that turns out to be a working python, or a payload that will
+not parse. This matters because of the box above: Claude
 Code treats every exit code other than `2` as a *non-blocking* error and runs the tool
 call anyway, so **`127` is not a near-miss of `2` — it is the same class as success.** A
 hook that dies on its parse and exits `127` is a guardrail that has silently stopped
@@ -90,6 +100,28 @@ number written down here on purpose. This one was hand-set three times over the 
 #117 (84, then 162, then 187) and was wrong at some point in every one of them; a count
 written next to the thing it counts is a count that rots, and the suite is the only place
 that can always be right about it.
+
+**It takes about a minute and a quarter, and it does not hang.** Before #146 it took about
+three and a half minutes. That figure is deliberately rounded, and it is rounded for the
+same reason the case count above is absent: a runtime is a property of your machine and of
+whatever the hooks do next, so a precise second-count written here would be wrong within a
+ticket or two. What does not rot is the command that produces it, so that is what is
+written down — **`time bash templates/hooks/test-hooks.sh`**, the same command the before
+and after figures were taken with, on a Windows laptop. Run it and believe your own number
+over this sentence.
+
+**Do not kill it because it looks stuck. It is slow, not stuck** — and killing it is how
+you manufacture the thing you thought you were seeing. Git for Windows' `bin/bash.exe`
+re-execs `usr/bin/bash.exe`, and Windows has no process-group kill, so killing the PID you
+can see kills the **shim** and leaves the real shell and every child it spawned running,
+**detached**. Those orphans then read as evidence of the hang that never happened: during
+#117 exactly that misreading sent a review pass chasing a defect that did not exist,
+through 27 accumulated processes, one of them over five hours old. And the genuinely stuck
+state is the one the kill *creates* — an orphaned hook child blocked forever reading its
+payload from stdin with no writer left to send it EOF, which is reproducible in every hook
+in this directory. So let the run finish. When you want something shorter, it is
+`tests/test-installer.sh` that takes a selection of sections
+(`bash tests/test-installer.sh 12 13`); this suite runs whole.
 
 **A green run now means two things, and it needs both:** the patterns match, **and** every
 blocking hook fails closed. The second half is its own section — each blocking hook is
@@ -142,9 +174,11 @@ the pattern depends on.** Worth checking in any guardrail that normalises before
 `block-infra-staging.sh` since #112, `block-dangerous-git.sh` since #117 — so neither has an
 anchored pattern left and neither judges the flattened string. `block-secret-staging.sh`
 does still read it, but every one of its patterns is unanchored, so the gap above cannot
-occur there either. The raw-text greps that remain (`--no-verify` and `--no-gpg-sign` in
-`block-dangerous-git.sh`) are bare unanchored substrings **on purpose**, so they keep
-catching non-git commands such as `npm publish --no-verify`.
+occur there either. The two raw-text rules that remain (`--no-verify` and `--no-gpg-sign`
+in `block-dangerous-git.sh`) are bare unanchored substrings **on purpose**, so they keep
+catching non-git commands such as `npm publish --no-verify`. #146 turned them from
+`grep -Eiq` into `[[ ${norm,,} == *…* ]]` to save two processes per invocation; the `,,` is
+what keeps them case-insensitive, and it is load-bearing rather than decorative.
 
 A **line continuation** is the same lesson one level down, and #117 shipped it before the
 re-review caught it: turning every newline into a separator splits `git push \` ⏎ `--force`
@@ -152,13 +186,15 @@ into two commands and the flag lands where no rule judges it. A continuation is 
 before the split.
 
 And one level down again, which is where #117's third re-review found it: **the join can
-only be right about the bytes it is handed.** `block-dangerous-git.sh` reads the payload
-with one python process and tokenizes it with a second, and the first one wrote its output
-in *text* mode — which on Windows rewrites every `\n` as CR LF, so a payload that already
-carried CRLF arrived at the tokenizer with a **doubled** CR. That became two newlines, the
-join ate one, and the flag was orphaned exactly as before — while every LF test stayed
-green. Both ends of that pipe are binary writes now. The general shape, again: **when you
-harden one end of a transform chain, the other end is where the bug goes to live.**
+only be right about the bytes it is handed.** `block-dangerous-git.sh` used to read the
+payload with one python process and tokenize it with a second, and the first one wrote its
+output in *text* mode — which on Windows rewrites every `\n` as CR LF, so a payload that
+already carried CRLF arrived at the tokenizer with a **doubled** CR. That became two
+newlines, the join ate one, and the flag was orphaned exactly as before — while every LF
+test stayed green. The write is binary now, and since #146 there is no pipe left to get
+wrong: one python process reads the payload and tokenizes it in the same program. The
+general shape, again: **when you harden one end of a transform chain, the other end is
+where the bug goes to live.**
 
 ## The set
 

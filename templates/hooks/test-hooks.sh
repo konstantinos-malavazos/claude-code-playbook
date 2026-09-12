@@ -32,11 +32,46 @@ MCP_HOOK=./block-mcp-writes.sh
 
 # --- python ---------------------------------------------------------------------
 # The hooks parse their payload with python, and so does this suite when it builds one.
-# There is nothing left to shim: when the parser is missing the hooks are SUPPOSED to
-# block, which is a case the suite tests rather than papers over.
-PY=$(command -v python3 || command -v python)
+# There is nothing left to shim for the MISSING parser: when it is missing the hooks are
+# SUPPOSED to block, which is a case the suite tests rather than papers over. What it does
+# shim, at the bottom of this file, is the parser that is PRESENT and is not python.
+#
+# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in all six hooks, and it has to be. If
+# the suite picked its interpreter by a different rule from the hooks it tests, it would
+# be building payloads with one python and judging a hook that chose another — and the
+# case it would miss is exactly the one at the bottom of this file. Why a WindowsApps
+# python3 goes to the END of the list and is never dropped is in block-dangerous-git.sh.
+PY_LIST=()
+PY_LAST=()
+# ONE command substitution, not one per candidate. A fork costs ~30ms on Windows and this
+# runs on every single hook invocation, so asking twice cost measurably more than the
+# whole ordering decision it feeds. The `true` keeps the list non-fatal when neither name
+# resolves; the empty-line guard is what a missing candidate looks like here.
+while IFS= read -r _p; do
+    [ -n "$_p" ] || continue
+    case "${_p,,}" in
+        */windowsapps/*) PY_LAST+=("$_p") ;;
+        *)               PY_LIST+=("$_p") ;;
+    esac
+done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
+PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
+
+# The one place this file probes rather than letting the first real use decide: a harness
+# that cannot build a payload has no cases to run at all, so it may as well find out now,
+# once, instead of 240 times. The hooks are in the opposite position and do the opposite
+# thing — see the note there.
+PY=""
+for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
+    if "$_c" -c "pass" >/dev/null 2>&1; then
+        PY="$_c"
+        break
+    fi
+done
 if [ -z "$PY" ]; then
-    echo "SKIP: no python3 or python available — cannot run the suite." >&2
+    echo "SKIP: no working python3 or python available — cannot run the suite." >&2
+    if [ "${#PY_LIST[@]}" -gt 0 ]; then
+        echo "       on PATH, but not a working python: ${PY_LIST[*]}" >&2
+    fi
     exit 1
 fi
 
@@ -80,15 +115,33 @@ HOOK_HOME="$DENY_HOME"   # every case runs unlisted unless it says otherwise
 HOOK_CWD="$REPO"
 HOOK_PATH="$PATH"        # the no-parser section swaps this for one with no python
 
+# HOOK_CWD is assigned once and never reassigned, so its JSON encoding is the same string
+# for every case in this file. It used to be recomputed inside run(), which is one python
+# process per case for an answer that cannot change — the largest single spawn saving in
+# the suite, and invisible to every case. HOOK_HOME and HOOK_PATH DO move between cases;
+# neither is part of the payload.
+HOOK_CWD_JSON=$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$HOOK_CWD")
+
+# $TILDE is a variable rather than a literal because the replacement half of a
+# ${var//pat/repl} is tilde-expanded.
+TILDE='~'
+
 run() { # <script> <tool-name> <command> <expected-exit>
     local payload
-    payload=$(printf '{"tool_name":"%s","cwd":%s,"tool_input":{"command":%s}}' "$2" \
-        "$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$HOOK_CWD")" \
-        "$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$3")")
+    # `printf -v`, not payload=$(printf …). The substitution form forks a subshell for a
+    # string bash can assemble in the shell it is already in; that fork measured ~30ms on
+    # Windows, per case, for nothing. The remaining substitution is the one real python
+    # call left in the payload build — it was two before the HOOK_CWD hoist above.
+    printf -v payload '{"tool_name":"%s","cwd":%s,"tool_input":{"command":%s}}' "$2" \
+        "$HOOK_CWD_JSON" \
+        "$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$3")"
     printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" >/dev/null 2>&1
     local got=$?
     local shown
-    shown=$(printf '%s' "$3" | tr '\n' '~' | tr '\r' '^')
+    # Parameter expansion, not two `tr` processes. On Windows a process spawn costs more
+    # than everything else this function does; these two ran on every case.
+    shown=${3//$'\n'/$TILDE}
+    shown=${shown//$'\r'/^}
     ran=$((ran + 1))
     if [ "$got" = "$4" ]; then
         printf '  ok   [%s] %s\n' "$2" "$shown"
@@ -106,6 +159,29 @@ run_raw() { # <script> <label> <raw-payload> <expected-exit>
         printf '  ok   [%s]\n' "$2"
     else
         printf '  FAIL [%s] exit=%s want=%s\n' "$2" "$got" "$4"
+        fail=$((fail + 1))
+    fi
+}
+
+# The only case shape that reads the hook's MESSAGE rather than just its exit code. An
+# exit code alone cannot tell a refusal that explains itself from one that does not, and
+# for the interpreter cases at the bottom of this file the message IS the behaviour under
+# test: the block was always correct, it just talked about JSON while the real cause was
+# which python3 PATH resolved to (#146).
+run_msg() { # <script> <tool-name> <command> <expected-exit> <substring the message must contain>
+    local payload out got=0 shown
+    printf -v payload '{"tool_name":"%s","cwd":%s,"tool_input":{"command":%s}}' "$2" \
+        "$HOOK_CWD_JSON" \
+        "$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$3")"
+    # stderr captured, stdout discarded — the hooks say why they refused on stderr.
+    out=$(printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" 2>&1 >/dev/null) || got=$?
+    shown=${3//$'\n'/$TILDE}
+    ran=$((ran + 1))
+    if [ "$got" = "$4" ] && [ "${out#*"$5"}" != "$out" ]; then
+        printf '  ok   [%s] %s — refusal names %s\n' "$2" "$shown" "$5"
+    else
+        printf '  FAIL [%s] exit=%s want=%s  expected the message to name %s\n' "$2" "$got" "$4" "$5"
+        printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     fi
 }
@@ -450,7 +526,7 @@ run $GIT_HOOK Bash       "git clean --FORCE"                                    
 
 echo "block-dangerous-git.sh — must ALLOW (exit 0), the KNOWN GAP filed as issue #140"
 # These four REALLY EXECUTE, and the text scan this hook replaces blocked them. They are
-# allowed here knowingly: git_args() reads the command it was handed, and none of these
+# allowed here knowingly: payload_fields() reads the command it was handed, and none of these
 # puts the git command where a tokenizer can see it — it is DATA inside another command's
 # argument, or a substitution inside double quotes that never separates into words.
 # Closing them properly means parsing a shell rather than tokenizing one, and a half-fix
@@ -768,6 +844,120 @@ else
     # Even a command the hook would have waved through is blocked: the point is that it
     # never found out which kind it was.
     run $GIT_HOOK    Bash "npm test"                      2
+    HOOK_PATH="$PATH"
+fi
+
+echo "block-dangerous-git.sh — a python3 that is NOT python must BLOCK and name it (exit 2)"
+# The layer between "there is a python3" and "there is a python". On Windows `python3` on
+# PATH is often the Microsoft Store app-execution alias, which resolves like a real
+# program and, where the Store package is not installed, prints an advert and exits 9009.
+# The hook blocked — it has always blocked — but it blocked with a message about JSON,
+# which points the reader at the payload when the payload was fine. Nothing in the refusal
+# named the interpreter, so there was nothing to act on. #146.
+#
+# THE STUB IS DELIBERATELY THE SAME SHAPE AS CI'S OWN SHIM. .github/workflows/tests.yml
+# writes a /bin/sh script named python3 onto PATH for the Windows job (see the "Give Git
+# Bash a python3" step) because Windows has no python3.exe. Any discriminator based on
+# SHAPE — the extension, the file type, the size, "is it a script" — rejects that shim and
+# turns the Windows job red across all four suites, quietly and somewhere else. This stub
+# is byte-for-byte the same KIND of object and differs only in BEHAVIOUR: it does not run
+# python. So a shape-based check fails this case here, loudly, instead of failing CI.
+STUBDIR="$SCRATCH/pystub"
+mkdir -p "$STUBDIR"
+printf '#!/bin/sh\necho "Python was not found; run without arguments to install from the Microsoft Store." >&2\nexit 9009\n' > "$STUBDIR/python3"
+chmod +x "$STUBDIR/python3"
+
+if [ -z "${NOPY_PATH:-}" ] || [ "$(PATH="$STUBDIR:$NOPY_PATH" command -v python3 2>/dev/null)" != "$STUBDIR/python3" ]; then
+    # Not a skip, for the same reason as the setup guard above.
+    printf '  FAIL [setup] the stub is not what python3 resolves to on the test PATH — the stub case did not run\n'
+    fail=$((fail + 1))
+else
+    HOOK_PATH="$STUBDIR:$NOPY_PATH"
+    # `git status` is a command the hook would otherwise wave through, so the exit 2 is
+    # entirely about not being able to read the payload — and the message must say which
+    # interpreter it tried, by RESOLVED PATH. "python3" would name the thing the user
+    # already typed; the path is the thing they can act on.
+    run_msg $GIT_HOOK Bash "git status" 2 "$STUBDIR/python3"
+    HOOK_PATH="$PATH"
+fi
+
+echo "block-dangerous-git.sh — a WindowsApps python3 is DEMOTED, never DROPPED"
+# The two lines the whole ticket is named after, and until now the only two with no case
+# at all: the `*/windowsapps/*` arm that moves a candidate to the END of the list, and the
+# line that appends that held-back list back on. Both were verified by hand during review
+# and both were right — but the suite would have stayed green if a later edit turned the
+# demotion into an exclusion, which is exactly the promise three documents make about this
+# code. A behaviour nothing executes is a behaviour nobody will notice losing.
+#
+# Neither case can be written with a bare exit code alone:
+#   * the hook's py_run() TRIES EVERY CANDIDATE IN TURN, so with a stub first and a real
+#     python second it exits 0 whatever the order is. Order is observable only in WHICH
+#     interpreter actually ran — so the WindowsApps python here is a working one that
+#     touches a marker file before exec'ing the real thing. Marker present = it went
+#     first = it was not demoted.
+#   * dropping, by contrast, is visible in the exit code, but only when the demoted
+#     candidate is the ONLY python there is. That is the second case.
+#
+# The paths carry a literal `WindowsApps` component because that is what the hook keys on
+# (case-insensitively, via `${_p,,}`); nothing here depends on being on Windows.
+WAPPS_MIX="$SCRATCH/mixed/WindowsApps"   # a WORKING python3 that records that it ran
+WAPPS_REAL="$SCRATCH/onlywapps/WindowsApps"  # the only python on the PATH
+REALDIR="$SCRATCH/realpy"                # a real python NOT under a WindowsApps path
+WMARK="$SCRATCH/wapps-ran"
+mkdir -p "$WAPPS_MIX" "$WAPPS_REAL" "$REALDIR"
+
+# NOT "$PY" — ask the interpreter where it actually lives, and call THAT, absolutely.
+# $PY is whatever `command -v python3` returned, and that is allowed to be a shim which
+# re-resolves `python` BY NAME. CI installs precisely such a shim (`#!/bin/sh exec python
+# "$@"`), because setup-python gives Windows a python.exe and no python3. These stubs put
+# a `python` of their own on the hook's PATH, so a by-name shim reached from in here finds
+# THIS stub, which execs the shim, which resolves `python` again — an exec loop with no
+# growth in process count and no output, i.e. indistinguishable from a hang until the job
+# is killed. It cost a 30-minute CI timeout, and it is invisible on any machine whose
+# python3 is a real binary, which is every machine this suite was developed on.
+REALPY="$("$PY" -c 'import sys; sys.stdout.buffer.write(sys.executable.encode())' 2>/dev/null || true)"
+if [ -n "$REALPY" ] && command -v cygpath >/dev/null 2>&1; then
+    REALPY="$(cygpath -u "$REALPY" 2>/dev/null || printf '%s' "$REALPY")"
+fi
+
+printf '#!/bin/sh\n: > "%s"\nexec "%s" "$@"\n' "$WMARK" "$REALPY" > "$WAPPS_MIX/python3"
+printf '#!/bin/sh\nexec "%s" "$@"\n' "$REALPY" > "$WAPPS_REAL/python3"
+printf '#!/bin/sh\nexec "%s" "$@"\n' "$REALPY" > "$REALDIR/python"
+chmod +x "$WAPPS_MIX/python3" "$WAPPS_REAL/python3" "$REALDIR/python"
+
+# The guard below proves PATH resolves to these stubs. This one proves the stubs are a
+# real python that ANSWERS — the check the exec loop would have failed, made before any
+# stub is put on a PATH where it could loop. A stub that cannot run is a setup fault, so
+# it fails loudly here rather than being read as a verdict about the hook.
+if [ -z "$REALPY" ] || [ "$("$REALPY" -c 'print(1+1)' 2>/dev/null)" != "2" ]; then
+    printf '  FAIL [setup] could not resolve %s to a real interpreter (got "%s") — the ordering cases did not run\n' "$PY" "$REALPY"
+    fail=$((fail + 1))
+elif [ -z "${NOPY_PATH:-}" ] \
+   || [ "$(PATH="$WAPPS_MIX:$REALDIR:$NOPY_PATH" command -v python3 2>/dev/null)" != "$WAPPS_MIX/python3" ] \
+   || [ "$(PATH="$WAPPS_MIX:$REALDIR:$NOPY_PATH" command -v python 2>/dev/null)" != "$REALDIR/python" ] \
+   || [ "$(PATH="$WAPPS_REAL:$NOPY_PATH" command -v python3 2>/dev/null)" != "$WAPPS_REAL/python3" ]; then
+    # Not a skip, for the same reason as the two guards above.
+    printf '  FAIL [setup] the WindowsApps/real pair is not what PATH resolves to — the ordering cases did not run\n'
+    fail=$((fail + 1))
+else
+    # (a) both work; the real one is second on PATH and must still be the one that runs.
+    rm -f "$WMARK"
+    HOOK_PATH="$WAPPS_MIX:$REALDIR:$NOPY_PATH"
+    run $GIT_HOOK Bash "git status" 0
+    ran=$((ran + 1))
+    if [ -e "$WMARK" ]; then
+        printf '  FAIL [order] the WindowsApps python3 ran — the real python beside it was not preferred\n'
+        fail=$((fail + 1))
+    else
+        printf '  ok   [order] a WindowsApps python3 was demoted behind the real python beside it\n'
+    fi
+
+    # (b) the WindowsApps python is the ONLY python. Demoted it still runs and the hook
+    # judges the command; dropped, the hook has no parser and blocks a `git status` it
+    # should have waved through. A guardrail that bricks the machine is not the safer
+    # failure — this expects 0, deliberately.
+    HOOK_PATH="$WAPPS_REAL:$NOPY_PATH"
+    run $GIT_HOOK Bash "git status" 0
     HOOK_PATH="$PATH"
 fi
 

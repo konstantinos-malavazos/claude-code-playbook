@@ -16,15 +16,66 @@ block() { echo "BLOCKED by block-infra-staging: $1" >&2; exit 2; }
 
 # python parses the payload and a payload it cannot read is a BLOCK, never a pass.
 # Duplicated verbatim from block-dangerous-git.sh, deliberately — the full reasoning for
-# both halves (why python and not jq or sed, why 127 is the same class as success, and
-# why a permission prompt was rejected) is in the note there.
-PY="$(command -v python3 || command -v python || true)"
-[ -n "$PY" ] || block "no python3 or python on PATH — this hook cannot read the command it exists to check."
+# all of it (why python and not jq or sed, why 127 is the same class as success, why a
+# permission prompt was rejected, why a WindowsApps python3 goes to the END of the list
+# and is never dropped, and why nothing is probed until we are refusing anyway) is in the
+# notes there. The code below is byte-identical in all six hooks and in test-hooks.sh; a
+# divergence between the copies would be a guardrail choosing a different interpreter
+# from the suite that tests it.
+PY_LIST=()
+PY_LAST=()
+# ONE command substitution, not one per candidate. A fork costs ~30ms on Windows and this
+# runs on every single hook invocation, so asking twice cost measurably more than the
+# whole ordering decision it feeds. The `true` keeps the list non-fatal when neither name
+# resolves; the empty-line guard is what a missing candidate looks like here.
+while IFS= read -r _p; do
+    [ -n "$_p" ] || continue
+    case "${_p,,}" in
+        */windowsapps/*) PY_LAST+=("$_p") ;;
+        *)               PY_LIST+=("$_p") ;;
+    esac
+done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
+PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
 
-payload="$(cat)"
+py_tried() { # the refusal's evidence: every candidate by resolved path, with a verdict
+    local _c _out=""
+    for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
+        if "$_c" -c "pass" >/dev/null 2>&1; then
+            _out="${_out}${_out:+, }${_c} (is python)"
+        else
+            _out="${_out}${_out:+, }${_c} (on PATH, but not a working python)"
+        fi
+    done
+    printf 'interpreter tried: %s' "${_out:-none — no python3 or python on PATH}"
+}
+
+py_run() { # <stdin> <program> [args…] — first candidate that answers wins
+    local _in="$1" _prog="$2" _c _rc=127
+    shift 2
+    for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
+        _rc=0
+        printf '%s' "$_in" | "$_c" -c "$_prog" "$@" 2>/dev/null || _rc=$?
+        [ "$_rc" -eq 0 ] && return 0
+        # 3 is the PROGRAM saying no, not the interpreter failing to be python. Handing
+        # the same input to a different interpreter would get the same answer.
+        [ "$_rc" -eq 3 ] && return 3
+    done
+    return "$_rc"
+}
+
+[ "${#PY_LIST[@]}" -gt 0 ] || block "no python3 or python on PATH — this hook cannot read the command it exists to check."
+
+# `read -d ""` rather than $(cat). A command substitution forks a subshell and then execs
+# cat, which measured 37ms on Windows — more than choosing the interpreter above and more
+# than the parse itself on an ordinary payload, for reading one string off stdin. `-d ""`
+# reads to EOF (a JSON payload carries no NUL), `-r` keeps backslashes literal, `IFS=`
+# keeps leading and trailing whitespace, and the non-zero exit at EOF is the expected
+# outcome, not a failure. The only difference from $(cat) is that a trailing newline
+# survives, and no JSON reader cares. Measured faster at 4KB as well as at 60 bytes.
+IFS= read -r -d '' payload || true
 
 parse() { # <command|cwd> — prints the field; non-zero if the payload will not parse
-    printf '%s' "$payload" | "$PY" -c '
+    py_run "$payload" '
 import json, sys
 d = json.load(sys.stdin)
 if sys.argv[1] == "cwd":
@@ -32,10 +83,10 @@ if sys.argv[1] == "cwd":
 else:
     ti = d.get("tool_input") or {}
     sys.stdout.write(ti.get("command") or ti.get("script") or "")
-' "$1" 2>/dev/null
+' "$1"
 }
 
-cmd="$(parse command)" || block "the payload did not parse as JSON — refusing to guess what this command stages."
+cmd="$(parse command)" || block "the payload did not parse as JSON — refusing to guess what this command stages. $(py_tried)"
 
 # Newlines and \r become ';' so a CRLF payload behaves the same as an LF one — see
 # block-dangerous-git.sh.
@@ -44,7 +95,10 @@ cmd="$(parse command)" || block "the payload did not parse as JSON — refusing 
 # pattern below". Untrue since #112: the only pattern below that reads $norm is the
 # unanchored `git` pre-filter at the hard-blocks section, which nothing slips past on the
 # grounds of which line it is on. staged_args() reads "$cmd", not $norm, and converts
-# newlines to separators itself. The line is kept for symmetry with the sibling hook.
+# newlines to separators itself. The line is kept because block-dangerous-git.sh computes
+# the same $norm — but it does so with parameter expansion plus a squeeze loop rather than
+# this `tr` pipeline, to drop two spawns from the hot path. The transform is equivalent;
+# only the form differs, and the difference is deliberate, not drift.
 norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
 
 # --- The allowlist -------------------------------------------------------------
@@ -52,7 +106,7 @@ norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
 allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
     local field="$1" file="$HOME/.claude/repo-allowlist" dir remote key push own
     [ -r "$file" ] || return 1
-    dir="$(parse cwd)" || block "the payload did not parse as JSON — refusing to guess which repo this is."
+    dir="$(parse cwd)" || block "the payload did not parse as JSON — refusing to guess which repo this is. $(py_tried)"
     [ -n "$dir" ] && [ -d "$dir" ] || dir="$PWD"
     remote="$(git -C "$dir" config --get remote.origin.url 2>/dev/null || true)"
     [ -n "$remote" ] || return 1
@@ -89,7 +143,7 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 # A command that will not tokenize is a BLOCK, exactly as an unreadable payload is: the
 # hook did not find out what it was being asked to clear, so it does not clear it.
 # A parameterised second copy of this tokenizer lives in block-dangerous-git.sh as
-# git_args(), deliberately — same reasoning as the allowlist note above. It is NOT a
+# payload_fields(), deliberately — same reasoning as the allowlist note above. It is NOT a
 # verbatim copy: it emits every subcommand rather than a fixed SUB map, emits a row for
 # the subcommand itself, reads VAL with .get(), strips percent-paren spans, scans forward
 # for the git program instead of demanding word 0 (and judges every git occurrence in a
@@ -109,7 +163,7 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 # recoverable and which the reviewer measured as pre-existing rather than a regression.
 # It is issue #140, thread 2. Port the one-line join when that is picked up.
 staged_args() { # prints "<subcommand>\t<opt|path>\t<word>" per argument; exit 3 = unparsable
-    printf '%s' "$cmd" | "$PY" -c '
+    py_run "$cmd" '
 import re, shlex, sys
 
 SUB = {"add": "add", "stage": "add", "commit": "commit"}
@@ -216,7 +270,7 @@ for seg in segs:
 # say only for a call that runs more than one command. Caught by the suite on
 # "git add ." followed by a commit.
 sys.stdout.buffer.write("".join(line + "\n" for line in out).encode("utf-8"))
-' 2>/dev/null
+'
 }
 
 # The pre-filter is deliberately just "git": `git -C <dir> add …` does not put the verb

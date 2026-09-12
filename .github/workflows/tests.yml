@@ -115,8 +115,16 @@ jobs:
       # tests/test-installer.sh section 13 calls python3 by name, and so does most
       # advice about this repo. A one-line shim on PATH is enough for Git Bash, and
       # unlike copying python.exe it does not move the interpreter away from the
-      # stdlib that sits beside it. install.sh and install.ps1 need no shim: both
-      # already try python3 first and python second.
+      # stdlib that sits beside it. Nothing else here needs the shim: install.sh and
+      # install.ps1 try python3 then python, and since #146 the hooks and
+      # test-hooks.sh collect both names and try them in a preferred order.
+      #
+      # KEEP THE SHIM A REAL SCRIPT. templates/hooks/test-hooks.sh has a case that is
+      # deliberately the same shape as the file written below — a /bin/sh script named
+      # python3 — differing only in that it is not python. That is what forces the
+      # hooks' "is this python?" test to be behavioural: a check based on file type,
+      # extension or size would pass that case only by rejecting this shim, and would
+      # turn every Windows job here red.
       - name: Give Git Bash a python3
         shell: bash
         run: |
