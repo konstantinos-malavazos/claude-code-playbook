@@ -5,6 +5,7 @@
 #   A1-A9  the per-dispatch model weight (issue #92)
 #   A10    the Serena halt block every navigating agent needs (issue #109)
 #   A11    the two model-id tokens are lowercase and reach a live install (issue #135)
+#   A12    the flow guardrails are stated where the dispatcher reads them (issue #148)
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -771,6 +772,407 @@ for stem in $SERENA_AGENTS; do
     fail "$stem declares Serena verbs and never says HALTED — strip the prefix and it greps instead"
   fi
 done
+fi
+
+# ---------------------------------------------------------------- A12
+# The flow guardrails (#148). Five rules — a stated persona on every dispatch, an
+# explicit timeout with a per-call expectation, a concrete overrun trigger whose
+# answer is report-and-stop, delta-scoped and risk-proportional review, and the
+# duty to check on work you spawned — all of them prose, in the template the
+# dispatcher actually reads. Prose is what a shortening edit removes first, and
+# nothing else in this repo reads these sentences: a rule that quietly leaves is
+# a rule that was never there, and the session that dispatches without it
+# produces a result of exactly the normal SHAPE.
+#
+# WHAT THESE CASES PROVE, PRECISELY, because the difference is the whole
+# disclosure this ticket owes its reader:
+#   A12.1-A12.7  prove A RULE IS WRITTEN, at the site the dispatcher reads. They
+#                cannot prove any agent obeyed it. In particular A12.5 proves the
+#                check-back duty is STATED at every site that spawns background
+#                work — never that anybody checked. There is no elapsed-time
+#                event for a hook to fire on, so that half is prose by design.
+#   A12.8        proves BEHAVIOUR, and it is the only case here that does: it
+#                reads the shipped wiring and asserts that every installable hook
+#                is named in both settings files AND sits under the event and the
+#                matcher its own header declares it needs. A hook nobody names is
+#                wired into nothing; a hook named under the wrong matcher is ALSO
+#                wired into nothing, and the second one is the quieter of the two.
+#                Both are facts about the tree, not about anyone's wording.
+#
+#                THE BOUNDARY, because this case is the one that could overclaim:
+#                A12.8 judges the SHIPPED SNIPPETS, which are the expectation the
+#                installer merges from. It says nothing about any particular
+#                user's settings.json — comparing a real install against the
+#                snippet is verify_wiring's job at install time
+#                (install-lib.py:1131-1203), and duplicating it here would assert
+#                a machine this suite cannot see. What this guards is the other
+#                half: that the expectation ITSELF cannot rot.
+#
+# Catches: a reword or a trim that drops the persona rule, the timeout duty, the
+# overrun trigger, one of the three review-scoping rules or the check-back
+# clause; a new hook file that ships wired into neither settings snippet; and a
+# matcher narrowed back to one shell, which leaves every suite green while the
+# guard stops covering the tool the user actually types into.
+
+# joined FILE — the whole file as ONE line, with markdown emphasis removed.
+# Both halves are load-bearing and both were bitten while this section was
+# written. Several of the anchors below WRAP across a line break in the shipped
+# text, so a line-oriented grep -qF for the sentence finds nothing and the case
+# goes red for a reason that has nothing to do with the rule; and every .md in
+# this repo is CRLF, so an unstripped carriage return lands in the middle of a
+# joined anchor and does the same thing more quietly. The emphasis strip is what
+# lets the anchors below be written as the prose a reader would quote, rather
+# than as a copy of somebody's asterisks. (\140 is the backtick, spelled in
+# octal on purpose: a literal one inside a quoted string reads to shellcheck as
+# a command substitution — SC2016 — and this repo has already lost an hour to
+# that once.)
+joined() { tr -d '\r*\140' < "$1" | tr '\n' ' ' | tr -s ' \t'; }
+
+# a12 NAME FILE ANCHOR — one anchor, one PASS/FAIL line. Every case gets its own
+# name, because a combined case cannot say WHICH rule was deleted.
+a12() {
+  if joined "$2" | grep -qF "$3"; then pass "$1"
+  else fail "$1 — GONE from ${2#"$REPO"/}: [$3]"; fi
+}
+
+A12_AGENTS_README="$AGENTS/README.md"
+A12_REVIEWER="$AGENTS/repo-reviewer.md"
+A12_HOOKS_README="$TEMPLATES/hooks/README.md"
+A12_SHIM='usr/bin/bash.exe'
+A12_SHIM_ANCHOR='hooks/README.md#do-not-kill-a-slow-run-on-windows'
+
+# Every template that fires background work, DERIVED rather than listed. The
+# three commands are the obvious members and they are half the set: the
+# definition the commands wrap lives in a skill, and a commands-only predicate
+# guards half the ticket. Matched on the dispatch itself — a research subagent
+# being fired — so the next flow that fires one is covered the day it lands.
+a12_bg_sites() {
+  local f
+  while IFS= read -r f; do
+    joined "$f" | grep -qE '/research subagent|research skill.s discipline|research subagents' \
+      && printf '%s\n' "$f"
+  done <<EOF
+$(find "$COMMANDS" "$TEMPLATES/skills" -name '*.md' -type f | sort)
+EOF
+}
+
+# Every .md under templates/ and docs/ that talks about a slow run, minus the one
+# file that owns the mechanism. These are the files that must LINK rather than
+# re-explain.
+a12_shim_namers() {
+  local f
+  while IFS= read -r f; do
+    [ "$f" = "$A12_HOOKS_README" ] && continue
+    joined "$f" | grep -qF 'slow run' && printf '%s\n' "$f"
+  done <<EOF
+$(find "$TEMPLATES" "$REPO/docs" -name '*.md' -type f | sort)
+EOF
+}
+
+if want A12; then
+banner "A12 · flow guardrails are stated where the dispatcher reads them"
+
+# --- A12.1 · AC1, the persona rule and its third answer
+a12 "A12.1 · the persona rule is stated in templates/agents/README.md" \
+    "$A12_AGENTS_README" 'Every dispatch states a persona'
+# The third answer is what keeps an untyped dispatch legitimate and is the reason
+# no research agent template exists to be preferred over the skill. Lose it and
+# the rule reads as "always use a typed template", which no flow here obeys.
+a12 "A12.1 · the persona rule keeps its third answer — a role line AND a named skill" \
+    "$A12_AGENTS_README" 'state the role in one line AND name the skill that supplies its discipline'
+
+# --- A12.2 · AC5, the timeout duty
+a12 "A12.2 · a long call carries an explicit timeout and a stated expectation" \
+    "$A12_AGENTS_README" 'A call you expect to run long carries an explicit timeout'
+a12 "A12.2 · work past the tool's maximum goes to the background by design" \
+    "$A12_AGENTS_README" 'goes to the background by design'
+
+# --- A12.3 · AC6, the overrun trigger, stated ONCE
+# A census rather than a presence check, and for the reason A4 is a census: two
+# copies of a threshold are two thresholds the day one of them is edited.
+A12_TRIGGER='three times the stated expectation, or ten minutes, whichever comes first'
+n=0; where=""
+while IFS= read -r f; do
+  joined "$f" | grep -qF "$A12_TRIGGER" || continue
+  n=$((n+1)); where="$where ${f#"$REPO"/}"
+done <<EOF
+$(find "$TEMPLATES" -name '*.md' -type f | sort)
+EOF
+if [ "$n" = "1" ]; then
+  pass "A12.3 · the overrun trigger is stated exactly once under templates/ —$where"
+elif [ "$n" = "0" ]; then
+  fail "A12.3 · the overrun trigger is stated NOWHERE under templates/ — nothing says when a wait has gone wrong"
+else
+  fail "A12.3 · the overrun trigger is stated $n times under templates/ —$where — a second copy is a second threshold"
+fi
+a12 "A12.3 · the required response to an overrun is report-and-stop" \
+    "$A12_AGENTS_README" 'The required response is report-and-stop'
+
+# --- A12.4 · AC3, the three review-scoping rules
+# Three anchors, three PASS/FAIL lines, deliberately. One combined case goes red
+# without saying which of the three was deleted, and the three fail for entirely
+# different reasons.
+a12 "A12.4 · repo-reviewer scopes the review to the delta" \
+    "$A12_REVIEWER" 'Scope to the delta.'
+a12 "A12.4 · repo-reviewer takes its depth from the weight the work already carries" \
+    "$A12_REVIEWER" 'Depth is proportional to the weight the work already carries'
+a12 "A12.4 · repo-reviewer prefers running a check to reasoning about one" \
+    "$A12_REVIEWER" 'Prefer running a check to reasoning about one.'
+
+# --- A12.5 · AC2 + AC7, every site that spawns background work
+A12_SITES="$(a12_bg_sites)"
+# The INVENTORY is the tripwire, the way A1's EXPECTED_EDITORS is. A floor is not
+# enough here and the first version of this case had one: a site that rewords the
+# dispatch phrase drops out of the derived set AND TAKES ITS TWO ASSERTIONS WITH
+# IT, so the section quietly shrinks from six sites to five and still reports
+# green. Nothing fails, and the whole premise of A12.5 is that nobody re-reads
+# these files. Comparing the derived set against the expected one by NAME means
+# losing one site fails, and gaining one fails too until somebody adds it here —
+# which is the point: a new flow that fires background work is a new place the
+# persona and check-back rules have to be stated.
+A12_EXPECTED_SITES="templates/commands/feeling-lucky.md
+templates/commands/resume-massive.md
+templates/commands/start-massive.md
+templates/skills/charting/SKILL.md
+templates/skills/grilling/SKILL.md
+templates/skills/pitch/SKILL.md"
+A12_SITE_N="$(printf '%s\n' "$A12_SITES" | sed '/^$/d' | wc -l | tr -d ' ')"
+A12_SITES_REL=""
+for f in $A12_SITES; do A12_SITES_REL="$A12_SITES_REL ${f#"$REPO"/}"; done
+if [ "$(setlike "$A12_SITES_REL")" = "$(setlike "$A12_EXPECTED_SITES")" ]; then
+  pass "A12.5 · the background-dispatch probe found exactly the $A12_SITE_N sites this section expects"
+else
+  fail "A12.5 · the background-dispatch set has MOVED — derived [$(setlike "$A12_SITES_REL")] against expected [$(setlike "$A12_EXPECTED_SITES")]. A site that leaves the set takes its two assertions with it and nothing else notices"
+fi
+for f in $A12_SITES; do
+  rel="${f#"$REPO"/}"
+  # AC2 — this dispatch says who the agent is. Matched on the WORD, not the
+  # substring: the red run for this case found "persona" matching "personal
+  # data" in pitch/SKILL.md, so one of the six passed on the pre-change tree for
+  # a reason with nothing to do with the rule. A case that green for the wrong
+  # reason is indistinguishable from a case that is pointed at nothing.
+  if joined "$f" | grep -qE '\bpersona\b'; then
+    pass "A12.5 · $rel states a persona for the work it spawns"
+  else
+    fail "A12.5 · $rel spawns background work and names no persona — a bare dispatch, and the handoff will not say which one you got"
+  fi
+  # AC7 — and somebody owns looking at it. PROVES THE RULE IS WRITTEN, never
+  # that anyone looked; there is no elapsed-time event to hang a hook on.
+  if joined "$f" | grep -qF 'at each multiple of'; then
+    pass "A12.5 · $rel states the check-back duty on the work it spawns"
+  else
+    fail "A12.5 · $rel spawns background work and never says to check on it — the harness reports completion and never silence, so a dead agent and a working one read the same"
+  fi
+done
+
+# --- A12.6 · AC4, the skill this ticket deliberately does not create
+if [ -d "$TEMPLATES/skills/review-guidelines" ]; then
+  fail "A12.6 · templates/skills/review-guidelines/ EXISTS — #139 owns that name, and repo-reviewer.md's dangling reference to it is deliberate until then"
+else
+  pass "A12.6 · no templates/skills/review-guidelines/ — #139 still owns the name"
+fi
+
+# --- A12.7 · AC8, the shim rule: stated once, linked from everywhere else
+a12 "A12.7 · templates/hooks/README.md still states the shim mechanism" \
+    "$A12_HOOKS_README" "$A12_SHIM"
+a12 "A12.7 · the shim rule has a heading to link to" \
+    "$A12_HOOKS_README" '### Do not kill a slow run on Windows'
+n=0; where=""
+while IFS= read -r f; do
+  joined "$f" | grep -qF "$A12_SHIM" || continue
+  n=$((n+1)); where="$where ${f#"$REPO"/}"
+done <<EOF
+$(find "$TEMPLATES" "$REPO/docs" -name '*.md' -type f | sort)
+EOF
+if [ "$n" = "1" ]; then
+  pass "A12.7 · the shim mechanism is explained in exactly one file —$where"
+else
+  fail "A12.7 · the shim mechanism is explained in $n files —$where — the one place #146 put it was the point"
+fi
+A12_NAMERS="$(a12_shim_namers)"
+A12_NAMER_N="$(printf '%s\n' "$A12_NAMERS" | sed '/^$/d' | wc -l | tr -d ' ')"
+# The control that makes the loop below mean anything. Before this ticket NOTHING
+# in the repo linked to that file by anchor, so the set was empty and "every
+# other file links to it" was true of nobody.
+#
+# SAID PLAINLY, BECAUSE A SET OF ONE IS WORTH DISCLOSING: today this binds exactly
+# ONE file. That is not a weak predicate hiding members — it is the tree. The shim
+# is discussed in two places in the whole repo, the owner and the one file that
+# links to it, and every wider predicate available was measured and rejected:
+# `stuck` pulls in five files about stuck tickets and stuck decisions, none of
+# which is about this subject or should be made to link here. So the set cannot be
+# made real by rewording the probe; it becomes real when a third file discusses
+# the subject, and the control above is what stops it silently returning to zero
+# in the meantime. The failure that actually matters — a second COPY of the
+# mechanism rather than a link to it — is caught by the census above, which does
+# not depend on this predicate at all.
+if [ "${A12_NAMER_N:-0}" -ge 1 ]; then
+  pass "A12.7 · $A12_NAMER_N file(s) other than the owner talk about a slow run, so the link rule has somebody to bind"
+else
+  fail "A12.7 · no file outside the owner mentions a slow run — the link rule below is guarding an empty set"
+fi
+for f in $A12_NAMERS; do
+  rel="${f#"$REPO"/}"
+  if joined "$f" | grep -qF "$A12_SHIM_ANCHOR"; then
+    pass "A12.7 · $rel links to the shim rule instead of restating it"
+  else
+    fail "A12.7 · $rel talks about a slow run and does not link to $A12_SHIM_ANCHOR — the second copy starts here"
+  fi
+done
+
+# --- A12.8 · AC5's mechanism is actually wired, in BOTH settings files
+# The only case in this section that proves behaviour rather than wording. A hook
+# is a file plus an entry; a file with no entry is never invoked and reports
+# nothing, which is the failure shape templates/hooks/README.md calls the worst
+# one a guardrail has. SKIP_HOOKS is read out of the installer itself, the way
+# tests/test-docs.sh derives the same set, so a hook the installer stops wiring
+# stops being asserted here without anyone editing this file. Pure bash on
+# purpose: tests/test-docs.sh exits early with a SKIP when there is no python,
+# and this check has to run on the machine that has none.
+A12_WIRINGS="$TEMPLATES/hooks/settings-hooks.snippet.json $TEMPLATES/mcp/settings.json.snippet"
+A12_SKIP="$(sed -n 's/^SKIP_HOOKS[[:space:]]*=[[:space:]]*{\(.*\)}.*/\1/p' "$REPO/install-lib.py" \
+            | tr -d '" ' | tr ',' ' ')"
+if [ -n "$A12_SKIP" ]; then
+  pass "A12.8 · SKIP_HOOKS parsed out of install-lib.py: $A12_SKIP"
+else
+  fail "A12.8 · SKIP_HOOKS did not parse out of install-lib.py — the set below is being derived from nothing"
+fi
+A12_WIRED=""
+for f in "$TEMPLATES"/hooks/*.sh; do
+  b="$(basename "$f")"
+  case " $A12_SKIP " in *" $b "*) continue ;; esac
+  A12_WIRED="$A12_WIRED $b"
+done
+A12_WIRED_N="$(printf '%s' "$A12_WIRED" | wc -w | tr -d ' ')"
+# Second control: an empty or one-member set would pass the loop by having
+# nothing to check, which is how this assertion would rot into a no-op.
+if [ "${A12_WIRED_N:-0}" -ge 2 ]; then
+  pass "A12.8 · $A12_WIRED_N installable hook scripts to check against both settings files"
+else
+  fail "A12.8 · only ${A12_WIRED_N:-0} installable hook script(s) found — the derivation is broken, not the wiring"
+fi
+for b in $A12_WIRED; do
+  for w in $A12_WIRINGS; do
+    wrel="${w#"$REPO"/}"
+    if grep -qF "$b" "$w"; then
+      pass "A12.8 · $b is wired in $wrel"
+    else
+      fail "A12.8 · $b is in templates/hooks/ and appears nowhere in $wrel — it installs, it never runs, and nothing says so"
+    fi
+  done
+done
+
+# --- A12.8, second half · and under the matcher the hook itself asks for
+#
+# Being NAMED in the wiring is not being wired. Wiring is the triple (event,
+# matcher, command), and a hook whose command sits under the wrong matcher is
+# installed, listed, reported present, and never invoked by the tool it exists to
+# guard. That is the failure shape templates/hooks/README.md calls the worst one a
+# guardrail has, because it keeps reporting success — and it is reachable by an
+# edit as small as deleting one alternative from one string.
+#
+# THE EXPECTATION IS THE HOOK'S OWN HEADER, and that is deliberate. Nothing here
+# hardcodes a matcher, so a hook added tomorrow is covered the day it lands with
+# no edit to this file — the same property install-lib.py's verify_wiring gets by
+# treating the shipped snippet as the expectation. What this adds is the layer
+# underneath it: verify_wiring asks whether a machine matches the snippet, and
+# nothing until now asked whether the SNIPPET matches what the hooks say they need.
+#
+# Matchers compare as SETS of alternatives, never as strings, for the same reason
+# verify_wiring does: widening Bash|PowerShell to Bash|PowerShell|Foo still covers
+# every hook that asked for the two shells and must not be flagged. Only a MISSING
+# alternative is a finding.
+a12_placements() { # FILE -> "event<TAB>matcher<TAB>hookfile" per wired command
+  awk '
+    {
+      if (match($0, /"[A-Za-z]+"[[:space:]]*:[[:space:]]*\[/)) {
+        k = substr($0, RSTART + 1); sub(/".*/, "", k)
+        if (k != "hooks") { ev = k; matcher = "" }
+      }
+      if (match($0, /"matcher"[[:space:]]*:[[:space:]]*"[^"]*"/)) {
+        m = substr($0, RSTART, RLENGTH)
+        sub(/^"matcher"[[:space:]]*:[[:space:]]*"/, "", m); sub(/"$/, "", m)
+        matcher = m
+      }
+      if (match($0, /hooks\/[A-Za-z0-9_-]+\.sh/)) {
+        h = substr($0, RSTART, RLENGTH); sub(/^hooks\//, "", h)
+        printf "%s\t%s\t%s\n", ev, matcher, h
+      }
+    }' "$1"
+}
+
+# a12_declares HOOKFILE -> "EVENT<TAB>alt alt …", read off the header line every
+# hook in this directory already carries: `# <Event> hook (matcher: A / B).`
+a12_declares() {
+  # Two forms, in this order. A hook with no matcher at all (SessionEnd) is legal
+  # and gets its event checked and nothing else; the second expression is what
+  # reads it, and it must not also swallow the first form — it cannot, because
+  # sed applies them in sequence to a line the first one has already rewritten.
+  sed -n '1,4p' "$1" | sed -n \
+    's/^#[[:space:]]*\([A-Za-z]*\)[[:space:]]hook[[:space:]]*(matcher:[[:space:]]*\([^)]*\)).*/\1\t\2/p;
+     s/^#[[:space:]]*\([A-Za-z]*\)[[:space:]]hook[.,[:space:]].*/\1\t/p' | head -1
+}
+
+A12_CHECKABLE=0
+A12_PROSE=""
+for b in $A12_WIRED; do
+  decl="$(a12_declares "$TEMPLATES/hooks/$b")"
+  want_ev="${decl%%	*}"
+  want_alts="$(printf '%s' "${decl#*	}" | tr '/' ' ' | tr -s ' ')"
+  if [ -z "$want_ev" ]; then
+    fail "A12.8 · $b declares no event in its header — nothing states what this hook needs to be wired to, so nothing can check it"
+    continue
+  fi
+  # A matcher written as prose rather than as tool names cannot be compared to a
+  # matcher string. Named out loud rather than skipped in silence: a check that
+  # quietly drops its awkward members is how a gate ends up guarding the easy half.
+  plain=yes
+  for alt in $want_alts; do
+    case "$alt" in *[!A-Za-z0-9_]*|"") plain=no ;; esac
+  done
+  if [ -n "$want_alts" ] && [ "$plain" = "no" ]; then
+    A12_PROSE="$A12_PROSE $b"
+  fi
+  [ "$plain" = "yes" ] && [ -n "$want_alts" ] && A12_CHECKABLE=$((A12_CHECKABLE+1))
+  for w in $A12_WIRINGS; do
+    wrel="${w#"$REPO"/}"
+    got="$(a12_placements "$w" | awk -F'\t' -v h="$b" '$3 == h {print $1 "\t" $2; exit}')"
+    [ -n "$got" ] || continue     # not named at all — the loop above already failed it
+    got_ev="${got%%	*}"
+    got_matcher="${got#*	}"
+    if [ "$got_ev" != "$want_ev" ]; then
+      fail "A12.8 · $b asks for $want_ev and $wrel wires it under $got_ev — it will fire on the wrong event, or never"
+      continue
+    fi
+    if [ -z "$want_alts" ] || [ "$plain" = "no" ]; then
+      # Reported rather than passed over in silence: its event WAS checked, and
+      # saying which half ran is the difference between a gap and a blind spot.
+      pass "A12.8 · $b is wired under $got_ev in $wrel, the event it declares (no comparable matcher declared)"
+      continue
+    fi
+    missing=""
+    for alt in $want_alts; do
+      case "|$got_matcher|" in
+        *"|$alt|"*) ;;
+        *) missing="$missing $alt" ;;
+      esac
+    done
+    if [ -z "$missing" ]; then
+      pass "A12.8 · $b is wired under $got_ev/$got_matcher in $wrel, covering the matcher it declares"
+    else
+      fail "A12.8 · $b declares it guards [$want_alts] and $wrel wires it under $got_ev/$got_matcher — missing:$missing. It installs, it is listed as present, and it never sees the tool it exists to guard"
+    fi
+  done
+done
+# Positive control, and it is the one that matters most here: if the header
+# parser stops matching, every hook falls into the un-checkable bucket and this
+# whole half passes by having found nothing to compare.
+if [ "$A12_CHECKABLE" -ge 2 ]; then
+  pass "A12.8 · $A12_CHECKABLE hook header(s) declare a matcher this can check against the wiring"
+else
+  fail "A12.8 · only $A12_CHECKABLE hook header(s) parsed into a checkable matcher — the header parser is broken, not the wiring"
+fi
+[ -n "$A12_PROSE" ] && pass "A12.8 · matcher declared as prose, event checked but alternatives not comparable:$A12_PROSE"
 fi
 
 # ================================================================== N — next-steps

@@ -431,7 +431,7 @@ preflight() {
       PY="$cand"; break
     fi
   done
-  [[ -n "$PY" ]] || die "python 3.7 or newer is required, and none was found. This installer needs it, and so do all six guardrail hooks."
+  [[ -n "$PY" ]] || die "python 3.7 or newer is required, and none was found. This installer needs it, and so do all seven guardrail hooks."
 
   [[ -f "$LIB" ]]       || die "install-lib.py is not next to this script. Run ./install.sh from inside the folder you cloned."
   [[ -d "$TEMPLATES" ]] || die "the templates/ folder is not next to this script. Run ./install.sh from inside the folder you cloned."
@@ -1193,6 +1193,17 @@ hooks_warning_screen() {
   say "  until you say that repo is allowed. If it tries, it is refused and you"
   say "  see a message saying the repo is not in your allowlist."
   printf '\n'
+  # This one is NOT a hard-to-undo command, so it sits outside the framing above and
+  # has to be named separately. It is also the most frequently hit of the set: it
+  # fires on ordinary, safe, wanted commands, and a user who met the guardrails
+  # through the paragraph above would read it as the hooks malfunctioning.
+  say "  And when Claude asks to run something with a long time limit — longer"
+  say "  than the two minutes it gets by default — it has to say how long it"
+  say "  expects that command to take. If it does not, the command is refused"
+  say "  and it is told to ask again with an estimate. This one is not about"
+  say "  danger: it is so a slow run can be told apart from a stuck one. It"
+  say "  fires on ordinary commands, and nothing you type yourself is affected."
+  printf '\n'
   printf '  %sWhat does NOT change:%s\n\n' "$BOLD" "$RESET"
   say "  Your own  git push , typed by you in your own terminal, is untouched."
   say "  These hooks only ever see commands that Claude runs. They cannot see,"
@@ -1215,9 +1226,9 @@ hooks_warning_screen() {
   note "about yet answers no to both questions, which is the safe answer. You"
   note "add a line the first time a project actually needs one."
   printf '\n'
-  note "Two things stay blocked everywhere, and no line in that file turns them"
-  note "back on: 'git add -A' / 'git add .', and writing into .claude/, .serena,"
-  note ".forgetful or MEMORY.md."
+  note "Three things stay blocked everywhere, and no line in that file turns them"
+  note "back on: 'git add -A' / 'git add .', writing into .claude/, .serena,"
+  note ".forgetful or MEMORY.md, and a long time limit with no estimate behind it."
   printf '\n'
   pause "Press Enter when you have read this"
 }
@@ -2010,12 +2021,24 @@ PY
   if [[ -n "${hooks_installed// /}" ]]; then
     heading "2. Are the guardrails switched on? (read back from settings.json)"
     # shellcheck disable=SC2086
-    pb verify-wiring "$SETTINGS" $hooks_installed > "$WORK/wiring-check.json"
+    pb verify-wiring "$SETTINGS" "$HOOK_SNIPPET" $hooks_installed > "$WORK/wiring-check.json"
     py - "$WORK/wiring-check.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 for h in d.get("wired", []):
     print("      wired    %s" % h)
+# MISWIRED is not a shade of UNWIRED. The hook IS in settings.json, so re-running the
+# installer will not fix it — the merge sees the command already present. It has been
+# moved to an event or a matcher where the tool calls it exists to judge never reach
+# it, which reads as working and guards nothing, so it says what is missing by name.
+for m in d.get("miswired", []):
+    print("      MISWIRED %s" % m["hook"])
+    print("                 not wired for: %s" % ", ".join(m["missing"]))
+    print("                 found under:   %s" % ", ".join(m["found"]))
+    print("                 fix: open settings.json and move that command back into a")
+    print("                      PreToolUse block whose matcher covers the tools above.")
+    print("                      Re-running this installer will NOT do it — the merge")
+    print("                      sees the command already there and leaves it alone.")
 for h in d.get("unwired", []):
     print("      UNWIRED  %s" % h)
 if d.get("error"):

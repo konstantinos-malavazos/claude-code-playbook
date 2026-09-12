@@ -24,7 +24,7 @@ block() { echo "BLOCKED by block-secret-staging: $1" >&2; exit 2; }
 # python and not jq or sed, why 127 is the same class as success, why a WindowsApps
 # python3 goes to the END of the list and is never dropped, and why nothing is probed
 # until we are refusing anyway) is in the notes there. The code below is byte-identical in
-# all six hooks and in test-hooks.sh. This hook needs one filter, so it has no `parse`
+# all seven hooks and in test-hooks.sh. This hook needs one filter, so it has no `parse`
 # helper.
 PY_LIST=()
 PY_LAST=()

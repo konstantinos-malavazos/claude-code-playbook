@@ -66,7 +66,7 @@ it has sat.
 |---|---|
 | `make:<layer>` | `/build-chart-ticket <KEY>#<NN>`. It guards, implements with the one specialist the label names, and hands back a draft resolution comment. It does not close. You do |
 | `grilling` | **you** run it, here, with the `grilling` skill. The human decides. An agent that answers its own grilling question has broken the ticket, not finished it |
-| `research` | one background agent, with the `research` skill's discipline in its prompt. Findings to the chart's `research/` folder. **Claim it to the agent as you dispatch**, then carry on while it runs |
+| `research` | one background agent, with the `research` skill's discipline in its prompt and **its role stated in one line** — a cold searcher on this one question. That pair is the persona; no template is written for it. Findings to the chart's `research/` folder. **Claim it to the agent as you dispatch**, then carry on while it runs — and **check on it at each multiple of its stated expectation** |
 | `task` | the human does it — an account, an access grant, a file moved. Done inside this session? Record what they report and what it now unblocks. **Still outstanding when the session ends? Claim it to them** and comment what was asked and when |
 
 **Claiming a handed-off ticket is not bookkeeping politeness. It is what lets the map

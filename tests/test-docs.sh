@@ -9,6 +9,8 @@
 #   D-D  the README layout tree names every top-level entry
 #   D-E  the two copies of the placeholder acceptance grep agree, and
 #        /adapt-to-stack names every placeholder its templates carry
+#   D-F  the shim rule is linked by its real anchor, and the two docs sentences
+#        that already name a dispatch's role and skill stay that way
 #
 #   bash tests/test-docs.sh              # all sections
 #   bash tests/test-docs.sh D-B D-D      # only these
@@ -667,6 +669,119 @@ if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
   while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
 else
   pass "the two acceptance greps agree, and the skill names every placeholder its templates carry"
+fi
+fi
+
+# ---------------------------------------------------------------- D-F
+# Two jobs, both from #148, and they are here rather than in tests/test-wiring.sh
+# because both need a reader this file already owns.
+#
+#   1. The shim rule (#146) is stated in exactly one place and everything else
+#      LINKS to it. D-A already proves every anchor resolves; what it cannot say
+#      is that anybody links to this one at all, or that a link into that file
+#      goes to the shim rule rather than to some other heading in it. Before this
+#      ticket NOTHING in the repo linked to templates/hooks/README.md by anchor,
+#      so "every link uses the real anchor" was true of nobody.
+#
+#   2. Two sentences in docs/ that were ALREADY CORRECT are pinned. This is not a
+#      drift fix and must not be read as one: both name the role and the skill,
+#      which is exactly what the persona rule asks for, and they got there before
+#      the rule existed. Correct-but-unguarded prose is one reword away from
+#      being wrong prose, and nothing would have said so.
+#
+# THE FENCED-BLOCK TRAP, and it is the reason one of these reads the file raw.
+# docs/solo/02-the-kill-gate.md's two sentences sit inside an ASCII diagram whose
+# fence opens well above them, and strip_fences() blanks that block by design —
+# a picture of markdown is not markdown. An assertion built on the shared reader
+# would therefore be red FOREVER, for a reason that reads exactly like a real
+# failure. It reads the raw file. docs/shared/07-the-flows.md's sentence is an
+# ordinary table row and needs nothing special.
+#
+# Catches: a link to the shim rule that points at a heading that is not it, a
+# repo where nothing links to it at all, and a reword of either docs sentence
+# that quietly drops the role or the skill from a dispatch.
+if want D-F; then
+banner "D-F · the shim rule is linked by its real anchor, and two already-correct docs sentences are pinned"
+DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
+import os, re, importlib.util
+spec = importlib.util.spec_from_file_location(
+    "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+OWNER  = "templates/hooks/README.md"
+ANCHOR = "do-not-kill-a-slow-run-on-windows"
+
+owner_anchors = R.anchors(R.read(OWNER))
+print("OWNERANCHOR %d" % (1 if ANCHOR in owner_anchors else 0))
+
+LINK = re.compile(r"\(([^()\s]*hooks/README\.md)#([^()\s]*)\)")
+links = []
+for rel in R.tracked(".md"):
+    for n, line in enumerate(R.strip_fences(R.read(rel)).splitlines(), 1):
+        for m in LINK.finditer(line):
+            links.append((rel, n, m.group(2), line))
+print("SHIMLINKS %d" % len(links))
+# That file has other headings and linking to one of them is perfectly ordinary,
+# so a fragment that is not the shim anchor is only wrong when the line it sits
+# on is TALKING ABOUT the shim rule. That is the near miss worth catching: a
+# pointer at the section heading above the rule, which resolves, reads right,
+# and lands the reader somewhere the rule is not.
+SUBJECT = re.compile(r"kill", re.I), re.compile(r"slow", re.I)
+for rel, n, frag, line in links:
+    if frag != ANCHOR:
+        if all(p.search(line) for p in SUBJECT):
+            print("BAD %s:%d  is about killing a slow run and links into %s by #%s — the "
+                  "shim rule's anchor is #%s, and the heading above it is not the rule"
+                  % (rel, n, OWNER, frag, ANCHOR))
+    elif frag not in owner_anchors:
+        print("BAD %s:%d  links to #%s and %s has no such heading — the anchor was "
+              "written, the heading was not" % (rel, n, frag, OWNER))
+
+# ---- the two pins, both read RAW ----------------------------------------
+# Counted rather than merely found: the kill gate names the dispatch twice, once
+# per search, and losing one of the two is the reword this pin exists to catch.
+KILLGATE = "docs/solo/02-the-kill-gate.md"
+raw = R.read(KILLGATE)
+print("COLDSUBS %d" % raw.count("COLD /research subagent"))
+# Recorded, not asserted: if this ever prints 0 the diagram was unfenced and the
+# raw read above stopped being necessary. That is a simplification, not a defect.
+print("FENCED %d" % (0 if "COLD /research subagent" in R.strip_fences(raw) else 1))
+
+FLOWS = "docs/shared/07-the-flows.md"
+print("TWOCOLD %d" % R.read(FLOWS).count("two cold search subagents"))
+PYEOF
+sed -n 's/^FENCED 1/           note: the kill gate sentences are inside a fenced diagram, so that pin reads the raw file/p' "$REPO/tests/.docs-out"
+D_F_OWNER="$(sed -n 's/^OWNERANCHOR //p' "$REPO/tests/.docs-out")"
+D_F_LINKS="$(sed -n 's/^SHIMLINKS //p' "$REPO/tests/.docs-out")"
+if [ "${D_F_OWNER:-0}" = "1" ]; then
+  pass "D-F · templates/hooks/README.md offers the shim rule's anchor"
+else
+  fail "D-F · templates/hooks/README.md has no heading yielding #do-not-kill-a-slow-run-on-windows — every link to the rule is pointing at nothing"
+fi
+# Positive control: with no links to check, "every link uses the real anchor" is
+# true of an empty set and this section would pass by having nothing to judge.
+if [ "${D_F_LINKS:-0}" -ge 1 ]; then
+  pass "D-F · $D_F_LINKS link(s) into templates/hooks/README.md by anchor to check"
+else
+  fail "D-F · nothing in the repo links into templates/hooks/README.md by anchor — the rule is stated once and referenced by nobody, which is how the second copy gets written"
+fi
+D_F_COLD="$(sed -n 's/^COLDSUBS //p' "$REPO/tests/.docs-out")"
+# PIN, not a drift fix. This sentence is already correct and always has been.
+if [ "${D_F_COLD:-0}" = "2" ]; then
+  pass "D-F · docs/solo/02-the-kill-gate.md still names both searches as a COLD /research subagent"
+else
+  fail "D-F · docs/solo/02-the-kill-gate.md names a COLD /research subagent ${D_F_COLD:-0} time(s), expected 2 — a dispatch in the docs lost the role or the skill that types it"
+fi
+D_F_TWO="$(sed -n 's/^TWOCOLD //p' "$REPO/tests/.docs-out")"
+if [ "${D_F_TWO:-0}" -ge 1 ]; then
+  pass "D-F · docs/shared/07-the-flows.md still calls the pitch searches two cold search subagents"
+else
+  fail "D-F · docs/shared/07-the-flows.md no longer calls the pitch searches two cold search subagents — the flows table stopped saying who those agents are"
+fi
+if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
+  while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
+else
+  pass "D-F · every link to the shim rule uses its real anchor"
 fi
 fi
 

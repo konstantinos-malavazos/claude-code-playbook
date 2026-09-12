@@ -55,7 +55,7 @@ blind to exactly one failure, so the answer is layered rather than picked:
 | **Fail closed** | the hook exits **2** when it cannot parse | the script never running at all |
 | Check the wiring at setup | run a hook live and confirm it blocks | anything that changes afterwards |
 
-**The four blocking hooks exit `2` when they cannot read their payload**: no parser on
+**The five blocking hooks exit `2` when they cannot read their payload**: no parser on
 `PATH`, nothing on `PATH` that turns out to be a working python, or a payload that will
 not parse. This matters because of the box above: Claude
 Code treats every exit code other than `2` as a *non-blocking* error and runs the tool
@@ -90,7 +90,7 @@ re-opens the multi-line flatten bug this directory has already shipped once.
 bash templates/hooks/test-hooks.sh
 ```
 
-It covers all four blocking hooks: what must be blocked, what must be allowed, `Bash` and
+It covers all five blocking hooks: what must be blocked, what must be allowed, `Bash` and
 `PowerShell` payloads, multi-line commands, LF **and** CRLF line endings, and **both sides
 of every conditional line**: a listed repo and an unlisted one, `.claude/agents/` and
 `.claude/handoffs/`.
@@ -109,6 +109,8 @@ ticket or two. What does not rot is the command that produces it, so that is wha
 written down — **`time bash templates/hooks/test-hooks.sh`**, the same command the before
 and after figures were taken with, on a Windows laptop. Run it and believe your own number
 over this sentence.
+
+### Do not kill a slow run on Windows
 
 **Do not kill it because it looks stuck. It is slow, not stuck** — and killing it is how
 you manufacture the thing you thought you were seeing. Git for Windows' `bin/bash.exe`
@@ -204,10 +206,11 @@ where the bug goes to live.**
 | `block-mcp-writes.sh` | PreToolUse · mcp (tracker, git-host) | read-only veto — only get/list/search pass | ✓ | ✓ |
 | `block-infra-staging.sh` | PreToolUse · Bash\|PowerShell | sort AI-infra paths: `.claude/agents\|skills` through, `CLAUDE.md` if allowlisted, the rest blocked | ✓ | ✓ |
 | `block-secret-staging.sh` | PreToolUse · Bash\|PowerShell | block staging `.env`, key files and credential-shaped names; block token literals anywhere | ✓ | ✓ |
+| `block-unexplained-long-hold.sh` | PreToolUse · Bash\|PowerShell | block a call asking for more than the tool's default timeout with no expected duration in its `description` | ✓ | ✓ |
 | `cleanup-handoffs.sh` | SessionEnd | delete the ephemeral handoff dirs | ✓ | ✓ |
 | `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited | ✓ | ✓ |
 | `repo-allowlist.sample` | — | the per-repo answers the two git hooks read; install **empty** at `~/.claude/repo-allowlist` | ✓ | |
-| `test-hooks.sh` | — | regression suite for the four blocking hooks; run it, don't read it | ✓ | ✓ |
+| `test-hooks.sh` | — | regression suite for the five blocking hooks; run it, don't read it | ✓ | ✓ |
 
 The **solo** / **team** columns say which entrance needs each template. The allowlist is the
 first row to claim one column: on the team path the driver does not own the repo, so both
@@ -258,7 +261,15 @@ git guardrail matched only on `Bash` therefore stops nothing the moment the mode
 for PowerShell. That is the worst failure shape a guardrail has, since it keeps reporting
 success. The shipped matcher is `Bash|PowerShell` for that reason.
 
-The three blocking scripts parse `.tool_input.command`, which both tools populate, so they
+**`block-unexplained-long-hold.sh` reads a different field and ships on the same matcher.**
+It judges `.tool_input.timeout`, which `PowerShell` carries with the same default and the
+same maximum as `Bash`, so it is matched on `Bash|PowerShell` for exactly the reason above:
+scoped to `Bash` alone it would stop nothing the moment the model reached for the other
+shell, while still reporting success. Nothing in that script reads the tool name to decide
+anything — it names the tool in the refusal, so the reader knows which call to re-issue,
+and that is all.
+
+The three blocking scripts that read the command parse `.tool_input.command`, which both tools populate, so they
 work unchanged for either. **Their command patterns are POSIX-flavoured**, though: verify
 the PowerShell path in a scratch repo rather than assuming, since `git push` reads the same
 but a piped or `&&`-chained invocation may not.

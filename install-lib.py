@@ -1129,29 +1129,81 @@ def hook_wiring(snippet_path, installed_hooks):
     return result
 
 
-def verify_wiring(settings_path, installed_hooks):
-    """Re-read settings.json and report which hooks are genuinely referenced.
+def _hook_placements(doc):
+    """hook name -> [(event, matcher alternatives, matcher as written)] in a hooks doc.
 
-    Installing a hook is not wiring a hook. The installer may only call a hook ACTIVE
-    after this returns it as wired — test-hooks.sh never sees settings.json and so
-    proves nothing about wiring.
+    A matcher is a `|`-separated list of tool names (templates/hooks/README.md), so it
+    is compared as a SET of alternatives rather than as a string: a user who widened
+    `Bash|PowerShell` to `Bash|PowerShell|Foo` still covers everything the shipped
+    snippet asked for, and must not be reported as broken for doing so. A block with no
+    matcher at all (SessionEnd) yields the single alternative "", which compares equal
+    to another matcher-less block and to nothing else.
     """
+    found = {}
+    for event, blocks in (doc.get("hooks") or {}).items():
+        for block in blocks or []:
+            text = block.get("matcher") or ""
+            alts = frozenset(a.strip() for a in text.split("|"))
+            for h in block.get("hooks", []) or []:
+                m = re.search(r"([A-Za-z0-9_-]+)\.sh$", h.get("command", ""))
+                if m:
+                    found.setdefault(m.group(1), []).append((event, alts, text))
+    return found
+
+
+def verify_wiring(settings_path, snippet_path, installed_hooks):
+    """Re-read settings.json and report which hooks are genuinely wired.
+
+    Installing a hook is not wiring a hook, and NAMING a hook is not wiring it either.
+    Wiring is the triple (event, matcher, command). A hook listed under an event it
+    never fires on, or under a matcher that does not cover the tools it exists to
+    judge, is referenced by settings.json and enforces nothing — and matching the
+    filename alone, which is what this function used to do, reports exactly that
+    arrangement as `wired`. It is the failure shape templates/hooks/README.md calls the
+    worst one a guardrail has, because it keeps reporting success. It was found by
+    review: moving a hook into the `mcp__*` array left this readback printing `wired`.
+
+    The SHIPPED SNIPPET is the expectation, so nothing here hardcodes a hook's intended
+    matcher and a future hook needs no edit: every (event, matcher) the snippet wires a
+    hook under must be covered in settings.json. `miswired` is a separate answer from
+    `unwired` because the remedy differs — an unwired hook was never merged, a miswired
+    one was merged and then moved, and re-running the installer fixes only the first.
+
+    test-hooks.sh still proves nothing about any of this; it runs the scripts directly
+    and never reads settings.json.
+    """
+    empty = {"wired": [], "miswired": [], "unwired": sorted(installed_hooks)}
     try:
         data = load_json(settings_path)
     except json.JSONDecodeError:
-        return {"wired": [], "unwired": sorted(installed_hooks),
-                "error": "settings.json is not valid JSON"}
-    seen = set()
-    for _event, blocks in (data.get("hooks") or {}).items():
-        for block in blocks or []:
-            for h in block.get("hooks", []) or []:
-                cmd = h.get("command", "")
-                m = re.search(r"([A-Za-z0-9_-]+)\.sh$", cmd)
-                if m:
-                    seen.add(m.group(1))
-    wired = sorted(h for h in installed_hooks if h in seen)
-    return {"wired": wired,
-            "unwired": sorted(h for h in installed_hooks if h not in seen)}
+        return dict(empty, error="settings.json is not valid JSON")
+    try:
+        snippet = load_json(snippet_path)
+    except json.JSONDecodeError:
+        return dict(empty, error="the shipped hook snippet is not valid JSON")
+
+    want, have = _hook_placements(snippet), _hook_placements(data)
+
+    def shown(p):
+        return "%s/%s" % (p[0], p[2] or "(no matcher)")
+
+    wired, miswired, unwired = [], [], []
+    for name in sorted(installed_hooks):
+        actual = have.get(name, [])
+        if not actual:
+            unwired.append(name)
+            continue
+        # An expectation is met when SOME installed block fires on the same event and
+        # its alternatives are a superset of the ones the snippet asked for.
+        missing = [p for p in want.get(name, [])
+                   if not any(a[0] == p[0] and p[1] <= a[1] for a in actual)]
+        if missing:
+            miswired.append({"hook": name,
+                             "missing": sorted({shown(p) for p in missing}),
+                             "found": sorted({shown(a) for a in actual})})
+        else:
+            wired.append(name)
+    return {"wired": wired, "miswired": miswired, "unwired": unwired}
 
 
 # ---------------------------------------------------------------------------
@@ -1410,7 +1462,7 @@ def main(argv):
     elif cmd == "hook-wiring":
         out(hook_wiring(a[0], a[1:]))
     elif cmd == "verify-wiring":
-        out(verify_wiring(a[0], a[1:]))
+        out(verify_wiring(a[0], a[1], a[2:]))
     elif cmd == "plan-install":
         units = json.loads(read(a[0]))
         manifest = load_json(a[1])

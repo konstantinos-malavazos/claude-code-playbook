@@ -16,7 +16,7 @@ your layer specialists for the implementer steps, and your git host for "MR/PR".
 | 3 | `planner` | Serena read + branch creation; **no memory writes** | `planner.md` — plan, track allocation, final commit message, branch |
 | 3b | grilling gate | (human) | answers or **deferred** open questions |
 | 4 | layer specialists (in chain order) | **Serena edit** + build/test in their repo | code + `<layer>.md` handoff |
-| 5 | `repo-reviewer` | Serena read, run tests; **comments only** | `repo-reviewer.md` — provisional verdict + MR description + re-pass weights |
+| 5 | `repo-reviewer` | Serena read, run tests; **comments only**, delta-scoped | `repo-reviewer.md` — provisional verdict + MR description + re-pass weights |
 | 6 | `release-reviewer` | cross-repo Serena read; **comments only** | appended findings → final verdict |
 | 7 | orchestrator + human | — | consolidated memory; agent pushes the branch where allowlisted, human opens the MR/PR |
 
@@ -96,6 +96,15 @@ Re-fetch the ticket, walk the diff **in the home repo**, validate against accept
 criteria, run the tests, check the commit convention (including one-commit-per-branch),
 draft a **provisional** verdict + MR/PR description, then dispatch `@release-reviewer`.
 Comments only — never edits code.
+
+**The diff is scoped to the delta, at a depth the ticket already set.** Review covers what
+changed since the reviewer's own last verdict — on a first pass that's the whole branch
+diff — rather than re-walking what already passed. Depth reuses the `light`/`heavy`
+classification already sitting on the plan, from the `dispatch-weight` skill; the reviewer
+does not classify a second time. Where a claim can be checked instead of reasoned about —
+the tests, the diagnostics, the commit count — it runs the check and reports what came
+back, rather than reading the diff and inferring. The rule lives once, in
+[`templates/agents/repo-reviewer.md`](../../templates/agents/repo-reviewer.md).
 
 **A `REQUEST CHANGES` verdict carries the re-pass weight.** The reviewer has just read the
 diff and written the findings, so it is the agent holding the evidence for how heavy the fix

@@ -105,7 +105,7 @@ Each iteration is a **fresh context**. Repeat until step 5 halts you.
 | `Type:` | What happens |
 |---|---|
 | `grilling` | [the two-agent conversation](#4-answering-a-grilling) |
-| `research` | one background subagent with the `research` skill's discipline in its prompt, findings to `research/`. **Claim it to the agent as you dispatch**, then carry on. It runs in its own context and does not spend an iteration |
+| `research` | one background subagent with the `research` skill's discipline in its prompt and **its role stated in one line** — a cold searcher on this one question. That pair is the persona; no template is written for it. Findings to `research/`. **Claim it to the agent as you dispatch**, then carry on, **checking on it at each multiple of its stated expectation**. It runs in its own context and does not spend an iteration |
 | `task` | **claim it to the owner**, comment what is being asked and when, move on. It does **not** halt — claiming is what takes it off the frontier so the walk continues past it |
 | `prototype` | **halt**, reason `prototype`. Reacting to something rough *is* the ticket |
 | `make:<layer>` | **halt**, reason `no-chain`. Stage 2 has no declared layer chain and no specialists — `/adapt-to-stack` runs a stage later, so there is nothing to dispatch to |

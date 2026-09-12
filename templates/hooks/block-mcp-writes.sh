@@ -12,7 +12,7 @@ block() { echo "BLOCKED by block-mcp-writes: $1" >&2; exit 2; }
 # python and not jq or sed, why 127 is the same class as success, why a WindowsApps
 # python3 goes to the END of the list and is never dropped, and why nothing is probed
 # until we are refusing anyway) is in the notes there. The code below is byte-identical in
-# all six hooks and in test-hooks.sh.
+# all seven hooks and in test-hooks.sh.
 PY_LIST=()
 PY_LAST=()
 # ONE command substitution, not one per candidate. A fork costs ~30ms on Windows and this

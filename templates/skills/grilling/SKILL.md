@@ -34,6 +34,12 @@ look up is not a decision, and spending a question on it is how a grilling loses
 the interview. Dispatch it and carry on: only the questions *downstream* of that fact wait
 for it. Everything else in the tree is still askable now.
 
+**State its role in one line as you dispatch it** — a searcher answering this one fact —
+alongside the `research` skill named above. That pair is the persona, and no agent template
+is written for it. **Carrying on is what makes checking yours**: come back to it at each
+multiple of the expectation you stated, or the downstream branch waits on an agent nobody
+is watching and the interview quietly stalls on a question it could have asked.
+
 ## The decision tree
 
 Map the plan as a tree: **every decision branches into the decisions that hang off it.**

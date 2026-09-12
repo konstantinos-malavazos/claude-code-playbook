@@ -29,12 +29,16 @@
 # Anything that is not exactly `yes` is no.
 # ---------------------------------------------------------------------------------
 #
-# Two things this file cannot switch off, whatever it says:
+# Three things this file cannot switch off, whatever it says:
 #
 #   * `git add -A` / `git add .` stays blocked everywhere. The accidental sweep is the
 #     case the guardrail was really written for.
 #   * `.claude/` (except `agents/` and `skills/`), `.serena`, `.forgetful` and MEMORY.md
 #     stay blocked everywhere. Those are your machine, not the project.
+#   * A command asking for a time limit longer than the default, with no estimate of how
+#     long it should take, stays blocked everywhere. Unlike the two above this is not
+#     about damage — it is so a slow run can be told apart from a stuck one — and the
+#     refusal says how to re-issue the same command so it goes through.
 #
 # See docs/solo/07-guardrails-when-solo.md for why each answer is the shape it is.
 #

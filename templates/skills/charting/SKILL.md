@@ -313,7 +313,12 @@ the answer is stop, but say which situation you are in.
    pass** — issues need ids before they can reference each other.
 5. **Fire the research subagents** for every `research` ticket, in parallel, but **name
    the list and get the human's nod first**, since each one spends a background context.
-   Claim each to the agent as you dispatch it.
+   Claim each to the agent as you dispatch it. **Each dispatch states a persona**: the role
+   in one line — a cold searcher answering this one ticket's question — plus the skill that
+   supplies its discipline, `research`. That pair is the persona, and it is why no agent
+   template exists for this dispatch to prefer. **Then check on them at each multiple of
+   the expectation you stated** — you are told when one finishes and never while it is
+   silent, so an agent that died and one still working look the same until you look.
 6. **Stop.** Charting hand-resolves nothing. Sizing the map is one session's work.
 
 ### Work through the map
