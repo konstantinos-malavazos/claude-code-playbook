@@ -54,8 +54,20 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
    re-fetch the ticket (read-only) for the acceptance criteria.
 2. Load the `review-guidelines` skill (the house standard + severity vocabulary
    `[BLOCKER]/[MAJOR]/[MINOR]/[NIT]`).
-3. Walk the diff **in the home repo**, resolving every changed symbol through Serena as
-   above. Check:
+3. Walk the diff **in the home repo** — the delta, at the depth already set for it, and by
+   running what can be run.
+   - **Scope to the delta.** Review what changed since your last verdict in
+     `repo-reviewer.md`; on a first pass that is the whole branch diff. Re-reading what you
+     already passed buries the part that is new.
+   - **Depth is proportional to the weight the work already carries** — `light` or `heavy`,
+     the `dispatch-weight` skill's own words (step 7). Reuse that answer; do not classify
+     again and never invent a second scale. `heavy` earns a full symbol resolution on every
+     changed symbol; `light` earns it wherever the change reaches past the file it sits in.
+   - **Prefer running a check to reasoning about one.** Where a claim can be executed — the
+     tests, the diagnostics, the commit count — execute it and report what it printed. A
+     test you reasoned about is not a test that passed.
+
+   Resolve every changed symbol through Serena as above. Check:
    - each acceptance criterion is met,
    - correctness, security, and the standards rules,
    - callers/implementations of every changed symbol still hold

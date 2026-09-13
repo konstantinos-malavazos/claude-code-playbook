@@ -219,6 +219,8 @@ Copy the hooks you want from `templates/hooks/` into `~/.claude/hooks/` and wire
 - `block-infra-staging.sh` — sorts `.claude/`: `agents/` and `skills/` through, `CLAUDE.md`
   if allowlisted, the rest blocked
 - `block-secret-staging.sh` — no `.env`, key files or credential-shaped names
+- `block-unexplained-long-hold.sh` — no `Bash` or `PowerShell` call asking for more than the default
+  timeout unless its `description` says how long you expect it to take
 - `cleanup-handoffs.sh` — wipe ephemeral handoffs at session end
 
 **Also create `~/.claude/repo-allowlist`, empty.** Copy the comments out of

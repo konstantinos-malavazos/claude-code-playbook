@@ -24,10 +24,10 @@ block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
 # the approval durable, so one keystroke turns the guard off for good. A prompt is not a
 # guardrail; it is trust with an extra keystroke. See README.md.
 # --- CHOOSING THE INTERPRETER, AND SAYING WHICH ONE -----------------------------
-# DUPLICATED VERBATIM into all six hooks and into test-hooks.sh, on purpose, exactly as
+# DUPLICATED VERBATIM into all seven hooks and into test-hooks.sh, on purpose, exactly as
 # the allowlist lookup and the argument tokenizer below are. A shared file cannot work
 # here: install-lib.py discovers every templates/hooks/*.sh and installs each one as a
-# hook, so a helper file is either a phantom seventh hook or never installed at all — and
+# hook, so a helper file is either a phantom eighth hook or never installed at all — and
 # the hooks that ship are standalone copies in ~/.claude/hooks/ with nothing to source.
 #
 # ORDER, NEVER EXCLUSION. On Windows `command -v python3` usually resolves to the

@@ -89,10 +89,16 @@ The answer sets two things.
 ## Briefing a cold search
 
 Both searches are `/research` subagents. **Do not write new search-agent templates.** That
-skill exists and does exactly this.
+skill exists and does exactly this. **State the role in one line as you dispatch** — a cold
+searcher answering this one question — and that line plus the named skill is the whole
+persona. It is the reason this dispatch needs no template and never will.
 
 **They run cold, and that is the point.** A fresh subagent never heard the user's
 enthusiasm, so it cannot mirror it.
+
+**The interview carries on while they search, so you own checking on them** — at each
+multiple of the expectation you stated when you dispatched. A search that never came back
+is not a verdict of "nothing found", and questions 2 and 4 arm two of the three hard kills.
 
 > **Never tell a search agent how the user feels about the idea**, how excited they are,
 > what verdict you are leaning towards, or what you hope it finds. Give it the question,

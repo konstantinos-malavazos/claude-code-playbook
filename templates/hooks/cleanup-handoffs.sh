@@ -6,7 +6,7 @@ set -euo pipefail
 
 # python parses the payload, not jq — see block-dangerous-git.sh for why.
 #
-# THIS HOOK CANNOT FAIL CLOSED, and is not made to try. The four blocking hooks exit 2
+# THIS HOOK CANNOT FAIL CLOSED, and is not made to try. The five blocking hooks exit 2
 # when they cannot read their payload. This one is SessionEnd, where Claude Code ignores
 # the exit code entirely — there is no verdict to return, so exit 2 would be a number
 # nobody reads. The asymmetry with the blocking hooks is the harness's, not an oversight.
@@ -15,7 +15,7 @@ set -euo pipefail
 # cannot tell a resume from a real end, and deleting the handoffs the resume flow is
 # about to want is the expensive mistake. Leaving them costs a stale directory.
 #
-# THE INTERPRETER LIST IS BYTE-IDENTICAL to the one in the four blocking hooks and in
+# THE INTERPRETER LIST IS BYTE-IDENTICAL to the one in the five blocking hooks and in
 # test-hooks.sh — only what this hook DOES when none of them works differs, and that
 # asymmetry is the harness's, described above. Why a WindowsApps python3 goes to the END
 # of the list and is never dropped, and why nothing is probed until we are already giving

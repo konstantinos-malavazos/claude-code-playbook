@@ -29,6 +29,7 @@ GIT_HOOK=./block-dangerous-git.sh
 INFRA_HOOK=./block-infra-staging.sh
 SECRET_HOOK=./block-secret-staging.sh
 MCP_HOOK=./block-mcp-writes.sh
+HOLD_HOOK=./block-unexplained-long-hold.sh
 
 # --- python ---------------------------------------------------------------------
 # The hooks parse their payload with python, and so does this suite when it builds one.
@@ -36,7 +37,7 @@ MCP_HOOK=./block-mcp-writes.sh
 # SUPPOSED to block, which is a case the suite tests rather than papers over. What it does
 # shim, at the bottom of this file, is the parser that is PRESENT and is not python.
 #
-# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in all six hooks, and it has to be. If
+# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in all seven hooks, and it has to be. If
 # the suite picked its interpreter by a different rule from the hooks it tests, it would
 # be building payloads with one python and judging a hook that chose another — and the
 # case it would miss is exactly the one at the bottom of this file. Why a WindowsApps
@@ -183,6 +184,46 @@ run_msg() { # <script> <tool-name> <command> <expected-exit> <substring the mess
         printf '  FAIL [%s] exit=%s want=%s  expected the message to name %s\n' "$2" "$got" "$4" "$5"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
+    fi
+}
+
+# The tool run_hold builds its payload for. `Bash` unless a section says otherwise — the
+# PowerShell section flips it and flips it back. It is a variable rather than a parameter
+# because every case in a section shares it, and a per-case argument that is the same on
+# forty lines is a column of noise nobody reads.
+HOLD_TOOL=Bash
+
+run_hold() { # <label> <timeout-literal|OMIT> <description> <expected-exit> [substring the message must contain]
+    # block-unexplained-long-hold.sh reads `tool_input.timeout`, not `tool_input.command`,
+    # so none of the helpers above can build a payload for it. $2 is spliced into the JSON
+    # VERBATIM rather than being encoded, which is the only way a case can hand the hook a
+    # timeout that is not a number and see whether it fails closed on it. OMIT leaves the
+    # field out altogether — the "no timeout was asked for" case, which must be untouched.
+    local payload desc_json out got=0
+    desc_json=$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$3")
+    if [ "$2" = "OMIT" ]; then
+        printf -v payload '{"tool_name":"%s","cwd":%s,"tool_input":{"command":"bash tests/test-docs.sh","description":%s}}' \
+            "$HOLD_TOOL" "$HOOK_CWD_JSON" "$desc_json"
+    else
+        printf -v payload '{"tool_name":"%s","cwd":%s,"tool_input":{"command":"bash tests/test-docs.sh","description":%s,"timeout":%s}}' \
+            "$HOLD_TOOL" "$HOOK_CWD_JSON" "$desc_json" "$2"
+    fi
+    # stderr captured, stdout discarded — an exit code cannot tell a refusal that carries
+    # its remedy from one that just says no, and the remedy IS the behaviour under test.
+    out=$(printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$HOLD_HOOK" 2>&1 >/dev/null) || got=$?
+    ran=$((ran + 1))
+    if [ "$got" != "$4" ]; then
+        printf '  FAIL [%s/%s] exit=%s want=%s  timeout=%s desc=%s\n' "$HOLD_TOOL" "$1" "$got" "$4" "$2" "$3"
+        printf '       message was: %s\n' "$out"
+        fail=$((fail + 1))
+    elif [ -n "${5-}" ] && [ "${out#*"$5"}" = "$out" ]; then
+        printf '  FAIL [%s/%s] exit=%s (correct) but the message never named %s\n' "$HOLD_TOOL" "$1" "$got" "$5"
+        printf '       message was: %s\n' "$out"
+        fail=$((fail + 1))
+    elif [ -n "${5-}" ]; then
+        printf '  ok   [%s/%s] timeout=%s — refusal names %s\n' "$HOLD_TOOL" "$1" "$2" "$5"
+    else
+        printf '  ok   [%s/%s] timeout=%s\n' "$HOLD_TOOL" "$1" "$2"
     fi
 }
 
@@ -804,6 +845,90 @@ run $MCP_HOOK Bash                             "" 0
 # the case to exit 0, allowing the call on the strength of a name nobody read.
 run $MCP_HOOK "" "" 2
 
+echo "block-unexplained-long-hold.sh — must BLOCK (exit 2), a long hold with nothing said about it"
+# The gap this hook closes is NOT an unbounded hang. The Bash tool is already bounded, so
+# what is left is the LONG HOLD: a call reaching past the default and saying nothing about
+# why. Every case below asks for more than the default; they differ only in what the
+# description says, which is the whole judgement.
+run_hold "no description at all"   300000 ""                                  2
+run_hold "a description with no expectation" 300000 "run the regression suite" 2
+run_hold "a reason that is not a duration"   600000 "it is slow on Windows"    2
+# The boundary, both sides. One millisecond over the default is over the default; a hook
+# that only fires at some round number above it has an interval nobody can see.
+run_hold "one ms over the default" 120001 "run the regression suite"           2
+# A timeout that is not a number is a payload this hook could not judge, and an unjudged
+# call does not go — same rule as an unreadable payload.
+run_hold "a non-numeric timeout"   '"5 minutes"' "run the regression suite"    2
+# Past the tool's maximum the tool itself will refuse, so the remedy is not "state the
+# expectation" — it is "run it in the background". Different message, same exit code, and
+# only a message assertion can tell the two apart.
+run_hold "past the maximum"        900000 "run the regression suite; expect 12 minutes" 2 \
+    "goes to the BACKGROUND by design"
+
+echo "block-unexplained-long-hold.sh — the refusal must carry a remedy runnable from where it fired"
+# An exit code cannot tell a stop that can be acted on from one that strands the reader.
+# This repo has already shipped a hard stop whose remedy could not be run from the point
+# of the stop, so the remedy text is asserted, not assumed. The refusal also quotes the
+# convention verbatim: a hook that refuses in different words from the rule it enforces is
+# a second, undocumented rule.
+run_hold "the remedy is in the message" 300000 "" 2 \
+    "re-issue the SAME call with the expectation in its description"
+run_hold "the refusal quotes the rule"  300000 "" 2 \
+    "A call you expect to run long carries an explicit timeout"
+# The hook is matched on two tools, so the refusal has to say which one it is talking
+# about. "this call" is ambiguous in a transcript where both tools are in play, and the
+# reader acting on the remedy needs to know which call to re-issue.
+run_hold "the refusal names the tool"   300000 "" 2 "this Bash call"
+
+echo "block-unexplained-long-hold.sh — must ALLOW (exit 0)"
+# A guardrail that fires on a quick call is a guardrail nobody keeps. Everything at or
+# under the default is untouched, deliberately, whatever the description says.
+run_hold "exactly the default"        120000 ""                          0
+run_hold "well under the default"      60000 ""                          0
+run_hold "no timeout field at all"      OMIT ""                          0
+run_hold "no timeout, no description"   OMIT ""                          0
+# `null` is ABSENT, not unreadable, and the difference decides the verdict. The first cut
+# of this case expected a BLOCK on the fail-closed reasoning and was wrong: a null timeout
+# is a call that asked for no timeout, so blocking it would refuse an ordinary call in the
+# name of a long hold nobody requested. A timeout the hook genuinely cannot compare — the
+# string case above — still blocks. Kept as a case because the two look alike in a payload
+# and read as one rule until someone writes both down.
+run_hold "a null timeout"               null ""                          0
+# Over the default WITH the expectation stated: the case the rule exists to produce.
+run_hold "seconds stated"             300000 "run the hook suite; expect ~75s"        0
+run_hold "minutes stated"             480000 "full installer sweep; expect 6 minutes" 0
+run_hold "milliseconds stated"        300000 "fetch the index; expect 90000ms"        0
+run_hold "the estimate sits mid-sentence" 300000 "clone and build — I expect this to take about 4 min on this laptop" 0
+
+echo "block-unexplained-long-hold.sh — PowerShell is a SEPARATE tool and gets the same verdicts"
+# The shipped matcher is Bash|PowerShell. PowerShell carries a timeout of its own with the
+# same default and the same maximum, and on a Windows machine it can be the shell the model
+# reaches for first — so a guard matched on Bash alone stops nothing the moment it does.
+#
+# BE HONEST ABOUT WHAT THESE CASES CAN AND CANNOT PROVE. The suite invokes the script
+# directly and never sees settings.json, so NOTHING here can prove the matcher covers
+# PowerShell — that is this file's standing blind spot, stated at the top. What these cases
+# do prove is that the script REACHES THE SAME VERDICT on a PowerShell payload, which is the
+# half that would rot silently: a later edit keying any of the judgement off the tool name
+# would leave the matcher correct and the behaviour split, and only these lines would say so.
+# The tool-naming case below is the one that was genuinely red before the matcher landed.
+HOLD_TOOL=PowerShell
+run_hold "no description at all"         300000 ""                             2
+run_hold "a reason that is not a duration" 600000 "it is slow on Windows"      2
+run_hold "one ms over the default"       120001 "run the regression suite"     2
+run_hold "a non-numeric timeout"    '"5 minutes"' "run the regression suite"   2
+run_hold "past the maximum"              900000 "run the regression suite"     2
+run_hold "exactly the default"           120000 ""                             0
+run_hold "a null timeout"                  null ""                             0
+run_hold "no timeout field at all"         OMIT ""                             0
+run_hold "the estimate is stated"        300000 "the full sweep; expect 6 minutes" 0
+run_hold "the refusal names the tool"    300000 "" 2 "this PowerShell call"
+run_hold "the refusal quotes the rule"   300000 "" 2 \
+    "A call you expect to run long carries an explicit timeout"
+run_hold "the remedy is in the message"  300000 "" 2 \
+    "re-issue the SAME call with the expectation in its description"
+HOLD_TOOL=Bash
+
 echo "every blocking hook — an unreadable payload must BLOCK (exit 2)"
 # The other half of failing closed: the parser is present and the payload defeats it.
 # Same verdict as no parser at all, for the same reason — the hook did not find out what
@@ -812,6 +937,8 @@ run_raw $GIT_HOOK    "not JSON at all"          'not json at all'  2
 run_raw $INFRA_HOOK  "truncated JSON"           '{"tool_input":'   2
 run_raw $SECRET_HOOK "empty payload"            ''                 2
 run_raw $MCP_HOOK    "valid JSON, wrong shape"  '[]'               2
+run_raw $HOLD_HOOK   "not JSON (long hold)"     'timeout=300000'   2
+run_raw $HOLD_HOOK   "valid JSON, wrong shape (long hold)" '[]'    2
 
 echo "every blocking hook — no parser on PATH must BLOCK (exit 2)"
 # The layer no code inside a hook can test for itself: what happens when the thing the
@@ -844,6 +971,10 @@ else
     # Even a command the hook would have waved through is blocked: the point is that it
     # never found out which kind it was.
     run $GIT_HOOK    Bash "npm test"                      2
+    # Same shape for the long-hold hook, and the payload matters: `run` builds one with no
+    # `timeout` field at all, which with a parser present is an ALLOW. So the 2 here is
+    # entirely about not having found out what was being asked.
+    run $HOLD_HOOK   Bash "npm test"                      2
     HOOK_PATH="$PATH"
 fi
 

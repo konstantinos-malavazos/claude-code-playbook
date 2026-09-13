@@ -229,6 +229,48 @@ directory name. Same placeholder, opposite consequence:
   tools. An agent with the skill and without `<memory-write-tools>` reads the correct call
   shape and then silently cannot make the call, which is the same quiet failure as any other
   stripped tool name. Both are needed, and they are not substitutes.
+- **Every dispatch states a persona — who this agent is for this task.** A bare
+  `general-purpose` with no role named is not a dispatch, it is a guess, and nothing in the
+  handoff it returns reveals which one you got. The question *"what persona?"* has **three
+  answers, in this order**:
+  1. **A typed template in this directory fits — dispatch that.** Prefer the typed agent over
+     a role you write from scratch; it already carries its tool scope, its model, its effort
+     and its negative constraints.
+  2. **None fits and the role will recur across flows — add one here**, and it becomes
+     answer 1 for everyone after you.
+  3. **None fits and it will not recur — state the role in one line AND name the skill that
+     supplies its discipline.** That pair *is* the persona; no template is written for it.
+     This is the answer for a one-off search dispatch: the role line plus
+     [`../skills/research`](../skills/research/SKILL.md) types it completely, which is why
+     the flows that fire search subagents name that skill and why no `research` agent exists
+     in this directory to be preferred over it.
+- **A call you expect to run long carries an explicit timeout and, in the same breath, what
+  you expect *this call* to take.** Both together — a timeout with no expectation gives you
+  nothing to judge the wait against, and an expectation with no timeout is a wish. **The duty
+  attaches where the wait is real**: any call you expect to exceed the tool's default
+  timeout — a suite, a build, an installer, a fetch across the network. Quick calls are
+  deliberately untouched, because a rule that fires on `ls` is a rule nobody keeps and a
+  guardrail nobody keeps is worse than none. The tool is **already bounded**: it has a default
+  timeout and a maximum, both properties of the harness version, so read them off the tool
+  rather than from any sentence here. What is unbounded is the *unexplained long hold* — a
+  call asking for materially more than the default while saying nothing about why. Anything
+  you expect to run past the maximum goes to the **background by design**, decided before you
+  launch it and not after it appears to hang.
+  **Stating an expectation is not writing a runtime into a doc.** The estimate is yours, for
+  this one call, and it dies when the call returns. A second-count written into prose is the
+  opposite thing and stays refused: a runtime is a property of the machine that measured it,
+  so what a doc records is the command, not the number — see
+  [`../hooks/README.md`](../hooks/README.md), which is not contradicted by this bullet.
+- **Report an overrun at three times the stated expectation, or ten minutes, whichever comes
+  first.** A ratio with a floor: the ratio scales with the job, the floor catches the call
+  you expected to be instant. Check spawned work at each multiple of its stated expectation —
+  the harness notifies you on completion and never on silence. Never a per-script
+  second-count; the trigger is measured against your own estimate, so it survives a faster
+  machine and a slower suite without being rewritten.
+  **The required response is report-and-stop**: say what you expected, what has actually
+  elapsed, and what you are doing about it. Never wait it out, and never re-run it unchanged.
+  Report-and-stop is also literal about the process — on Windows, do not kill the slow run:
+  [`../hooks/README.md#do-not-kill-a-slow-run-on-windows`](../hooks/README.md#do-not-kill-a-slow-run-on-windows).
 
 ## Serena is mandatory, not preferred
 

@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# PostToolUse hook (matcher: Write / Edit / MultiEdit).
+# PostToolUse hook (matcher: Write / Edit / NotebookEdit).
 # Auto-formats the file that was just edited, per its extension. Non-blocking.
 
 set -euo pipefail
 
 # python parses the payload, not jq — see block-dangerous-git.sh for why.
 #
-# THIS HOOK CANNOT FAIL CLOSED, and is not made to try. The four blocking hooks exit 2
+# THIS HOOK CANNOT FAIL CLOSED, and is not made to try. The five blocking hooks exit 2
 # when they cannot read their payload, because a guard that cannot see the command must
 # stop it. This one is PostToolUse: it runs AFTER the edit it would be objecting to, so
 # there is nothing left to stop and exit 2 would only report a failure on work already
 # done. No parser, or a payload that will not parse, means it formats nothing and says
 # so. The asymmetry with the blocking hooks is the harness's, not an oversight here.
 #
-# THE INTERPRETER LIST IS BYTE-IDENTICAL to the one in the four blocking hooks and in
+# THE INTERPRETER LIST IS BYTE-IDENTICAL to the one in the five blocking hooks and in
 # test-hooks.sh — only what this hook DOES when none of them works differs, and that
 # asymmetry is the harness's, described above. Why a WindowsApps python3 goes to the END
 # of the list and is never dropped, and why nothing is probed until we are already giving

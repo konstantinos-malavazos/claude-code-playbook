@@ -23,7 +23,7 @@ LOGS="$SCRATCH/logs"
 # would build the sandbox wrong and every later failure would point at the installer
 # instead of at the interpreter — correct by luck, and the diagnostic lies (#146).
 #
-# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in all six hooks and in
+# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in all seven hooks and in
 # templates/hooks/test-hooks.sh, and it has to be: a suite that picked its interpreter
 # by a different rule from the code it tests is testing something else. Why a
 # WindowsApps python3 goes to the END of the list and is never dropped is written out

@@ -315,6 +315,25 @@ Worth saying plainly, because the second reading is the easy one to miss: **reac
 bigger model is the cheaper-looking way to hide a sizing problem.** It works, it never shows
 up in a diff, and it bills you for the sizing problem once per ticket instead of once.
 
+### Supervising background work, not just weighing it
+
+Weighing happens once, at dispatch. It answers "what model does this need," not "is it
+still running." Those are different questions, and the second one has no hook to answer it:
+a `PreToolUse`/`PostToolUse` hook fires on an event, and there is no elapsed-time event —
+the harness notifies you when a background agent finishes and never while it is silent, so
+a stuck one and a working one read identically until someone looks. A state file checked on
+the next tool call does not close the gap either, because it fails exactly in the case that
+matters: an orchestrator idle on a silent agent makes no next tool call to check it against.
+
+So the rule stays prose, stated once at its owner,
+[`templates/commands/README.md`](../../templates/commands/README.md): **whoever spawned
+background work owns checking on it — at each multiple of its stated expectation** — and
+every dispatch site that fires background work names the duty rather than re-arguing it.
+That includes the `research` dispatches in `/start-massive`, `/resume-massive`,
+`/feeling-lucky`, `/pitch` and the `charting`/`grilling` skills — six sites, one owner.
+Being prose is a disclosed property of this guardrail, not an oversight: the assertions for
+it prove the rule is written at every site, never that an agent actually looked.
+
 ---
 
 ## Hand-built flows vs dynamic workflows

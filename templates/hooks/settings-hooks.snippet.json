@@ -6,7 +6,8 @@
         "hooks": [
           { "type": "command", "command": "~/.claude/hooks/block-dangerous-git.sh" },
           { "type": "command", "command": "~/.claude/hooks/block-infra-staging.sh" },
-          { "type": "command", "command": "~/.claude/hooks/block-secret-staging.sh" }
+          { "type": "command", "command": "~/.claude/hooks/block-secret-staging.sh" },
+          { "type": "command", "command": "~/.claude/hooks/block-unexplained-long-hold.sh" }
         ]
       },
       {

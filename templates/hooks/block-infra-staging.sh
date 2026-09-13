@@ -19,7 +19,7 @@ block() { echo "BLOCKED by block-infra-staging: $1" >&2; exit 2; }
 # all of it (why python and not jq or sed, why 127 is the same class as success, why a
 # permission prompt was rejected, why a WindowsApps python3 goes to the END of the list
 # and is never dropped, and why nothing is probed until we are refusing anyway) is in the
-# notes there. The code below is byte-identical in all six hooks and in test-hooks.sh; a
+# notes there. The code below is byte-identical in all seven hooks and in test-hooks.sh; a
 # divergence between the copies would be a guardrail choosing a different interpreter
 # from the suite that tests it.
 PY_LIST=()

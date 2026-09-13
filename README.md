@@ -278,7 +278,7 @@ so there is nothing to upgrade.
 
 ### Windows
 
-Windows needs one extra thing first, and it is not optional: **the six guardrail hooks
+Windows needs one extra thing first, and it is not optional: **the seven guardrail hooks
 are bash scripts, and every one of them parses its input with Python.** A
 native-PowerShell install would place hooks that cannot execute — and a hook that cannot
 execute fails *closed*, jamming every command instead of guarding it. So Windows runs
@@ -451,7 +451,7 @@ Your memory store, handoffs, Serena's index and generated views fail it and neve
 > only) to parse their payload. Both names are collected and tried in a preferred order,
 > with a Microsoft Store app-execution alias moved to the end and never dropped — so the
 > real interpreter beside it wins, and a machine where the alias is all there is still
-> works. With nothing on `PATH` that is actually python, the four blocking hooks **exit `2`
+> works. With nothing on `PATH` that is actually python, the five blocking hooks **exit `2`
 > and block** rather than waving the call through, and say which interpreters they tried by
 > resolved path. A guard that cannot read the command stops it. Loud beats silent. But a
 > missing python does turn into blocked tool calls, so check it in the same shell Claude

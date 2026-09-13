@@ -110,8 +110,15 @@ its prompt: primary sources, cite every claim, findings to the chart's `research
 negative result is a result, and the ticket gets the one-line gist plus the path, never the
 findings pasted in.
 
+**State the role in one line as you dispatch** — a cold searcher answering this one
+ticket's question — alongside the skill just named. That pair is the persona, and it is why
+no agent template is written for this dispatch.
+
 **Claim each ticket to the agent as you dispatch it.** Left unclaimed it stays on the
 frontier and the next session fires a second agent at the same question.
+
+**You spawned them, so you own checking on them** — at each multiple of its stated
+expectation, not once at the end.
 
 ## 8. Stop, and hand back
 
