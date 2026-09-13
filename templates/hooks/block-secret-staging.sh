@@ -80,7 +80,11 @@ IFS= read -r -d '' payload || true
 cmd="$(py_run "$payload" '
 import json, sys
 ti = json.load(sys.stdin).get("tool_input") or {}
-sys.stdout.write(ti.get("command") or ti.get("script") or "")
+# The buffer, not text mode: a text-mode write turns every \n into \r\n on Windows, and
+# tr maps both characters, so one newline would leave TWO separators in the normalised
+# command below instead of one, and no whitespace at all where the command had a line
+# continuation. The sibling hooks write through the buffer for the same reason.
+sys.stdout.buffer.write((ti.get("command") or ti.get("script") or "").encode("utf-8"))
 ')" || block "the payload did not parse as JSON — refusing to guess whether this command carries a credential. $(py_tried)"
 norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
 
@@ -108,18 +112,48 @@ do
 done
 
 # Credential-shaped paths: only on git add / commit / stage.
-if printf '%s' "$norm" | grep -Eiq 'git +(add|commit|stage)'; then
+# Options may sit between git and the verb (`git -C dir add`), but the gap excludes
+# ; & | so the verb must be in the same command segment. Newlines are ; in $norm.
+# The verb ends at anything but a name character or ; & |, so add.sh is not add while
+# add"" and add\<newline> still are: bash removes those before git reads the verb.
+#
+# The breaks beside git and at the left edge of a path are COMPLEMENT classes listing
+# the characters that CONTINUE a shell word, so a construct nobody listed lands outside
+# the list and blocks, instead of walking past a list of separators somebody had to
+# think of first. Quotes, $, braces, parens, backtick and backslash are deliberately
+# not word characters: each can expand to nothing, so `git"" add .env` and
+# `git add ${x}.env` are both really `git add .env`. wpath drops `/`, since `/`
+# separates path components and dir/.env really is .env. The verb's right-hand boundary
+# is not one of these classes — it is a literal alphabet, which can only fail to match,
+# so it errs towards blocking.
+wcont='A-Za-z0-9_.,:=@%+^~!?*/#['
+wpath='A-Za-z0-9_.,:=@%+^~!?*#['
+# A word break beside git or the verb: an escaped character, or one character that
+# neither continues a word nor separates segments. A backslash-newline arrives here as
+# `\;`, because $norm turned the newline into `;`, and that is a continuation. pbrk is
+# the same idea at the left edge of a path, where a segment separator is a fine break.
+brk='(\\.|[^]'"$wcont"';&|-])'
+pbrk='(^|[^]'"$wpath"'-])'
+# The gap has to hold one literal whitespace, which is what separates `git"" add .env`
+# — really `git add .env` — from `git""add .env`, the single word gitadd, which stages
+# nothing. Known limit: a construct that expands TO whitespace makes the same boundary
+# with no literal whitespace in the text, so `git${IFS}add .env` really stages and this
+# gate reads it as one word. Telling that apart from gitadd takes word splitting, which
+# a regex over the raw text cannot do.
+gate="git(${brk}[^;&|]*)?[[:space:]]([^;&|]*${brk})?"
+gate="$gate"'(add|commit|stage)([^A-Za-z0-9_.;&|-]|$)'
+if printf '%s' "$norm" | grep -Eiq -e "$gate"; then
     # `.env.example` and friends are the committed TEMPLATE — the one file in this family
     # that is supposed to be in the repo. Remove those tokens before matching rather than
     # trying to write a not-followed-by pattern, which ERE cannot express. This was found
     # by the suite, not by reading: the `.env` pattern matched the template too.
     scan="$(printf '%s' "$norm" | sed -E 's/\.env\.(example|sample|template|dist)//gI')"
     for pat in \
-        '(^|[ /"'"'"';])\.env($|[. /"'"'"';])' \
+        "$pbrk"'\.env($|[^A-Za-z0-9_-])' \
         '\.env\.(local|prod|production|staging|dev)\b' \
         '\.(pem|p12|pfx|jks|keystore|ppk)\b' \
         'id_(rsa|dsa|ecdsa|ed25519)\b' \
-        '(^|[ /])(credentials|secrets?|service-account)\.(json|ya?ml|toml|ini)\b' \
+        "$pbrk"'(credentials|secrets?|service-account)\.(json|ya?ml|toml|ini)\b' \
         '\.npmrc\b' \
         '\.pypirc\b' \
         '\.netrc\b'
