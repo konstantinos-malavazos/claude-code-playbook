@@ -108,14 +108,17 @@ do
 done
 
 # Credential-shaped paths: only on git add / commit / stage.
-if printf '%s' "$norm" | grep -Eiq 'git +(add|commit|stage)'; then
+# Options may sit between git and the verb (`git -C dir add`), but the gap excludes
+# ; & | so the verb must be in the same command segment. Newlines are ; in $norm.
+# The verb must end at whitespace or at the end of the text, so add.sh is not add.
+if printf '%s' "$norm" | grep -Eiq 'git( +[^;&|]*)? +(add|commit|stage)([[:space:]]|$)'; then
     # `.env.example` and friends are the committed TEMPLATE — the one file in this family
     # that is supposed to be in the repo. Remove those tokens before matching rather than
     # trying to write a not-followed-by pattern, which ERE cannot express. This was found
     # by the suite, not by reading: the `.env` pattern matched the template too.
     scan="$(printf '%s' "$norm" | sed -E 's/\.env\.(example|sample|template|dist)//gI')"
     for pat in \
-        '(^|[ /"'"'"';])\.env($|[. /"'"'"';])' \
+        '(^|[ /"'"'"';])\.env($|[. /"'"'"';)`])' \
         '\.env\.(local|prod|production|staging|dev)\b' \
         '\.(pem|p12|pfx|jks|keystore|ppk)\b' \
         'id_(rsa|dsa|ecdsa|ed25519)\b' \
