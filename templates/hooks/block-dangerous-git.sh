@@ -126,13 +126,6 @@ IFS= read -r -d '' payload || true
 #      false positive carrying a false diagnostic, in the hook that exists to remove false
 #      positives. UTF-8 out, and the bytes bash reads are the bytes the payload carried.
 #
-# THE SIBLINGS ARE NOT FIXED HERE, and that is a scope decision, not an oversight. The same
-# text-mode write is in block-infra-staging.sh:31,34, block-secret-staging.sh:32,
-# block-mcp-writes.sh:19, cleanup-handoffs.sh:26 and format-on-edit.sh:25. They are inert
-# TODAY only because none of them joins a line continuation — the transform that turns the
-# doubled CR into a wrong answer — and block-infra-staging.sh's own note says it intends to
-# add that join. So "inert" there has a shelf life. Recorded on issue #140, thread 2, with
-# this file named as the worked example.
 # THE FIELDS ARE NOT PULLED OUT HERE ANY MORE. parse() used to sit at this point and run
 # its own python process; it is now the head of payload_fields() further down, which is
 # the same program as the tokenizer. The note above is unchanged and still describes the
@@ -183,7 +176,7 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 # compound command dies whole, anything chained in FRONT of the mention never ran either.
 #
 # This is a parameterised SECOND COPY of staged_args() in block-infra-staging.sh, kept
-# separate on purpose (see the allowlist note above). FIVE deliberate divergences, each a
+# separate on purpose (see the allowlist note above). The deliberate divergences, each a
 # real decision and not a transcription slip:
 #
 #   1. It emits for EVERY subcommand, not a fixed SUB map. staged_args() does
@@ -206,35 +199,16 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 #      `echo '%(' ; git branch -D feature ; echo ')'` collapsed to `echo '%'` and the
 #      branch delete was never seen. A format placeholder never contains a separator or a
 #      space, so forbidding them inside the span costs nothing and closes that hole.
-#   5. The git PROGRAM is looked for anywhere in the segment, not only at word 0.
-#      staged_args() bails the moment word 0 is not git, so every wrapper hides the
-#      command behind it: `sudo git push --force`, `env`/`time`/`command`, the canonical
-#      `git branch --merged | xargs git branch -D`, and any shell keyword that leads a
-#      segment (`then`, `do`). All measured ALLOW under the word-0 rule; all blocked by
-#      the plain text scan this hook replaces, so word 0 would have been a REGRESSION.
-#      The scan direction is deliberate: an UNRECOGNISED leading word does not end the
-#      search, it is skipped and the search continues. A wrapper allow-list would have to
-#      be complete to be safe, and the day it is not, the unknown wrapper fails OPEN —
-#      the one direction this file may not fail in. And it does not stop at the first git
-#      it finds, for the same reason: see the loop.
+#   5. A backtick that is not before a newline is a separator: it is command substitution,
+#      and `` `git branch -D f` `` is otherwise a single token that is not `git`.
+#      staged_args() must not do this: there the split moves a path word out of its add
+#      segment.
+#   6. Option words are read through deb(), no case is folded beyond the subcommand, and
+#      the JSON is read in this same program. Each is noted below.
 #
-#      THE COST IS NOT ZERO. An earlier draft of this comment claimed the forward scan
-#      "costs only false positives of the shape `echo git push --force`, which the text
-#      scan blocked too". That was wrong, and wrong in the direction that makes a comment
-#      dangerous — it told the next reader the change was free. Master's plain-push rule
-#      was the one ANCHORED pattern in the file, so an UNQUOTED mention of `git push`
-#      with no force flag was ALLOWED then and is BLOCKED now, in any repo not in the
-#      allowlist — which is the shipped default. Measured: `man git push`, `type git
-#      push`, `apropos git push`, `echo git push origin main` all went 0 -> 2.
-#      The same mechanism buys real tightenings, also measured 0 -> 2: `sudo git push
-#      origin main`, `xargs git push`, `git -C <dir> branch -D f`, `git --no-pager branch
-#      -D f`, `git.exe push --force`, `"git" push --force`. So it is a TRADE, taken
-#      deliberately — a false positive is recoverable and a fail-open force push is not —
-#      and both directions are cases in test-hooks.sh so the trade stays visible. What is
-#      genuinely free is the QUOTED mention: every measured #117 false positive quotes it,
-#      and a quoted mention is one token whose basename is not `git`.
-#      Backticks are turned into separators for the same reason `$( … )` already is one:
-#      `` `git branch -D f` `` is otherwise a single token that is not `git`.
+# The forward scan over every git word in a segment is shared with staged_args(). It
+# blocks an unquoted mention outside an allowlisted repo (`man git push`, `echo git push
+# origin main`); a quoted mention is one token whose basename is not `git`.
 #
 # NO case folding here. block-infra-staging.sh folds case because Windows resolves
 # .Serena and .serena to one directory; this hook must NOT, because `-d` and `-D` are
@@ -249,13 +223,6 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 # an ordinary git command paid two process spawns and a push paid three — on the one
 # platform where a process spawn is the most expensive thing a hook does. They are one
 # program now: it reads the payload once, and returns everything the shell below needs.
-#
-# THE TOKENIZER ITSELF DID NOT MOVE AND WAS NOT REFLOWED. Everything from strip_heredocs
-# to the final write is the text that was here before, at the same indentation, because
-# issue #140 is queued to change exactly those lines and a reflow would cost it a clean
-# rebase. What changed is the head (the JSON read, which used to be a separate program
-# above) and the tail (one write instead of one write per program). Two tokenizer lines
-# moved with them: the import, and the line that used to call sys.stdin.read().
 #
 # THE THREE FIELDS COME BACK IN ONE STRING, separated by a record separator (\x1e), and
 # the command comes LAST on purpose. The command is the only field that can itself contain
@@ -345,68 +312,100 @@ def deb(w):
     # gaps on #141 rather than in a fix scoped to what this branch moved.
     return w.replace("\\", "").lstrip("$")
 
+HEREDOC_WORD = re.compile(r"-?[ \t]*([\x27\x22]?)([A-Za-z_][A-Za-z0-9_]*)\1(?![^\s;&|()<>])")
+
+def heredoc_ops(line, quote):
+    # WHICH <<WORD ON THIS LINE IS A REAL HEREDOC OPERATOR, read the way bash reads it.
+    # Returns the line with every operator span removed, the terminator words in order,
+    # and the quote state at the end of the line (a quoted string may run onto the next
+    # line, and bash keeps reading it as one string).
+    #   - Inside single or double quotes, << is text. Outside single quotes a backslash
+    #     escapes the next character, as it does in bash.
+    #   - An unquoted # that starts a word begins a comment; nothing after it is scanned.
+    #   - <<< is a here-string and never a heredoc, whatever follows it.
+    #   - EVERY real operator on the line is collected, not only the first.
+    #   - A word that runs on past the name (<<EOF-1) is not taken, so its lines are judged.
+    # An unbalanced quote leaves the rest of the payload quoted, so no later operator is
+    # honoured and every later line is judged: that mistake blocks, it does not swallow.
+    keep, ops, cut, i, n = [], [], 0, 0, len(line)
+    while i < n:
+        c = line[i]
+        if quote == "\x27":
+            if c == "\x27":
+                quote = ""
+            i += 1
+        elif c == "\\":
+            i += 2
+        elif quote:
+            if c == quote:
+                quote = ""
+            i += 1
+        elif c in "\x27\x22":
+            quote = c
+            i += 1
+        elif c == "#" and (i == 0 or line[i - 1] in " \t;&|()<>"):
+            break
+        elif line.startswith("<<<", i):
+            i += 3
+        elif line.startswith("<<", i):
+            m = HEREDOC_WORD.match(line, i + 2)
+            if m:
+                ops.append(m.group(2))
+                keep.append(line[cut:i])
+                cut = i = m.end()
+            else:
+                i += 2
+        else:
+            i += 1
+    keep.append(line[cut:])
+    return "".join(keep), ops, quote
+
 def strip_heredocs(s):
     # A heredoc body is DATA, not a command. A line inside one that begins with git is
     # prose ABOUT git, which is what this repo is full of.
     #
-    # TWO THINGS THIS FUNCTION MUST NOT DO, both of them measured fail-opens (#117), both
-    # confirmed with a git shim on PATH that records the argv real bash passed:
+    # heredoc_ops AND THIS FUNCTION ARE IDENTICAL TEXT in block-dangerous-git.sh and
+    # block-infra-staging.sh. A change to one is a change to make to the other.
     #
-    #   1. KEEP THE REST OF THE LINE. In bash the body starts on the NEXT line, so whatever
-    #      follows the operator on THIS one is a real command that really runs. Truncating
-    #      at m.start() threw it away: cat <<EOF ; git branch -D feature,
-    #      cat <<EOF > n.txt && git add -A, cat <<EOF ; git push --force and eleven more
-    #      shapes returned 0 where the text scan this hook replaces returned 2. NOT
-    #      allowlist-scoped: git add -A and git add . fail open in EVERY repo, and those
-    #      two are the ones repo-allowlist.sample says nothing can unlock.
-    #   2. DO NOT SWALLOW WHEN THE TERMINATOR NEVER COMES. The regex fires on <<WORD
-    #      anywhere on the line — inside quotes, inside a # comment, in prose — and the
-    #      swallow then discards every following line up to the terminator. With no
-    #      terminator that is the whole rest of the payload, judged by nothing:
-    #      a git status line ending in a # comment that names <<EOF, with git add -A on the
-    #      next line, returned 0 in BOTH allowlist states — and the # is what makes it real:
-    #      bash never sees a heredoc there, so the second line runs.
-    #      An unterminated heredoc is a shape bash ITSELF refuses to run
-    #      (the shim records no git call at all), so keeping those lines cannot cost a real
-    #      false positive — it can only block a command that was never going to execute.
+    # THREE THINGS THIS FUNCTION MUST NOT DO, each a fail-open:
     #
-    # THE TWO ARE ONE FIX, and taking only the first is WORSE than taking neither. Seven
-    # shapes block today only BY ACCIDENT: truncating at m.start() cuts a quoted mention in
-    # half, shlex raises ValueError, and the hook exits 3 — fail-closed for the wrong
-    # reason. Repair the line without also fixing the swallow and those seven walk straight
-    # into it. Measured 2 -> 0 for grep -n "<<\x27PY\x27" install.sh followed by a force
-    # push, which is a command someone reviewing this very hook would type. Turning an
-    # accidental fail-CLOSED into a deliberate fail-OPEN is the worst trade on offer here.
+    #   1. DROP THE REST OF THE OPERATOR LINE. In bash the body starts on the NEXT line, so
+    #      whatever follows the operator on THIS one is a real command that really runs:
+    #      cat <<EOF ; git branch -D feature, cat <<EOF > n.txt && git add -A.
+    #   2. SWALLOW WHEN THE TERMINATOR NEVER COMES. With no terminator the swallow is the
+    #      whole rest of the payload, judged by nothing. An unterminated heredoc is a shape
+    #      bash itself refuses to run (a git shim records no call), so judging those lines
+    #      cannot cost a real false positive. With several operators on one line, every
+    #      terminator must be found in order, or no line is treated as a body.
+    #   3. TAKE A <<WORD THAT BASH DOES NOT: one inside quotes or after a #, the word of a
+    #      <<<EOF here-string, or only the first of several operators on a line. Any of
+    #      those drops the lines up to a coincidental terminator unjudged.
     #
-    # KNOWN RESIDUE, recorded rather than half-fixed: a FALSE heredoc whose terminator word
-    # happens to appear alone on a later line is still read as a body, so the lines between
-    # are dropped. It needs the word to coincide exactly. Closing it means deciding whether
-    # <<WORD is a real operator — not inside quotes, not after a # — which is parsing a
-    # shell, the same boundary #140 draws.
-    #
-    # THE SIBLING IS NOT FIXED HERE. block-infra-staging.sh:140 carries the identical
-    # truncation and its note calls strip_heredocs a shared part. There the shapes measure 0
-    # on master and on this branch alike — shipped with #112, not a #117 regression — and
-    # this ticket keeps that file comment-only, so the divergence is deliberate. Recorded
-    # here rather than left to be discovered, the same call this file makes for parse().
+    # 1 DEPENDS ON 3. In grep -n "<<\x27PY\x27" install.sh followed by a force push, the quoted
+    # <<\x27PY\x27 is not an operator, so the line stays whole and the force push is judged.
     lines = s.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-    out, i = [], 0
+    out, i, quote, pending = [], 0, "", []
     while i < len(lines):
-        m = re.search(r"<<-?\s*([\x27\x22]?)([A-Za-z_][A-Za-z0-9_]*)\1", lines[i])
-        out.append((lines[i][:m.start()] + lines[i][m.end():]) if m else lines[i])
+        text, ops, quote = heredoc_ops(lines[i], quote)
+        out.append(text)
+        pending += ops
         i += 1
-        if m:
-            term = m.group(2)
-            j = i
-            while j < len(lines) and lines[j].strip() != term:
+        if pending and not quote:
+            j, closed = i, True
+            for term in pending:
+                while j < len(lines) and lines[j].strip() != term:
+                    j += 1
+                if j >= len(lines):
+                    closed = False
+                    break
                 j += 1
-            if j < len(lines):     # terminator found: a real heredoc, its body is data
-                i = j + 1
-            # else: not a heredoc after all — judge those lines, do not discard them
+            if closed:             # every terminator found: real heredocs, bodies are data
+                i = j
+            # else: not heredocs after all — judge those lines, do not discard them
+            pending = []
     return "\n".join(out)
 
-src = strip_heredocs(CMD)
-
+def prepare(src):
 # A LINE CONTINUATION is ONE command written over two lines, not two commands, so it has
 # to be joined BEFORE any newline becomes a separator. Splitting there put the flag in a
 # segment of its own, where no rule judges it: a git push, a trailing backslash, a
@@ -438,87 +437,193 @@ src = strip_heredocs(CMD)
 # arrives in the payload, and hardening one end of a pipe while leaving the other narrow
 # is the mistake the note at parse() exists to describe.
 # NOTE: no apostrophes in this python program — a single quote here ends the shell string.
-src = re.sub(r"[\\\x60][ \t]*\n+", " ", src)
+    src = re.sub(r"[\\\x60][ \t]*\n+", " ", src)
 
 # Divergence 4 — see the note above. Runs BEFORE tokenizing, so the placeholder never
 # reaches the punctuation splitter. The character class forbids whitespace and every
 # command separator, so the span cannot run out of one command and into the next.
-src = re.sub(r"%\([^)\s;&|]*\)", "%", src)
+    src = re.sub(r"%\([^)\s;&|]*\)", "%", src)
 
 # Newlines become an explicit separator BEFORE tokenizing: shlex treats one as plain
 # whitespace, which would run two commands together into one segment. A backtick becomes
 # a separator too (divergence 5): it is command substitution, and shlex does not know it.
-src = src.replace("\n", " ; ").replace("\x60", " ; ")
+    return src.replace("\n", " ; ").replace("\x60", " ; ")
 
-lex = shlex.shlex(src, posix=True, punctuation_chars=True)
-lex.whitespace_split = True
-lex.escape = ""      # a backslash is a Windows path separator here, never an escape
-lex.commenters = ""
+def tokenize(src):
+    lex = shlex.shlex(src, posix=True, punctuation_chars=True)
+    lex.whitespace_split = True
+    lex.escape = ""      # a backslash is a Windows path separator here, never an escape
+    lex.commenters = ""
+    return list(lex)     # raises ValueError when shlex refuses; the caller decides
+
+def fallback_tokens(src):
+    # For an INNER string shlex refuses (an apostrophe inside double quotes is enough).
+    # It is still judged: quote marks are dropped and the text is split on whitespace and
+    # on the separators shlex would have split.
+    src = src.replace("\x27", "").replace("\x22", "")
+    return re.findall(r"\|\||&&|\|&|[;&|()]|[<>]+|[^\s;&|()<>]+", src)
+
+# A token matching this tokenizes to more than one word, so it may be a command string.
+MULTI = re.compile(r"[\s;&|()<>\x60]")
+
+# Commands that never run their arguments, so none of those arguments is a candidate.
+# The command is the first word of the segment after LEADERS and VAR=value words; an
+# option, a path or an unlisted wrapper in that place leaves the arguments candidates.
+# Substitution spans inside these arguments are still read by span_views.
+# rg with --pre runs a command, so it is not exempt.
+NO_EXEC = frozenset(("echo", "printf", "grep", "rg", "gh"))
+LEADERS = frozenset(("sudo", "env", "time", "command", "nohup", "nice", "exec", "!",
+                     "if", "then", "elif", "else", "do", "while", "until"))
+
+def runs_no_args(words):
+    k = 0
+    while k < len(words) and (words[k] in LEADERS or re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[k])):
+        k += 1
+    if k < len(words) and words[k] == "rg":
+        return not any(w == "--pre" or w.startswith("--pre=") for w in words[k + 1:])
+    return k < len(words) and words[k] in NO_EXEC
+
+def seg_rows(toks, out, cands):
+    # Appends the rows for toks to out, and to cands every token that may itself be a
+    # command string, except a word consumed as a VAL value (a commit message) and any
+    # argument of a NO_EXEC command with no pipe anywhere after it in toks.
+    segs, cur, piped = [], [], -1
+    for t in toks:
+        if "|" in t.replace("||", "") and not t.strip("();<>|&"):
+            piped = len(segs)                     # shlex glues )| into one token
+        if t in OPS:
+            segs.append(cur)
+            cur = []
+        else:
+            cur.append(t)
+    segs.append(cur)
+
+    for s, seg in enumerate(segs):
+        words, k = [], 0
+        while k < len(seg):                       # drop redirections and their targets
+            if seg[k] and all(c in "<>" for c in seg[k]):
+                cands.extend(seg[k + 1:k + 2])    # still a candidate: bash <<< "git push"
+                k += 2
+                continue
+            words.append(seg[k])
+            k += 1
+        is_val = set()                            # indexes in words consumed as a VAL value
+
+        j = 0                                     # leading VAR=value assignments
+        while j < len(words) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[j]):
+            j += 1
+        # The git program may sit behind a wrapper (sudo, env, time, command, xargs) or a
+        # shell keyword (then, do), so scan forward for it rather than requiring word 0.
+        # An unrecognised word is SKIPPED, never a reason to give up on the segment.
+        # EVERY git in the segment is judged: in sudo -u git git push --force the first git
+        # is the VALUE of -u. An extra row can only make a rule fire.
+        p = j
+        while p < len(words):
+            if not is_git(words[p]):
+                p += 1
+                continue
+            j = p + 1
+            p += 1
+
+            while j < len(words) and words[j].startswith("-"):
+                j += 2 if words[j] in GLOBAL_VAL else 1
+            if j >= len(words):
+                continue
+            sub = words[j].lower()                # divergence 1: every subcommand, no SUB map
+            out.append(sub + "\t" + "sub" + "\t" + sub)   # divergence 2: a bare push counts
+
+            j += 1
+            vals = VAL.get(sub, ())               # divergence 3: .get, never VAL[sub]
+            rest_are_paths = False
+            while j < len(words):
+                w = words[j]
+                d = deb(w)                        # option-ness only — see deb(); paths keep w
+                if not rest_are_paths and d == "--":
+                    rest_are_paths = True
+                    j += 1
+                elif not rest_are_paths and d.startswith("-") and d != "-":
+                    out.append(sub + "\t" + "opt" + "\t" + d)
+                    if d in vals:
+                        is_val.add(j + 1)
+                        j += 2
+                    else:
+                        if d.split("=", 1)[0] in vals or (d[1:2] != "-" and d[:2] in vals):
+                            is_val.add(j)         # --message=text or -mtext: value inline
+                        j += 1
+                else:
+                    out.append(sub + "\t" + "path" + "\t" + w)
+                    j += 1
+
+        if s <= piped or not runs_no_args(words):
+            cands.extend(w for i, w in enumerate(words) if i not in is_val and MULTI.search(w))
+            cands.extend(w[6:] for w in words if w.startswith("--pre="))   # one token, value glued on
+
+MAX_DEPTH = 4
+
+def span_views(s):
+    # The inner text of every outermost dollar-paren span and backtick span outside single quotes,
+    # then s with every span removed (an empty substitution glues its neighbours into one
+    # word). An unclosed span runs to the end of s. Deeper spans are found on the next level.
+    # A single-quoted span is never expanded here; if the quoted text is itself run (bash -c)
+    # it is a multi-word candidate and its spans are found when that text is read.
+    views, keep, cut, i, n, quote = [], [], 0, 0, len(s), ""
+    while i < n:
+        c = s[i]
+        if quote == "\x27" or (c == "\x27" and not quote):
+            quote = "\x27" if quote != c else ""
+            i += 1
+            continue
+        if c == "\x22":
+            quote = "" if quote else c
+        if s.startswith("\x24(", i):
+            k, level = i + 2, 1
+            while k < n and level:
+                level += {"(": 1, ")": -1}.get(s[k], 0)
+                k += 1
+            views.append(s[i + 2:k - 1] if level == 0 else s[i + 2:])
+        elif c == "\x60":
+            k = s.find("\x60", i + 1)
+            k = n if k < 0 else k + 1
+            views.append(s[i + 1:k - 1] if s[k - 1:k] == "\x60" and k - 1 > i else s[i + 1:])
+        else:
+            i += 1
+            continue
+        keep.append(s[cut:i])
+        cut = i = k
+    if views:
+        views.append("".join(keep) + s[cut:])
+    return views
+
+src = strip_heredocs(CMD)
 try:
-    toks = list(lex)
+    toks = tokenize(prepare(src))
 except ValueError:
     sys.exit(3)
+out, cands = [], []
+seg_rows(toks, out, cands)
 
-segs, cur = [], []
-for t in toks:
-    if t in OPS:
-        segs.append(cur)
-        cur = []
-    else:
-        cur.append(t)
-segs.append(cur)
-
-out = []
-for seg in segs:
-    words, k = [], 0
-    while k < len(seg):                       # drop redirections and their targets
-        if seg[k] and all(c in "<>" for c in seg[k]):
-            k += 2
-            continue
-        words.append(seg[k])
-        k += 1
-
-    j = 0                                     # leading VAR=value assignments
-    while j < len(words) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[j]):
-        j += 1
-    # Divergence 5: the git program may sit behind a wrapper (sudo, env, time, command,
-    # xargs) or a shell keyword (then, do), so scan forward for it rather than requiring
-    # word 0. An unrecognised word is SKIPPED, never a reason to give up on the segment.
-    # EVERY occurrence of git in the segment is judged, not just the first. Stopping at
-    # the first one is an assumption, and it fails OPEN: in a sudo -u git git push --force
-    # the first git is the VALUE of -u, so the next word became the "subcommand" and the
-    # real command was never judged (measured 2 on the text scan, 0 here). Judging them all
-    # can only emit extra rows, and an extra row can only make a rule fire — fail-closed.
-    p = j
-    while p < len(words):
-        if not is_git(words[p]):
-            p += 1
-            continue
-        j = p + 1
-        p += 1
-
-        while j < len(words) and words[j].startswith("-"):
-            j += 2 if words[j] in GLOBAL_VAL else 1
-        if j >= len(words):
-            continue
-        sub = words[j].lower()                # divergence 1: every subcommand, no SUB map
-        out.append(sub + "\t" + "sub" + "\t" + sub)   # divergence 2: a bare push counts
-
-        j += 1
-        vals = VAL.get(sub, ())               # divergence 3: .get, never VAL[sub]
-        rest_are_paths = False
-        while j < len(words):
-            w = words[j]
-            d = deb(w)                        # option-ness only — see deb(); paths keep w
-            if not rest_are_paths and d == "--":
-                rest_are_paths = True
-                j += 1
-            elif not rest_are_paths and d.startswith("-") and d != "-":
-                out.append(sub + "\t" + "opt" + "\t" + d)
-                j += 2 if d in vals else 1
-            else:
-                out.append(sub + "\t" + "path" + "\t" + w)
-                j += 1
+# NESTED VIEWS: inner command strings are judged too, breadth first, each distinct text
+# once. They only ADD rows to the top-level ones above. Spans are read before prepare(),
+# because its continuation join eats a backtick. A text without git can emit no row and
+# is skipped; one that would sit deeper than MAX_DEPTH is refused (exit 3).
+seen, queue, q = {src}, [(t, 1) for t in span_views(src) + cands], 0
+while q < len(queue):
+    text, depth = queue[q]
+    q += 1
+    if text in seen or "git" not in text.lower():
+        continue
+    seen.add(text)
+    if depth > MAX_DEPTH:
+        sys.exit(3)
+    body = strip_heredocs(text)
+    prep = prepare(body)
+    try:
+        inner = tokenize(prep)
+    except ValueError:
+        inner = fallback_tokens(prep)
+    more = []
+    seg_rows(inner, out, more)
+    queue += [(t, depth + 1) for t in span_views(body) + more]
 
 # Written through the BINARY buffer on purpose. On Windows a text-mode stdout rewrites
 # every newline as CR LF, and the CR then travels on the LAST FIELD of the line, so read
@@ -593,25 +698,25 @@ done
 # rows are empty exactly when the tokenizer was not run or found no git invocation, which
 # is the same set of commands the text filter used to let through to an empty $args.
 if [ -n "$args" ]; then
-    # WHAT THIS TOKENIZER DOES NOT SEE — a known, deliberate gap. Filed as issue #140.
-    #
-    # payload_fields() reads the command it was handed. It does not read a command that is DATA
-    # inside that command, so both of these run and both return 0 where the text scan this
-    # hook replaces returned 2:
-    #
-    #   bash -c "git push --force"     a command string passed to another program
-    #                                  (also sh -c, eval, ssh host '…', and any wrapper
-    #                                  whose argument is itself a shell command)
-    #   "$( git push --force )"        command substitution INSIDE double quotes — it is
-    #                                  one shlex token, so the words never separate
-    #
-    # Unquoted `$( … )` and unquoted backticks DO block; it is the double-quoted form that
-    # gets through. Both classes are inherited from the tokenizer in block-infra-staging.sh
-    # (#112), which behaves identically, and closing them properly means parsing a shell
-    # rather than tokenizing one. THE HALF-MEASURE IS WORSE THAN THE GAP: a rule that
-    # catches `bash -c` but not `sh -c` reads as coverage, and the next person stops
-    # looking. So the boundary is written down here instead, and the user accepted it
-    # rather than growing #117 into a shell parser. If you close it, close all of it.
+    # Rows include commands nested in $( ), backticks and any multi-word argument
+    # (bash -c, ssh, eval), up to MAX_DEPTH. A commit message and the arguments of echo,
+    # printf, grep, rg and gh (NO_EXEC) with no pipe after them are not read as commands.
+    # These shapes reach a shell unjudged. The list is what has been measured, not a set
+    # anyone has closed — each entry below was found after the one above it, so treat a
+    # shape that is absent as unlooked-for rather than absent:
+    #   - text a shell reads on stdin: a heredoc body fed to bash;
+    #   - NO_EXEC output put back through a substitution or a process substitution —
+    #     `eval "$(echo "git push --force")"`, `echo "git push --force" > >(bash)`;
+    #   - an option whose VALUE is a command — `git rebase --exec="git push --force"`,
+    #     `git -c alias.x="!git push --force" x`, `ssh -o ProxyCommand="git push" host`;
+    #   - a git word split by an expansion — `git${IFS}push --force`: bash splits that
+    #     into git and its verb, while the raw text carries one word;
+    #   - text one command writes to a file and the next command runs —
+    #     `echo "git push --force" > x.sh; bash x.sh`. A redirect only: `tee` is not in
+    #     NO_EXEC, so the same shape through a pipe is judged;
+    #   - a construct inside the git word — `g""it push --force`, `g$''it push --force`:
+    #     bash joins the pieces into git and runs it, while the raw text holds no git
+    #     word for the pre-filter to find.
     push_checked=""
     while IFS="$(printf '\t')" read -r sub kind arg; do
         [ -n "$sub" ] || continue

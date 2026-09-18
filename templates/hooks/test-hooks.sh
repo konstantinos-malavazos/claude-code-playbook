@@ -565,44 +565,72 @@ run $GIT_HOOK Bash       "git reset --HARD origin/main"                         
 run $GIT_HOOK Bash       "git branch --Force x"                                         0
 run $GIT_HOOK Bash       "git clean --FORCE"                                            0
 
-echo "block-dangerous-git.sh — must ALLOW (exit 0), the KNOWN GAP filed as issue #140"
-# These four REALLY EXECUTE, and the text scan this hook replaces blocked them. They are
-# allowed here knowingly: payload_fields() reads the command it was handed, and none of these
-# puts the git command where a tokenizer can see it — it is DATA inside another command's
-# argument, or a substitution inside double quotes that never separates into words.
-# Closing them properly means parsing a shell rather than tokenizing one, and a half-fix
-# that catches `bash -c` but not `sh -c` reads as coverage and stops the next person
-# looking. Inherited from block-infra-staging.sh (#112), which behaves identically.
-# The same boundary is written at the tokenizer's call site in the hook.
-# Green before this re-review and after it — they record a decision, they prove nothing.
-run $GIT_HOOK Bash       'bash -c "git push --force"'                                   0
-run $GIT_HOOK Bash       "sh -c 'git reset --hard HEAD~1'"                              0
-run $GIT_HOOK Bash       "eval 'git push --force'"                                      0
+echo "block-dangerous-git.sh — must BLOCK (exit 2), a git command nested in another command"
+# The git command is DATA inside another command, or a substitution inside double quotes:
+# one token at the top level, so only the nested views see it.
+run $GIT_HOOK Bash       'bash -c "git push --force"'                                   2
+run $GIT_HOOK Bash       "sh -c 'git reset --hard HEAD~1'"                              2
+run $GIT_HOOK Bash       "eval 'git push --force'"                                      2
 # shellcheck disable=SC2016
-run $GIT_HOOK Bash       'echo "$(git branch -D f)"'                                    0
-# Unquoted, both of these still block — it is the double-quoted form that gets through.
+run $GIT_HOOK Bash       'echo "$(git branch -D f)"'                                    2
 # shellcheck disable=SC2016
 run $GIT_HOOK Bash       '$(git push --force)'                                          2
 # shellcheck disable=SC2016
 run $GIT_HOOK Bash       'echo `git push --force`'                                      2
 
-echo "block-dangerous-git.sh — must ALLOW (exit 0), the RECORDED RESIDUE of the heredoc fix"
-# One shape, and it is a REGRESSION this pass takes knowingly rather than a gap it
-# inherited. A FALSE heredoc — the operator is inside a quoted string, so bash never sees
-# one — whose terminator WORD then happens to appear alone on a later line. Refusing to
-# swallow an unterminated heredoc is what closed the whole comment/quote class above; when
-# the word does coincide, the lines between are still read as a body and the force push in
-# them is not judged. It measured 2 at 84ae124, by the same shlex accident as the six cases
-# above, and it is 0 now.
-#
-# Not closable at this size: it needs the tokenizer to decide whether <<WORD is a real
-# operator — not inside quotes, not after a # — which is parsing a shell rather than
-# tokenizing one, the same boundary #140 draws. Written down here so the trade is a
-# decision in the suite and not a discovery in the next review.
+echo "block-dangerous-git.sh — must BLOCK (exit 2), a false heredoc with a coincidental terminator"
+# The <<EOF is inside quotes, so bash sees no heredoc; the EOF line alone later must not
+# turn the force push between them into a body.
 run $GIT_HOOK Bash       "echo \"use <<EOF now\"
 git push --force
 EOF
-git status"                                                                             0
+git status"                                                                             2
+
+echo "block-dangerous-git.sh — must BLOCK (exit 2), more wrappers around a nested git command"
+run $GIT_HOOK Bash       'pwsh -c "git push --force"'                                   2
+run $GIT_HOOK Bash       "ssh host 'git push --force'"                                  2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'x="$(git push --force)"'                                      2
+run $GIT_HOOK Bash       "zsh -c 'git push --force'"                                    2
+run $GIT_HOOK Bash       "xargs sh -c 'git push --force'"                               2
+# The echo before the pipe does not exempt the shell after it.
+run $GIT_HOOK Bash       'echo x | bash -c "git push --force"'                          2
+# Text piped out of echo or printf may be run by the next command, so it is judged.
+run $GIT_HOOK Bash       'echo "git push --force" | bash'                               2
+run $GIT_HOOK Bash       'printf "%s" "git push --force" | sh'                          2
+# rg --pre runs a command, so its arguments are judged.
+run $GIT_HOOK Bash       'rg --pre "git push --force" x'                                2
+run $GIT_HOOK Bash       'rg --pre="git push --force" x'                                2
+# A heredoc word ends where bash ends it: EOF-1 is not EOF, so the EOF line ends no body.
+run $GIT_HOOK Bash       "cat <<EOF-1
+git push --force
+EOF"                                                                                    2
+# A bare here-string (<<<EOF) opens no heredoc, so the force push after it is judged.
+run $GIT_HOOK Bash       "cat <<<EOF
+git push --force
+EOF
+git status"                                                                             2
+# Nesting deeper than the tokenizer follows is refused, whatever the innermost command.
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'echo $(echo $(echo $(echo $(echo $(git status)))))'           2
+
+echo "block-dangerous-git.sh — must ALLOW (exit 0), where the nested views stop"
+# A commit message is not read as a command, even when it names one.
+run $GIT_HOOK Bash       "git commit -m \"bash -c git push --force\""                   0
+# Nor is an argument of a command that never runs its arguments (echo, printf, grep, rg, gh).
+run $GIT_HOOK Bash       "gh issue create --body \"run git push --force later\""       0
+run $GIT_HOOK Bash       "grep -n \"git add -A\" file"                                  0
+run $GIT_HOOK Bash       'echo "git push --force"'                                      0
+run $GIT_HOOK Bash       'rg "git push --force" docs/'                                  0
+# An inner string shlex refuses (the apostrophe) is still split and judged, not refused.
+run $GIT_HOOK Bash       "bash -c \"echo it's fine; git status\""                       0
+# Four levels deep is inside the limit.
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'echo $(echo $(echo $(echo $(git status))))'                   0
+# A closed heredoc body is data.
+run $GIT_HOOK Bash       "cat <<'EOF'
+git push --force
+EOF"                                                                                     0
 
 echo "block-dangerous-git.sh — the allowlist, listed repo"
 HOOK_HOME="$ALLOW_HOME"
@@ -760,6 +788,7 @@ run $INFRA_HOOK Bash     "git commit -m 'move .serena out of the repo'"    0
 run $INFRA_HOOK Bash     "git add src/main.py && echo 'never commit MEMORY.md' >> notes.txt" 0
 run $INFRA_HOOK Bash     "echo 'git add -A is blocked here'"               0
 run $INFRA_HOOK Bash     "grep -r .forgetful docs/"                        0
+run $INFRA_HOOK Bash     "grep -n \"git add -A\" file"                     0
 # A heredoc body is DATA, not a command. A line inside one that starts with a stage verb is
 # prose about staging — which is exactly what this repo's own docs are full of.
 run $INFRA_HOOK Bash     "cat > notes.md <<'EOF'
@@ -798,6 +827,48 @@ run $INFRA_HOOK Bash     "git add src/main.py"                             0
 run $INFRA_HOOK Bash     "git commit -m 'docs: update readme'"             0
 run $INFRA_HOOK Bash     "npm test"                                        0
 
+echo "block-infra-staging.sh — must BLOCK (exit 2), a wrapped or nested git add"
+# Seeing the git command does not depend on the allowlist, so each case runs in both states.
+run $INFRA_HOOK Bash     "sudo git add -A"                                 2
+run $INFRA_HOOK Bash     "git ls-files | xargs git add -A"                 2
+run $INFRA_HOOK Bash     "if true; then git add -A; fi"                    2
+run $INFRA_HOOK Bash     'bash -c "git add -A"'                            2
+run $INFRA_HOOK Bash     'echo "git add -A" | bash'                        2
+run $INFRA_HOOK Bash     'printf "git add -A" | sh'                        2
+run $INFRA_HOOK Bash     'rg --pre "git add -A" x'                         2
+run $INFRA_HOOK Bash     "cat <<EOF-1
+git add -A
+EOF"                                                                       2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'echo "$( git add .claude/x )"'                   2
+# A backtick span spanning a newline, glued to the path: the empty substitution leaves
+# git add .claude/hooks/x.sh.
+run $INFRA_HOOK Bash     "$(printf 'git add \140\n\140.claude/hooks/x.sh')" 2
+# A here-string and a real heredoc on one line; the command after the body is judged.
+run $INFRA_HOOK Bash     "cat <<< \"data\" <<EOF
+body
+EOF
+git add -A"                                                                2
+HOOK_HOME="$ALLOW_HOME"
+run $INFRA_HOOK Bash     "sudo git add -A"                                 2
+run $INFRA_HOOK Bash     "git ls-files | xargs git add -A"                 2
+run $INFRA_HOOK Bash     "if true; then git add -A; fi"                    2
+run $INFRA_HOOK Bash     'bash -c "git add -A"'                            2
+run $INFRA_HOOK Bash     'echo "git add -A" | bash'                        2
+run $INFRA_HOOK Bash     'printf "git add -A" | sh'                        2
+run $INFRA_HOOK Bash     'rg --pre "git add -A" x'                         2
+run $INFRA_HOOK Bash     "cat <<EOF-1
+git add -A
+EOF"                                                                       2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'echo "$( git add .claude/x )"'                   2
+run $INFRA_HOOK Bash     "$(printf 'git add \140\n\140.claude/hooks/x.sh')" 2
+run $INFRA_HOOK Bash     "cat <<< \"data\" <<EOF
+body
+EOF
+git add -A"                                                                2
+HOOK_HOME="$DENY_HOME"
+
 echo "block-secret-staging.sh — must BLOCK (exit 2)"
 run $SECRET_HOOK Bash     "git add .env"                                   2
 run $SECRET_HOOK Bash     "git add config/.env.production"                 2
@@ -823,6 +894,39 @@ run $SECRET_HOOK Bash     "echo sk-0123456789abcdefghijklmnop"             2
 run $SECRET_HOOK Bash     "echo github_pat_0123456789abcdefghijklmnop"     2
 run $SECRET_HOOK Bash     "echo xoxb-0123456789abcdef"                     2
 run $SECRET_HOOK Bash     "echo AIzaSyA0123456789abcdefghijklmnopqrstuvw"  2
+run $SECRET_HOOK Bash     "git -C dir add .env"                            2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     '"$(git add .env)"'                              2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'echo `git add .env`'                            2
+# A tab after the verb separates words in bash, as a space does.
+run $SECRET_HOOK Bash     "$(printf 'git add\t.env.local')"                2
+run $SECRET_HOOK Bash     "$(printf 'git commit\t-a id_rsa')"              2
+# bash drops empty quotes, an empty expansion and a backslash-newline, so git still sees add.
+run $SECRET_HOOK Bash     'git add"" .env'                                 2
+run $SECRET_HOOK Bash     "git add\$'' .env"                               2
+run $SECRET_HOOK Bash     "git add\${x} .env"                              2
+run $SECRET_HOOK Bash     "git add\$(true) .env"                           2
+run $SECRET_HOOK Bash     "$(printf 'git add\\\n .env')"                   2
+run $SECRET_HOOK Bash     "$(printf 'git\tadd .env')"                      2
+# The same constructs glued onto git, where the gap between git and the verb is all the
+# hook has to go on. bash removes each one, so git is still the command word.
+run $SECRET_HOOK Bash     'git"" add .env'                                 2
+run $SECRET_HOOK Bash     "git'' add .env"                                 2
+run $SECRET_HOOK Bash     "git\$'' add .env"                               2
+run $SECRET_HOOK Bash     "git\${x} commit -a .env"                        2
+run $SECRET_HOOK Bash     "git\$(true) add id_rsa"                         2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git`true` add .env'                             2
+run $SECRET_HOOK Bash     "$(printf 'git\\\n add .env')"                   2
+run $SECRET_HOOK Bash     'git ""add .env'                                 2
+run $SECRET_HOOK Bash     "$(printf 'git \\\nadd .env')"                   2
+# And glued onto the path, where what is left of the word is .env.
+run $SECRET_HOOK Bash     "git add \${x}.env"                              2
+run $SECRET_HOOK Bash     "git commit -a \$(true).env"                     2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git stage `true`.env'                           2
+run $SECRET_HOOK Bash     "$(printf 'git add \t.env')"                     2
 
 echo "block-secret-staging.sh — must ALLOW (exit 0)"
 run $SECRET_HOOK Bash     "git add src/main.py"                            0
@@ -830,6 +934,18 @@ run $SECRET_HOOK Bash     "git add .env.example"                           0
 run $SECRET_HOOK Bash     "git add docs/environment.md"                    0
 run $SECRET_HOOK Bash     "npm test"                                       0
 run $SECRET_HOOK Bash     "git commit -m 'feat: read config from environment'" 0
+run $SECRET_HOOK Bash     'echo "path is .env"'                            0
+run $SECRET_HOOK Bash     "git status; cat .env"                           0
+run $SECRET_HOOK Bash     "git log | grep .env"                            0
+# The verb is a whole word: add.sh is a file name, not git add.
+run $SECRET_HOOK Bash     "git blame add.sh .env"                          0
+# Glue with no whitespace in it leaves one word: git""add is gitadd, --grep=add is one
+# option. Neither is git add, and neither stages anything.
+run $SECRET_HOOK Bash     'git""add .env'                                  0
+run $SECRET_HOOK Bash     "git log --grep=add .env"                        0
+# A segment break between the verb and the path means git never sees the path.
+run $SECRET_HOOK Bash     "git add;.env"                                   0
+run $SECRET_HOOK Bash     "git add&&cat .env"                              0
 
 echo "block-mcp-writes.sh — the read-only veto (the command is ignored; the NAME is the input)"
 run $MCP_HOOK mcp__tracker__get_issue        "" 0
