@@ -159,19 +159,29 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 #   - it reads option words through deb() (backslash and dollar escapes removed);
 #   - it folds no case beyond the subcommand, where this one folds paths (see above);
 #   - it reads the JSON in the same program; this file has parse() for that.
+# A VERBATIM third copy lives in block-secret-staging.sh, which reads the path rows only.
+# One thing is different there, on purpose: the nested-view loop also queues a glued_view(),
+# which puts a substitution's own text back where its span stood, so a path inside an
+# unquoted $( ) is judged rather than split away.
 # SHARED, and a change to any of these here is a change to make there too: HEREDOC_WORD,
-# heredoc_ops and strip_heredocs; tokenize and fallback_tokens; MULTI, NO_EXEC, LEADERS and
-# runs_no_args; the pipe test and the candidate step in seg_rows; MAX_DEPTH, span_views and
-# the nested-view loop. Also shared in behaviour: the line-continuation join, the newline
-# separator, the redirection drop, the forward scan over every git word in a segment, and
-# the binary UTF-8 stdout write.
+# heredoc_ops and strip_heredocs; _SQUASH and squash; _SPANS and word, and the reading of
+# the program word and the verb — never a path — through it; _WS_ASSIGN and split_ws, and
+# the call to it at the tail of prepare; tokenize and fallback_tokens; MULTI, NO_EXEC,
+# LEADERS and runs_no_args; the pipe test and the candidate step in seg_rows; MAX_DEPTH,
+# span_views and the nested-view loop. Also shared in behaviour: the line-continuation join,
+# the newline separator, the redirection drop, the forward scan over every git word in a
+# segment, and the binary UTF-8 stdout write.
+# _SQUASH/squash, _SPANS/word and _WS_ASSIGN/split_ws are byte-identical in all three copies;
+# the rest of this list is byte-identical in block-secret-staging.sh only, because
+# block-dangerous-git.sh is the parameterised copy described above.
 staged_args() { # prints "<subcommand>\t<opt|path>\t<word>" per argument; exit 3 = unparsable
+    # shellcheck disable=SC2016  # this argument is a python program, not shell
     py_run "$cmd" '
 import re, shlex, sys
 
 SUB = {"add": "add", "stage": "add", "commit": "commit"}
 
-# The options git itself takes BEFORE the subcommand. These four take a separate value.
+# The options git itself takes BEFORE the subcommand. These take a separate value.
 GLOBAL_VAL = {"-C", "-c", "--git-dir", "--work-tree", "--exec-path", "--namespace"}
 
 # Options whose value is a message, a mode or a file to READ — never a path to stage.
@@ -280,6 +290,39 @@ def strip_heredocs(s):
             pending = []
     return "\n".join(out)
 
+# A quote or a dollar can sit INSIDE the word git, and shlex leaves the dollar glued to the
+# token it produces. Squashing those characters out only ever DELETES, so a git that was
+# there is still there: every test on a squashed string widens what gets inspected, and can
+# never narrow it. The decision of what to block stays the tokenizer.
+_SQUASH = {ord(c): None for c in (chr(34), chr(39), "$", chr(92))}
+
+def squash(s):
+    return s.translate(_SQUASH).lower()
+
+# A name that an assignment EARLIER IN THE SAME PAYLOAD gives a whitespace-only value.
+_WS_ASSIGN = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=([\"" + chr(39) + r"])[ \t]+\2")
+
+def split_ws(src):
+    # An expansion that yields whitespace is a word SPLIT when bash runs the command, while
+    # a quote pair only glues. That is the whole difference between git${IFS}add, which
+    # stages, and git""add, which is the single word gitadd and stages nothing — so a
+    # literal space here, and nothing else touched, is what lets the tokenizer see it.
+    # Two shapes are closed: $IFS, and a name this payload assigns a whitespace-only value.
+    # NOT closed: ${IFS:0:1}, $(printf " "), a dollar-quoted tab, and a name set in an
+    # earlier tool call — the hook only ever sees one command.
+    names = {"IFS"} | {m.group(1) for m in _WS_ASSIGN.finditer(src)}
+    alt = "|".join(sorted(names))
+    return re.sub(r"\$\{(?:" + alt + r")\}|\$(?:" + alt + r")(?![A-Za-z0-9_])", " ", src)
+
+# A brace expansion or a substitution span can expand to NOTHING, so bash hands git the
+# same word with or without it: git${x} add, git add$(true) .env and git`true` add are all
+# git add. Only the program word and the verb are read through word() — dropping a span
+# from a PATH changes the text the path rules match and turns a block into an allow.
+_SPANS = re.compile(r"\$\{[^}]*\}|\$\([^)]*\)|\x60[^\x60]*\x60")
+
+def word(w):
+    return squash(_SPANS.sub("", w))
+
 def prepare(src):
 # A LINE CONTINUATION is ONE command written over two lines, so it is joined BEFORE any
 # newline becomes a separator; splitting there puts the rest of the command, paths
@@ -288,6 +331,8 @@ def prepare(src):
 # Only the JOIN is shared: a backtick elsewhere is NOT made a separator here, because that
 # split would move a path word out of its add segment and turn a block into an allow.
     src = re.sub(r"[\\\x60][ \t]*\n+", " ", src)
+
+    src = split_ws(src)
 
 # Newlines become an explicit separator BEFORE tokenizing: shlex treats one as plain
 # whitespace, which would run two commands together into one segment.
@@ -363,7 +408,9 @@ def seg_rows(toks, out, cands):
         # first git is the value of -u). An extra row can only make a rule fire.
         p = j
         while p < len(words):
-            if words[p].replace("\\", "/").rsplit("/", 1)[-1].lower() not in ("git", "git.exe"):
+            # word() runs only AFTER the separator is normalised: it drops backslashes, and
+            # doing it first would swallow the separator of a Windows path.
+            if word(words[p].replace("\\", "/").rsplit("/", 1)[-1]) not in ("git", "git.exe"):
                 p += 1
                 continue
             j = p + 1
@@ -373,7 +420,7 @@ def seg_rows(toks, out, cands):
                 j += 2 if words[j] in GLOBAL_VAL else 1
             if j >= len(words):
                 continue
-            sub = SUB.get(words[j].lower())
+            sub = SUB.get(word(words[j]))
             if sub is None:
                 continue
 
@@ -453,7 +500,7 @@ seen, queue, q = {src}, [(t, 1) for t in span_views(src) + cands], 0
 while q < len(queue):
     text, depth = queue[q]
     q += 1
-    if text in seen or "git" not in text.lower():
+    if text in seen or "git" not in squash(text):
         continue
     seen.add(text)
     if depth > MAX_DEPTH:
@@ -480,7 +527,15 @@ sys.stdout.buffer.write("".join(line + "\n" for line in out).encode("utf-8"))
 
 # The pre-filter is deliberately just "git": `git -C <dir> add …` does not put the verb
 # next to the program name, and a filter that demanded that let the whole command past.
-if printf '%s' "$norm" | grep -Eiq 'git'; then
+# A quote or a dollar can sit INSIDE the word git, so the test runs over a copy with those
+# squashed out. Squashing only ever DELETES characters, so a git that was there is still
+# there and this can only widen what reaches the tokenizer. The `,,` is load-bearing: drop
+# it and the filter stops being case-insensitive, which is a guardrail quietly narrowing.
+sq=${norm//'"'/}
+sq=${sq//"'"/}
+sq=${sq//'$'/}
+sq=${sq//"\\"/}
+if [[ ${sq,,} == *git* ]]; then
     # Rows include commands nested in $( ), backticks and any multi-word argument
     # (bash -c, ssh, eval), up to MAX_DEPTH. A commit message and the arguments of echo,
     # printf, grep, rg and gh (NO_EXEC) with no pipe after them are not read as commands.
@@ -492,14 +547,11 @@ if printf '%s' "$norm" | grep -Eiq 'git'; then
     #     `eval "$(echo "git add -A")"`, `echo "git add -A" > >(bash)`;
     #   - an option whose VALUE is a command — `git rebase --exec="git add -A"`,
     #     `git -c alias.x="!git add -A" x`, `ssh -o ProxyCommand="git add -A" host`;
-    #   - a git word split by an expansion — `git${IFS}add -A`: bash splits that into
-    #     git and its verb, while the raw text carries one word;
+    #   - a git word split by an expansion whose whitespace value this payload does not
+    #     show — `git${IFS:0:1}add -A`, `git$(printf " ")add -A`;
     #   - text one command writes to a file and the next command runs —
     #     `echo "git add -A" > x.sh; bash x.sh`. A redirect only: `tee` is not in
-    #     NO_EXEC, so the same shape through a pipe is judged;
-    #   - a construct inside the git word — `g""it add -A`, `g$''it add -A`: bash joins
-    #     the pieces into git and runs it, while the raw text holds no git word for the
-    #     pre-filter to find.
+    #     NO_EXEC, so the same shape through a pipe is judged.
     args="$(staged_args)" || block "this command could not be read well enough to tell what it stages — refusing rather than guessing."
 
     while IFS="$(printf '\t')" read -r sub kind arg; do

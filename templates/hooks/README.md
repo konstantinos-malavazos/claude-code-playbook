@@ -174,9 +174,11 @@ the pattern depends on.** Worth checking in any guardrail that normalises before
 
 **Where the code stands now.** Both git-reading hooks tokenize instead of matching text —
 `block-infra-staging.sh` since #112, `block-dangerous-git.sh` since #117 — so neither has an
-anchored pattern left and neither judges the flattened string. `block-secret-staging.sh`
-does still read it, but every one of its patterns is unanchored, so the gap above cannot
-occur there either. The two raw-text rules that remain (`--no-verify` and `--no-gpg-sign`
+anchored pattern left and neither judges the flattened string. `block-secret-staging.sh` is
+split down the middle: its credential-**path** rules tokenize too and judge whole words, so
+they never see the flattened string, while its credential-**literal** scan does read it and
+is unanchored on purpose, because a key written on a command line has already leaked whether
+or not git touches it. The two raw-text rules that remain (`--no-verify` and `--no-gpg-sign`
 in `block-dangerous-git.sh`) are bare unanchored substrings **on purpose**, so they keep
 catching non-git commands such as `npm publish --no-verify`. #146 turned them from
 `grep -Eiq` into `[[ ${norm,,} == *…* ]]` to save two processes per invocation; the `,,` is

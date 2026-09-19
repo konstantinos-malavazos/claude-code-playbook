@@ -478,6 +478,30 @@ git branch -D feature"                                                          
 run $GIT_HOOK Bash       "grep -n \"<<'PY'\" install.sh
 git push --force"                                                                 2
 
+echo "block-dangerous-git.sh — the git word itself is built by the shell"
+# Two shapes the raw "is there a git in this text" pre-filter misses. A construct INSIDE
+# the word means no `git` appears in the text at all, so the tokenizer never runs. A
+# construct that expands to WHITESPACE gets past the pre-filter, but shlex reads
+# git${IFS}push as one glued word whose basename is not git, so no rule is ever offered it.
+# Single-quoted, or this script's own shell eats the dollar and the case tests nothing.
+run $GIT_HOOK Bash       'g""it push --force'                                     2
+run $GIT_HOOK Bash       "g\$''it push --force"                                   2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'git${IFS}push --force'                                  2
+run $GIT_HOOK Bash       "x=' '; git\${x}push --force"                            2
+# A span GLUED to the program word, or to the verb. Each expands to nothing, so bash runs
+# git push --force either way — but shlex keeps the span inside the token, and neither the
+# basename nor the subcommand it hands back is the word a rule is keyed on.
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'git${x} push --force'                                   2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'git push${x} --force'                                   2
+run $GIT_HOOK Bash       "git pu\$''sh --force"                                   2
+# The line those two are drawn either side of, and the one thing here that must stay 0:
+# empty quotes GLUE, so bash runs the single word `gitpush` and no git command exists. Only
+# a whitespace-valued expansion SPLITS.
+run $GIT_HOOK Bash       'git""push --force'                                      0
+
 echo "block-dangerous-git.sh — must ALLOW (exit 0)"
 run $GIT_HOOK Bash       "git status"                                      0
 run $GIT_HOOK Bash       "git log --oneline -5"                            0
@@ -689,6 +713,21 @@ run $GIT_HOOK Bash       'git push \--force-with-lease'                    2
 # Not an evasion trick: $'...' is ordinary ANSI-C quoting anyone may type, and shlex
 # leaves the dollar sign glued to the front of the word where bash does not pass it on.
 run $GIT_HOOK Bash       "git push \$'--force'"                            2
+# The shell-built git word again, and this is the state where the answer is load-bearing.
+# Unlisted, the plain-push rule blocks every one of them on the bare `git push` alone, so
+# they would go green there without the force flag ever being judged. Allowlisted, push is
+# permitted and the force flag is the whole remaining job.
+run $GIT_HOOK Bash       'g""it push --force'                              2
+run $GIT_HOOK Bash       "g\$''it push --force"                            2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'git${IFS}push --force'                           2
+run $GIT_HOOK Bash       "x=' '; git\${x}push --force"                     2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'git${x} push --force'                            2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'git push${x} --force'                            2
+run $GIT_HOOK Bash       "git pu\$''sh --force"                            2
+run $GIT_HOOK Bash       'git""push --force'                               0
 HOOK_HOME="$DENY_HOME"
 
 echo "block-infra-staging.sh — must BLOCK (exit 2), repo not listed"
@@ -700,6 +739,27 @@ run $INFRA_HOOK Bash     "git status
 git add CLAUDE.md"                                                         2
 run $INFRA_HOOK Bash     "git add .
 git commit -m x"                                                           2
+
+echo "block-infra-staging.sh — the git word itself is built by the shell"
+# Same two shapes as in the git hook: a construct inside the word keeps `git` out of the
+# text the pre-filter reads, and a whitespace-valued expansion splits the word for bash
+# while shlex keeps it glued. Single-quoted, or the dollar never reaches the hook.
+run $INFRA_HOOK Bash     'g""it add -A'                                    2
+run $INFRA_HOOK Bash     "g\$''it add -A"                                  2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'git${IFS}add -A'                                 2
+# A span GLUED to the program word, or to the verb. Each expands to nothing, so bash runs
+# git add either way — but shlex keeps the span inside the token, and neither the basename
+# nor the subcommand it hands back is a word this hook is keyed on.
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'git${x} add -A'                                  2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'git add${x} -A'                                  2
+run $INFRA_HOOK Bash     "git add\$'' -A"                                  2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'git${x} add .claude/settings.json'               2
+# Empty quotes glue: `gitadd -A` stages nothing.
+run $INFRA_HOOK Bash     'git""add -A'                                     0
 
 echo "block-infra-staging.sh — both sides of the .claude/ line"
 # These do not depend on the allowlist: agents/ and skills/ are product files anywhere.
@@ -927,6 +987,39 @@ run $SECRET_HOOK Bash     "git commit -a \$(true).env"                     2
 # shellcheck disable=SC2016
 run $SECRET_HOOK Bash     'git stage `true`.env'                           2
 run $SECRET_HOOK Bash     "$(printf 'git add \t.env')"                     2
+# A construct INSIDE the word, in each of the two words the gate reads. Every glue case
+# above leaves `git` and the verb intact as text; these do not, so a gate that reads the
+# text rather than the argv sees neither word.
+run $SECRET_HOOK Bash     'g""it add .env'                                 2
+run $SECRET_HOOK Bash     "g\$''it add .env"                               2
+run $SECRET_HOOK Bash     'git ad""d .env'                                 2
+# And the whitespace-valued expansion, which bash splits into two words where the text
+# holds one.
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git${IFS}add .env'                              2
+# An UNQUOTED substitution standing in a path argument. shlex reads its open paren as a
+# segment separator, so the path inside it lands in no segment of its own — the word the
+# command really stages has to be read out of the span text.
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git add $(echo .env)'                           2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git add ./$(echo .env)'                         2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git add $(echo .env)/x'                         2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git add $(echo .env) x'                         2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git commit -a $(echo .env)'                     2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git add $(echo id_rsa)'                         2
+# The shapes that never split — quoted, backticked, or glued after the path — are the
+# controls for the six rows above: they must go on blocking.
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git add "$(echo .env)"'                         2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git add `echo .env`'                            2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'git add .env$(true)'                            2
 
 echo "block-secret-staging.sh — must ALLOW (exit 0)"
 run $SECRET_HOOK Bash     "git add src/main.py"                            0
