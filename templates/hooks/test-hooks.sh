@@ -1044,15 +1044,77 @@ echo "block-mcp-writes.sh — the read-only veto (the command is ignored; the NA
 run $MCP_HOOK mcp__tracker__get_issue        "" 0
 run $MCP_HOOK mcp__github__list_issues       "" 0
 run $MCP_HOOK mcp__tracker__search_issues    "" 0
-run $MCP_HOOK mcp__tracker__create_issue     "" 2
+run_msg $MCP_HOOK mcp__tracker__create_issue "" 2 "write-class MCP call"
 run $MCP_HOOK mcp__gitlab__update_issue      "" 2
 run $MCP_HOOK mcp__github__add_issue_comment "" 2
+run_msg $MCP_HOOK mcp__tracker__get_or_create_issue "" 2 "mixes words with and/or/then"
+run $MCP_HOOK mcp__github__list_then_delete "" 2
+run $MCP_HOOK mcp__tracker__read_and_update "" 2
+run $MCP_HOOK mcp__tracker__search_then_create_comment "" 2
+run $MCP_HOOK mcp__tracker__validate_and_delete "" 2
+run $MCP_HOOK mcp__tracker__delete_and_lint "" 2
+run $MCP_HOOK mcp__tracker__get_and_clone_repo "" 2
+run $MCP_HOOK mcp__tracker__getOrCreateIssue "" 2
+run $MCP_HOOK mcp__tracker__get_or_remove_issue "" 2
+run $MCP_HOOK mcp__tracker__read_then_push "" 2
+run $MCP_HOOK mcp__tracker__whoami_and_update "" 2
+run $MCP_HOOK mcp__tracker__validate_then_merge "" 2
+run $MCP_HOOK mcp__tracker__get_remove_issue "" 2
+run $MCP_HOOK mcp__tracker__validate_delete "" 2
+run $MCP_HOOK mcp__tracker__read_update "" 2
+run $MCP_HOOK mcp__tracker__read_issue "" 0
+run $MCP_HOOK mcp__tracker__download_attachment "" 0
+run $MCP_HOOK mcp__tracker__whoami "" 0
+run $MCP_HOOK mcp__tracker__health "" 0
+run $MCP_HOOK mcp__tracker__validate_issue "" 0
+run $MCP_HOOK mcp__tracker__foo_lint "" 0
+run $MCP_HOOK mcp__tracker__getIssue "" 0
+run_msg $MCP_HOOK mcp__tracker__frobnicate "" 2 "not recognised as a safe read shape"
 # Not a policed server: not this hook's business, whatever the verb.
 run $MCP_HOOK mcp__serena__replace_symbol_body "" 0
 run $MCP_HOOK Bash                             "" 0
 # The second fail-open: a parse that SUCCEEDS and returns nothing used to fall through
 # the case to exit 0, allowing the call on the strength of a name nobody read.
 run $MCP_HOOK "" "" 2
+
+# Proves the hook's verdicts do not depend on the allowlist.
+HOOK_HOME="$ALLOW_HOME"
+run $MCP_HOOK mcp__tracker__get_issue        "" 0
+run $MCP_HOOK mcp__github__list_issues       "" 0
+run $MCP_HOOK mcp__tracker__search_issues    "" 0
+run_msg $MCP_HOOK mcp__tracker__create_issue "" 2 "write-class MCP call"
+run $MCP_HOOK mcp__gitlab__update_issue      "" 2
+run $MCP_HOOK mcp__github__add_issue_comment "" 2
+run_msg $MCP_HOOK mcp__tracker__get_or_create_issue "" 2 "mixes words with and/or/then"
+run $MCP_HOOK mcp__github__list_then_delete "" 2
+run $MCP_HOOK mcp__tracker__read_and_update "" 2
+run $MCP_HOOK mcp__tracker__search_then_create_comment "" 2
+run $MCP_HOOK mcp__tracker__validate_and_delete "" 2
+run $MCP_HOOK mcp__tracker__delete_and_lint "" 2
+run $MCP_HOOK mcp__tracker__get_and_clone_repo "" 2
+run $MCP_HOOK mcp__tracker__getOrCreateIssue "" 2
+run $MCP_HOOK mcp__tracker__get_or_remove_issue "" 2
+run $MCP_HOOK mcp__tracker__read_then_push "" 2
+run $MCP_HOOK mcp__tracker__whoami_and_update "" 2
+run $MCP_HOOK mcp__tracker__validate_then_merge "" 2
+run $MCP_HOOK mcp__tracker__get_remove_issue "" 2
+run $MCP_HOOK mcp__tracker__validate_delete "" 2
+run $MCP_HOOK mcp__tracker__read_update "" 2
+run $MCP_HOOK mcp__tracker__read_issue "" 0
+run $MCP_HOOK mcp__tracker__download_attachment "" 0
+run $MCP_HOOK mcp__tracker__whoami "" 0
+run $MCP_HOOK mcp__tracker__health "" 0
+run $MCP_HOOK mcp__tracker__validate_issue "" 0
+run $MCP_HOOK mcp__tracker__foo_lint "" 0
+run $MCP_HOOK mcp__tracker__getIssue "" 0
+run_msg $MCP_HOOK mcp__tracker__frobnicate "" 2 "not recognised as a safe read shape"
+# Not a policed server: not this hook's business, whatever the verb.
+run $MCP_HOOK mcp__serena__replace_symbol_body "" 0
+run $MCP_HOOK Bash                             "" 0
+# The second fail-open: a parse that SUCCEEDS and returns nothing used to fall through
+# the case to exit 0, allowing the call on the strength of a name nobody read.
+run $MCP_HOOK "" "" 2
+HOOK_HOME="$DENY_HOME"
 
 echo "block-unexplained-long-hold.sh — must BLOCK (exit 2), a long hold with nothing said about it"
 # The gap this hook closes is NOT an unbounded hang. The Bash tool is already bounded, so
