@@ -85,9 +85,67 @@ case "$tool" in
     *) exit 0 ;;                                        # everything else: not our business
 esac
 
-# Allow-list: only clearly read-shaped operations pass.
-if printf '%s' "$tool" | grep -Eiq '__(get|list|search|read|download|whoami|health|.*_lint|validate)([_A-Za-z0-9]*)$'; then
-    exit 0
+# Classify tool segment: block on write verbs or connectives; allow safe read shapes.
+seg="${tool##*__}"
+
+_humps=()
+_cur=""
+_i=0
+while [ "$_i" -lt "${#seg}" ]; do
+    _ch="${seg:_i:1}"
+    case "$_ch" in
+        [A-Z])
+            [ -n "$_cur" ] && _humps+=("$_cur")
+            _cur="$_ch"
+            ;;
+        *)
+            _cur="${_cur}${_ch}"
+            ;;
+    esac
+    _i=$((_i + 1))
+done
+[ -n "$_cur" ] && _humps+=("$_cur")
+
+_raw_segments=()
+for _h in "${_humps[@]}"; do
+    while [ -n "$_h" ]; do
+        _s="${_h%%_*}"
+        [ -n "$_s" ] && _raw_segments+=("$_s")
+        if [ "$_s" = "$_h" ]; then
+            break
+        fi
+        _h="${_h#*_}"
+    done
+done
+
+segments=()
+for _s in "${_raw_segments[@]}"; do
+    segments+=("${_s,,}")
+done
+
+for _seg in "${segments[@]}"; do
+    case "$_seg" in
+        create|update|delete|add|remove|set|edit|write|post|put|patch|upload|push|merge|close|reopen|assign|unassign|transition|move|rename|archive|restore|link|unlink)
+            block "'$tool' is a write-class MCP call. The tracker/git-host are read-only by policy — do writes manually with explicit approval."
+            ;;
+        # Connective check backstops words the write-verb list cannot fully enumerate.
+        or|and|then|plus|also)
+            block "'$tool' mixes words with and/or/then, so the name alone cannot say whether it writes. Blocked. If it is read-only, run it yourself outside the agent, or get the tool renamed."
+            ;;
+    esac
+done
+
+if [ "${#segments[@]}" -gt 0 ]; then
+    case "${segments[0]}" in
+        get|list|search|read|download|whoami|health|validate)
+            exit 0
+            ;;
+    esac
+    case "${segments[-1]}" in
+        lint)
+            exit 0
+            ;;
+    esac
 fi
 
-block "'$tool' is a write-class MCP call. The tracker/git-host are read-only by policy — do writes manually with explicit approval."
+block "'$tool' was not recognised as a safe read shape. The tracker/git-host are read-only by policy — only names starting with a read verb or ending in '_lint' are allowed."
