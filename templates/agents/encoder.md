@@ -11,7 +11,7 @@ description: >-
   document, its tier-1 parent and any declared tenant entity, contributes one candidate golden
   question per unit, appends a capped batch report, and advances the cursor. 8 unit-symbol units
   or 3 unit-architecture units per batch. Never invents a tag and never deletes a memory.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <memory-write-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern
+tools: Read, Grep, Glob, Write, Edit, Bash, Skill, <memory-read-tools>, <memory-write-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern
 model: <strong-model-id>
 effort: high
 ---

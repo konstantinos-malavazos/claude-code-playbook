@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Wiring scrub. Two wirings live here, both the same shape — one definition, many
-# call sites — and both failing OPEN when a call site drifts:
+# Wiring scrub. Several wirings live here, all the same shape — one definition, many
+# call sites — and all failing OPEN when a call site drifts:
 #
 #   A1-A9  the per-dispatch model weight (issue #92)
 #   A10    the Serena halt block every navigating agent needs (issue #109)
 #   A11    the two model-id tokens are lowercase and reach a live install (issue #135)
 #   A12    the flow guardrails are stated where the dispatcher reads them (issue #148)
-#   A13    every Serena-declaring agent can activate its project and says when to
+#   A13    every Serena-declaring agent can activate its project and says what to do
+#          on "No active project"
+#   A14    every agent that names a skill grants Skill; the TaskStop-only agents do not
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -79,6 +81,15 @@ stems() {
     stem="$(basename "$f" .md)"
     [ "$stem" = "README" ] && continue
     printf '%s\n' "$stem"
+  done
+}
+
+# skill_dirs — the skill stems, read off disk the way stems() reads the flat dirs
+skill_dirs() {
+  local d
+  for d in "$TEMPLATES"/skills/*/; do
+    [ -d "$d" ] || continue
+    basename "$d"
   done
 }
 
@@ -801,6 +812,148 @@ for stem in $SERENA_AGENTS; do
 done
 fi
 
+# ---------------------------------------------------------------- A14
+# An agent whose body names a skill but whose tools: line does not grant Skill
+# cannot load it, and silently falls through to its fallback.
+if want A14; then
+banner "A14 · every agent that names a skill grants Skill"
+
+a14_tools() {
+  tr -d '\r' < "$1" | awk '/^---$/{n++; next} n==1' | sed -n 's/^tools:[[:space:]]*//p' | head -1
+}
+
+grants_skill() {
+  a14_tools "$1" | tr ',' '\n' | tr -d ' \t\r' | grep -qx 'Skill'
+}
+
+names_skill() {
+  local skills
+  skills="$(skill_dirs | paste -sd '|' -)"
+  # shellcheck disable=SC2016
+  tr -d '\r' < "$1" | grep -qE '`('"$skills"')`|\b('"$skills"') skill\b|standards skill|`[^`]+-standards`'
+}
+
+# These agents run tools: TaskStop with maxTurns: 1 as an evidence floor, and Skill reads content, so they must never grant it.
+A14_FLOOR="decision-steward pitch-judge"
+
+# A14.0 — probe is not pointed at nothing
+a14_probe_ok=0
+if [ -n "$(skill_dirs)" ]; then
+  for stem in $(stems "$AGENTS"); do
+    if names_skill "$AGENTS/$stem.md"; then
+      a14_probe_ok=1
+      break
+    fi
+  done
+fi
+if [ "$a14_probe_ok" -eq 1 ]; then
+  pass "A14.0 the skill probe matches something at all"
+else
+  fail "A14.0 the skill probe matched NOTHING — the probe is broken, not the tree"
+fi
+
+# A14.1 — skill-naming agents grant Skill
+for stem in $(stems "$AGENTS"); do
+  case " $A14_FLOOR " in
+    *" $stem "*) continue ;;
+  esac
+  if names_skill "$AGENTS/$stem.md"; then
+    if grants_skill "$AGENTS/$stem.md"; then
+      pass "A14.1 $stem names a skill and grants Skill"
+    else
+      fail "A14.1 $stem names a skill but its tools: line does not grant Skill — grant Skill, or add it to A14_FLOOR with its reason"
+    fi
+  fi
+done
+
+# A14.2 — floor agents exist and do not grant Skill
+for stem in $A14_FLOOR; do
+  f="$AGENTS/$stem.md"
+  if [ ! -f "$f" ]; then
+    fail "A14.2 $stem in floor does not exist"
+  elif grants_skill "$f"; then
+    fail "A14.2 $stem in floor grants Skill — floor agents must never grant Skill"
+  else
+    pass "A14.2 $stem in floor does not grant Skill"
+  fi
+done
+
+# A14.3 — controls on synthetic fixtures
+mkdir -p "$SCRATCH/a14"
+
+# shellcheck disable=SC2016
+printf -- '---\r\ntools: Read, Bash\r\n---\r\nload `dispatch-weight` first\r\n' > "$SCRATCH/a14/arm1.md"
+if names_skill "$SCRATCH/a14/arm1.md"; then
+  pass "A14.3 arm 1 (backticked name) is flagged"
+else
+  fail "A14.3 arm 1 (backticked name) was not flagged"
+fi
+if ! grants_skill "$SCRATCH/a14/arm1.md"; then
+  pass "A14.3 arm 1 fixture does not grant Skill"
+else
+  fail "A14.3 arm 1 fixture unexpectedly grants Skill"
+fi
+
+printf -- '---\r\ntools: Read, Bash\r\n---\r\nfollow the tdd skill\r\n' > "$SCRATCH/a14/arm2.md"
+if names_skill "$SCRATCH/a14/arm2.md"; then
+  pass "A14.3 arm 2 (bare name + skill) is flagged"
+else
+  fail "A14.3 arm 2 (bare name + skill) was not flagged"
+fi
+if ! grants_skill "$SCRATCH/a14/arm2.md"; then
+  pass "A14.3 arm 2 fixture does not grant Skill"
+else
+  fail "A14.3 arm 2 fixture unexpectedly grants Skill"
+fi
+
+printf -- '---\r\ntools: Read, Bash\r\n---\r\napply your standards skill\r\n' > "$SCRATCH/a14/arm3.md"
+if names_skill "$SCRATCH/a14/arm3.md"; then
+  pass "A14.3 arm 3 (standards skill) is flagged"
+else
+  fail "A14.3 arm 3 (standards skill) was not flagged"
+fi
+if ! grants_skill "$SCRATCH/a14/arm3.md"; then
+  pass "A14.3 arm 3 fixture does not grant Skill"
+else
+  fail "A14.3 arm 3 fixture unexpectedly grants Skill"
+fi
+
+# shellcheck disable=SC2016
+printf -- '---\r\ntools: Read, Bash\r\n---\r\napply `<layer>-standards`\r\n' > "$SCRATCH/a14/arm4.md"
+if names_skill "$SCRATCH/a14/arm4.md"; then
+  pass "A14.3 arm 4 (backticked -standards) is flagged"
+else
+  fail "A14.3 arm 4 (backticked -standards) was not flagged"
+fi
+if ! grants_skill "$SCRATCH/a14/arm4.md"; then
+  pass "A14.3 arm 4 fixture does not grant Skill"
+else
+  fail "A14.3 arm 4 fixture unexpectedly grants Skill"
+fi
+
+printf -- '---\r\ntools: Read, Skill, Bash\r\n---\r\none body line\r\n' > "$SCRATCH/a14/grant.md"
+if grants_skill "$SCRATCH/a14/grant.md"; then
+  pass "A14.3 grant fixture grants Skill"
+else
+  fail "A14.3 grant fixture does not grant Skill"
+fi
+
+printf -- '---\r\ntools: Read, mcp__x__Skillful\r\n---\r\none body line containing the word Skill\r\n' > "$SCRATCH/a14/substring.md"
+if ! grants_skill "$SCRATCH/a14/substring.md"; then
+  pass "A14.3 substring fixture does not grant Skill"
+else
+  fail "A14.3 substring fixture unexpectedly grants Skill"
+fi
+
+printf -- '---\r\ntools: TaskStop, Skill\r\n---\r\none body line\r\n' > "$SCRATCH/a14/floor.md"
+if grants_skill "$SCRATCH/a14/floor.md"; then
+  pass "A14.3 floor fixture grants Skill"
+else
+  fail "A14.3 floor fixture does not grant Skill"
+fi
+
+fi
+
 # ---------------------------------------------------------------- A12
 # The flow guardrails (#148). Five rules — a stated persona on every dispatch, an
 # explicit timeout with a per-call expectation, a concrete overrun trigger whose
@@ -1244,15 +1397,6 @@ terminal_class() {
     tdd|to-spec|wait-what|next-steps|engineering-standards|review-guidelines)       printf 'not-terminal' ;;
     *)                                                                              printf 'UNCLASSIFIED' ;;
   esac
-}
-
-# skill_dirs — the skill stems, read off disk the way stems() reads the flat dirs
-skill_dirs() {
-  local d
-  for d in "$TEMPLATES"/skills/*/; do
-    [ -d "$d" ] || continue
-    basename "$d"
-  done
 }
 
 # invokes_next FILE — does this file send the reader to the one definition?

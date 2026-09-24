@@ -9,7 +9,7 @@ description: >-
   shared names, types and contract shapes. Writes ALIGNED or DRIFT FOUND to
   <workspace>/.claude/handoffs/<TICKET-ID>/aligner.md, naming the responsible slice for every
   finding. Read-only on code — comments only, never edits.
-tools: Read, Grep, Glob, Bash, Write, Edit, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__get_diagnostics_for_file
+tools: Read, Grep, Glob, Bash, Write, Edit, Skill, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__get_diagnostics_for_file
 model: <strong-model-id>
 effort: xhigh
 ---

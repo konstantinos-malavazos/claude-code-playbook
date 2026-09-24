@@ -8,7 +8,7 @@ description: >-
   Assigns PASS/FAIL/INCONCLUSIVE/OUT-OF-SCOPE per acceptance criterion, confirms or corrects
   the banked recipe in memory, and writes test-report.md to the PERSISTENT
   <workspace>/.claude/test-runs/<TICKET-ID>/. Reports anomalies, never fixes them.
-tools: Read, Grep, Glob, Write, Edit, Bash, WebFetch, <memory-read-tools>, <memory-write-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
+tools: Read, Grep, Glob, Write, Edit, Bash, WebFetch, Skill, <memory-read-tools>, <memory-write-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
 effort: high
 ---
