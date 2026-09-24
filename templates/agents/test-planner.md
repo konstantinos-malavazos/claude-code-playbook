@@ -8,7 +8,7 @@ description: >-
   PROVISIONAL on a miss. Writes test-plan.md + planner-notes.md to the PERSISTENT
   <workspace>/.claude/test-runs/<TICKET-ID>/ and STOPS for approval. DETECTS and BANKS recipes;
   @tester executes them. Never writes production code, branches, or commits.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <memory-write-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
+tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <memory-write-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
 effort: xhigh
 ---
@@ -45,6 +45,11 @@ No plan written, no recipe banked. Fix the tool names (templates/agents/README.m
 …and stop there. **Do not grep out a produce path instead.** A plan traced by grep comes out
 in the same shape as one traced through symbols, a human approves it either way, and `@tester`
 then produces something real from it — which is why this is a halt and not a caveat.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 **Memory is the lesser case.** Memory tools that did not resolve mean no learning loop: plan
 anyway, but head the recipe section *memory unavailable — nothing reused, nothing banked*, so

@@ -9,7 +9,7 @@ description: >-
   tag lint as a positive-controlled gate. Assumes nothing the encoder reported is true. Writes
   PASS or FAIL to <workspace>/.claude/encode-runs/<repo>/lint-recheck-batch<N>.md, naming the
   memory id on every finding. Read-only on memory and on code — it fixes nothing.
-tools: Read, Grep, Glob, Write, Bash, <memory-read-tools>, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
+tools: Read, Grep, Glob, Write, Bash, <memory-read-tools>, mcp__serena__find_symbol, mcp__serena__activate_project, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
 model: <strong-model-id>
 effort: xhigh
 ---
@@ -73,6 +73,11 @@ placeholder, a wrong `mcp__` prefix — is stripped at launch with **no error an
 Look at your own tool list. If it holds no `find_symbol`, or nothing that reads memory, write
 `lint-recheck-batch<N>.md` containing only `## Verdict: HALTED — missing tools`, the tools you
 do have, and stop.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "missing tools".
 
 **Do not audit the encoder's report instead.** An audit that ran without its tools returns PASS
 in exactly the shape of a real PASS. The orchestrator does not re-derive that verdict — it

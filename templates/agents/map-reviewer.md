@@ -8,7 +8,7 @@ description: >-
   suspicion symbol by symbol. Judges whether the map's Destination was actually reached and
   whether the ticket's acceptance criteria are met. Proposes new tickets; never creates
   them. Read-only on production code and on the tracker.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
+tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
 effort: xhigh
 ---
@@ -60,6 +60,11 @@ load-bearing here and each fails its own way:
   Destination if you can, and record the criteria as `UNJUDGED — tracker unreachable`. Never
   fall back to a cached criterion. A stale criterion judged as current is the failure this
   agent was built to prevent.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 **Standing mandate: a verdict that smells wrong is a lead to chase, never a conclusion to
 accept.** The per-repo reviewers were each right about their own repo and blind to the other

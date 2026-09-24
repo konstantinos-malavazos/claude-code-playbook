@@ -7,7 +7,7 @@ description: >-
   drafts a PROVISIONAL verdict + MR/PR description, then dispatches @release-reviewer for
   cross-repo blast radius and consolidates its findings into the FINAL verdict.
   Comments only — never edits code.
-tools: Read, Grep, Glob, Write, Edit, Bash, Agent, <memory-read-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__get_diagnostics_for_file
+tools: Read, Grep, Glob, Write, Edit, Bash, Agent, <memory-read-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__get_diagnostics_for_file
 model: <strong-model-id>
 effort: high
 ---
@@ -43,6 +43,11 @@ No verdict was reached. Fix the tool names (see templates/agents/README.md) and 
 …and stop there. **Do not review the diff text instead.** A verdict reached without these
 tools comes out in the same shape as one reached with them, and nobody downstream can tell
 the two apart — which is why this is a halt and not a caveat.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 A **missing tracker tool** is the lesser case, and check `~/.claude/tracker.md` before you
 call it one. On a local-markdown adapter `Read`/`Glob` are the tracker. If it is genuinely

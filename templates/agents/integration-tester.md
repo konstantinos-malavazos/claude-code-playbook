@@ -8,7 +8,7 @@ description: >-
   hands back for a re-fix rather than patching production code itself. Folds its tests into
   each repo's single commit by amend, so the one-commit-per-repo invariant holds, and writes
   integration-tester.md to <workspace>/.claude/handoffs/<TICKET-ID>/. Never pushes.
-tools: Read, Grep, Glob, Write, Edit, Bash, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__create_text_file, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__replace_symbol_body, mcp__serena__replace_content, mcp__serena__get_diagnostics_for_file
+tools: Read, Grep, Glob, Write, Edit, Bash, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__create_text_file, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__replace_symbol_body, mcp__serena__replace_content, mcp__serena__get_diagnostics_for_file
 model: <strong-model-id>
 effort: high
 ---
@@ -51,6 +51,11 @@ wrong `mcp__` prefix — is stripped at launch with **no error and no notice**. 
 tool list. If it holds no `find_symbol`, or nothing that can run the tests, write
 `integration-tester.md` containing only `## HALTED — missing tools`, the tools you do have,
 and stop.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "missing tools".
 
 **Do not substitute reasoning for a run.** "The merged code satisfies this behaviour" written
 without executing anything arrives in the same shape as a green suite, and `@repo-reviewer`

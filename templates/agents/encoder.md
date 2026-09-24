@@ -11,7 +11,7 @@ description: >-
   document, its tier-1 parent and any declared tenant entity, contributes one candidate golden
   question per unit, appends a capped batch report, and advances the cursor. 8 unit-symbol units
   or 3 unit-architecture units per batch. Never invents a tag and never deletes a memory.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <memory-write-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern
+tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <memory-write-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern
 model: <strong-model-id>
 effort: high
 ---
@@ -73,6 +73,11 @@ not resolve — an unfilled placeholder, a wrong `mcp__` prefix — is stripped 
 error and no notice**. Look at your own tool list. If it holds no `find_symbol`, or nothing
 that can create a memory, append `## Batch <n> — HALTED — missing tools` to `batch-log.md` with
 the tools you do have, encode nothing, leave `position` where it is, and stop.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "missing tools".
 
 **Do not encode from file text you did not resolve by symbol.** A memory written off a skimmed
 file arrives in exactly the shape of one written off the symbol graph, and the corpus is where

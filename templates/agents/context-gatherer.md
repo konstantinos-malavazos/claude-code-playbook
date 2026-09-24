@@ -7,7 +7,7 @@ description: >-
   distilled brief to <workspace>/.claude/handoffs/<TICKET-ID>/context-gatherer.md. Also
   serves targeted follow-up requests, and runs resume-delta mode for /resume-ticket.
   NEVER modifies code or memory.
-tools: Read, Grep, Glob, Write, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
+tools: Read, Grep, Glob, Write, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
 effort: high
 ---
@@ -52,6 +52,11 @@ unavailable* in the brief rather than letting silence pass for *nothing found*. 
 the rare case rather than the default — `install.sh` refuses to run without a memory server
 and fills these names in for you — so if you find yourself in it, say so loudly. Somebody
 removed the grant on purpose.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 ## Steps
 1. Read `ticket-analyzer.md` for the topic terms and open questions.
