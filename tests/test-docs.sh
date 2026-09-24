@@ -11,6 +11,7 @@
 #        /adapt-to-stack names every placeholder its templates carry
 #   D-F  the shim rule is linked by its real anchor, and the two docs sentences
 #        that already name a dispatch's role and skill stay that way
+#   D-G  every skill a template names ships, or is allowlisted
 #
 #   bash tests/test-docs.sh              # all sections
 #   bash tests/test-docs.sh D-B D-D      # only these
@@ -782,6 +783,119 @@ if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
   while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
 else
   pass "D-F · every link to the shim rule uses its real anchor"
+fi
+fi
+
+# ---------------------------------------------------------------- D-G
+# A template telling an agent to use a skill that does not ship is a broken flow.
+# Every skill reference in templates/ must resolve to a shipped skill or be on the
+# allowlist. README.md files are excluded because they are documentation about
+# skills, not instructions to an agent.
+if want D-G; then
+banner "D-G · every skill a template names ships, or is allowlisted"
+DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
+import os, re, sys, importlib.util
+spec = importlib.util.spec_from_file_location(
+    "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+REPO = R.REPO
+
+skills_dir = os.path.join(REPO, "templates", "skills")
+all_skills = {
+    name for name in os.listdir(skills_dir)
+    if os.path.isdir(os.path.join(skills_dir, name))
+}
+lib = R.read("install-lib.py")
+m = re.search(r"NEVER_INSTALL\s*=\s*\{([^}]*)\}", lib)
+never_install = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
+never_found = len(never_install) if m else -1
+never_skills = {
+    entry.split("/", 1)[1] for entry in never_install
+    if entry.startswith("skills/")
+}
+SHIPS = all_skills - never_skills
+
+# The allowlist is short on purpose and split by reason.
+# 1. Historical or prior art references in prose that never load the skill.
+ALLOW = {
+    # templates/skills/charting/SKILL.md names it as prior art and never loads it.
+    "wayfinder",
+}
+
+MATCHER = re.compile(r"`([a-z][a-z0-9-]*)` skill\b")
+
+def flagged(line):
+    unshipped = []
+    for m in MATCHER.finditer(line):
+        name = m.group(1)
+        if name not in SHIPS and name not in ALLOW:
+            unshipped.append(name)
+    return unshipped
+
+scan_prefixes = (
+    "templates/agents/",
+    "templates/commands/",
+    "templates/skills/",
+    "templates/claude-md/",
+)
+bad = []
+seen = 0
+for rel in R.tracked(".md"):
+    if not any(rel.startswith(p) for p in scan_prefixes):
+        continue
+    if os.path.basename(rel) == "README.md":
+        continue
+    for n, line in enumerate(R.strip_fences(R.read(rel)).splitlines(), 1):
+        for _ in MATCHER.finditer(line):
+            seen += 1
+        for name in flagged(line):
+            bad.append("%s:%d  `%s` skill is named but does not ship" % (rel, n, name))
+
+ctrl_missing = 1 if len(flagged("Load the `no-such-skill-planted` skill first.")) > 0 else 0
+ctrl_real = 1 if len(flagged("Load the `dispatch-weight` skill.")) > 0 else 0
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
+
+emit("NEVER %d" % never_found)
+emit("SHIPS %d" % len(SHIPS))
+emit("SEEN %d" % seen)
+emit("CTRL_MISSING %d" % ctrl_missing)
+emit("CTRL_REAL %d" % ctrl_real)
+for b in sorted(set(bad)):
+    emit("BAD " + b)
+PYEOF
+# Without NEVER_INSTALL every excluded skill counts as shipping, and a reference to
+# one would pass unseen.
+D_G_NEVER="$(sed -n 's/^NEVER //p' "$REPO/tests/.docs-out")"
+if [ "${D_G_NEVER:--1}" -ge 1 ]; then
+  pass "D-G · read ${D_G_NEVER} NEVER_INSTALL entries from install-lib.py"
+else
+  fail "D-G · NEVER_INSTALL not found in install-lib.py (got ${D_G_NEVER:-nothing})"
+fi
+D_G_SHIPS="$(sed -n 's/^SHIPS //p' "$REPO/tests/.docs-out")"
+D_G_SEEN="$(sed -n 's/^SEEN //p' "$REPO/tests/.docs-out")"
+if [ "${D_G_SHIPS:-0}" -ge 15 ] && [ "${D_G_SEEN:-0}" -ge 30 ]; then
+  pass "D-G · ${D_G_SEEN} skill references checked against ${D_G_SHIPS} shipped skills"
+else
+  fail "D-G · matcher broken: ${D_G_SEEN:-0} references against ${D_G_SHIPS:-0} skills"
+fi
+D_G_CTRL_MISSING="$(sed -n 's/^CTRL_MISSING //p' "$REPO/tests/.docs-out")"
+if [ "${D_G_CTRL_MISSING:-0}" = "1" ]; then
+  pass "D-G · negative control (missing skill flagged) passed"
+else
+  fail "D-G · negative control (missing skill flagged) failed"
+fi
+D_G_CTRL_REAL="$(sed -n 's/^CTRL_REAL //p' "$REPO/tests/.docs-out")"
+if [ "${D_G_CTRL_REAL:-1}" = "0" ]; then
+  pass "D-G · negative control (real skill not flagged) passed"
+else
+  fail "D-G · negative control (real skill not flagged) failed"
+fi
+if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
+  while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
+else
+  pass "D-G · every skill named in templates ships or is allowlisted"
 fi
 fi
 

@@ -965,11 +965,22 @@ for f in $A12_SITES; do
   fi
 done
 
-# --- A12.6 · AC4, the skill this ticket deliberately does not create
-if [ -d "$TEMPLATES/skills/review-guidelines" ]; then
-  fail "A12.6 · templates/skills/review-guidelines/ EXISTS — #139 owns that name, and repo-reviewer.md's dangling reference to it is deliberate until then"
+# --- A12.6 · review-guidelines skill stub and repo-reviewer reference
+a12_6_status='STATUS: NOT FILLED IN YET'
+if [ -f "$TEMPLATES/skills/review-guidelines/SKILL.md" ]; then
+  pass "A12.6 · templates/skills/review-guidelines/SKILL.md exists"
 else
-  pass "A12.6 · no templates/skills/review-guidelines/ — #139 still owns the name"
+  fail "A12.6 · templates/skills/review-guidelines/SKILL.md does not exist"
+fi
+if [ -f "$TEMPLATES/skills/review-guidelines/SKILL.md" ] && grep -qF "$a12_6_status" "$TEMPLATES/skills/review-guidelines/SKILL.md"; then
+  pass "A12.6 · templates/skills/review-guidelines/SKILL.md carries the status marker"
+else
+  fail "A12.6 · templates/skills/review-guidelines/SKILL.md is missing the status marker"
+fi
+if grep -qF "$a12_6_status" "$TEMPLATES/agents/repo-reviewer.md"; then
+  pass "A12.6 · templates/agents/repo-reviewer.md carries the status marker"
+else
+  fail "A12.6 · templates/agents/repo-reviewer.md is missing the status marker"
 fi
 
 # --- A12.7 · AC8, the shim rule: stated once, linked from everywhere else
@@ -1203,7 +1214,7 @@ terminal_class() {
     pitch|prototype|research|to-questionnaire|to-tickets|wizard)                    printf 'terminal' ;;
     # always-loaded skills, the block's own definition, and a generation template
     commit-conventions|diagnose|dispatch-weight|memory-schema|memory-tag-lint)      printf 'not-terminal' ;;
-    tdd|to-spec|wait-what|next-steps|engineering-standards)                         printf 'not-terminal' ;;
+    tdd|to-spec|wait-what|next-steps|engineering-standards|review-guidelines)       printf 'not-terminal' ;;
     *)                                                                              printf 'UNCLASSIFIED' ;;
   esac
 }

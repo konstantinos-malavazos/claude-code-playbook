@@ -79,6 +79,7 @@ than the two above:
 | `adapt-to-stack` | a repo whose `CLAUDE.md` names a layer chain — generates one specialist, its slice-mode variant and one standards skill per layer into that repo's own `.claude/`, and never overwrites | ✓ | ✓ |
 | `dispatch-weight` | **before every implementation dispatch** — classifies THAT dispatch `light` or `heavy` so the orchestrator sets the model for one run — the cheap tier on `light`, the strong one on `heavy`, and never below the specialist's own pinned floor. One definition, six call sites | ✓ | ✓ |
 | `next-steps` | **at every flow's ending** — the four-field hand-back that says what landed, what is yours, the next command with its argument filled in, and whether it is this session or a fresh one. One definition, twenty-four call sites | ✓ | ✓ |
+| `review-guidelines` | loaded by the repo reviewer — your house review standard. **Ships as a stub you fill in**; until then the reviewer uses its own severity terms | ✓ | ✓ |
 | `tdd` | test-first feature/bug work (red-green-refactor) | ✓ | ✓ |
 | `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
