@@ -8,7 +8,7 @@ description: >-
   @integrator collapses each repo to one commit later. Dispatched per slice by the
   /start-ticket decompose orchestrator. For a normal single-slice ticket dispatch the base
   <layer>-specialist instead.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__rename_symbol, mcp__serena__safe_delete_symbol, mcp__serena__replace_content, mcp__serena__create_text_file, mcp__serena__get_diagnostics_for_file
+tools: Read, Grep, Glob, Write, Edit, Bash, Skill, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__rename_symbol, mcp__serena__safe_delete_symbol, mcp__serena__replace_content, mcp__serena__create_text_file, mcp__serena__get_diagnostics_for_file
 # model: omitted on purpose — same reason as the base <layer>-specialist, and with the same
 # consequence: the omission is what keeps this variant weight-eligible, so the dispatching
 # flow sets its tier per run rather than letting it inherit the session's model. Pin one per

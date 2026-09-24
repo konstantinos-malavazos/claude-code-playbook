@@ -9,7 +9,7 @@ description: >-
   tag lint as a positive-controlled gate. Assumes nothing the encoder reported is true. Writes
   PASS or FAIL to <workspace>/.claude/encode-runs/<repo>/lint-recheck-batch<N>.md, naming the
   memory id on every finding. Read-only on memory and on code — it fixes nothing.
-tools: Read, Grep, Glob, Write, Bash, <memory-read-tools>, mcp__serena__find_symbol, mcp__serena__activate_project, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
+tools: Read, Grep, Glob, Write, Bash, Skill, <memory-read-tools>, mcp__serena__find_symbol, mcp__serena__activate_project, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
 model: <strong-model-id>
 effort: xhigh
 ---

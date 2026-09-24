@@ -9,7 +9,7 @@ description: >-
   the round trip byte-for-byte, and regenerating the vocabulary cache from the re-fetched
   authority. Writes correction-<what>.md to <workspace>/.claude/encode-runs/<repo>/. Touches
   only the named memory or document — never product code, never a commit, never a new unit.
-tools: Read, Grep, Glob, Write, Bash, <memory-read-tools>, <memory-write-tools>, mcp__serena__find_symbol, mcp__serena__activate_project, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
+tools: Read, Grep, Glob, Write, Bash, Skill, <memory-read-tools>, <memory-write-tools>, mcp__serena__find_symbol, mcp__serena__activate_project, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
 model: <strong-model-id>
 effort: high
 ---
