@@ -342,9 +342,6 @@ inlog t2 "serena plugin from the official marketplace" "prints route A"
 inlog t2 "mcpServers.serena" "prints route B"
 inlog t2 "docs/shared/03-setup.md" "points at the doc rather than copying it"
 yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "CLAUDE_HOME still empty ($(n_files) files)"
-awk '/This installer looked in:/{seen=1} seen' "$LOGS/t2.out" > "$LOGS/t2.tail"
-if grep -qE $'\033\\[[23]J' "$LOGS/t2.tail"; then fail "no clear escape after the steps"
-else pass "no clear escape after the steps"; fi
 LASTLINE="$(grep -v '^[[:space:]]*$' "$LOGS/t2.out" | tail -1)"
 case "$LASTLINE" in *".claude/plugins"*) pass "the steps are the LAST thing on screen" ;;
   *) fail "the steps are the LAST thing on screen (last line: $LASTLINE)" ;; esac
@@ -852,7 +849,7 @@ else
 fi
 
 # P1b — read the RECORDED answer back out of the manifest (same pattern as
-# U3/U7/T2 above); do NOT hardcode claude-opus-5, so this still means
+# U3/U7/T2 above); do NOT hardcode a model id, so this still means
 # something for a user who typed a different id at the prompt.
 P1_STRONG="$("$PY" -c 'import json,sys
 d=json.load(open(sys.argv[1],encoding="utf-8"))

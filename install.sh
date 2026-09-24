@@ -1008,8 +1008,8 @@ placeholder_stage() {
 
   local strong fast mem_read="" mem_write="" trk_read=""
   printf '  %sWhich model for the heavy work — planning and code review?%s\n' "$BOLD" "$RESET"
-  printf '  %s[Enter = claude-opus-5]%s ' "$DIM" "$RESET"
-  _read strong; [[ -z "$strong" ]] && strong="claude-opus-5"
+  printf '  %s[Enter = claude-opus-5-5]%s ' "$DIM" "$RESET"
+  _read strong; [[ -z "$strong" ]] && strong="claude-opus-5-5"
   printf '  %sWhich model for the quick, cheap lookups?%s\n' "$BOLD" "$RESET"
   printf '  %s[Enter = claude-sonnet-5]%s ' "$DIM" "$RESET"
   _read fast; [[ -z "$fast" ]] && fast="claude-sonnet-5"

@@ -21,7 +21,9 @@ assumes it ran.
 
 ## Before the first question
 
-**Read the ideas file** at `<IDEAS-FILE-PATH>`.
+**Read the ideas file.** This skill does not know where it lives. Use the path the user has
+already given in this session or written down — in their `CLAUDE.md`, for example.
+Otherwise ask them for it once, now, before question zero.
 
 If this idea — or something close enough that the user would recognise it — is already in
 there, say so **before** question zero, and say which kind of entry it is:
@@ -247,7 +249,7 @@ with better information.
 
 ## Writing the ideas file
 
-Always, on every verdict. `<IDEAS-FILE-PATH>` — the user picks the path, and it must be
+Always, on every verdict. The user picks the path, and it must be
 **private and backed up with history**. Never `~/.claude/`: dotfiles get published, they are
 not backed up, and this is personal data rather than configuration.
 

@@ -52,8 +52,14 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
 ## Steps
 1. Read every handoff file under `<workspace>/.claude/handoffs/<TICKET-ID>/` and
    re-fetch the ticket (read-only) for the acceptance criteria.
-2. Load the `review-guidelines` skill (the house standard + severity vocabulary
-   `[BLOCKER]/[MAJOR]/[MINOR]/[NIT]`).
+2. Load the `review-guidelines` skill — the house standard. It ships as a stub. If it is not
+   installed, or still contains the line `STATUS: NOT FILLED IN YET`, there is no house
+   standard yet: judge with these severity terms and say so once under the Findings heading
+   ("standard: inline severity terms (review-guidelines not filled in)"):
+   - `[BLOCKER]` — must fix before merge (correctness, security, data loss).
+   - `[MAJOR]` — should fix (design, maintainability, missing tests).
+   - `[MINOR]` — worth fixing (readability, small inefficiency).
+   - `[NIT]` — optional (style, naming).
 3. Walk the diff **in the home repo** — the delta, at the depth already set for it, and by
    running what can be run.
    - **Scope to the delta.** Review what changed since your last verdict in
@@ -69,7 +75,9 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
 
    Resolve every changed symbol through Serena as above. Check:
    - each acceptance criterion is met,
-   - correctness, security, and the standards rules,
+   - correctness, security, the house standard from `review-guidelines` once it is filled
+     in, and the `<layer>-standards` skill for each layer the diff touches, where the repo
+     has generated one,
    - callers/implementations of every changed symbol still hold
      (`find_referencing_symbols`, `find_implementations`),
    - `get_diagnostics_for_file` is clean on every changed file,
