@@ -70,6 +70,10 @@ An agent taking an escape must **say which one**. For a write, an unusable Seren
 **stop and surface it** — never a silent downgrade to `Edit`. And sparse Serena results
 are a finding about your index, not permission to go back to file spelunking.
 
+One Serena answer is not a failure: **"No active project"**, which can come when more than one
+Serena project is registered. The agent activates the project for the repo it is working in
+with `activate_project`, retries once, and stops only if that fails.
+
 `Read`/`Grep`/`Glob` stay in every agent's tool list, because agents must read handoffs,
 docs and config. They just aren't a code path.
 

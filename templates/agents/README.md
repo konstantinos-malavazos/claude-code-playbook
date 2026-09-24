@@ -285,12 +285,19 @@ permission to read code with them. The doctrine those blocks encode:
 The templates use `mcp__serena__<tool>`, which is a **literal, not a placeholder**. But a
 plugin install registers as `mcp__plugin_serena_serena__` instead, and a name that doesn't
 resolve leaves the agent silently with no code tools. It is the same silent strip an
-unfilled `<memory-read-tools>` gets, and on a plugin install it takes **all ten** Serena
-names at once. Check with `/mcp` and rewrite the prefix across the agent files before you
+unfilled `<memory-read-tools>` gets, and on a plugin install it takes **every** Serena
+name at once. Check with `/mcp` and rewrite the prefix across the agent files before you
 trust any of them:
 [`../../docs/shared/03-setup.md`](../../docs/shared/03-setup.md#then-find-your-tool-prefix--this-bites).
 
 If you get it wrong anyway, the halt rule above is what catches it.
+
+### "No active project" is not a halt
+
+That answer can come when more than one Serena project is registered, and it does not mean the
+agent is missing its tools. The agent calls `activate_project` with the project for the repo
+it is working in, retries the call once, and halts only if that fails. Every Serena agent
+carries `mcp__serena__activate_project` for this.
 
 ## The set
 

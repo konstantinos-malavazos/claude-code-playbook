@@ -9,7 +9,7 @@ description: >-
   writes, and writes five golden questions of its own. Produces recon.md, vocab-proposed.json,
   worklist.json, inventory.md, rename-map.json and dry-run.md in
   <workspace>/.claude/encode-runs/<repo>/. Never creates, updates, links or obsoletes a memory.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir
+tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir
 model: <strong-model-id>
 effort: xhigh
 ---
@@ -78,6 +78,11 @@ resolve — an unfilled placeholder, a wrong `mcp__` prefix — is stripped at l
 error and no notice**. Look at your own tool list. If it holds no `find_symbol`, write
 `recon.md` containing only `## Verdict: HALTED — no Serena tools`, the tools you do have, and
 stop.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 **Do not draft a vocabulary you did not read the code for.** A vocabulary invented from folder
 names and a `README` arrives in exactly the shape of one derived from symbols, and it is what

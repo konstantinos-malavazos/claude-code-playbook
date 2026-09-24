@@ -8,7 +8,7 @@ description: >-
   @integrator collapses each repo to one commit later. Dispatched per slice by the
   /start-ticket decompose orchestrator. For a normal single-slice ticket dispatch the base
   <layer>-specialist instead.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__rename_symbol, mcp__serena__safe_delete_symbol, mcp__serena__replace_content, mcp__serena__create_text_file, mcp__serena__get_diagnostics_for_file
+tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__rename_symbol, mcp__serena__safe_delete_symbol, mcp__serena__replace_content, mcp__serena__create_text_file, mcp__serena__get_diagnostics_for_file
 # model: omitted on purpose — same reason as the base <layer>-specialist, and with the same
 # consequence: the omission is what keeps this variant weight-eligible, so the dispatching
 # flow sets its tier per run rather than letting it inherit the session's model. Pin one per
@@ -50,6 +50,11 @@ tools you do have, and leave the worktree untouched. You have `Edit` and `Write`
 would work, which is precisely the danger. You write production code, so a silent strip does
 not stop you — it drops you to text edits on code, which is the exact failure the Serena
 doctrine exists to prevent, and it reaches the reviewer as a normal-looking diff.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 ## Dispatch context
 

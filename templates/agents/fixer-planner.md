@@ -8,7 +8,7 @@ description: >-
   <workspace>/.claude/handoffs/<TICKET-ID>/fixer-planner.md and classifies the bug's origin.
   STOPS and asks rather than guessing when it cannot reproduce or explain the failure.
   Never writes production code.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
+tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
 effort: xhigh
 ---
@@ -48,6 +48,11 @@ No diagnosis was made and no fix plan was produced. Fix the tool names
 …and stop there. **Do not diagnose from grep output, and do not diagnose from the QA report
 alone.** A root cause reasoned out of grep hits arrives in the same shape as one traced through
 symbols, a human approves it either way, and a specialist then edits real code from it.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 **Memory is the lesser case.** No memory tools means no record of what the original ticket
 concluded: diagnose from git and the tracker anyway, and head the context section *memory

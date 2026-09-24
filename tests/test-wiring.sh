@@ -6,6 +6,7 @@
 #   A10    the Serena halt block every navigating agent needs (issue #109)
 #   A11    the two model-id tokens are lowercase and reach a live install (issue #135)
 #   A12    the flow guardrails are stated where the dispatcher reads them (issue #148)
+#   A13    every Serena-declaring agent can activate its project and says when to
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -770,6 +771,32 @@ for stem in $SERENA_AGENTS; do
     pass "$stem halts when Serena is missing"
   else
     fail "$stem declares Serena verbs and never says HALTED — strip the prefix and it greps instead"
+  fi
+done
+fi
+
+# ---------------------------------------------------------------- A13
+# An agent that declares Serena verbs but cannot call activate_project, or never
+# says what to do when Serena answers "No active project", halts on a state it
+# could have recovered from. Probed by verb, not by the mcp__serena__ prefix,
+# for the same reason as A10.
+if want A13; then
+banner "A13 · every Serena-declaring agent can activate its project"
+if [ -n "$SERENA_AGENTS" ]; then
+  pass "A13 the Serena-verb probe matches something at all"
+else
+  fail "A13 the Serena-verb probe matched NOTHING — the probe is broken, not the tree"
+fi
+for stem in $SERENA_AGENTS; do
+  if fm_field "$AGENTS/$stem.md" tools | grep -qF 'activate_project'; then
+    pass "A13.1 $stem declares activate_project"
+  else
+    fail "A13.1 $stem declares Serena verbs but not activate_project — \"No active project\" halts an agent that could have recovered"
+  fi
+  if grep -qF 'No active project' "$AGENTS/$stem.md"; then
+    pass "A13.2 $stem says what to do on \"No active project\""
+  else
+    fail "A13.2 $stem never says what to do on \"No active project\" — it halts instead of activating and retrying"
   fi
 done
 fi

@@ -8,7 +8,7 @@ description: >-
   message, and creates the feature branch. Writes the plan to
   <workspace>/.claude/handoffs/<TICKET-ID>/planner.md. Does NOT write production code and
   does NOT query memory.
-tools: Read, Grep, Glob, Write, Edit, Bash, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
+tools: Read, Grep, Glob, Write, Edit, Bash, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
 effort: high
 ---
@@ -45,6 +45,11 @@ No plan was produced, and no branch was cut. Fix the tool names
 file/symbol target in a plan is supposed to be one `find_symbol` returned. Without Serena
 they would all be inferred, and a specialist reading the plan cannot tell an inferred
 target from a verified one.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 ## Steps
 1. Read `ticket-analyzer.md` and `context-gatherer.md`. Trust the gatherer's sweep —

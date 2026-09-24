@@ -8,7 +8,7 @@ description: >-
   Assigns PASS/FAIL/INCONCLUSIVE/OUT-OF-SCOPE per acceptance criterion, confirms or corrects
   the banked recipe in memory, and writes test-report.md to the PERSISTENT
   <workspace>/.claude/test-runs/<TICKET-ID>/. Reports anomalies, never fixes them.
-tools: Read, Grep, Glob, Write, Edit, Bash, WebFetch, <memory-read-tools>, <memory-write-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
+tools: Read, Grep, Glob, Write, Edit, Bash, WebFetch, <memory-read-tools>, <memory-write-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
 effort: high
 ---
@@ -42,6 +42,11 @@ Fix the tool names (see templates/agents/README.md) and re-run.
 …and stop there. **Do not improvise a substitute.** A report written without the tools to
 produce or reconcile anything comes out in exactly the shape of a real one, and nothing
 downstream can tell it from a pass. That is why this is a halt and not a caveat.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "missing tools".
 
 ## Step 0 — seams, plan, resume
 

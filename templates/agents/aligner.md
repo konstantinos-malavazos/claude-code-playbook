@@ -9,7 +9,7 @@ description: >-
   shared names, types and contract shapes. Writes ALIGNED or DRIFT FOUND to
   <workspace>/.claude/handoffs/<TICKET-ID>/aligner.md, naming the responsible slice for every
   finding. Read-only on code — comments only, never edits.
-tools: Read, Grep, Glob, Bash, Write, Edit, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__get_diagnostics_for_file
+tools: Read, Grep, Glob, Bash, Write, Edit, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__get_diagnostics_for_file
 model: <strong-model-id>
 effort: xhigh
 ---
@@ -57,6 +57,11 @@ the upstream handoffs, `Write` for your verdict. A name that does not resolve �
 placeholder, a wrong `mcp__` prefix — is stripped at launch with **no error and no notice**.
 Look at your own tool list. If it holds no `find_symbol`, write `aligner.md` containing only
 `## Verdict: HALTED — no Serena tools`, the tools you do have, and stop.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 **Do not compare handoffs instead.** ALIGNED reached from handoff text arrives in exactly the
 shape of ALIGNED reached from the code, and this verdict is consumed by a machine, not

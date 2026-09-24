@@ -9,7 +9,7 @@ description: >-
   the round trip byte-for-byte, and regenerating the vocabulary cache from the re-fetched
   authority. Writes correction-<what>.md to <workspace>/.claude/encode-runs/<repo>/. Touches
   only the named memory or document — never product code, never a commit, never a new unit.
-tools: Read, Grep, Glob, Write, Bash, <memory-read-tools>, <memory-write-tools>, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
+tools: Read, Grep, Glob, Write, Bash, <memory-read-tools>, <memory-write-tools>, mcp__serena__find_symbol, mcp__serena__activate_project, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
 model: <strong-model-id>
 effort: high
 ---
@@ -91,6 +91,11 @@ unfilled placeholder, a wrong `mcp__` prefix — is stripped at launch with **no
 notice**. Look at your own tool list. If it holds no `find_symbol`, or nothing that reads
 memory, or nothing that writes it, write `correction-<what>.md` containing only
 `## Outcome: HALTED — missing tools`, the tools you do have, and stop.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "missing tools".
 
 **Do not correct from the brief instead.** A correction applied without a re-measurement lands
 in exactly the shape of a verified one: the memory reads as freshly checked, the report reads

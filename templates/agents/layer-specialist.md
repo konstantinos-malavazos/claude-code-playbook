@@ -7,7 +7,7 @@ description: >-
   Reads planner.md + the upstream layer's contract handoff; implements its layer in the
   repo(s) it owns; runs the local build/tests; commits with amend-as-you-go (one commit
   per repo); writes its own contract handoff for the next layer. Never pushes.
-tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__rename_symbol, mcp__serena__safe_delete_symbol, mcp__serena__replace_content, mcp__serena__create_text_file, mcp__serena__get_diagnostics_for_file
+tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__insert_before_symbol, mcp__serena__rename_symbol, mcp__serena__safe_delete_symbol, mcp__serena__replace_content, mcp__serena__create_text_file, mcp__serena__get_diagnostics_for_file
 # model: omitted on purpose — and that omission is what makes this specialist
 # weight-eligible: with no pin, the dispatching flow sets the tier per run, cheap for a
 # light dispatch and strong for a heavy one. It does NOT mean "inherits the session's
@@ -61,6 +61,11 @@ anything**: report `HALTED — no Serena tools`, list the tools you do have, and
 working tree untouched. You have `Edit` and `Write` and they would work, which is precisely
 the danger. You would produce a normal-looking commit that violated the protocol in every
 line of it, and the reviewer downstream has no way to see that from the diff.
+
+**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
+project for the repo you are working in (its folder name, or its path), then retry the call
+once. Halt only if the activation fails, or the retried call still fails, and then say in your
+HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 ## First actions
 1. List `<workspace>/.claude/handoffs/<TICKET-ID>/` and read `planner.md` plus the
