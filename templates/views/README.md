@@ -62,7 +62,9 @@ states apart in greyscale and for a colourblind reader.
 a ticket is takeable but not *why*. The arrows that explain it point at nothing.
 
 **Arrows run blocker → blocked**, so following one reads *"this first, then that."*
-Columns are ranks: everything in the first column has nothing before it.
+Columns are ranks: everything in the first column has nothing before it. Within a column,
+boxes sit beside the ones they connect to, and an arrow that skips a column runs through an
+empty lane rather than across a box.
 
 **A sidebar carries what has no box** — the ticket legend (number and name, so the boxes
 stay small), then the map's non-graph parts, *Not yet specified* and *Out of scope*. A

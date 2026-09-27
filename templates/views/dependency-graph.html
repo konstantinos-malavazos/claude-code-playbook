@@ -396,24 +396,72 @@
 
   /* ── layout ────────────────────────────────────────────────────────────── */
 
-  var COL = 160, PAD = 24, GAP = 9;
-  var cols = [];
+  var COL = 160, PAD = 24, GAP = 9, LANE = 12, LANE_W = 86;
+  var cols = [], itemOf = {};
   tickets.forEach(function (t) {
     var r = rank[t.number];
-    (cols[r] = cols[r] || []).push(t);
+    (cols[r] = cols[r] || []).push(itemOf[t.number] = { t: t });
   });
+  for (var c = 0; c < cols.length; c++) cols[c] = cols[c] || [];   // a cycle can skip a rank
+  cols.forEach(function (col) {
+    col.sort(function (a, b) {
+      var ac = a.t.state === "closed" ? 1 : 0, bc = b.t.state === "closed" ? 1 : 0;
+      return ac - bc || a.t.number - b.t.number;  // live work first, then numeric — the tie-break
+    });
+  });
+
+  /* An arrow that skips columns gets a lane: an empty slot in every column it crosses, so
+     it runs through a gap instead of across boxes. Lanes take part in the ordering below. */
+  var paths = [];                                  // one per arrow: [blocker, lanes…, blocked]
+  tickets.forEach(function (t) {
+    blockers(t).forEach(function (b) {
+      var from = itemOf[b.number], to = itemOf[t.number];
+      if (!from || !to) return;                    // blocker outside the graph: no arrow to draw
+      var path = [from];
+      for (var r = rank[b.number] + 1; r < rank[t.number]; r++) {
+        var lane = { lane: true };
+        cols[r].push(lane);
+        path.push(lane);
+      }
+      path.push(to);
+      paths.push(path);
+    });
+  });
+  paths.forEach(function (path) {
+    for (var i = 1; i < path.length; i++) {
+      (path[i].ups = path[i].ups || []).push(path[i - 1]);
+      (path[i - 1].downs = path[i - 1].downs || []).push(path[i]);
+    }
+  });
+
+  /* Order each column by where its neighbours sit (barycenter), sweeping down then up a few
+     times. The order above breaks ties, so the same graph always draws the same way. */
+  function reorder(col, key) {
+    col.forEach(function (it) {
+      var ns = it[key] || [];
+      it.bary = ns.length ? ns.reduce(function (s, n) { return s + n.idx; }, 0) / ns.length : it.idx;
+    });
+    col.sort(function (a, b) { return a.bary - b.bary || a.idx - b.idx; });
+    col.forEach(function (it, i) { it.idx = i; });
+  }
+  cols.forEach(function (col) { col.forEach(function (it, i) { it.idx = i; }); });
+  for (var sweep = 0; sweep < 4; sweep++) {
+    for (var d = 1; d < cols.length; d++) reorder(cols[d], "ups");
+    for (var u = cols.length - 2; u >= 0; u--) reorder(cols[u], "downs");
+  }
 
   var pos = {}, maxY = 0;
   cols.forEach(function (col, r) {
-    col.sort(function (a, b) {
-      var ac = a.state === "closed" ? 1 : 0, bc = b.state === "closed" ? 1 : 0;
-      return ac - bc || a.number - b.number;      // live work first, then numeric
-    });
-    var y = PAD + 22;
-    col.forEach(function (t) {
-      var s = stateOf(t);
+    var y = PAD + 22, x = PAD + r * COL;
+    col.forEach(function (it) {
+      if (it.lane) {
+        it.p = { x: x, y: y, w: LANE_W, h: LANE };
+        y += LANE + GAP;
+        return;
+      }
+      var s = stateOf(it.t);
       var w = s === "closed" ? 62 : 86, h = s === "closed" ? 22 : 30;
-      pos[t.number] = { x: PAD + r * COL, y: y, w: w, h: h, s: s };
+      it.p = pos[it.t.number] = { x: x, y: y, w: w, h: h, s: s };
       y += h + GAP;
     });
     maxY = Math.max(maxY, y);
@@ -441,6 +489,7 @@
   svg.appendChild(defs);
 
   cols.forEach(function (col, r) {
+    if (!col.some(function (it) { return it.t; })) return;   // lanes only, or a skipped rank
     var lab = svgEl("text", { x: PAD + r * COL, y: PAD + 6, "class": "col-label" });
     lab.textContent = r === 0 ? "nothing before it" : "after " + r;
     svg.appendChild(lab);
@@ -449,18 +498,21 @@
   var edgeLayer = svgEl("g"), nodeLayer = svgEl("g");
   svg.appendChild(edgeLayer); svg.appendChild(nodeLayer);
 
-  tickets.forEach(function (t) {
-    blockers(t).forEach(function (b) {
-      var from = pos[b.number], to = pos[t.number];
-      if (!from || !to) return;                    // blocker outside the graph: no arrow to draw
-      var x1 = from.x + from.w, y1 = from.y + from.h / 2;
+  /* One curve per column gap. Each arrow runs straight to the column's full width before it
+     bends — across a lane, and past a narrow closed box, whose wider neighbours it would
+     otherwise clip. */
+  paths.forEach(function (path) {
+    var first = path[0].p;
+    var d = "M " + (first.x + first.w) + " " + (first.y + first.h / 2);
+    for (var i = 1; i < path.length; i++) {
+      var from = path[i - 1].p, to = path[i].p;
+      var x1 = from.x + LANE_W, y1 = from.y + from.h / 2;
       var x2 = to.x, y2 = to.y + to.h / 2;
       var dx = Math.max(30, (x2 - x1) / 2);
-      edgeLayer.appendChild(svgEl("path", {
-        "class": "edge", "marker-end": "url(#arrow)",
-        d: "M " + x1 + " " + y1 + " C " + (x1 + dx) + " " + y1 + ", " + (x2 - dx) + " " + y2 + ", " + x2 + " " + y2
-      }));
-    });
+      d += " L " + x1 + " " + y1 +
+           " C " + (x1 + dx) + " " + y1 + ", " + (x2 - dx) + " " + y2 + ", " + x2 + " " + y2;
+    }
+    edgeLayer.appendChild(svgEl("path", { "class": "edge", "marker-end": "url(#arrow)", d: d }));
   });
 
   function open(t) {
