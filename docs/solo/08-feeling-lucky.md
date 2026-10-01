@@ -391,6 +391,10 @@ stays on, for this mode as for every other.
 Charting normally leaves its record in two places: the tickets, and you. Unattended, the
 second one is missing. Forty iterations of *what happened and why* then have nowhere to go.
 
+If the dependency page is installed, the walk also rewrites `.claude/dependency-graph.html`
+after every close. Open it in the morning to see where the walk stopped; a click on any
+frontier ticket gives the `/charting` command that takes it.
+
 So the walk writes to **`.claude/lucky/`**, local, whatever the tracker is:
 
 | File | Holds | Read it |

@@ -89,6 +89,12 @@ passes that through is a `/mcp` check, not an assumption** — where it does not
 status of each blocker the search did not return. Same client-side finish the frontier
 already does here, and invisible to the caller for the same reason.
 
+**The dependency page's slot takes numbers, and a Jira id is a key.** Put the key's numeric
+suffix in each ticket's and each blocker's `number`, and the project key in the page's
+`startCommand` (`/start-ticket ABC-{n}`, `/charting ABC-{n}`). A graph whose tickets or
+blockers span two projects cannot be drawn faithfully that way — say so rather than drop
+the prefix.
+
 Comments are the part that varies. **If your server exposes the search's fields or expand
 argument, ask for `comment` and the whole graph is a single call.** Jira returns comments
 inline with the issue, which no other tracker here does. If it does not, you are down to
@@ -96,7 +102,7 @@ one comment read per ticket, and Jira has no repo-wide comments endpoint to fall
 the way GitHub does. Check with `/mcp` before you assume either.
 
 That check is worth making once and writing down, because this verb exists for callers that
-regenerate a view on every run. On the expensive branch, cache the result within the
+regenerate a view on every run — and after every ticket close. On the expensive branch, cache the result within the
 session rather than asking twice.
 
 ## Traps

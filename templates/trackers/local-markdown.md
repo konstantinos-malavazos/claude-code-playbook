@@ -35,7 +35,8 @@ like they were not involved. For that case, move the whole tree to the workspace
 
 ```
 <workspace>/.claude/charts/<KEY>/    ← <KEY> is the tracker id the map serves
-    map.md, context.md, tickets/, research/, reviews/<repo>.md
+    map.md, context.md, tickets/, research/, reviews/<repo>.md,
+    dependency-graph.html            ← the picture, when the page template is installed
 ```
 
 **Workspace chart state is not committed**, so it trades the committed-record property for

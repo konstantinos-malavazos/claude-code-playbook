@@ -11,8 +11,9 @@ Walk the map until it ends. Do not stop for a decision.
 **Read [`docs/solo/08-feeling-lucky.md`](../../docs/solo/08-feeling-lucky.md) first. It owns
 the method for both settings.** Then the `charting` skill and your tracker adapter.
 
-**The walk itself is identical to [`/feeling-lucky`](feeling-lucky.md).** Run its steps 0–4
-and 6 exactly as written — the guards, the counters, the loop, the dispatch table, the
+**The walk itself is identical to [`/feeling-lucky`](feeling-lucky.md).** Run its **sections** 0–4
+and 6 exactly as written — the guards, the counters, the whole loop (steps 1–10, picture
+regeneration included), the dispatch table, the
 two-agent grilling, the handoff. This file replaces **one** thing: the halt table, stated in
 full below rather than as a diff. Its three hard rules are unchanged, including **never touch
 the massive-ticket flow**.

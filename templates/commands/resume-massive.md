@@ -1,6 +1,6 @@
 ---
 description: Walk a chart - pick the next takeable ticket, claim it, dispatch it by type, then do the bookkeeping: gist, close, regenerate the decision list, graduate the fog. Owns the three endings - done, stalled, abandoned. On done it runs the closing review sequence and banks the map's memories. One ticket per session, research excepted.
-argument-hint: <TICKET-ID> — optional; omit to pick up the only map in flight
+argument-hint: <TICKET-ID>[#<NN>] — optional; omit to pick up the only map in flight, add #<NN> to name the ticket
 disable-model-invocation: true
 ---
 
@@ -26,8 +26,9 @@ Three hard rules, nothing overrides them:
 
 ## 1. Find the map
 
-- `$ARGUMENTS` given → that chart folder. Missing → say so and stop. `/start-massive` charts
-  one.
+- `$ARGUMENTS` given → the part before any `#` is the map's key, `<KEY>`; that chart folder.
+  Missing → say so and stop. `/start-massive` charts one. A `#<NN>` after it names the
+  ticket for step 3 — `#7` and `#07` are the same ticket.
 - Not given → list the charts, **skipping every map whose `map.md` opens with
   `State: closed`**. Exactly one left → take it. Several → **ask which**, showing each with
   its destination and its open count. None left → say every map is closed and stop.
@@ -44,7 +45,8 @@ Do **not** read every ticket body. That is what the map exists to spare you.
 
 ## 3. Choose, then claim
 
-The user named a ticket → take that one. Otherwise take the first on **the frontier**: open,
+The user named a ticket — in `$ARGUMENTS` or in words → take that one. It still has to be
+open, unblocked and unclaimed; if not, say which and stop rather than picking another. Otherwise take the first on **the frontier**: open,
 unclaimed, and every blocker `resolved` **on disk**. Read each blocker's file. A `Blocked by:`
 line still says blocked long after the blocker closed.
 
@@ -79,8 +81,8 @@ comment, it hit a real decision and stopped. It wrote nothing. Filing it is your
 1. Create a `grilling` ticket on the map with its question, at the next free number.
 2. Add that number to the make ticket's `Blocked by:`.
 3. Post the progress comment, and **leave the claim on**.
-4. **End the session.** Do not close anything, and do not start the grilling ticket — that is
-   next session's one ticket.
+4. **Regenerate the picture** as step 6's last bullet says, then **end the session.** Do not
+   close anything, and do not start the grilling ticket — that is next session's one ticket.
 
 **Every write in that list is a map write, which is why it sits here and not there.** A
 command dispatched mid-session cannot be trusted with the map: it does not know whether the
@@ -111,6 +113,13 @@ Resolving a ticket clears fog ahead of it:
   The number is burned, never reused.
 - **A repo whose first make ticket only just graduated has no commit message in Notes.** Ask
   the user for one now, in your `commit-conventions` format.
+- **Then regenerate the picture**, if the page template is installed at
+  `~/.claude/dependency-graph.html` — last, after any handoff claim from step 4, so a
+  handed-off ticket draws as claimed. Fill it per the `charting` skill, write it to
+  `dependency-graph.html` in the chart folder, and do not open it. **Set `startCommand` to
+  `/resume-massive <KEY>#{n}`** with the key filled in — never charting's `/charting {n}`,
+  which would skip `/build-chart-ticket`, the review gate and this bookkeeping. This
+  command's value wins over the skill's.
 
 ## 7. Which ending are you in
 
@@ -151,7 +160,7 @@ In this order. Do not skip step 2 because step 1 came back clean.
 
 3. **Every finding becomes a new ticket.** You create them, with the type `@map-reviewer`
    proposed. The frontier refills and **the map does not close.** That is charting's fog rule,
-   not a special case.
+   not a special case. Regenerate the picture, as step 6 does.
 
 4. **One re-sweep of `@map-reviewer`, and only one.** If it still finds something, **stop and
    escalate to the human.** A third round means the map is wrong, not the code.
@@ -172,7 +181,8 @@ In this order. Do not skip step 2 because step 1 came back clean.
    State: closed — done, <date>. Memories: <hub id>, <per-repo ids>.
    ```
 
-   Do this last, and only here. Without it the folder is indistinguishable from a live map,
+   Do this last, and only here, then regenerate the picture once more so it shows the
+   final state. Without it the folder is indistinguishable from a live map,
    and the next `/resume-massive` with no argument picks it up and tries to walk it.
 
    **Only `done` and `abandoned` get this stamp. A stalled map never does** — it is waiting on
@@ -189,7 +199,8 @@ Waiting on: <ticket — the thing, and who owns it>
 Progress: <n> of <m> resolved.
 ```
 
-Say the next command is `/resume-massive $ARGUMENTS`, and stop.
+Say the next command is `/resume-massive <KEY>` — the key alone, without any `#<NN>` this
+session was given — and stop.
 
 **Then the `next-steps` block**, with the map's key filled in rather than a placeholder. One
 block per ending: §7's three, plus the ordinary one where a ticket resolved and the map stays

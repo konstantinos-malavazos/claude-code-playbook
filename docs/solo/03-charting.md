@@ -86,8 +86,9 @@ GitHub-only luxury. Everywhere else, *what is takeable now* is a question you an
 reading a list. One command fills
 [a shipped HTML page](../../templates/views/README.md) with the whole graph and opens it.
 The page draws one box per ticket, highlights the frontier and nothing else, and gives you
-the answer behind any closed box you click. It is generated on demand and never committed,
-so it is current if you just ran it.
+the answer behind any closed box you click, and the command that starts any open one. It is
+regenerated whenever you ask for it and after every ticket close, and never committed, so
+the page you open at the start of a session already shows the current frontier.
 
 **The gist line is not a formality.** Every resolution comment opens with a one-line
 summary. The map's decision list is rebuilt from those first lines rather than kept up by

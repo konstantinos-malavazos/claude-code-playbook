@@ -115,7 +115,7 @@ Dependencies show up in three places, and **exactly one of them is the truth**:
 |---|---|
 | **The ticket body** — *"needs #6 first"* | **The truth.** The only representation that exists on every tracker. |
 | **Native blocked-by links** | **A picture of it.** Renders the graph in the tracker's own UI, where the tracker has them. |
-| **A generated HTML view** — [`templates/views/`](../../templates/views/README.md) | **A picture of it.** So trackers with no native edges can still show you where you are. |
+| **A generated HTML view** — [`templates/views/`](../../templates/views/README.md) | **A picture of it.** So trackers with no native edges can still show you where you are. Click an open unit for its `/start-ticket` command. Nothing rewrites it on merge — ask for it again. |
 
 The body wins because it is the only one that **needs no per-tracker answer**. Nominating
 the native edge would put the truth in a different place on GitHub than on local files.

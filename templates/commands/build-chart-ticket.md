@@ -167,7 +167,7 @@ morning. The ticket is the durable record of what this child decided.
 
 If a human ran this command directly, say plainly: the ticket is still open and still
 claimed, and `/resume-massive` — with this map's key, the `<KEY>` half of `$ARGUMENTS` —
-is what closes it and regenerates the map.
+is what closes it and regenerates the map and its picture.
 
 **Then the `next-steps` block.** The wrong-operator case above is already its *Yours now* and
 its next command; the block adds the two it does not carry — the branch, the sha and the files,

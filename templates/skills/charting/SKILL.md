@@ -122,19 +122,32 @@ before editing it. Never edit from the copy you loaded at session start.*
 
 ### The picture
 
-**Only if the page template is installed at `~/.claude/dependency-graph.html`.** Ask for the
-whole graph, fill that page's data slot, write the result to `.claude/dependency-graph.html`
-in the repo being worked on, ensure `.claude/` is in that repo's `.gitignore` **with
-`!.claude/agents/` and `!.claude/skills/` beside it**, and open it — one command, and never
-on ticket-close. The page's own header comment carries the schema and the two rules that
-fail silently. It is for the human, not for you.
+**Only if the page template is installed at `~/.claude/dependency-graph.html`.** When the
+human asks for the picture: ask for the whole graph, fill that page's data slot, write the
+result to `.claude/dependency-graph.html` in the repo being worked on, ensure `.claude/` is
+in that repo's `.gitignore` **with `!.claude/agents/` and `!.claude/skills/` beside it**,
+and open it. The page's own header comment carries the schema and the two rules that fail
+silently. It is for the human, not for you.
+
+**Set `startCommand` to the command that starts one ticket in the flow walking this map**,
+so a clicked ticket shows it. `/charting {n}` when this skill is walked directly. A wrapping
+command that walks the map itself — `/resume-massive` — names its own, and its wins. Where
+ticket ids carry a key prefix, put the prefix in the template (`/charting ABC-{n}`). Where the
+adapter numbers tickets per effort, name the effort too (`/charting <effort-slug> {n}`) once
+more than one is open.
+
+**Regenerate it on every ticket close**, as the last step of the close (step 7 below), and
+at the end of charting the map (its step 6). Write the file; do not open it. The next
+session then opens a picture that already shows the new frontier, instead of one a close
+behind. **If the template is not installed, a close skips this silently** — the text
+fallback below is for when the human asks.
 
 **One repo is the default, not the only case.** An effort with no single owning repo has no
 `.gitignore` to edit and nowhere obvious to write — so where the adapter says the map lives,
 the picture lives beside it, and the two gitignore rules do not apply. That is the only
 override; absent it, use the paths above.
 
-**If the template is not installed, say so once, then ask for *the whole graph* and print
+**If the template is not installed and the human asks for the picture, say so once, then ask for *the whole graph* and print
 the same facts as text**: the destination in one line, the frontier by number and name, what
 is blocked and on what, and the closed count. **Print it; never write it to a file.** That
 would be a second store, stale from the moment it lands.
@@ -294,6 +307,8 @@ the answer is stop, but say which situation you are in.
         │            (second pass)  gist + close + regenerate the map
    fire research subagents               │
         │                          graduate the fog ──► new tickets
+   write the picture                     │
+        │                          regenerate the picture
        STOP                              │
                                     ◄────┘  until the frontier is empty
                                          │
@@ -319,7 +334,9 @@ the answer is stop, but say which situation you are in.
    template exists for this dispatch to prefer. **Then check on them at each multiple of
    the expectation you stated** — you are told when one finishes and never while it is
    silent, so an agent that died and one still working look the same until you look.
-6. **Stop.** Charting hand-resolves nothing. Sizing the map is one session's work.
+6. **Write the picture**, if the page template is installed — after the research claims,
+   so those tickets draw as claimed. Do not open it unless asked.
+7. **Stop.** Charting hand-resolves nothing. Sizing the map is one session's work.
 
 ### Work through the map
 
@@ -338,6 +355,10 @@ the answer is stop, but say which situation you are in.
 6. **If the ticket ends the session in someone else's hands, claim it to them** — the
    person who owes the access grant, the agent still researching. Comment what was asked
    and when. This is not politeness; see below.
+7. **Regenerate the picture**, if the page template is installed. Last, because steps 4–6
+   all change what it draws — a close, new tickets, a handoff claim. Drawn before the claim,
+   a handed-off ticket shows as frontier, which is the trap below. Write the file and do not
+   open it.
 
 **A handed-off ticket that stays unclaimed makes the map unfinishable.** A `task` waiting on
 a person is open, unclaimed, and has no blocking edge, so it sits on the frontier, and every
@@ -350,7 +371,8 @@ answered.
 subagent contexts and does not spend the session's own.
 
 **Then the `next-steps` block.** The ticket you closed and the one line it settled, the next
-takeable ticket by number and name, `/charting` again — and a fresh session, because one
+takeable ticket by number and name, `/charting` with that number filled in — the same
+command the picture shows for it — and a fresh session, because one
 ticket is sized to one context. That is the rule above, said to the person standing in front
 of it.
 
@@ -392,6 +414,7 @@ blocker clears it has to be pickable again.
 
 A stalled map has one move that refills the frontier: open a single `grilling` ticket asking
 *proceed without X, or wait?* A handoff claim that has gone stale is the signal to do it.
+Opening it changes the frontier, so regenerate the picture after.
 
 **Abandoned.** The destination turned out not to be worth reaching. This is a finished map,
 and the cheapest possible outcome — the one charting exists to make affordable.

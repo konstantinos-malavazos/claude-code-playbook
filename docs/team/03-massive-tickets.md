@@ -80,7 +80,7 @@ sentence is doing the work here.
         │
         │   one map, many sessions
         ▼
-/resume-massive [<TICKET-ID>]     one ticket per session — claim, dispatch, bookkeep
+/resume-massive [<KEY>[#<NN>]]    one ticket per session — claim, dispatch, bookkeep
         │
         ├── grilling  → you, here, with the human
         ├── research  → one background agent, claimed to it
@@ -94,6 +94,11 @@ sentence is doing the work here.
                       ├── STALLED   → name who is blocking; leave it unstamped
                       └── ABANDONED → the human's call; stamp and stop
 ```
+
+**The picture lives in the chart folder.** With the dependency page installed,
+`/start-massive` writes `dependency-graph.html` beside `map.md`, and `/resume-massive`
+rewrites it after every close. Click an open ticket and it gives `/resume-massive <KEY>#<NN>`
+— the walker, never `/build-chart-ticket` directly, which refuses an unclaimed ticket.
 
 **`/start-massive` charts and stops.** It does not claim the first ticket. Sizing the map is
 a whole session's work, and taking a ticket at the end of it spends the context that ticket

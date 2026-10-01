@@ -131,6 +131,12 @@ Blocked on someone else: <ticket — who owns the blocker>.
 Not yet specified: <one line each>.
 ```
 
+If the page template is installed at `~/.claude/dependency-graph.html`, write the picture
+to `dependency-graph.html` in the chart folder, after the research claims, with
+`startCommand` set to `/resume-massive $ARGUMENTS#{n}` — the rules are `/resume-massive`
+step 6's, and they win over the `charting` skill's `/charting {n}`. Do not open it unless
+asked.
+
 Then say the next command is `/resume-massive $ARGUMENTS`, and **stop**.
 
 **Close with the `next-steps` block**, after that paste-in text and never instead of it. It

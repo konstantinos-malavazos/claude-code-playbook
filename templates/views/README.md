@@ -100,11 +100,28 @@ directory** — the hook blocks the *command*, `.gitignore` makes the file invis
 and moving one without the other buys nothing. See
 [`docs/solo/07-guardrails-when-solo.md`](../../docs/solo/07-guardrails-when-solo.md).
 
-**One command regenerates *and* opens.** There is no separate view step, so staleness stops
-being something to manage. Looking at it *is* regenerating it. Deliberately **not**
-regenerated on ticket-close: auto-regeneration gives you a file that is *sometimes* fresh,
-which you end up trusting neither way. One rule you can hold: **it is current if you just
-ran it.** The visible *generated at* stamp closes the gap for a browser-refreshed copy.
+**Asking for the picture regenerates *and* opens it.** Looking at it *is* regenerating it.
+
+**Every ticket close on a map regenerates it too.** The session that closes a ticket rewrites
+the file as the last step of the close — after the fog has graduated and any handoff claim
+is written — and does not open it. `/charting`, `/feeling-lucky` and `/resume-massive` all
+do this; `/start-massive` and charting's first pass write the first copy. The
+next session opens a page that already shows the new frontier. Without this, the page you
+open at the start of a session is one close behind, and the frontier it shows is the one
+you just finished. The visible *generated at* stamp still tells you how old it is.
+
+**A backlog is the exception.** No flow closes a backlog ticket — a unit closes when its
+branch merges, or by hand — so its page is current as of the cut, or your last request for
+it. Ask again after a merge.
+
+**Clicking an open ticket shows the command that starts it**, with a Copy button. The page
+cannot know which flow walks the graph, so the generator writes it into the slot as
+`startCommand`: `/charting {n}` for a solo map, `/resume-massive <KEY>#{n}` for a team map,
+`/start-ticket {n}` for a backlog. Where ids carry a key prefix (Jira's `ABC-123`) the prefix
+goes in the template, `/start-ticket ABC-{n}`. A blocked ticket names what it waits on
+instead, and a claimed one names who holds it — never a command, because the claim is what
+keeps it out of other hands. A page without `startCommand` says so and
+shows no command; it never guesses one.
 
 ## Filling the slot
 

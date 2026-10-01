@@ -25,8 +25,12 @@
      one directory; move one without the other and you have bought nothing.
      Nothing else adds that line DURING CHARTING, and this page can run a whole
      stage before the repo is scaffolded.
-  5. Open it. One command regenerates AND opens — never one without the other,
-     and never automatically on ticket-close. It is current if you just ran it.
+  5. Open it when asked for the picture. ALSO regenerate it after EVERY ticket close
+     on a map — the closing session does it as the last step of the close, after
+     new tickets and handoff claims, so the next session opens a page that already
+     shows the new frontier. Regenerating on close writes the file and does not
+     open it. A backlog's tickets close by merge, outside any flow, so its page is
+     current as of the last time someone asked for it.
 
   ── THE DATA SLOT ──────────────────────────────────────────────────────────────
   {
@@ -34,6 +38,17 @@
     "title":       "the map's title, or the project name",
     "url":         "link back to the tracker (optional)",
     "generatedAt": "2026-08-05T21:40:00Z — shown as the staleness stamp",
+    "startCommand": "/charting {n}",   // the command that starts ONE ticket; {n} becomes
+                                       // its number. The generator knows the flow, the
+                                       // page does not:
+                                       //   solo map   "/charting {n}"
+                                       //   team map   "/resume-massive <KEY>#{n}"
+                                       //   backlog    "/start-ticket {n}"
+                                       // Where ids carry a key prefix (Jira ABC-123),
+                                       // put it in the template: "/start-ticket ABC-{n}".
+                                       // Missing → the page says so and shows no
+                                       // command. It never guesses one. Claimed and
+                                       // blocked tickets never show it.
     "tickets": [
       {
         "number":    40,
@@ -175,6 +190,16 @@
   #detail .close { float: right; cursor: pointer; border: 0; background: none; color: var(--muted); font-size: 22px; line-height: 1; }
   #detail h1 { margin: 0 0 6px; font-size: 19px; }
   #detail .meta { color: var(--muted); font-size: 12.5px; margin-bottom: 18px; }
+  #detail .start {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    padding: 9px 12px; margin-bottom: 18px; font-size: 13px;
+  }
+  #detail .start code { font-size: 13px; font-weight: 600; }
+  #detail .start button {
+    cursor: pointer; border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+    border-radius: 4px; padding: 2px 9px; font: inherit; font-size: 12px;
+  }
   #detail .comment { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 14px; }
   #detail .comment .who { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
   .md h1, .md h2, .md h3, .md h4 { font-size: 15px; margin: 20px 0 6px; }
@@ -209,7 +234,7 @@
 <div id="overlay"><article id="detail"></article></div>
 
 <script id="graph-data" type="application/json">
-{"kind":"map","title":"","url":"","generatedAt":"","tickets":[],"sidebar":{}}
+{"kind":"map","title":"","url":"","generatedAt":"","startCommand":"","tickets":[],"sidebar":{}}
 </script>
 
 <script>
@@ -341,7 +366,8 @@
     el("canvas").innerHTML = '<div class="empty"><b>The data slot is empty.</b><br><br>' +
       'This is the shipped template, not a generated picture. Ask the tracker adapter for ' +
       '<i>the whole graph</i>, fill the <code>graph-data</code> slot, and write the result to ' +
-      '<code>.claude/dependency-graph.html</code>. The recipe is in the comment at the top of this file.</div>';
+      '<code>.claude/dependency-graph.html</code>, with <code>startCommand</code> set to the command ' +
+      'that starts one ticket in your flow. The recipe is in the comment at the top of this file.</div>';
     return;
   }
 
@@ -540,6 +566,9 @@
     }
     d.appendChild(meta);
 
+    var start = startLine(t);
+    if (start) d.appendChild(start);
+
     var body = document.createElement("div");
     body.className = "md";
     body.innerHTML = md(t.body);
@@ -561,6 +590,54 @@
     el("overlay").classList.add("open");
     d.scrollTop = 0;
   }
+  /* How to start this ticket. The generator knows which flow walks this graph and fills
+     startCommand; the page only puts the number in. It never guesses a command — a wrong
+     one sends the user into a flow that does not own the ticket. */
+  function startLine(t) {
+    var s = stateOf(t);
+    if (s === "closed") return null;
+    var box = document.createElement("div");
+    box.className = "start";
+    if (s === "blocked") {
+      box.textContent = "Not startable yet — waits on " + blockers(t).filter(function (b) {
+        return b.state !== "closed";
+      }).map(function (b) { return "#" + b.number; }).join(", ") + ".";
+      return box;
+    }
+    /* A claim keeps a ticket out of everyone else's hands — a person, or a background
+       agent still working it. Offering its command would undo exactly that. */
+    if (s === "claimed") {
+      box.textContent = "Claimed by " + t.claimedBy + " — wait for them, or clear the claim by hand first.";
+      return box;
+    }
+    if (typeof data.startCommand !== "string" || !data.startCommand) {
+      box.textContent = "No start command in this page. Regenerate it — the generator fills startCommand.";
+      return box;
+    }
+    var cmd = data.startCommand.replace(/\{n\}/g, String(t.number));
+    var lead = document.createElement("span");
+    lead.textContent = "Start it in a fresh session:";
+    var code = document.createElement("code");
+    code.textContent = cmd;
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.textContent = "Copy";
+    btn.onclick = function () {
+      function done() { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1200); }
+      function fallback() {
+        var r = document.createRange(); r.selectNodeContents(code);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        var ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) { /* left selected for Ctrl+C */ }
+        if (ok) done(); else btn.textContent = "Press Ctrl+C";
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cmd).then(done, fallback);
+      } else fallback();
+    };
+    box.appendChild(lead); box.appendChild(code); box.appendChild(btn);
+    return box;
+  }
+
   function close() { el("overlay").classList.remove("open"); }
   el("overlay").onclick = function (e) { if (e.target === el("overlay")) close(); };
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });

@@ -90,7 +90,7 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 |---|---|---|
 | **`/start-ticket`** | ticket id → reviewed single-commit branch (the flagship) | the default path for ~95% of tickets |
 | **`/pitch`** *(solo)* | raw idea → a **verdict**: build, kill or park. Six questions in about an hour, two cold search subagents, and an anonymised `pitch-judge` | the furthest upstream thing here, because it runs before a repo exists. Stops ideas that should never reach a pipeline at all. [solo 02](../solo/02-the-kill-gate.md) |
-| **`/charting`** | foggy effort → a **map** of tickets on the tracker, resolved one per session until nothing is left to decide. Generates the **dependency picture** on demand | upstream of everything here: work too big for one session and too foggy to plan. Hands off to `/start-ticket` once the route is clear. **Both entrances run it.** [solo 03](../solo/03-charting.md) is stage 2 on a greenfield repo; run it directly on a codebase that already exists, which is also what [team 03](../team/03-massive-tickets.md) wraps its three commands around |
+| **`/charting`** | foggy effort → a **map** of tickets on the tracker, resolved one per session until nothing is left to decide. Generates the **dependency picture** on demand and after every ticket close | upstream of everything here: work too big for one session and too foggy to plan. Hands off to `/start-ticket` once the route is clear. **Both entrances run it.** [solo 03](../solo/03-charting.md) is stage 2 on a greenfield repo; run it directly on a codebase that already exists, which is also what [team 03](../team/03-massive-tickets.md) wraps its three commands around |
 | **`/bootstrap`** *(solo)* | decided-but-empty repo → a **scaffolded one**, plus one report: seven checks, evidence per row, no classification | the only flow that runs **once per project**. It makes `/start-ticket`'s preconditions true — including the layer specialists, which it calls `/adapt-to-stack` to generate. [solo 04](../solo/04-the-bootstrap.md) |
 | **`/cut-backlog`** *(solo)* | closed map + scaffolded repo → an ordered **backlog** of work units, approved on a board before anything is created, then the same **dependency picture** over the tickets that now exist | the last stage of the solo path, and where it stops. Units are cut from the **smallest version**, not from the map's decisions — one unit = one thing the app can now do. [solo 05](../solo/05-cutting.md) |
 | **`/prototype`** | a design question nobody can settle on paper → **throwaway code built to be reacted to and then deleted**: one interactive harness for *does this logic hold up*, or several radically different takes on one screen for *what should this look like* | some decisions only get answered by looking at them run. It is the skill behind charting's `prototype` ticket type — and the reaction is the output, so an agent that builds three variants and picks one has answered nothing. [`templates/skills/prototype/`](../../templates/skills/prototype/SKILL.md) |
@@ -121,8 +121,8 @@ skill is shared, but the flow wrapped around it is not.
 
 **The dependency picture has no row of its own because it is not a flow.** It has no
 command and no agents. It is a page ([`templates/views/`](../../templates/views/README.md))
-that two of the flows above fill with data and open, for the trackers that cannot draw
-their own dependencies.
+that the flows above fill with data and open when asked, and that every ticket close on a
+map rewrites without opening. A clicked ticket shows the command that starts it.
 
 **`next-steps` is not a flow either and still gets a row**, on a different test: it is the
 last thing **every** flow above does, so a reader of this table who does not meet it writes

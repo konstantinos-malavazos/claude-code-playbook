@@ -86,7 +86,10 @@ Each iteration is a **fresh context**. Repeat until step 5 halts you.
    copy loaded at iteration start.
 8. **Graduate the fog** — ticket what the answer just made visible, and **delete the
    graduated patch from *Not yet specified*** so it lives in one place. Anything the decision
-   put past the destination gets closed with one line under *Out of scope*.
+   put past the destination gets closed with one line under *Out of scope*. **Then
+   regenerate the picture** if the page template is installed, per the `charting` skill —
+   write the file, do not open it. Whoever looks in the morning sees the map as the walk
+   left it.
 9. **Commit and push to `main`, if this iteration changed the repo.** Explicit paths in
    `git add`: never `-A`, never `.`, and never `.claude/`. One commit per iteration, in
    your `commit-conventions` format, naming the ticket. Then push.

@@ -232,7 +232,9 @@ Then draw it:
 > **Ask for the whole graph over the units you just created, fill the data slot in
 > `~/.claude/dependency-graph.html`, write it to `.claude/dependency-graph.html`, ensure
 > `.claude/` is in the repo's `.gitignore` **with `!.claude/agents/` and
-> `!.claude/skills/` beside it**, and open it — one command, and never on ticket-close.**
+> `!.claude/skills/` beside it**, and open it — one command. Set the slot's `startCommand`
+> to `/start-ticket {n}`, with your tracker's key prefix where ids carry one
+> (`/start-ticket ABC-{n}`).**
 
 The page's own header comment carries the data-slot schema and the two rules that fail
 silently. Read them there.
@@ -247,6 +249,11 @@ Four things about a backlog in particular:
   from the session's notes the picture shows what you *meant* to create. Drawn from the
   tracker it shows what **landed**. Let the fourth create of four fail and the remembered
   picture still draws four boxes while the fetched one draws three.
+- **Nothing regenerates it on close.** No flow closes a backlog ticket — `/start-ticket`
+  writes nothing to the tracker, and a unit closes when its branch merges or by hand. So this
+  page is current as of the cut, or the last time someone asked for it. Say so when you
+  hand it over: after a merge, ask for the picture again. The *generated at* stamp shows
+  its age.
 - **It gets the legend only.** The sidebar's *Not yet specified* and *Out of scope* sections
   belong to a map. The page omits them when they are absent — nothing to configure.
 - **The `blockedBy` *edges* come from the ticket bodies. The *states* on them come from the
