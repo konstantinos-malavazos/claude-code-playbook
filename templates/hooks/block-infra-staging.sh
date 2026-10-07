@@ -77,7 +77,9 @@ IFS= read -r -d '' payload || true
 parse() { # <command|cwd> — prints the field; non-zero if the payload will not parse
     py_run "$payload" '
 import json, sys
-d = json.load(sys.stdin)
+# Bytes decoded as UTF-8. A text-mode read uses the Windows code page, and a byte that page
+# has no character for comes back as a surrogate, which the UTF-8 write below refuses.
+d = json.loads(sys.stdin.buffer.read())
 if sys.argv[1] == "cwd":
     v = d.get("cwd") or ""
 else:
@@ -92,19 +94,6 @@ sys.stdout.buffer.write(v.encode("utf-8"))
 }
 
 cmd="$(parse command)" || block "the payload did not parse as JSON — refusing to guess what this command stages. $(py_tried)"
-
-# Newlines and \r become ';' so a CRLF payload behaves the same as an LF one — see
-# block-dangerous-git.sh.
-#
-# This used to say `git add .` on any line but the first would otherwise slip past "the
-# pattern below". Untrue since #112: the only pattern below that reads $norm is the
-# unanchored `git` pre-filter at the hard-blocks section, which nothing slips past on the
-# grounds of which line it is on. staged_args() reads "$cmd", not $norm, and converts
-# newlines to separators itself. The line is kept because block-dangerous-git.sh computes
-# the same $norm — but it does so with parameter expansion plus a squeeze loop rather than
-# this `tr` pipeline, to drop two spawns from the hot path. The transform is equivalent;
-# only the form differs, and the difference is deliberate, not drift.
-norm="$(printf '%s' "$cmd" | tr '\r\n' ';;' | tr -s ' ')"
 
 # --- The allowlist -------------------------------------------------------------
 # Duplicated verbatim from block-dangerous-git.sh, deliberately — see the note there.
@@ -164,14 +153,19 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 # which puts a substitution's own text back where its span stood, so a path inside an
 # unquoted $( ) is judged rather than split away.
 # SHARED, and a change to any of these here is a change to make there too: HEREDOC_WORD,
-# heredoc_ops and strip_heredocs; _SQUASH and squash; _SPANS and word, and the reading of
-# the program word and the verb — never a path — through it; _WS_ASSIGN and split_ws, and
-# the call to it at the tail of prepare; tokenize and fallback_tokens; MULTI, NO_EXEC,
-# LEADERS and runs_no_args; the pipe test and the candidate step in seg_rows; MAX_DEPTH,
-# span_views and the nested-view loop. Also shared in behaviour: the line-continuation join,
-# the newline separator, the redirection drop, the forward scan over every git word in a
-# segment, and the binary UTF-8 stdout write.
-# _SQUASH/squash, _SPANS/word and _WS_ASSIGN/split_ws are byte-identical in all three copies;
+# heredoc_ops and strip_heredocs; _SQUASH and squash; _MAY_BE_GIT and may_be_git; _OPEN,
+# _CLOSE, drop_spans and word, and the reading of the program word and the verb — never a
+# path — through it; _BARE, _BRACE and is_git; _WS_ASSIGN and split_ws, and the call to it
+# at the tail of prepare; tokenize and fallback_tokens; MULTI, NO_EXEC, LEADERS and
+# runs_no_args; the pipe test and the candidate step in seg_rows; MAX_DEPTH, span_views and
+# the nested-view loop;
+# _QNAME, _EMPTY_IFS, _IFS_REF and alt_views, and the two queue calls to it. Also shared in
+# behaviour: the line-continuation join, the newline separator, the redirection drop, the
+# forward scan over every git word in a segment, and the binary UTF-8 stdin read and stdout
+# write.
+# _SQUASH/squash, _MAY_BE_GIT/may_be_git, _OPEN/_CLOSE/drop_spans/word, _BARE/_BRACE/is_git,
+# _WS_ASSIGN/split_ws and _QNAME/_EMPTY_IFS/_IFS_REF/alt_views are byte-identical in all
+# three copies;
 # the rest of this list is byte-identical in block-secret-staging.sh only, because
 # block-dangerous-git.sh is the parameterised copy described above.
 staged_args() { # prints "<subcommand>\t<opt|path>\t<word>" per argument; exit 3 = unparsable
@@ -299,8 +293,19 @@ _SQUASH = {ord(c): None for c in (chr(34), chr(39), "$", chr(92))}
 def squash(s):
     return s.translate(_SQUASH).lower()
 
+# The pre-filter. A construct bash may remove is recognised by the character that STARTS
+# it, never by where it ends: a g or gi followed directly by a dollar, or by a backtick
+# read as one, may still be git. Quotes, backslash and line breaks are deleted first.
+_MAY_BE_GIT = str.maketrans(chr(96), "$", chr(34) + chr(39) + chr(92) + chr(10) + chr(13))
+
+def may_be_git(s):
+    v = s.translate(_MAY_BE_GIT).lower()
+    return "git" in v or "g$" in v or "gi$" in v
+
 # A name that an assignment EARLIER IN THE SAME PAYLOAD gives a whitespace-only value.
-_WS_ASSIGN = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=([\"" + chr(39) + r"])[ \t]+\2")
+# A match starts only at the head of a name: retried at every letter of a long word, the
+# scan is quadratic.
+_WS_ASSIGN = re.compile(r"(?<![A-Za-z0-9_])[0-9]*([A-Za-z_][A-Za-z0-9_]*)=([\"" + chr(39) + r"])[ \t]+\2")
 
 def split_ws(src):
     # An expansion that yields whitespace is a word SPLIT when bash runs the command, while
@@ -318,10 +323,53 @@ def split_ws(src):
 # same word with or without it: git${x} add, git add$(true) .env and git`true` add are all
 # git add. Only the program word and the verb are read through word() — dropping a span
 # from a PATH changes the text the path rules match and turns a block into an allow.
-_SPANS = re.compile(r"\$\{[^}]*\}|\$\([^)]*\)|\x60[^\x60]*\x60")
+_OPEN = re.compile(r"\$[{(]|\x60")
+_CLOSE = {"{": "}", "(": ")", "\x60": "\x60"}
+
+# The same result as deleting every match of \$\{[^}]*\}|\$\([^)]*\)|\x60[^\x60]*\x60, in
+# linear time: an opener whose closer appears nowhere after it is never searched for again.
+def drop_spans(w):
+    out, cut, i, dead = [], 0, 0, set()
+    while True:
+        m = _OPEN.search(w, i)
+        if not m:
+            break
+        c = _CLOSE[m.group()[-1]]
+        k = -1 if c in dead else w.find(c, m.end())
+        if k < 0:
+            dead.add(c)
+            i = m.start() + 1
+            continue
+        out.append(w[cut:m.start()])
+        cut = i = k + 1
+    out.append(w[cut:])
+    return "".join(out)
 
 def word(w):
-    return squash(_SPANS.sub("", w))
+    return squash(drop_spans(w))
+
+# The program word is git when any reading of it is: as written, with a positional or a
+# nested brace span removed, and with each alternative of its first brace list. Reading
+# every alternative is quadratic, so a list too large to read is taken as git, which only
+# adds rows.
+_BARE = re.compile(r"\$\{(?:[^{}]|\{[^{}]*\})*\}|\$[0-9@]")
+_BRACE = re.compile(r"\{([^{},]*(?:,[^{},]*)+)\}")
+
+def is_git(w):
+    # A path separator may be either slash; the program may carry the .exe suffix on
+    # Windows. Only the BASENAME decides, so /usr/bin/git and C:\bin\git.exe both count.
+    # word() runs only AFTER the separator is normalised: it drops backslashes, and doing
+    # it first would swallow the separator of a Windows path and lose the basename.
+    b = w.replace("\\", "/").rsplit("/", 1)[-1]
+    reads = [b]
+    m = _BRACE.search(b)
+    if m:
+        pre, suf, alts = b[:m.start()], b[m.end():], m.group(1).split(",")
+        if len(alts) * (len(pre) + len(suf)) > 65536:
+            return True
+        reads += [pre + a + suf for a in alts]
+    return any(word(x) in ("git", "git.exe") or word(_BARE.sub("", x)) in ("git", "git.exe")
+               for x in reads)
 
 def prepare(src):
 # A LINE CONTINUATION is ONE command written over two lines, so it is joined BEFORE any
@@ -408,9 +456,7 @@ def seg_rows(toks, out, cands):
         # first git is the value of -u). An extra row can only make a rule fire.
         p = j
         while p < len(words):
-            # word() runs only AFTER the separator is normalised: it drops backslashes, and
-            # doing it first would swallow the separator of a Windows path.
-            if word(words[p].replace("\\", "/").rsplit("/", 1)[-1]) not in ("git", "git.exe"):
+            if not is_git(words[p]):
                 p += 1
                 continue
             j = p + 1
@@ -484,7 +530,22 @@ def span_views(s):
         views.append("".join(keep) + s[cut:])
     return views
 
-src = strip_heredocs(sys.stdin.read())
+# What bash may build from the text, each as a view of its own: a backslash-newline
+# deleted rather than joined with a space, an unbraced name ended by a quote removed, and
+# $IFS removed where the same text sets IFS empty. It only ADDS views.
+_QNAME = re.compile(r"(?<=[A-Za-z0-9_])\$[A-Za-z_][A-Za-z0-9_]*(?=[\x22\x27])")
+_EMPTY_IFS = re.compile(r"(?<![A-Za-z0-9_])IFS=(?:\x27\x27|\x22\x22)?(?![^\s;&|()])")
+_IFS_REF = re.compile(r"\$\{IFS\}|\$IFS(?![A-Za-z0-9_])")
+
+def alt_views(s):
+    views = [re.sub(r"\\\n+", "", s), _QNAME.sub("", s)]
+    if _EMPTY_IFS.search(s):
+        views.append(_IFS_REF.sub("", s))
+    return [v for v in views if v != s]
+
+# Bytes decoded as UTF-8. A text-mode read uses the Windows code page, and a byte that page
+# has no character for comes back as a surrogate, which the UTF-8 write below refuses.
+src = strip_heredocs(sys.stdin.buffer.read().decode("utf-8"))
 try:
     toks = tokenize(prepare(src))
 except ValueError:
@@ -496,11 +557,11 @@ seg_rows(toks, out, cands)
 # once. They only ADD rows to the top-level ones above. Spans are read before prepare(),
 # because its continuation join eats a backtick. A text without git can emit no row and
 # is skipped; one that would sit deeper than MAX_DEPTH is refused (exit 3).
-seen, queue, q = {src}, [(t, 1) for t in span_views(src) + cands], 0
+seen, queue, q = {src}, [(t, 1) for t in span_views(src) + alt_views(src) + cands], 0
 while q < len(queue):
     text, depth = queue[q]
     q += 1
-    if text in seen or "git" not in squash(text):
+    if text in seen or not may_be_git(text):
         continue
     seen.add(text)
     if depth > MAX_DEPTH:
@@ -513,7 +574,7 @@ while q < len(queue):
         inner = fallback_tokens(prep)
     more = []
     seg_rows(inner, out, more)
-    queue += [(t, depth + 1) for t in span_views(body) + more]
+    queue += [(t, depth + 1) for t in span_views(body) + alt_views(body) + more]
 
 # Written through the BINARY buffer on purpose. On Windows a text-mode stdout rewrites
 # every newline as CR LF, and the CR then travels on the LAST FIELD of the line, so read
@@ -525,17 +586,19 @@ sys.stdout.buffer.write("".join(line + "\n" for line in out).encode("utf-8"))
 '
 }
 
-# The pre-filter is deliberately just "git": `git -C <dir> add …` does not put the verb
+# The pre-filter never asks for the verb: `git -C <dir> add …` does not put the verb
 # next to the program name, and a filter that demanded that let the whole command past.
-# A quote or a dollar can sit INSIDE the word git, so the test runs over a copy with those
-# squashed out. Squashing only ever DELETES characters, so a git that was there is still
-# there and this can only widen what reaches the tokenizer. The `,,` is load-bearing: drop
-# it and the filter stops being case-insensitive, which is a guardrail quietly narrowing.
-sq=${norm//'"'/}
+# The same rule as may_be_git, over the command with line breaks, quotes and backslash
+# deleted and a backtick read as a dollar: pass on git, or on g or gi then a dollar.
+# The `,,` is load-bearing: drop it and the filter stops being case-insensitive, which is a
+# guardrail quietly narrowing.
+sq=${cmd//$'\n'/}
+sq=${sq//$'\r'/}
+sq=${sq//'"'/}
 sq=${sq//"'"/}
-sq=${sq//'$'/}
 sq=${sq//"\\"/}
-if [[ ${sq,,} == *git* ]]; then
+sq=${sq//'`'/'$'}
+if [[ ${sq,,} == *git* || ${sq,,} == *'g$'* || ${sq,,} == *'gi$'* ]]; then
     # Rows include commands nested in $( ), backticks and any multi-word argument
     # (bash -c, ssh, eval), up to MAX_DEPTH. A commit message and the arguments of echo,
     # printf, grep, rg and gh (NO_EXEC) with no pipe after them are not read as commands.
