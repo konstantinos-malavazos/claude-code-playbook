@@ -164,6 +164,24 @@ run_raw() { # <script> <label> <raw-payload> <expected-exit>
     fi
 }
 
+run_utf8() { # <script> <tool-name> <command, with no double quote or backslash> <expected-exit>
+    # run() builds its JSON with json.dumps, which escapes every non-ASCII character, so a
+    # hook never sees a raw UTF-8 byte from it. This sends the command's bytes as they are.
+    local payload got shown
+    printf -v payload '{"tool_name":"%s","cwd":%s,"tool_input":{"command":"%s"}}' "$2" \
+        "$HOOK_CWD_JSON" "$3"
+    printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" >/dev/null 2>&1
+    got=$?
+    shown=${3//$'\n'/$TILDE}
+    ran=$((ran + 1))
+    if [ "$got" = "$4" ]; then
+        printf '  ok   [%s] %s\n' "$2" "$shown"
+    else
+        printf '  FAIL [%s] exit=%s want=%s  %s\n' "$2" "$got" "$4" "$shown"
+        fail=$((fail + 1))
+    fi
+}
+
 # The only case shape that reads the hook's MESSAGE rather than just its exit code. An
 # exit code alone cannot tell a refusal that explains itself from one that does not, and
 # for the interpreter cases at the bottom of this file the message IS the behaviour under
@@ -489,6 +507,16 @@ run $GIT_HOOK Bash       "g\$''it push --force"                                 
 # shellcheck disable=SC2016
 run $GIT_HOOK Bash       'git${IFS}push --force'                                  2
 run $GIT_HOOK Bash       "x=' '; git\${x}push --force"                            2
+# An expansion in the MIDDLE of the word leaves no `git` in the text even with quotes and
+# dollars deleted. The nested row needs a literal git outside the inner shell, or the
+# top-level gate stops it before the nested view is read.
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g${x}it push --force'                                   2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g$(true)it push --force'                                2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g`true`it add -A'                                       2
+run $GIT_HOOK Bash       "git status; bash -c 'g\${x}it push --force'"            2
 # A span GLUED to the program word, or to the verb. Each expands to nothing, so bash runs
 # git push --force either way — but shlex keeps the span inside the token, and neither the
 # basename nor the subcommand it hands back is the word a rule is keyed on.
@@ -723,12 +751,70 @@ run $GIT_HOOK Bash       "g\$''it push --force"                            2
 run $GIT_HOOK Bash       'git${IFS}push --force'                           2
 run $GIT_HOOK Bash       "x=' '; git\${x}push --force"                     2
 # shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g${x}it push --force'                            2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g$(true)it push --force'                         2
+# A whitespace-valued expansion SPLITS the word for bash, so these run the commands `g`
+# and `git pu sh`. Neither pushes.
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g${IFS}it push --force'                          0
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'git pu${IFS}sh --force'                          0
+# The program word as bash builds it, past the gate: a positional parameter, a nested
+# brace span, an unbraced name ended by a quote, a backslash-newline bash deletes, $IFS in
+# a command that sets IFS empty, and a brace list. Each of these runs git push --force.
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g$1it push --force'                              2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g$@it push --force'                              2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g$x""it push --force'                            2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'g${x:-${y}}it push --force'                      2
+run $GIT_HOOK Bash       "$(printf 'g\\\nit push --force')"                2
+# shellcheck disable=SC2016
+run $GIT_HOOK Bash       'IFS=; git pu${IFS}sh --force'                    2
+run $GIT_HOOK Bash       '{git,} push --force'                             2
+# The same readings, with no force flag to find.
+run $GIT_HOOK Bash       '{git,} push'                                     0
+run $GIT_HOOK Bash       "$(printf 'git push \\\norigin main')"            0
+# shellcheck disable=SC2016
 run $GIT_HOOK Bash       'git${x} push --force'                            2
 # shellcheck disable=SC2016
 run $GIT_HOOK Bash       'git push${x} --force'                            2
 run $GIT_HOOK Bash       "git pu\$''sh --force"                            2
 run $GIT_HOOK Bash       'git""push --force'                               0
 HOOK_HOME="$DENY_HOME"
+
+echo "block-dangerous-git.sh — a large command finishes"
+# Piped, not passed to run(): argv is capped near 32 KB on Windows. timeout exits 124 when
+# the hook is still running, and a hook the harness kills is not a block.
+big_cmd=$("$PY" -c 'import sys; sys.stdout.buffer.write(b"g$ " * 87382)')
+printf '{"tool_name":"Bash","cwd":%s,"tool_input":{"command":"%s"}}' "$HOOK_CWD_JSON" "$big_cmd" \
+    | HOME="$HOOK_HOME" PATH="$HOOK_PATH" timeout 60 "$BASH_BIN" "$GIT_HOOK" >/dev/null 2>&1
+big_rc=$?
+ran=$((ran + 1))
+if [ "$big_rc" = 0 ]; then
+    printf '  ok   [Bash] a 256 KB command finished\n'
+else
+    printf '  FAIL [Bash] exit=%s want=0  a 256 KB command (124 = still running after 60 s)\n' "$big_rc"
+    fail=$((fail + 1))
+fi
+# One long word, outside the git segment: a 256 KB name, then 384 KB of unclosed ${.
+# shellcheck disable=SC2016
+for big_word in 'b"a" * 262144' 'b"${" * 196608'; do
+    big_cmd=$("$PY" -c "import sys; sys.stdout.buffer.write(b\"git status; echo \" + $big_word)")
+    printf '{"tool_name":"Bash","cwd":%s,"tool_input":{"command":"%s"}}' "$HOOK_CWD_JSON" "$big_cmd" \
+        | HOME="$HOOK_HOME" PATH="$HOOK_PATH" timeout 60 "$BASH_BIN" "$GIT_HOOK" >/dev/null 2>&1
+    big_rc=$?
+    ran=$((ran + 1))
+    if [ "$big_rc" = 0 ]; then
+        printf '  ok   [Bash] git status; echo %s finished\n' "$big_word"
+    else
+        printf '  FAIL [Bash] exit=%s want=0  git status; echo %s (124 = still running after 60 s)\n' "$big_rc" "$big_word"
+        fail=$((fail + 1))
+    fi
+done
 
 echo "block-infra-staging.sh — must BLOCK (exit 2), repo not listed"
 run $INFRA_HOOK Bash     "git add CLAUDE.md"                               2
@@ -758,6 +844,30 @@ run $INFRA_HOOK Bash     'git add${x} -A'                                  2
 run $INFRA_HOOK Bash     "git add\$'' -A"                                  2
 # shellcheck disable=SC2016
 run $INFRA_HOOK Bash     'git${x} add .claude/settings.json'               2
+# An expansion in the MIDDLE of the word. The nested row needs a literal git outside the
+# inner shell to get past the top-level gate.
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'g${x}it add .claude/settings.json'               2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'g${x}it add -A'                                  2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'g$(true)it add -A'                               2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'g`true`it add -A'                                2
+run $INFRA_HOOK Bash     "git status; bash -c 'g\${x}it add -A'"           2
+# The program word as bash builds it, past the gate. Each of these runs git add -A.
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'g$1it add -A'                                    2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'g$@it add -A'                                    2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'g$x""it add -A'                                  2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'g${x:-${y}}it add -A'                            2
+run $INFRA_HOOK Bash     "$(printf 'g\\\nit add -A')"                      2
+# shellcheck disable=SC2016
+run $INFRA_HOOK Bash     'IFS=; git a${IFS}dd -A'                          2
+run $INFRA_HOOK Bash     '{git,} add -A'                                   2
 # Empty quotes glue: `gitadd -A` stages nothing.
 run $INFRA_HOOK Bash     'git""add -A'                                     0
 
@@ -993,6 +1103,27 @@ run $SECRET_HOOK Bash     "$(printf 'git add \t.env')"                     2
 run $SECRET_HOOK Bash     'g""it add .env'                                 2
 run $SECRET_HOOK Bash     "g\$''it add .env"                               2
 run $SECRET_HOOK Bash     'git ad""d .env'                                 2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'g${x}it add .env'                               2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'g$(true)it add .env'                            2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'g`true`it add .env'                             2
+# The literal git outside the inner shell is what gets this past the top-level gate.
+run $SECRET_HOOK Bash     "git status; bash -c 'g\${x}it add .env'"        2
+# The program word as bash builds it, past the gate. Each of these runs git add .env.
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'g$1it add .env'                                 2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'g$@it add .env'                                 2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'g$x""it add .env'                               2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'g${x:-${y}}it add .env'                         2
+run $SECRET_HOOK Bash     "$(printf 'g\\\nit add .env')"                   2
+# shellcheck disable=SC2016
+run $SECRET_HOOK Bash     'IFS=; git a${IFS}dd .env'                       2
+run $SECRET_HOOK Bash     '{git,} add .env'                                2
 # And the whitespace-valued expansion, which bash splits into two words where the text
 # holds one.
 # shellcheck disable=SC2016
@@ -1210,6 +1341,18 @@ run_raw $SECRET_HOOK "empty payload"            ''                 2
 run_raw $MCP_HOOK    "valid JSON, wrong shape"  '[]'               2
 run_raw $HOLD_HOOK   "not JSON (long hold)"     'timeout=300000'   2
 run_raw $HOLD_HOOK   "valid JSON, wrong shape (long hold)" '[]'    2
+
+echo "the git hooks — a command in raw UTF-8 is read, not refused (exit 0 unless a rule fires)"
+# The UTF-8 of U+2190 ends in the byte 0x90, which the Windows ANSI code page has no
+# character for. Built from octal escapes so this file stays ASCII.
+printf -v ARROW '\342\206\220'
+run_utf8 $GIT_HOOK Bash      "git commit -m $ARROW"                            0
+run_utf8 $INFRA_HOOK Bash    "git commit -m $ARROW"                            0
+run_utf8 $INFRA_HOOK Bash    "git add src/$ARROW.py"                           0
+run_utf8 $INFRA_HOOK Bash    "git add .claude/settings.json src/$ARROW.py"     2
+run_utf8 $SECRET_HOOK Bash   "git commit -m $ARROW"                            0
+run_utf8 $SECRET_HOOK Bash   "git add src/$ARROW.py"                           0
+run_utf8 $SECRET_HOOK Bash   "git add .env src/$ARROW.py"                      2
 
 echo "every blocking hook — no parser on PATH must BLOCK (exit 2)"
 # The layer no code inside a hook can test for itself: what happens when the thing the
