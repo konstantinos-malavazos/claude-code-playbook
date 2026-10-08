@@ -383,20 +383,33 @@ else
   fail "02-prerequisites.md no longer lists a memory server under Required"
 fi
 
-# M7.2 — the agent count, by the exact command #105's "Done when" pins. D-B does
-# the comparing; this asserts the derivation itself is not silently empty, which is
-# how a count check passes while pointing at nothing.
+# M7.2 — the agent count: the pinned shell command and a python derivation over the
+# same agent glob must agree, and the derivation must not come back empty.
 # Globbed from $REPO rather than `cd "$REPO" && grep`: that spelling is
 # `A && B | C || true`, which shellcheck flags as SC2015 because the `|| true`
 # also catches a failing `cd`. The paths come out absolute instead of relative,
 # which the README filter and the count below do not care about.
 M7_N=$(grep -lE '<memory-(read|write)-tools>' "$REPO"/templates/agents/*.md \
          | grep -vc 'README.md$' || true)
-M7_DERIVED=$(sed -n 's/^DERIVED .*memory=\([0-9]*\).*/\1/p' "$REPO/tests/.docs-out" 2>/dev/null)
+# The count leaves python through sys.stdout.buffer: a text-mode print ends in CR
+# on Windows, command substitution keeps it, and "13\r" never equals "13".
+M7_DERIVED=$(DOCS_REPO="$REPO" "$PY" - <<'PYEOF'
+import glob, os, re, sys, importlib.util
+spec = importlib.util.spec_from_file_location(
+    "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+REPO = R.REPO
+agent_files = [f for f in sorted(glob.glob(os.path.join(REPO, "templates/agents/*.md")))
+               if os.path.basename(f) != "README.md"]
+MEMTOK = re.compile(r"<memory-(?:read|write)-tools>")
+MEMORY = len([f for f in agent_files if MEMTOK.search(R.read(os.path.relpath(f, REPO)))])
+sys.stdout.buffer.write(str(MEMORY).encode("ascii"))
+PYEOF
+)
 if [ -n "$M7_DERIVED" ] && [ "$M7_N" = "$M7_DERIVED" ]; then
   pass "the memory-agent count derives to $M7_N by both routes"
 else
-  fail "memory-agent count disagrees: the pinned command says $M7_N, D-B derived '${M7_DERIVED:-nothing}' (run D-B first)"
+  fail "memory-agent count disagrees: the pinned command says $M7_N, the python derivation says '${M7_DERIVED:-nothing}'"
 fi
 fi
 
