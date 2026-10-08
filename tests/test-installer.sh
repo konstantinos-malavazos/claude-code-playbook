@@ -589,6 +589,63 @@ APOS_N=$(find "$APOS_HOME" -type f 2>/dev/null | wc -l | tr -d ' ')
 yn "$([ "$APOS_N" -gt 0 ] && echo 0 || echo 1)" "wrote into the apostrophe CLAUDE_HOME ($APOS_N files)"
 fi
 
+# ---------------------------------------------------------------- 18 interpreter order
+# Both orders exit 0, so an exit code cannot show which python ran. The stub that must
+# not win leaves a marker file instead, and the case asserts the marker is absent. The
+# paths carry a literal `WindowsApps` component because that is what install.sh keys on;
+# nothing here needs Windows.
+if want 18; then
+banner "18 · a WindowsApps python is tried last, and never dropped"
+fresh_env t18
+T18="$(cd "$SANDBOX/t18" && pwd)"
+T18_MIX="$T18/mixed/WindowsApps"
+T18_ONLY="$T18/onlywapps/WindowsApps"
+T18_REAL="$T18/realpy"
+T18_WMARK="$T18/wapps-ran"
+T18_OMARK="$T18/only-ran"
+# Stubs exec a resolved path; a by-name python here re-finds the stub and loops.
+T18_PY="$("$PY" -c 'import sys; sys.stdout.buffer.write(sys.executable.encode())' 2>/dev/null || true)"
+if [ -n "$T18_PY" ] && command -v cygpath >/dev/null 2>&1; then
+  T18_PY="$(cygpath -u "$T18_PY" 2>/dev/null || printf '%s' "$T18_PY")"
+fi
+T18_SETUP=1
+if [ -n "$T18_PY" ] && [ "$("$T18_PY" -c 'print(1+1)' 2>/dev/null)" = "2" ] \
+   && mkdir -p "$T18_MIX" "$T18_ONLY" "$T18_REAL" \
+   && printf '#!/bin/sh\n: > "%s"\nexec "%s" "$@"\n' "$T18_WMARK" "$T18_PY" > "$T18_MIX/python3" \
+   && printf '#!/bin/sh\n: > "%s"\nexec "%s" "$@"\n' "$T18_OMARK" "$T18_PY" > "$T18_ONLY/python3" \
+   && printf '#!/bin/sh\n: > "%s"\nexec "%s" "$@"\n' "$T18_OMARK" "$T18_PY" > "$T18_ONLY/python" \
+   && printf '#!/bin/sh\nexec "%s" "$@"\n' "$T18_PY" > "$T18_REAL/python" \
+   && chmod +x "$T18_MIX/python3" "$T18_ONLY/python3" "$T18_ONLY/python" "$T18_REAL/python" \
+   && [ "$(PATH="$T18_MIX:$T18_REAL:$PATH" command -v python3 2>/dev/null)" = "$T18_MIX/python3" ] \
+   && [ "$(PATH="$T18_MIX:$T18_REAL:$PATH" command -v python 2>/dev/null)" = "$T18_REAL/python" ] \
+   && [ "$(PATH="$T18_ONLY:$PATH" command -v python3 2>/dev/null)" = "$T18_ONLY/python3" ] \
+   && [ "$(PATH="$T18_ONLY:$PATH" command -v python 2>/dev/null)" = "$T18_ONLY/python" ] \
+   && printf '    ok    [setup] stubs written, PATH resolves to them, %s answers\n' "$T18_PY"; then
+  T18_SETUP=0
+fi
+if [ "$T18_SETUP" != "0" ]; then
+  fail "[setup] the WindowsApps and real python stubs were not set up (python '$T18_PY')"
+else
+  # (a) both work; the real python is second on PATH and must still be the one used.
+  rm -f "$T18_WMARK"
+  ( cd "$REPO" && PATH="$T18_MIX:$T18_REAL:$PATH" HOME="$HOME_DIR" CLAUDE_HOME="$CH" \
+    PLAYBOOK_SCRIPTED_INPUT=1 bash ./install.sh list ) \
+    < /dev/null > "$LOGS/t18a.out" 2> "$LOGS/t18a.err"
+  RC=$?
+  yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 beside a WindowsApps python3 (rc=$RC)"
+  yn "$([ -e "$T18_WMARK" ] && echo 1 || echo 0)" "a real python beside a working WindowsApps python3 is chosen"
+
+  # (b) the WindowsApps python is the only one. Demoted it still runs; dropped, preflight dies.
+  rm -f "$T18_OMARK"
+  ( cd "$REPO" && PATH="$T18_ONLY:$PATH" HOME="$HOME_DIR" CLAUDE_HOME="$CH" \
+    PLAYBOOK_SCRIPTED_INPUT=1 bash ./install.sh list ) \
+    < /dev/null > "$LOGS/t18b.out" 2> "$LOGS/t18b.err"
+  RC=$?
+  yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 with only a WindowsApps python (rc=$RC)"
+  yn "$([ -e "$T18_OMARK" ] && echo 0 || echo 1)" "a WindowsApps python that is the only one is still used"
+fi
+fi
+
 # ══════════════════════════════════════════════════════════════════════════
 # M1-M6 · issue #105 — the memory gate, and the prompt where Enter used to delete
 # ══════════════════════════════════════════════════════════════════════════
