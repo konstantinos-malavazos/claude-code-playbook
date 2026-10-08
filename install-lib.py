@@ -594,7 +594,7 @@ def memory_detect(home, cwd):
     the pre-filled answer the prompt offers, which is why Enter can stop meaning
     "delete the tool grant". The count is derived in tests/test-docs.sh, never here.
     """
-    scan = _server_scan(home, cwd, MEMORY_SERVER_KEYS, ("forgetful",))
+    scan = _server_scan(home, cwd, MEMORY_SERVER_KEYS, MEMORY_SERVER_KEYS)
     found = scan["registered"] + [p for p in scan["plugins"] if p not in scan["registered"]]
     # Connectors come last on purpose. A live registration outranks a list that
     # only says the server was connected at some point, so a machine with both
@@ -626,6 +626,9 @@ def memory_detect(home, cwd):
         # Forgetful dispatches reads and writes through ONE tool, so granting read
         # grants write. Agents that rest their scope on the split need to be told.
         "one_tool_does_both": server == "forgetful",
+        # The names this scan looks for, so the refusal can print them instead of
+        # keeping its own copy.
+        "keys": list(MEMORY_SERVER_KEYS),
     }
 
 
