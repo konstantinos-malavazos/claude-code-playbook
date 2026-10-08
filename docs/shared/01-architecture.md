@@ -49,15 +49,16 @@ Nothing here is magic. It is a disciplined layout of plain files.
   it forgets. These two are the foundation. The git-host / tracker / DB servers are
   conveniences on top.
 - **Agents = separation of concerns + cost control.** A scoped agent runs in its own
-  context window, so a heavy read sweep doesn't pollute the planner's context. Give each
-  agent only the tools it needs. An analyzer that can't edit code cannot accidentally
-  edit code.
+  context window, so a heavy read sweep doesn't pollute the planner's context. Cut each
+  agent's tools list toward its job. That is a charter, not a lock: most agents hold
+  `Write`/`Edit` for their own handoff files, so the hard limits live in hooks.
 - **Skills = reusable judgement.** A skill is a recipe you'd otherwise re-explain every
   session ("here's how we write commit messages", "here's the review standard"). It
   loads *on intent*, so it costs nothing until it's relevant.
-- **Hooks = guarantees.** Anything you must *never* allow (a `git push`, a write to the
-  ticket tracker) belongs in a hook, because the harness enforces it deterministically.
-  A CLAUDE.md line is a request. A hook is a guarantee.
+- **Hooks = guarantees.** Anything you must *never* allow (a `git push`, staging a secret)
+  belongs in a hook, because the harness enforces it deterministically. A CLAUDE.md line
+  is a request. A hook is a guarantee — for what it matches: a tracker driven through a
+  CLI (`gh`, `glab`) has no hook, so its approval rule stays a request.
 
 ---
 
