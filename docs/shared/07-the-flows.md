@@ -13,8 +13,10 @@ re-driving the same ten steps by hand.
   order (your `schema → service → consumer` equivalent). Flows execute that order.
 - **Retrieval is offloaded.** A throwaway gatherer context does the heavy memory + code
   sweep and hands the planner a *distilled brief*. Cheap planner, focused design.
-- **Each agent is scoped.** The analyzer reads the tracker but not code; the planner
-  designs but can't write files; reviewers read but can't edit. Scope = cheap + safe.
+- **Each agent is scoped.** The analyzer reads the tracker, not code; the planner designs
+  and does not write code; reviewers report and do not fix. That is a charter, not a lock:
+  most agents hold `Write`/`Edit` for their own handoff files. The hard guarantees are the
+  hooks (below). Scope = cheap + focused.
 - **Handoffs are files, not chat.** Agents pass context through
   `<workspace>/.claude/handoffs/<TICKET>/<agent>.md`, which **auto-delete at session
   end**. In-flight noise never pollutes durable memory.

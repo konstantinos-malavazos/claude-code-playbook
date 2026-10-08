@@ -28,9 +28,11 @@ those two capabilities.
 One giant conversation doing analysis + design + coding + review blows its own context,
 mixes concerns, and has no guardrails. Instead:
 
-- **Scoped specialist agents.** Each agent does *one* job with *only* the tools it needs.
-  The analyzer reads the tracker but not code; the planner designs but can't write files;
-  reviewers read but can't edit. Scope = cheap + safe.
+- **Scoped specialist agents.** Each agent does *one* job, with a tools list cut toward
+  it. The analyzer reads the tracker, not code; the planner designs and does not write
+  code; reviewers report and do not fix. That scope is a charter, not a lock: most agents
+  hold `Write`/`Edit` to write their own handoff files, so the instructions keep them in
+  their lane. The hard guarantees are the hooks in §5. Scope = cheap + focused.
 - **Retrieval is offloaded.** A throwaway "gatherer" context does the token-heavy memory
   and code sweep, then hands the *distilled brief* to the planner. The expensive context
   is discarded. The planner stays lean.

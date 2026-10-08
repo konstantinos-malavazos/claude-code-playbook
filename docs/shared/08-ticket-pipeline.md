@@ -137,8 +137,9 @@ consolidates them into the **final verdict**.
 
 - **Analyzer ≠ gatherer ≠ planner** so no single context carries analysis + the heavy
   sweep + design at once.
-- **Planner can't write memory / code** so design can't have side effects.
-- **Reviewers can't edit** so review stays honest.
+- **Planner holds no memory tool and is chartered not to write code** so design stays
+  free of side effects.
+- **Reviewers are chartered not to fix** so review stays honest.
 - **One commit per branch** so a ticket is one reviewable, revertable unit.
 - **Human owns push/MR** so the irreversible outward step always has a person on it.
 

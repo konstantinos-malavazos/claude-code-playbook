@@ -34,7 +34,11 @@ Reads both briefs, does a pinpoint read of `formatFeedTime`, writes `planner.md`
 - **slice-count: 1** (small, sequential).
 - **Steps:** add `timezone` to `User` (migration) → expose it on the prefs API + thread it
   into `formatFeedTime` → add a settings control + pass the value through.
-- **Track allocation:** data-model → backend → frontend, in that order.
+- **Track allocation** (initial dispatch only), in chain order:
+  - data-model specialist — weight: light — one nullable column, nothing reads it yet
+  - backend specialist — weight: heavy — `formatFeedTime` signature changes, 6 callers
+  - frontend specialist — weight: light — one settings control, passes an existing value
+    through
 - **Open question for grilling:** default when region unknown?
 - **Final commit message:** `feat(profile): per-user display timezone for activity feed [PROJ-482]`
 - Cuts the branch `PROJ-482_display-timezone` (fetch → main → pull --rebase → branch).
@@ -68,7 +72,10 @@ You answer UTC. It is cheap to reverse: one default in one function, so no defer
 
 ### 5–6. Review
 - `@repo-reviewer`: all ACs met, tests pass, branch is 1 commit, convention OK. Drafts the
-  PR description. Provisional: APPROVE.
+  PR description. Provisional: APPROVE. Re-pass weights: none — that section is filled
+  only on `REQUEST CHANGES`. Had a missed `formatFeedTime` caller sent the backend back,
+  the verdict would carry `backend specialist — weight: heavy — <criterion>`, and the fix
+  would be dispatched on that weight, never below the tier the backend last ran at.
 - `@release-reviewer`: checks consumers of `formatFeedTime` across repos. The change is
   backward-compatible (tz optional). No downstream break. Appends: APPROVE.
 - Final verdict: APPROVE.
