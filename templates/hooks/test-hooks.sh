@@ -817,10 +817,10 @@ for big_word in 'b"a" * 262144' 'b"${" * 196608'; do
 done
 
 echo "block-infra-staging.sh — must BLOCK (exit 2), repo not listed"
-run $INFRA_HOOK Bash     "git add CLAUDE.md"                               2
-run $INFRA_HOOK Bash     "git add .claude/settings.json"                   2
-run $INFRA_HOOK Bash     "git add .serena/project.yml"                     2
-run $INFRA_HOOK Bash     "git add -A"                                      2
+run_msg $INFRA_HOOK Bash "git add CLAUDE.md"                               2 "repo-allowlist with own-claude-md: yes"
+run_msg $INFRA_HOOK Bash "git add .claude/settings.json"                   2 "only .claude/agents/ and .claude/skills/ are product files"
+run_msg $INFRA_HOOK Bash "git add .serena/project.yml"                     2 "a fresh clone never needs it"
+run_msg $INFRA_HOOK Bash "git add -A"                                      2 "stage explicit paths"
 run $INFRA_HOOK Bash     "git status
 git add CLAUDE.md"                                                         2
 run $INFRA_HOOK Bash     "git add .
@@ -990,7 +990,7 @@ run $INFRA_HOOK Bash     "git add -A && echo swept"                        2
 run $INFRA_HOOK Bash     "git commit -m 'document git add -A'"             0
 # A command we cannot tokenise is a BLOCK, for the same reason an unreadable payload is:
 # the hook did not find out what it was being asked to clear, so it does not clear it.
-run $INFRA_HOOK Bash     "git add 'unterminated"                           2
+run_msg $INFRA_HOOK Bash "git add 'unterminated"                           2 "could not be read well enough to tell what it stages"
 
 echo "block-infra-staging.sh — must ALLOW (exit 0)"
 run $INFRA_HOOK Bash     "git add src/main.py"                             0
@@ -1040,7 +1040,7 @@ git add -A"                                                                2
 HOOK_HOME="$DENY_HOME"
 
 echo "block-secret-staging.sh — must BLOCK (exit 2)"
-run $SECRET_HOOK Bash     "git add .env"                                   2
+run_msg $SECRET_HOOK Bash "git add .env"                                   2 "put it in .gitignore instead"
 run $SECRET_HOOK Bash     "git add config/.env.production"                 2
 run $SECRET_HOOK Bash     "git add certs/server.pem"                       2
 run $SECRET_HOOK Bash     "git add ~/.ssh/id_rsa"                          2
@@ -1050,7 +1050,7 @@ run $SECRET_HOOK PowerShell "git add .env"                                 2
 run $SECRET_HOOK Bash     "git status
 git add .env"                                                              2
 # Literals go wherever they appear — a key on a command line has already leaked.
-run $SECRET_HOOK Bash     "echo AKIAIOSFODNN7EXAMPLE > .env"               2
+run_msg $SECRET_HOOK Bash "echo AKIAIOSFODNN7EXAMPLE > .env"               2 "do not put it on a command line at all"
 run $SECRET_HOOK PowerShell "\$k = 'ghp_0123456789abcdefghijklmnopqrstuvwx'" 2
 # Every literal in the list gets a case, because the list is not checked uniformly: the
 # PRIVATE KEY pattern is the one that starts with `-`, and grep read it as options and
@@ -1379,8 +1379,8 @@ if PATH="$NOPY_PATH" command -v python >/dev/null 2>&1 || PATH="$NOPY_PATH" comm
 else
     HOOK_PATH="$NOPY_PATH"
     run $GIT_HOOK    Bash "git status"                    2
-    run $INFRA_HOOK  Bash "git add src/main.py"           2
-    run $SECRET_HOOK Bash "git add src/main.py"           2
+    run_msg $INFRA_HOOK  Bash "git add src/main.py"       2 "no python3 or python on PATH"
+    run_msg $SECRET_HOOK Bash "git add src/main.py"       2 "no python3 or python on PATH"
     run $MCP_HOOK    mcp__tracker__get_issue          "" 2
     # Even a command the hook would have waved through is blocked: the point is that it
     # never found out which kind it was.
