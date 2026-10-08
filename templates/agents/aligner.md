@@ -43,7 +43,8 @@ caused, so it is never in the slice's own account of its work.
   is not evidence and may not carry a verdict.
 - `search_for_pattern` for the non-symbol strings that cross layers unchecked: column names,
   config keys, event names, serialized field names, string literals in a mapping.
-- `get_diagnostics_for_file` on every file that more than one slice edited.
+- `get_diagnostics_for_file` on every **code** file that more than one slice edited. Skip
+  docs and config/data. Serena lints markdown as shell, so what it reports there is noise.
 - `Read`/`Grep`/`Glob` are for **non-code artifacts only**: handoffs, the slice board, the
   spec, config and data files.
 - `Bash` is **read-only git**: `log`, `show`, `diff`, `branch --list`, `worktree list`. Never
@@ -119,7 +120,7 @@ Flag any mismatch, in these classes. They are ordered by how quietly each one fa
   upstream layer declares, downstream layer consumes. Walk that chain inside the slice first,
   then walk **the same artifact across the slices** that touch it. Drift hides in the second
   walk, because the first one passed in both slices.
-- **Diagnostics.** `get_diagnostics_for_file` on every file two or more slices edited. Anything
+- **Diagnostics.** `get_diagnostics_for_file` on every code file two or more slices edited. Anything
   it reports is at least `[MAJOR]`.
 
 **A declared deferral is NOT drift.** A slice work-unit may declare a region as deferred

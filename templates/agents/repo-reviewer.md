@@ -22,8 +22,9 @@ the diff text alone is not a review.
 - For every changed symbol: `find_symbol` to read it in full (the diff shows fragments)
   and `find_referencing_symbols` to check every caller still holds. A finding about a
   caller you have not resolved through Serena is not reportable.
-- `get_diagnostics_for_file` on each changed file: anything it reports is at least
-  `[MAJOR]`.
+- `get_diagnostics_for_file` on each changed **code** file: anything it reports is at
+  least `[MAJOR]`. Skip docs and config/data. Serena lints markdown as shell, so what it
+  reports there is noise, not a finding.
 - `Read`/`Grep`/`Glob` are for non-code artifacts only (handoffs, docs, config/data).
   Narrow escapes: language not indexed, non-symbol string (try `search_for_pattern`
   first), Serena errors. Say which you used.
@@ -85,7 +86,7 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
      has generated one,
    - callers/implementations of every changed symbol still hold
      (`find_referencing_symbols`, `find_implementations`),
-   - `get_diagnostics_for_file` is clean on every changed file,
+   - `get_diagnostics_for_file` is clean on every changed code file,
    - tests exist and pass (run them),
    - the commit convention holds, and the branch is **exactly one commit** ahead of main
      (`git rev-list --count origin/<main>..HEAD` returns `1`).
@@ -111,7 +112,7 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
 # <TICKET-ID> — review
 ## Acceptance criteria check
 ## Findings ([BLOCKER]/[MAJOR]/[MINOR]/[NIT]) — cite symbol + file:line
-## Diagnostics check (get_diagnostics_for_file, per changed file)
+## Diagnostics check (get_diagnostics_for_file, per changed code file)
 ## Commit-convention check (one commit? convention?)
 ## MR/PR description (draft)
 ## Provisional verdict → (updated to FINAL after senior review)
