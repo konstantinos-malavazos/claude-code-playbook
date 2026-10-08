@@ -279,3 +279,22 @@ but a piped or `&&`-chained invocation may not.
 Why a hook and not a CLAUDE.md line? A CLAUDE.md line is a *request* the model may
 forget under load. A hook is a *guarantee* enforced by the harness. Anything you must
 never allow belongs here.
+
+## Limitations
+
+**The hooks catch the way an agent ordinarily writes a command. They are not a sandbox.**
+A command that has been deliberately disguised can get past them. Each disguise has a
+fix, and every fix so far has led to another disguise and to false blocks on ordinary
+work. So these shapes are out of scope, on purpose:
+
+| Shape | Example | Closed as |
+|---|---|---|
+| An abbreviated option, or an unusual global option before the verb | `git push --forc`, `git --attr-source x push --force` | #141 |
+| A heredoc fed to a shell | `bash <<EOF` ⏎ `git push --force` ⏎ `EOF` | #157 |
+| A command glued into an option's value | `git rebase --exec="git push --force" HEAD~1` | #159 |
+| `echo`/`printf` output run through a substitution | `eval "$(echo 'git push --force')"` | #160 |
+| A redirect over a tracked file | `git show HEAD:f > f` (git still has the file) | #167 |
+
+**Before filing a new hole, check it against this table.** A new spelling of a shape
+listed here is not a new bug. Something an agent can do by accident is in scope, even if
+the shape looks odd.
