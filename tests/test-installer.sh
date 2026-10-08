@@ -617,6 +617,20 @@ agents_with_memory() {
     | sed 's#.*/##'
 }
 
+# memory_keys - MEMORY_SERVER_KEYS read out of install-lib.py, space-separated, so no
+# case here keeps its own copy of the list. The file name has a hyphen, hence the
+# loader. Bytecode is suppressed so importing it leaves no __pycache__ in the repo.
+memory_keys() {
+  "$PY" - "$REPO/install-lib.py" <<'PY'
+import importlib.util, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("install_lib", sys.argv[1])
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+sys.stdout.buffer.write((" ".join(mod.MEMORY_SERVER_KEYS) + "\n").encode("utf-8"))
+PY
+}
+
 # ---------------------------------------------------------------- M1
 # Catches: the gate silently regressing to a note(), which is what it was before.
 if want M1; then
@@ -629,6 +643,11 @@ inlog m1 "workspace .mcp.json" "prints route B"
 inlog m1 "claude.ai connector" "prints route C"
 inlog m1 "/mcp in Claude Code" "says how to check it worked"
 inlog m1 "docs/shared/03-setup.md" "points at the doc rather than copying it"
+# Catches: a refusal that leaves a user with an unlisted server name stuck, and a
+# key list typed into install.sh that drifts from MEMORY_SERVER_KEYS.
+M1KEYS="$(memory_keys)"
+yn "$([ -n "$M1KEYS" ] && echo 0 || echo 1)" "the key list was read from install-lib.py"
+inlog m1 "registered as one of: ${M1KEYS// /, }" "names every key the installer looks for"
 notinlog m1 "Serena is not set up" "it is the MEMORY gate that fired, not Serena's"
 yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "CLAUDE_HOME still empty ($(n_files) files)"
 M1LAST="$(grep -v '^[[:space:]]*$' "$LOGS/m1.out" | tail -1)"
@@ -712,6 +731,78 @@ if [ -f "$M2D_SKILL" ]; then
 else
   fail "memory-schema SKILL.md is installed (not found at $M2D_SKILL)"
 fi
+
+# M2e catches: a memory server other than Forgetful, installed as a plugin, reading
+# as absent when the plugin scan matches only the name "forgetful". Nothing is
+# pre-filled for such a server, so the two memory answers are typed here; Enter
+# would be refused and every answer after it would shift.
+banner "M2e · a non-Forgetful memory server installed as a PLUGIN"
+fresh_env m2e; with_serena
+mkdir -p "$HOME_DIR/.claude/plugins/cache/mem0-mcp"
+printf '{}\n' > "$HOME_DIR/.claude/plugins/cache/mem0-mcp/plugin.json"
+M2E_KEYS=("${FULL[@]}")
+M2E_KEYS[10]='mcp__mem0__search_memory'
+M2E_KEYS[11]='mcp__mem0__add_memory'
+keys m2e "${M2E_KEYS[@]}"; run install m2e
+notinlog m2e "No memory server is set up" "gate does not fire"
+inlog m2e "found a memory server (mem0)" "names the server it found"
+inlog m2e "mem0 plugin files" "shows the evidence"
+inlog m2e "Enter will not answer this one for you" "nothing is pre-filled for a non-Forgetful server"
+inlog m2e "Install complete" "runs to completion"
+
+# M2f catches: one key of MEMORY_SERVER_KEYS being left out of the plugin scan. A
+# loop is only as tested as its least-tested element, so each key gets its own
+# named result. forgetful is the control: it is detected even by a scan that knows
+# no other key, so a loop that never ran would show up as a missing line, not a
+# green one.
+banner "M2f · every memory key is detected as a PLUGIN, and only Forgetful is pre-filled"
+M2F_CWD="$SANDBOX/m2f-cwd"
+rm -rf "${M2F_CWD:?}" && mkdir -p "$M2F_CWD"
+read -ra M2F_KEYS <<< "$(memory_keys)"
+yn "$([ "${#M2F_KEYS[@]}" -gt 0 ] && echo 0 || echo 1)" "the key list was read from install-lib.py (${#M2F_KEYS[@]} keys)"
+for k in "${M2F_KEYS[@]}"; do
+  fresh_env "m2f-$k"
+  mkdir -p "$HOME_DIR/.claude/plugins/cache/$k-mcp"
+  printf '{}\n' > "$HOME_DIR/.claude/plugins/cache/$k-mcp/plugin.json"
+  "$PY" "$REPO/install-lib.py" memory-detect "$HOME_DIR" "$M2F_CWD" > "$LOGS/m2f-$k.json" 2>/dev/null
+  M2F_VERDICT="$("$PY" - "$LOGS/m2f-$k.json" "$k" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+key = sys.argv[2]
+if not d["server"]:
+    out = "undetected"
+elif key == "forgetful":
+    out = "ok" if d["suggest"] else "no-suggestion"
+else:
+    out = "ok" if d["suggest"] == "" and d["prefix"] == "" else "prefilled"
+sys.stdout.buffer.write(out.encode("utf-8"))
+PY
+)"
+  yn "$([ "$M2F_VERDICT" = "ok" ] && echo 0 || echo 1)" "plugin $k-mcp is detected ($M2F_VERDICT)"
+done
+
+# M2g catches: a plugin whose name holds two memory keys being claimed by the wrong
+# one. The plugin match is a substring test, so "forgetful-memory-mcp" contains both
+# "forgetful" and "memory"; Forgetful has to win, because only Forgetful's tool names
+# are pre-filled.
+banner "M2g · a plugin name containing both forgetful and memory is Forgetful"
+fresh_env m2g
+mkdir -p "$HOME_DIR/.claude/plugins/cache/forgetful-memory-mcp"
+printf '{}\n' > "$HOME_DIR/.claude/plugins/cache/forgetful-memory-mcp/plugin.json"
+"$PY" "$REPO/install-lib.py" memory-detect "$HOME_DIR" "$M2F_CWD" > "$LOGS/m2g.json" 2>/dev/null
+M2G_VERDICT="$("$PY" - "$LOGS/m2g.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+if d["server"] != "forgetful":
+    out = "server=%s" % d["server"]
+elif "mcp__forgetful__" not in d["suggest"]:
+    out = "no-forgetful-names"
+else:
+    out = "ok"
+sys.stdout.buffer.write(out.encode("utf-8"))
+PY
+)"
+yn "$([ "$M2G_VERDICT" = "ok" ] && echo 0 || echo 1)" "detected as forgetful with its pre-filled tool names ($M2G_VERDICT)"
 fi
 
 # ---------------------------------------------------------------- M8

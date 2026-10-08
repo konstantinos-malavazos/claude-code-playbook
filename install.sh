@@ -817,7 +817,8 @@ memory_gate() {
   server=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["server"] or "")' "$WORK/memory.json")
   [[ -n "$server" ]] && return 0
 
-  local n_mem n_all=0 f
+  local n_mem n_all=0 f mem_keys
+  mem_keys=$(py -c 'import json,sys;sys.stdout.buffer.write(", ".join(json.load(open(sys.argv[1]))["keys"]).encode("utf-8"))' "$WORK/memory.json")
   n_mem=$(agents_declaring '<memory-(read|write)-tools>' | grep -c . || true)
   for f in "$TEMPLATES"/agents/*.md; do
     [[ -e "$f" ]] || continue
@@ -858,6 +859,9 @@ memory_gate() {
   printf '       listed, AND its tools. A server that is registered but not running\n'
   printf '       is not enough.\n\n'
   printf '    4. Run this installer again.\n\n'
+  printf '  %sThis installer looks for a memory server\n' "$DIM"
+  printf '  registered as one of: %s.\n' "$mem_keys"
+  printf '  If yours uses another name, register it under one of those as well.%s\n\n' "$RESET"
   printf '  %sRunning a memory server other than Forgetful is fine — this installer\n' "$DIM"
   printf '  asks for your own tool names. What it will not do is continue with no\n'
   printf '  memory server at all. The full write-up is in:%s\n' "$RESET"
