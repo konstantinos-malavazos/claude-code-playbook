@@ -425,9 +425,19 @@ PY
 preflight() {
   stage "Checking this machine"
 
-  for cand in python3 python; do
-    if command -v "$cand" >/dev/null 2>&1 &&
-       "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)' 2>/dev/null; then
+  local _p cand py_list=() py_last=()
+  # A WindowsApps app-execution alias goes last but is kept: it may be the only python.
+  # The pattern is bracketed because bash 3.2 has no ${v,,}.
+  while IFS= read -r _p; do
+    [[ -n "$_p" ]] || continue
+    case "$_p" in
+      */[Ww][Ii][Nn][Dd][Oo][Ww][Ss][Aa][Pp][Pp][Ss]/*) py_last+=("$_p") ;;
+      *)                                                  py_list+=("$_p") ;;
+    esac
+  done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
+  py_list+=(${py_last[@]+"${py_last[@]}"})
+  for cand in ${py_list[@]+"${py_list[@]}"}; do
+    if "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 7) else 1)' 2>/dev/null; then
       PY="$cand"; break
     fi
   done
