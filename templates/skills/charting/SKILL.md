@@ -395,6 +395,10 @@ Aim for **one** memory. Split only when one cannot hold it: memories have a size
 a map spanning several repos has a different conclusion for each. Then write a **hub**
 memory carrying the effort's conclusion plus **one per repo**, and cross-link them.
 
+**On the solo path, that memory is the seam's memory one:** *what this project is and who
+it is for*, in one paragraph. `/bootstrap` checks that it exists and does not write it
+again.
+
 **Never one per ticket.** That is a second copy of what the tracker already holds, free to
 drift from the first. The tickets are the record; the memory is the conclusion.
 
