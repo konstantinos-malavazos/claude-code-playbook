@@ -76,9 +76,10 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 1. **Retrieval is offloaded.** The gatherer's expensive context is discarded. The planner
    only sees the brief.
 2. **Models are matched to work, and then to the ticket.** Pin a cheap, fast model on
-   mechanical, bounded tracks (analyzer, per-layer implementers) and a stronger one on
-   design, judgement and review. Then let the planner's per-track **weight** raise an
-   implementer for one run when the ticket is shaped badly for a cheap model — see
+   mechanical, bounded agents (the analyzer) and a stronger one on design, judgement and
+   review. The layer specialists pin none: each dispatch to one carries a **weight** that
+   sets its tier for that run — cheap on `light`, strong on `heavy`. A model the repo's
+   `CLAUDE.md` names for a layer is a floor the weight never goes below — see
    [Model escalation](#model-escalation-cheap-by-default-escalated-by-weight). Pin exact
    model *ids* so an alias does not silently downgrade you.
 3. **Handoffs are files.** Inspect them under `…/handoffs/<TICKET>/` while it runs. They
