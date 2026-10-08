@@ -7,7 +7,9 @@ is installed, and the whole graph printed as text if it is not. The adapter's jo
 both cheap, which [the whole graph](#the-whole-graph) does in one directory read.
 
 **Is this a shared place?** Same answer as the repo it lives in. These files are
-committed, so a public repo makes them public. `<yes | no>`.
+committed, so a public repo makes them public. `<yes | no>`. No hook backs that answer
+here: these writes are file edits, which
+[`block-mcp-writes.sh`](../hooks/block-mcp-writes.sh) never sees.
 
 ---
 

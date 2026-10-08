@@ -7,6 +7,11 @@ Install at `~/.claude/tracker.md`. Tickets are GitHub issues. The `gh` CLI does 
 personal repo | no for a private solo repo>`. This answer decides whether writes need
 approval. See the audience rule in [`README.md`](README.md).
 
+**No hook backs that approval on this adapter.**
+[`block-mcp-writes.sh`](../hooks/block-mcp-writes.sh) judges MCP tool calls only, and every
+verb here is a `gh` command run through the shell. On a shared repo the approval rule holds
+by instruction alone.
+
 ---
 
 ## The verbs

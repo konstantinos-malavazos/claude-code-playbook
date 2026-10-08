@@ -298,3 +298,8 @@ work. So these shapes are out of scope, on purpose:
 **Before filing a new hole, check it against this table.** A new spelling of a shape
 listed here is not a new bug. Something an agent can do by accident is in scope, even if
 the shape looks odd.
+
+**One gap is not a disguise.** `block-mcp-writes.sh` judges MCP tool names only, and no
+hook matches a tracker CLI's write verbs. So on the `gh` and `glab` adapters the approval
+rule for shared trackers is enforced by instruction only, not by a hook. That is a
+decision, not an oversight.

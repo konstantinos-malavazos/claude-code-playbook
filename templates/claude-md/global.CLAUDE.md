@@ -76,8 +76,10 @@ this blocked?*) and let that file answer it.
 
 **Ask before writing anywhere other people can see it.** The adapter declares whether its
 tracker is a shared place. Where it is, every write (comments, transitions, field edits,
-assignments) needs my **explicit** approval, with the exact payload shown first. This is
-also enforced by the `block-mcp-writes` hook. Where it is not — a private repo nobody else
+assignments) needs my **explicit** approval, with the exact payload shown first. The
+`block-mcp-writes` hook enforces this only for an MCP-based adapter; a CLI-based one (`gh`,
+`glab`) writes through the shell, which no hook checks, so there the rule holds by
+instruction alone. Where it is not — a private repo nobody else
 reads — write freely. A **public** personal repo counts as shared.
 
 ## Git rules
