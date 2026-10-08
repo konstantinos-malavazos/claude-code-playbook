@@ -12,6 +12,9 @@ To use GitLab, fill this in against your own instance, verify every line, and in
 result at `~/.claude/tracker.md`.
 
 **Is this a shared place?** Same question as any hosted tracker — `<yes | no>`.
+Filled in with `glab` as below, its writes run through the shell, which
+[`block-mcp-writes.sh`](../hooks/block-mcp-writes.sh) never sees: approval holds by
+instruction alone.
 
 ---
 

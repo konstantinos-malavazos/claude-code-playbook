@@ -84,8 +84,8 @@ Don't rely on the model "remembering" not to do dangerous things. Make them impo
   `push` is on the list too, but conditionally. See the last bullet.
 - **Ask before writing anywhere other people can see it.** The test is the *audience*, not
   the tool. Tracker comments, transitions and field edits need explicit human approval when
-  they land somewhere others read. A read-only veto at the MCP layer enforces it, not a
-  policy line alone. On a private solo repo nobody is watching, so write freely. On a
+  they land somewhere others read. On an MCP-based tracker a read-only veto at the MCP
+  layer enforces it; a CLI-based one (`gh`, `glab`) has the policy line alone. On a private solo repo nobody is watching, so write freely. On a
   **public** one they are, so ask. Each tracker adapter declares which it is
   ([`templates/trackers/README.md`](templates/trackers/README.md)).
 - **AI-infra files are sorted, not blanket-blocked.** The test is *provenance*, not path:
