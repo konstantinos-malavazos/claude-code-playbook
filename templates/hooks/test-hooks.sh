@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regression suite for the blocking hooks.
+# Regression suite for all seven hooks.
 #
 # A guardrail that stops guarding keeps reporting success, so these cannot be verified by
 # reading them. Run this after editing any hook, and after a Claude Code release that
@@ -30,6 +30,8 @@ INFRA_HOOK=./block-infra-staging.sh
 SECRET_HOOK=./block-secret-staging.sh
 MCP_HOOK=./block-mcp-writes.sh
 HOLD_HOOK=./block-unexplained-long-hold.sh
+CLEANUP_HOOK=./cleanup-handoffs.sh
+FORMAT_HOOK=./format-on-edit.sh
 
 # --- python ---------------------------------------------------------------------
 # The hooks parse their payload with python, and so does this suite when it builds one.
@@ -145,9 +147,9 @@ run() { # <script> <tool-name> <command> <expected-exit>
     shown=${shown//$'\r'/^}
     ran=$((ran + 1))
     if [ "$got" = "$4" ]; then
-        printf '  ok   [%s] %s\n' "$2" "$shown"
+        printf '  ok   %s [%s] %s\n' "${1##*/}" "$2" "$shown"
     else
-        printf '  FAIL [%s] exit=%s want=%s  %s\n' "$2" "$got" "$4" "$shown"
+        printf '  FAIL %s [%s] exit=%s want=%s  %s\n' "${1##*/}" "$2" "$got" "$4" "$shown"
         fail=$((fail + 1))
     fi
 }
@@ -157,9 +159,9 @@ run_raw() { # <script> <label> <raw-payload> <expected-exit>
     local got=$?
     ran=$((ran + 1))
     if [ "$got" = "$4" ]; then
-        printf '  ok   [%s]\n' "$2"
+        printf '  ok   %s [%s]\n' "${1##*/}" "$2"
     else
-        printf '  FAIL [%s] exit=%s want=%s\n' "$2" "$got" "$4"
+        printf '  FAIL %s [%s] exit=%s want=%s\n' "${1##*/}" "$2" "$got" "$4"
         fail=$((fail + 1))
     fi
 }
@@ -175,9 +177,97 @@ run_utf8() { # <script> <tool-name> <command, with no double quote or backslash>
     shown=${3//$'\n'/$TILDE}
     ran=$((ran + 1))
     if [ "$got" = "$4" ]; then
-        printf '  ok   [%s] %s\n' "$2" "$shown"
+        printf '  ok   %s [%s%s] %s\n' "${1##*/}" "$2" "${PYTHONIOENCODING:+ ($PYTHONIOENCODING)}" "$shown"
     else
-        printf '  FAIL [%s] exit=%s want=%s  %s\n' "$2" "$got" "$4" "$shown"
+        printf '  FAIL %s [%s%s] exit=%s want=%s  %s\n' "${1##*/}" "$2" "${PYTHONIOENCODING:+ ($PYTHONIOENCODING)}" "$got" "$4" "$shown"
+        fail=$((fail + 1))
+    fi
+}
+
+run_cleanup() { # <label> <raw-payload> <cleared|kept> [forced-encoding]
+    local label="$1"
+    local enc="${4-}"
+    if [ -n "$enc" ] && [ "${label#*"$enc"}" = "$label" ]; then
+        label="$label ($enc)"
+    fi
+    rm -rf "$SCRATCH/handoffs"
+    mkdir -p "$SCRATCH/handoffs/T1"
+    local hook_abs="$PWD/$CLEANUP_HOOK"
+    if [ -n "$enc" ]; then
+        (
+            cd "$SCRATCH" || exit 1
+            printf '%s' "$2" | PYTHONIOENCODING="$enc" WORKSPACE_HANDOFFS_ROOT="$SCRATCH/handoffs" HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
+        )
+    else
+        (
+            unset PYTHONIOENCODING
+            cd "$SCRATCH" || exit 1
+            printf '%s' "$2" | WORKSPACE_HANDOFFS_ROOT="$SCRATCH/handoffs" HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
+        )
+    fi
+    local state
+    if [ -d "$SCRATCH/handoffs/T1" ]; then
+        state="kept"
+    else
+        state="cleared"
+    fi
+    ran=$((ran + 1))
+    if [ "$state" = "$3" ]; then
+        printf '  ok   %s [%s]\n' "${CLEANUP_HOOK##*/}" "$label"
+    else
+        printf '  FAIL %s [%s] got=%s want=%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$3"
+        fail=$((fail + 1))
+    fi
+}
+
+run_format() { # <label> <file-name> <formatted|skipped> [forced-encoding]
+    local label="$1"
+    local enc="${4-}"
+    if [ -n "$enc" ] && [ "${label#*"$enc"}" = "$label" ]; then
+        label="$label ($enc)"
+    fi
+    mkdir -p "$SCRATCH/fmtstub"
+    cat > "$SCRATCH/fmtstub/black" <<EOF
+#!/bin/sh
+printf '%s\n' "\$1" >> "$SCRATCH/fmt-marker"
+EOF
+    chmod +x "$SCRATCH/fmtstub/black"
+    rm -f "$SCRATCH/fmt-marker"
+
+    local target="$SCRATCH/$2"
+    mkdir -p "$(dirname "$target")"
+    touch "$target"
+
+    local payload
+    printf -v payload '{"tool_name":"Write","tool_input":{"file_path":"%s"}}' "$target"
+    local hook_abs="$PWD/$FORMAT_HOOK"
+    if [ -n "$enc" ]; then
+        (
+            printf '%s' "$payload" | PYTHONIOENCODING="$enc" PATH="$SCRATCH/fmtstub:$HOOK_PATH" HOME="$HOOK_HOME" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
+        )
+    else
+        (
+            unset PYTHONIOENCODING
+            printf '%s' "$payload" | PATH="$SCRATCH/fmtstub:$HOOK_PATH" HOME="$HOOK_HOME" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
+        )
+    fi
+
+    local state="skipped"
+    if [ -f "$SCRATCH/fmt-marker" ]; then
+        local marker_content
+        marker_content=$(cat "$SCRATCH/fmt-marker")
+        if [ "$marker_content" = "$target" ]; then
+            state="formatted"
+        else
+            state="corrupt-marker"
+        fi
+    fi
+
+    ran=$((ran + 1))
+    if [ "$state" = "$3" ]; then
+        printf '  ok   %s [%s]\n' "${FORMAT_HOOK##*/}" "$label"
+    else
+        printf '  FAIL %s [%s] got=%s want=%s\n' "${FORMAT_HOOK##*/}" "$label" "$state" "$3"
         fail=$((fail + 1))
     fi
 }
@@ -197,9 +287,22 @@ run_msg() { # <script> <tool-name> <command> <expected-exit> <substring the mess
     shown=${3//$'\n'/$TILDE}
     ran=$((ran + 1))
     if [ "$got" = "$4" ] && [ "${out#*"$5"}" != "$out" ]; then
-        printf '  ok   [%s] %s — refusal names %s\n' "$2" "$shown" "$5"
+        printf '  ok   %s [%s] %s — refusal names %s\n' "${1##*/}" "$2" "$shown" "$5"
     else
-        printf '  FAIL [%s] exit=%s want=%s  expected the message to name %s\n' "$2" "$got" "$4" "$5"
+        printf '  FAIL %s [%s] exit=%s want=%s  %s — expected the message to name %s\n' "${1##*/}" "$2" "$got" "$4" "$shown" "$5"
+        printf '       message was: %s\n' "$out"
+        fail=$((fail + 1))
+    fi
+}
+
+run_raw_msg() { # <script> <label> <raw-payload> <expected-exit> <substring the message must contain>
+    local out got=0
+    out=$(printf '%s' "$3" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" 2>&1 >/dev/null) || got=$?
+    ran=$((ran + 1))
+    if [ "$got" = "$4" ] && [ "${out#*"$5"}" != "$out" ]; then
+        printf '  ok   %s [%s] — refusal names %s\n' "${1##*/}" "$2" "$5"
+    else
+        printf '  FAIL %s [%s] exit=%s want=%s  expected the message to name %s\n' "${1##*/}" "$2" "$got" "$4" "$5"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     fi
@@ -231,17 +334,17 @@ run_hold() { # <label> <timeout-literal|OMIT> <description> <expected-exit> [sub
     out=$(printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$HOLD_HOOK" 2>&1 >/dev/null) || got=$?
     ran=$((ran + 1))
     if [ "$got" != "$4" ]; then
-        printf '  FAIL [%s/%s] exit=%s want=%s  timeout=%s desc=%s\n' "$HOLD_TOOL" "$1" "$got" "$4" "$2" "$3"
+        printf '  FAIL %s [%s/%s] exit=%s want=%s  timeout=%s desc=%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$got" "$4" "$2" "$3"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     elif [ -n "${5-}" ] && [ "${out#*"$5"}" = "$out" ]; then
-        printf '  FAIL [%s/%s] exit=%s (correct) but the message never named %s\n' "$HOLD_TOOL" "$1" "$got" "$5"
+        printf '  FAIL %s [%s/%s] exit=%s (correct) but the message never named %s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$got" "$5"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     elif [ -n "${5-}" ]; then
-        printf '  ok   [%s/%s] timeout=%s — refusal names %s\n' "$HOLD_TOOL" "$1" "$2" "$5"
+        printf '  ok   %s [%s/%s] timeout=%s — refusal names %s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$2" "$5"
     else
-        printf '  ok   [%s/%s] timeout=%s\n' "$HOLD_TOOL" "$1" "$2"
+        printf '  ok   %s [%s/%s] timeout=%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$2"
     fi
 }
 
@@ -795,9 +898,9 @@ printf '{"tool_name":"Bash","cwd":%s,"tool_input":{"command":"%s"}}' "$HOOK_CWD_
 big_rc=$?
 ran=$((ran + 1))
 if [ "$big_rc" = 0 ]; then
-    printf '  ok   [Bash] a 256 KB command finished\n'
+    printf '  ok   %s [Bash] a 256 KB command finished\n' "${GIT_HOOK##*/}"
 else
-    printf '  FAIL [Bash] exit=%s want=0  a 256 KB command (124 = still running after 60 s)\n' "$big_rc"
+    printf '  FAIL %s [Bash] exit=%s want=0  a 256 KB command (124 = still running after 60 s)\n' "${GIT_HOOK##*/}" "$big_rc"
     fail=$((fail + 1))
 fi
 # One long word, outside the git segment: a 256 KB name, then 384 KB of unclosed ${.
@@ -809,9 +912,9 @@ for big_word in 'b"a" * 262144' 'b"${" * 196608'; do
     big_rc=$?
     ran=$((ran + 1))
     if [ "$big_rc" = 0 ]; then
-        printf '  ok   [Bash] git status; echo %s finished\n' "$big_word"
+        printf '  ok   %s [Bash] git status; echo %s finished\n' "${GIT_HOOK##*/}" "$big_word"
     else
-        printf '  FAIL [Bash] exit=%s want=0  git status; echo %s (124 = still running after 60 s)\n' "$big_rc" "$big_word"
+        printf '  FAIL %s [Bash] exit=%s want=0  git status; echo %s (124 = still running after 60 s)\n' "${GIT_HOOK##*/}" "$big_rc" "$big_word"
         fail=$((fail + 1))
     fi
 done
@@ -1151,6 +1254,7 @@ run $SECRET_HOOK Bash     'git add "$(echo .env)"'                         2
 run $SECRET_HOOK Bash     'git add `echo .env`'                            2
 # shellcheck disable=SC2016
 run $SECRET_HOOK Bash     'git add .env$(true)'                            2
+run_msg $SECRET_HOOK Bash "git add \"unterminated" 2 "could not be read well enough to tell what it stages"
 
 echo "block-secret-staging.sh — must ALLOW (exit 0)"
 run $SECRET_HOOK Bash     "git add src/main.py"                            0
@@ -1336,8 +1440,12 @@ echo "every blocking hook — an unreadable payload must BLOCK (exit 2)"
 # Same verdict as no parser at all, for the same reason — the hook did not find out what
 # it was being asked to clear, so it does not clear it.
 run_raw $GIT_HOOK    "not JSON at all"          'not json at all'  2
-run_raw $INFRA_HOOK  "truncated JSON"           '{"tool_input":'   2
-run_raw $SECRET_HOOK "empty payload"            ''                 2
+run_raw_msg $INFRA_HOOK  "truncated JSON"           '{"tool_input":'   2 "refusing to guess what this command stages"
+run_raw_msg $SECRET_HOOK "empty payload"            ''                 2 "refusing to guess whether this command carries a credential"
+# The hook reads cwd only when staging CLAUDE.md with a readable repo-allowlist.
+HOOK_HOME="$ALLOW_HOME"
+run_raw_msg $INFRA_HOOK "cwd is not a string" '{"tool_name":"Bash","cwd":5,"tool_input":{"command":"git add CLAUDE.md"}}' 2 "refusing to guess which repo this is"
+HOOK_HOME="$DENY_HOME"
 run_raw $MCP_HOOK    "valid JSON, wrong shape"  '[]'               2
 run_raw $HOLD_HOOK   "not JSON (long hold)"     'timeout=300000'   2
 run_raw $HOLD_HOOK   "valid JSON, wrong shape (long hold)" '[]'    2
@@ -1353,6 +1461,39 @@ run_utf8 $INFRA_HOOK Bash    "git add .claude/settings.json src/$ARROW.py"     2
 run_utf8 $SECRET_HOOK Bash   "git commit -m $ARROW"                            0
 run_utf8 $SECRET_HOOK Bash   "git add src/$ARROW.py"                           0
 run_utf8 $SECRET_HOOK Bash   "git add .env src/$ARROW.py"                      2
+
+printf -v EMDASH '\342\200\224'
+printf -v APPROX '\342\211\210'
+
+echo "raw UTF-8 input — native encoding"
+printf -v p_hold1 '{"tool_name":"Bash","tool_input":{"command":"bash tests/test-docs.sh","description":"expect 90s%sslow","timeout":300000}}' "$EMDASH"
+run_raw $HOLD_HOOK "long-hold: expect 90s${EMDASH}slow" "$p_hold1" 0
+
+printf -v p_hold2 '{"tool_name":"Bash","tool_input":{"command":"bash tests/test-docs.sh","description":"expect %s90s","timeout":300000}}' "$APPROX"
+run_raw $HOLD_HOOK "long-hold: expect ${APPROX}90s" "$p_hold2" 0
+
+printf -v p_hold3 '{"tool_name":"Bash","tool_input":{"command":"bash tests/test-docs.sh","description":"slow %s suite","timeout":300000}}' "$ARROW"
+run_raw $HOLD_HOOK "long-hold: slow ${ARROW} suite" "$p_hold3" 2
+
+run_utf8 $MCP_HOOK "mcp__github__get_${ARROW}"    "x" 0
+run_utf8 $MCP_HOOK "mcp__github__create_${ARROW}" "x" 2
+
+printf -v p_clean_native '{"reason":"other%s"}' "$ARROW"
+run_cleanup "cleanup: other with arrow" "$p_clean_native" cleared
+
+run_format "format: arrow py file" "a${ARROW}.py" formatted
+
+echo "raw UTF-8 input — forced PYTHONIOENCODING=cp1252"
+PYTHONIOENCODING=cp1252 run_utf8 $MCP_HOOK "mcp__github__get_${ARROW}" "x" 0
+PYTHONIOENCODING=cp1252 run_utf8 $MCP_HOOK Bash "echo ${ARROW}" 0
+
+printf -v p_clean_forced1 '{"reason":"other","transcript_path":"/tmp/x%s"}' "$ARROW"
+run_cleanup "cleanup: other transcript with arrow" "$p_clean_forced1" cleared cp1252
+
+printf -v p_clean_forced2 '{"reason":"resume","transcript_path":"/tmp/x%s"}' "$ARROW"
+run_cleanup "cleanup: resume transcript with arrow" "$p_clean_forced2" kept cp1252
+
+run_format "format: arrow py file" "a${ARROW}.py" formatted cp1252
 
 echo "every blocking hook — no parser on PATH must BLOCK (exit 2)"
 # The layer no code inside a hook can test for itself: what happens when the thing the
@@ -1491,10 +1632,10 @@ else
     run $GIT_HOOK Bash "git status" 0
     ran=$((ran + 1))
     if [ -e "$WMARK" ]; then
-        printf '  FAIL [order] the WindowsApps python3 ran — the real python beside it was not preferred\n'
+        printf '  FAIL %s [order] the WindowsApps python3 ran — the real python beside it was not preferred\n' "${GIT_HOOK##*/}"
         fail=$((fail + 1))
     else
-        printf '  ok   [order] a WindowsApps python3 was demoted behind the real python beside it\n'
+        printf '  ok   %s [order] a WindowsApps python3 was demoted behind the real python beside it\n' "${GIT_HOOK##*/}"
     fi
 
     # (b) the WindowsApps python is the ONLY python. Demoted it still runs and the hook
