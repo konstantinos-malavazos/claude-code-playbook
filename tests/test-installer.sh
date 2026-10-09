@@ -1291,6 +1291,206 @@ yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update completes (rc=$RC)"
 stamp_is; chk $? "the update KEEPS the stamp instead of resetting it"
 fi
 
+# ---------------------------------------------------------------- S1
+# Catches: an installed unit that was upgraded upstream being permanently marked
+# skip-edited because its hash on disk differs from rec["hash"]. When the disk
+# content matches a past committed revision of the template, list must report
+# outdated and update must pull the newest template version.
+if want S1; then
+banner "S1 · stale via git history is outdated, not edited"
+fresh_env s1; with_servers; R="$SANDBOX/s1/repo"; clone_repo "$R"
+cp "$REPO/.gitattributes" "$R/"
+printf 'S1 second file\n' > "$R/templates/skills/diagnose/notes.md"
+s1commit() {
+  local msg="$1"
+  git -C "$R" add .gitattributes install.sh install-lib.py templates && \
+  git -C "$R" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false commit -qm "$msg" >/dev/null
+}
+if git -C "$R" init -q && s1commit v1; then
+  pass "S1 setup: committed v1"
+else
+  fail "S1 setup: committed v1"
+fi
+keys s1 "${FULL[@]}"; run_in "$R" install s1
+nokeys s1l0; run_in "$R" list s1l0
+if grep -qE 'current +skill:diagnose' "$LOGS/s1l0.out"; then
+  pass "S1 precondition: list shows skill:diagnose current"
+else
+  fail "S1 precondition: list shows skill:diagnose current"
+fi
+if printf '\nS1-V2-MARKER\n' >> "$R/templates/hooks/block-dangerous-git.sh" && \
+   printf '\nS1-V2-MARKER\n' >> "$R/templates/hooks/block-infra-staging.sh" && \
+   printf '\nS1-V2-MARKER\n' >> "$R/templates/skills/diagnose/SKILL.md" && \
+   s1commit v2 && \
+   cp "$R/templates/hooks/block-dangerous-git.sh" "$CH/hooks/" && \
+   cp "$R/templates/hooks/block-infra-staging.sh" "$CH/hooks/" && \
+   rm -rf "$CH/skills/diagnose" && cp -R "$R/templates/skills/diagnose" "$CH/skills/diagnose" && \
+   printf '\nS1-V3-MARKER\n' >> "$R/templates/hooks/block-dangerous-git.sh" && \
+   printf '\nS1-V3-MARKER\n' >> "$R/templates/hooks/block-infra-staging.sh" && \
+   printf '\nS1-V3-MARKER\n' >> "$R/templates/skills/diagnose/SKILL.md" && \
+   s1commit v3; then
+  pass "S1 setup: drifted to v2 and v3"
+else
+  fail "S1 setup: drifted to v2 and v3"
+fi
+printf '\nS1-HAND-EDIT-NEVER-COMMITTED\n' >> "$CH/hooks/block-secret-staging.sh"
+printf '\nS1-HAND-EDIT-NEVER-COMMITTED\n' >> "$CH/skills/tdd/SKILL.md"
+nokeys s1l; run_in "$R" list s1l
+if grep -qE 'outdated +hook:block-dangerous-git' "$LOGS/s1l.out"; then pass "S1 list reports hook:block-dangerous-git as outdated"; else fail "S1 list reports hook:block-dangerous-git as outdated"; fi
+if grep -qE 'outdated +hook:block-infra-staging' "$LOGS/s1l.out"; then pass "S1 list reports hook:block-infra-staging as outdated"; else fail "S1 list reports hook:block-infra-staging as outdated"; fi
+if grep -qE 'outdated +skill:diagnose' "$LOGS/s1l.out"; then pass "S1 list reports skill:diagnose as outdated"; else fail "S1 list reports skill:diagnose as outdated"; fi
+if grep -qE 'edited +hook:block-secret-staging' "$LOGS/s1l.out"; then pass "S1 list reports hook:block-secret-staging as edited"; else fail "S1 list reports hook:block-secret-staging as edited"; fi
+if grep -qE 'edited +skill:tdd' "$LOGS/s1l.out"; then pass "S1 list reports skill:tdd as edited"; else fail "S1 list reports skill:tdd as edited"; fi
+nokeys s1u; run_in "$R" update s1u
+if grep -qF 'S1-V3-MARKER' "$CH/hooks/block-dangerous-git.sh"; then pass "S1 update wrote V3 hook:block-dangerous-git"; else fail "S1 update wrote V3 hook:block-dangerous-git"; fi
+if grep -qF 'S1-V3-MARKER' "$CH/hooks/block-infra-staging.sh"; then pass "S1 update wrote V3 hook:block-infra-staging"; else fail "S1 update wrote V3 hook:block-infra-staging"; fi
+if grep -qF 'S1-V3-MARKER' "$CH/skills/diagnose/SKILL.md"; then pass "S1 update wrote V3 skill:diagnose"; else fail "S1 update wrote V3 skill:diagnose"; fi
+notinlog s1u "hooks/block-dangerous-git.sh was kept" "S1 update did not keep hook:block-dangerous-git"
+notinlog s1u "hooks/block-infra-staging.sh was kept" "S1 update did not keep hook:block-infra-staging"
+notinlog s1u "skills/diagnose was kept" "S1 update did not keep skill:diagnose"
+if grep -qF 'S1-HAND-EDIT-NEVER-COMMITTED' "$CH/hooks/block-secret-staging.sh"; then pass "S1 marker survived in hook:block-secret-staging"; else fail "S1 marker survived in hook:block-secret-staging"; fi
+if grep -qF 'S1-HAND-EDIT-NEVER-COMMITTED' "$CH/skills/tdd/SKILL.md"; then pass "S1 marker survived in skill:tdd"; else fail "S1 marker survived in skill:tdd"; fi
+inlog s1u "hooks/block-secret-staging.sh was kept" "S1 update kept edited hook:block-secret-staging"
+inlog s1u "skills/tdd was kept" "S1 update kept edited skill:tdd"
+fi
+
+# ---------------------------------------------------------------- S2
+# Catches: an installed unit that already matches the current template being
+# marked skip-edited because rec["hash"] is older. An update must recognise the
+# current template even without git history, and a second update must still not
+# keep the unit.
+if want S2; then
+banner "S2 · stale against the current template, no git"
+fresh_env s2; with_servers; R="$SANDBOX/s2/repo"; clone_repo "$R"
+keys s2 "${FULL[@]}"; run_in "$R" install s2
+printf '\nS2-MARKER\n' >> "$R/templates/hooks/block-dangerous-git.sh"
+cp "$R/templates/hooks/block-dangerous-git.sh" "$CH/hooks/block-dangerous-git.sh"
+printf '\nS2-MARKER\n' >> "$R/templates/skills/diagnose/SKILL.md"
+rm -rf "$CH/skills/diagnose" && cp -R "$R/templates/skills/diagnose" "$CH/skills/diagnose"
+nokeys s2u; run_in "$R" update s2u
+notinlog s2u "hooks/block-dangerous-git.sh was kept" "S2 update did not keep hook:block-dangerous-git"
+notinlog s2u "skills/diagnose was kept" "S2 update did not keep skill:diagnose"
+nokeys s2u2; run_in "$R" update s2u2
+notinlog s2u2 "hooks/block-dangerous-git.sh was kept" "S2 second update did not keep hook:block-dangerous-git"
+notinlog s2u2 "skills/diagnose was kept" "S2 second update did not keep skill:diagnose"
+fi
+
+# ---------------------------------------------------------------- S3
+# Catches: an edited stub skill receiving the generic skip-edited TODO message
+# advising the user to copy the new template over by hand. For stub skills that
+# users fill in, copying the template over would erase user configuration.
+if want S3; then
+banner "S3 · stub skill review-guidelines TODO wording"
+fresh_env s3; with_servers
+keys s3 "${FULL[@]}"; run install s3
+yn "$([ -f "$CH/skills/review-guidelines/SKILL.md" ] && echo 0 || echo 1)" "S3 review-guidelines is installed"
+printf '\nS3-FILLED-IN-RULE\n' >> "$CH/skills/review-guidelines/SKILL.md"
+nokeys s3u; run update s3u
+line="$(grep -F "skills/review-guidelines was kept" "$LOGS/s3u.out")"
+if [ -n "$line" ]; then pass "S3 TODO line is non-empty"; else fail "S3 TODO line is non-empty"; fi
+case "$line" in
+  *"It ships as an unfilled stub"*) pass "S3 TODO explains stub skill" ;;
+  *) fail "S3 TODO explains stub skill" ;;
+esac
+case "$line" in
+  *"copy the new one over it by hand"*) fail "S3 TODO does not advise copying over" ;;
+  *) pass "S3 TODO does not advise copying over" ;;
+esac
+if grep -qF 'S3-FILLED-IN-RULE' "$CH/skills/review-guidelines/SKILL.md"; then
+  pass "S3 filled-in marker survived in review-guidelines"
+else
+  fail "S3 filled-in marker survived in review-guidelines"
+fi
+fi
+
+# ---------------------------------------------------------------- S4
+# Catches: memory-schema stub skill receiving the generic overwrite advice.
+# A user-customized memory schema must be kept on update, and the TODO must
+# warn not to overwrite the filled-in stub with the upstream template.
+if want S4; then
+banner "S4 · stub skill memory-schema TODO wording"
+fresh_env s4; with_servers
+keys s4 "${FULL[@]}"; run install s4
+yn "$([ -f "$CH/skills/memory-schema/SKILL.md" ] && echo 0 || echo 1)" "S4 memory-schema is installed"
+printf '\nS4-FILLED-IN-RULE\n' >> "$CH/skills/memory-schema/SKILL.md"
+nokeys s4u; run update s4u
+line="$(grep -F "skills/memory-schema was kept" "$LOGS/s4u.out")"
+if [ -n "$line" ]; then pass "S4 TODO line is non-empty"; else fail "S4 TODO line is non-empty"; fi
+case "$line" in
+  *"It ships as an unfilled stub"*) pass "S4 TODO explains stub skill" ;;
+  *) fail "S4 TODO explains stub skill" ;;
+esac
+case "$line" in
+  *"copy the new one over it by hand"*) fail "S4 TODO does not advise copying over" ;;
+  *) pass "S4 TODO does not advise copying over" ;;
+esac
+if grep -qF 'S4-FILLED-IN-RULE' "$CH/skills/memory-schema/SKILL.md"; then
+  pass "S4 filled-in marker survived in memory-schema"
+else
+  fail "S4 filled-in marker survived in memory-schema"
+fi
+fi
+
+# ---------------------------------------------------------------- S5
+# Catches: a hook equal to the current template only modulo CRLF being listed
+# current and never rewritten, so a CRLF shebang ships to Linux and macOS. A
+# markdown unit whose only difference is its line endings must stay current and
+# untouched.
+if want S5; then
+banner "S5 · a CRLF-only hook is outdated and rewritten LF; a markdown unit is not"
+fresh_env s5; with_servers
+keys s5 "${FULL[@]}"; run install s5
+S5H="$CH/hooks/block-dangerous-git.sh"; S5M="$CH/skills/diagnose/SKILL.md"
+if [ "$(tr -cd '\r' < "$S5H" | wc -c)" -eq 0 ] && sed -i 's/$/\r/' "$S5H" && \
+   [ "$(tr -cd '\r' < "$S5H" | wc -c)" -gt 0 ]; then
+  pass "S5 setup: hook:block-dangerous-git converted to CRLF"
+else
+  fail "S5 setup: hook:block-dangerous-git converted to CRLF"
+fi
+if [ "$(tr -cd '\r' < "$S5M" | wc -c)" -gt 0 ]; then s5flip='s/\r$//'; else s5flip='s/$/\r/'; fi
+if cp "$S5M" "$SANDBOX/s5/skill.orig" && sed -i "$s5flip" "$S5M" && \
+   ! cmp -s "$S5M" "$SANDBOX/s5/skill.orig" && cp "$S5M" "$SANDBOX/s5/skill.flipped"; then
+  pass "S5 setup: skill:diagnose line endings flipped"
+else
+  fail "S5 setup: skill:diagnose line endings flipped"
+fi
+nokeys s5l; run list s5l
+if grep -qE 'outdated +hook:block-dangerous-git' "$LOGS/s5l.out"; then pass "S5 list reports CRLF hook:block-dangerous-git as outdated"; else fail "S5 list reports CRLF hook:block-dangerous-git as outdated"; fi
+if grep -qE 'current +skill:diagnose' "$LOGS/s5l.out"; then pass "S5 list reports flipped skill:diagnose as current"; else fail "S5 list reports flipped skill:diagnose as current"; fi
+nokeys s5u; run update s5u
+if [ "$(tr -cd '\r' < "$S5H" | wc -c)" -eq 0 ]; then pass "S5 update rewrote hook:block-dangerous-git as LF"; else fail "S5 update rewrote hook:block-dangerous-git as LF"; fi
+if cmp -s "$S5H" "$REPO/templates/hooks/block-dangerous-git.sh"; then pass "S5 update wrote the current template to hook:block-dangerous-git"; else fail "S5 update wrote the current template to hook:block-dangerous-git"; fi
+notinlog s5u "hooks/block-dangerous-git.sh was kept" "S5 update did not keep hook:block-dangerous-git"
+if cmp -s "$S5M" "$SANDBOX/s5/skill.flipped"; then pass "S5 update left flipped skill:diagnose untouched"; else fail "S5 update left flipped skill:diagnose untouched"; fi
+notinlog s5u "skills/diagnose was kept" "S5 update did not keep skill:diagnose"
+fi
+
+# ---------------------------------------------------------------- S6
+# Catches: remove keeping a unit as "you changed it" when its content equals a
+# version this clone ships, so an uninstall leaves installer-written files behind.
+# A unit edited by hand must still be kept.
+if want S6; then
+banner "S6 · remove deletes a unit equal to a shipped version, keeps a hand-edited one"
+fresh_env s6; with_servers; R="$SANDBOX/s6/repo"; clone_repo "$R"
+keys s6 "${FULL[@]}"; run_in "$R" install s6
+if printf '\nS6-MARKER\n' >> "$R/templates/hooks/block-dangerous-git.sh" && \
+   cp "$R/templates/hooks/block-dangerous-git.sh" "$CH/hooks/block-dangerous-git.sh" && \
+   printf '\nS6-MARKER\n' >> "$R/templates/skills/diagnose/SKILL.md" && \
+   rm -rf "$CH/skills/diagnose" && cp -R "$R/templates/skills/diagnose" "$CH/skills/diagnose" && \
+   printf '\nS6-HAND-EDIT-NEVER-SHIPPED\n' >> "$CH/hooks/block-secret-staging.sh" && \
+   printf '\nS6-HAND-EDIT-NEVER-SHIPPED\n' >> "$CH/skills/tdd/SKILL.md"; then
+  pass "S6 setup: two units moved to the current template, two edited by hand"
+else
+  fail "S6 setup: two units moved to the current template, two edited by hand"
+fi
+keys s6r '' 'y'; run_in "$R" remove s6r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "S6 remove exits 0 (rc=$RC)"
+yn "$([ ! -e "$CH/hooks/block-dangerous-git.sh" ] && echo 0 || echo 1)" "S6 remove deleted hook:block-dangerous-git"
+yn "$([ ! -e "$CH/skills/diagnose" ] && echo 0 || echo 1)" "S6 remove deleted skill:diagnose"
+if grep -qF 'S6-HAND-EDIT-NEVER-SHIPPED' "$CH/hooks/block-secret-staging.sh" 2>/dev/null; then pass "S6 remove kept hand-edited hook:block-secret-staging"; else fail "S6 remove kept hand-edited hook:block-secret-staging"; fi
+if grep -qF 'S6-HAND-EDIT-NEVER-SHIPPED' "$CH/skills/tdd/SKILL.md" 2>/dev/null; then pass "S6 remove kept hand-edited skill:tdd"; else fail "S6 remove kept hand-edited skill:tdd"; fi
+fi
+
 # ══════════════════════════════════════════════════════════════════════════
 # T1-T3 · issues #122 / #123 — what a DELETED tracker token means
 # ══════════════════════════════════════════════════════════════════════════

@@ -19,6 +19,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 
 # Windows Python opens stdout in TEXT mode, so every "\n" written below leaves the
@@ -28,8 +29,10 @@ import sys
 # it, the placeholder fill and the Serena rewrite cannot open it, and the manifest
 # hashes a path that no longer exists — which leaves update, list and remove all
 # convinced nothing was ever installed. Force LF and the whole class goes away.
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(newline="\n")
+reconfigure = getattr(sys.stdout, "reconfigure", None)
+if reconfigure is not None:
+    reconfigure(newline="\n")
+del reconfigure
 
 # ---------------------------------------------------------------------------
 # What is never installed into ~/.claude/
@@ -609,14 +612,14 @@ def memory_detect(home, cwd):
     # resolve. The tool SUFFIXES are the server's own and do not change with the
     # route — only the prefix does.
     conn = next((c for c in scan["connectors"] if c["key"] == server), None)
-    via_connector = conn is not None and server not in live
-    prefix = conn["prefix"] if via_connector else "mcp__forgetful__"
+    via = conn if conn is not None and server not in live else None
+    prefix = via["prefix"] if via is not None else "mcp__forgetful__"
     return {
         "server": server,
         "found": found,
         "evidence": scan["evidence"],
         # Named so install.sh can warn that a history is not a live connection.
-        "connector": conn["name"] if via_connector else "",
+        "connector": via["name"] if via is not None else "",
         "prefix": prefix if server == "forgetful" else "",
         # Only Forgetful ships a documented tool list in this repo. For anything
         # else the user types their own names — but the prompt still never
@@ -1213,29 +1216,6 @@ def verify_wiring(settings_path, snippet_path, installed_hooks):
 # manifest
 # ---------------------------------------------------------------------------
 
-def manifest_classify(manifest, units):
-    """Sort every recorded unit into one of three states.
-
-    This three-way split is what decisions 7 and 8 both stand on:
-      * pristine — on disk, hash matches what we wrote: safe to upgrade, safe to remove
-      * edited   — on disk, hash differs: the user changed it. Never touched again.
-      * missing  — gone: nothing to do
-    """
-    state = {"pristine": [], "edited": [], "missing": []}
-    for uid, rec in (manifest.get("units") or {}).items():
-        dest = rec.get("dest")
-        current = hash_path(dest) if dest else None
-        if current is None:
-            state["missing"].append(uid)
-        elif current == rec.get("hash"):
-            state["pristine"].append(uid)
-        else:
-            state["edited"].append(uid)
-    for key in state:
-        state[key].sort()
-    return state
-
-
 def _lost_a_recorded_fill(unit, dest, spec):
     """Did this unit's installed file lose a grant the answers file can restore?
 
@@ -1255,14 +1235,125 @@ def _lost_a_recorded_fill(unit, dest, spec):
     return bool(lost_fills(tpl_line, got_line, values))
 
 
+def _unit_bytes(path):
+    """Return {rel: bytes} map of files under path."""
+    if os.path.isdir(path):
+        files = {}
+        for rel in _walk_rel(path):
+            full = os.path.join(path, rel)
+            with open(full, "rb") as f:
+                files[rel.replace(os.sep, "/")] = f.read()
+        return files
+    with open(path, "rb") as f:
+        return {"": f.read()}
+
+
+def _lf_digest(files, is_dir):
+    """Return hex sha256 digest of files normalized to LF."""
+    if not is_dir:
+        content = next(iter(files.values())) if files else b""
+        normalised = content.replace(b"\r\n", b"\n")
+        return hashlib.sha256(normalised).hexdigest()
+    h = hashlib.sha256()
+    for rel in sorted(files):
+        normalised = files[rel].replace(b"\r\n", b"\n")
+        h.update(rel.encode("utf-8"))
+        h.update(hashlib.sha256(normalised).hexdigest().encode("utf-8"))
+    return h.hexdigest()
+
+
+def _git(cwd, *args):
+    """Return stdout bytes from git command, or None on failure."""
+    try:
+        res = subprocess.run(["git", "-C", cwd, *args], capture_output=True, timeout=15)
+        if res.returncode != 0:
+            return None
+        return res.stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def _shipped_versions(src):
+    """Yield {rel: bytes} map for each committed revision of src, newest first."""
+    d = os.path.dirname(src)
+    base = os.path.basename(src)
+    prefix_bytes = _git(d, "rev-parse", "--show-prefix")
+    if prefix_bytes is None:
+        return
+    prefix = prefix_bytes.decode("utf-8").strip()
+    path = prefix + base
+    revs_bytes = _git(d, "rev-list", "HEAD", "--", base)
+    if revs_bytes is None:
+        return
+    revs = [r.strip() for r in revs_bytes.decode("utf-8").splitlines() if r.strip()]
+    if not os.path.isdir(src):
+        for rev in revs:
+            blob = _git(d, "cat-file", "blob", rev + ":" + path)
+            if blob is None:
+                continue
+            yield {"": blob}
+    else:
+        memo = {}
+        for rev in revs:
+            listing = _git(d, "ls-tree", "--full-tree", "-r", "-z", rev + ":" + path)
+            if listing is None:
+                continue
+            entries = [e for e in listing.split(b"\0") if e]
+            files_map = {}
+            skip_rev = False
+            for entry in entries:
+                parts = entry.split(b"\t", 1)
+                if len(parts) != 2:
+                    continue
+                meta, rel_b = parts
+                meta_parts = meta.split(b" ")
+                if len(meta_parts) < 3:
+                    continue
+                _, type_, sha_b = meta_parts[0], meta_parts[1], meta_parts[2]
+                if type_ != b"blob":
+                    continue
+                rel = rel_b.decode("utf-8")
+                sha = sha_b.decode("ascii")
+                if sha not in memo:
+                    blob = _git(d, "cat-file", "blob", sha)
+                    if blob is None:
+                        skip_rev = True
+                        break
+                    memo[sha] = blob
+                files_map[rel] = memo[sha]
+            if skip_rev:
+                continue
+            yield files_map
+
+
+def _matches_a_shipped_version(unit, dest):
+    """An installed unit equal, modulo CRLF, to a committed version of its template
+    is stale, not edited."""
+    src = unit["src"]
+    is_dir = os.path.isdir(src)
+    try:
+        got = _lf_digest(_unit_bytes(dest), is_dir)
+        tpl = _lf_digest(_unit_bytes(src), is_dir)
+    except OSError:
+        return None
+    if got == tpl:
+        return "template"
+    for files in _shipped_versions(src):
+        if _lf_digest(files, is_dir) == got:
+            return "older"
+    return None
+
+
 def plan_install(units, manifest, selected, spec=None):
     """Decide, per selected unit, what an install run may actually do to it.
 
     Six actions, and only two of them write:
       * install        — nothing there yet
-      * upgrade        — there, and still byte-identical to what we last wrote
+      * upgrade        — there, and still byte-identical to what we last wrote,
+                         or equal to a version this clone shipped
       * current        — there, ours, and already the version we ship
-      * skip-edited    — there, but changed since we wrote it. Left alone. Reported.
+      * skip-edited    — there, changed since we wrote it, and matches nothing
+                         this clone ever shipped. Left alone. Reported.
       * skip-foreign   — there, and no record of us putting it there. Left alone.
       * orphan         — recorded, but this clone no longer ships it. Reported only.
 
@@ -1306,7 +1397,18 @@ def plan_install(units, manifest, selected, spec=None):
             # delete work this script never wrote.
             action = "skip-foreign"
         elif current != rec.get("hash"):
-            action = "skip-edited"
+            shipped = _matches_a_shipped_version(unit, dest)
+            if shipped == "template":
+                # A hook that differs from the template only by CRLF is rewritten:
+                # its shebang line does not run on Linux or macOS.
+                if unit["kind"] == "hook" and current != unit["source_hash"]:
+                    action = "upgrade"
+                else:
+                    action = "current"
+            elif shipped == "older":
+                action = "upgrade"
+            else:
+                action = "skip-edited"
         elif rec.get("source_hash") == unit["source_hash"]:
             action = "current"
             # ...unless the file lost a grant we have an answer for. The template
@@ -1335,9 +1437,9 @@ def plan_install(units, manifest, selected, spec=None):
 def plan_state(manifest, units, spec=None):
     """The `list` view: what an update would do, without doing it.
 
-    Adds two things plan_remove cannot know, because they need the current
-    templates: whether a unit is OUTDATED (the template moved since we installed
-    it), and which units this clone ships that are not installed at all.
+    Adds two things plan_remove does not report: whether a unit is OUTDATED (the
+    template moved since we installed it), and which units this clone ships that
+    are not installed at all.
 
     `spec` is the recorded placeholder answers, and it plays the same part here
     that it plays in plan_install: a unit that lost a fill is something an update
@@ -1353,7 +1455,19 @@ def plan_state(manifest, units, spec=None):
         if current is None:
             state = "missing"
         elif current != rec.get("hash"):
-            state = "edited"
+            if unit is None:
+                state = "edited"
+            else:
+                shipped = _matches_a_shipped_version(unit, dest)
+                if shipped == "template":
+                    if unit["kind"] == "hook" and current != unit["source_hash"]:
+                        state = "outdated"
+                    else:
+                        state = "current"
+                elif shipped == "older":
+                    state = "outdated"
+                else:
+                    state = "edited"
         elif unit is None:
             # Recorded, still on disk, byte-identical to what we wrote — and this
             # clone no longer ships a template for it. A rename or a removal. The
@@ -1385,17 +1499,20 @@ def plan_state(manifest, units, spec=None):
     return rows
 
 
-def plan_remove(manifest):
+def plan_remove(manifest, units=None):
     """Decide, per recorded unit, what a remove run may actually delete.
 
-    Only a file still matching the hash we recorded is ours to delete. Anything else
-    is either gone already or has the user's changes in it, and stays.
+    Only a file still matching the hash we recorded, or equal to a version this clone
+    ships, is ours to delete; anything else is gone already or has the user's changes
+    in it, and stays. `units` is the current discovery; without it only the recorded
+    hash counts, which keeps every changed file.
 
     'keep-adopted' is the fourth answer, and it does not consult the hash at all. An
     adopted unit was on disk BEFORE this script ever ran — the user consented to it
     being managed, which buys updates, not the right to delete it. Matching hashes
     only prove we last wrote what is there now, never that we put it there first.
     """
+    units = units or {}
     rows = []
     for uid, rec in sorted((manifest.get("units") or {}).items()):
         dest = rec.get("dest")
@@ -1405,6 +1522,8 @@ def plan_remove(manifest):
         elif rec.get("adopted"):
             action = "keep-adopted"
         elif current == rec.get("hash"):
+            action = "remove"
+        elif uid in units and _matches_a_shipped_version(units[uid], dest):
             action = "remove"
         else:
             action = "keep-edited"
@@ -1484,14 +1603,13 @@ def main(argv):
         spec = load_json(a[2]) if len(a) > 2 else None
         tsv(plan_state(load_json(a[0]), json.loads(read(a[1])), spec))
     elif cmd == "plan-remove":
-        tsv(plan_remove(load_json(a[0])))
+        units = json.loads(read(a[1])) if len(a) > 1 else None
+        tsv(plan_remove(load_json(a[0]), units))
     elif cmd == "units-tsv":
         units = json.loads(read(a[0]))
         tsv(sorted(
             (u["kind"], u["id"].split(":", 1)[1], u["id"], len(u["needs"]))
             for u in units.values()))
-    elif cmd == "manifest-classify":
-        out(manifest_classify(load_json(a[0]), None))
     elif cmd == "json-get":
         out(load_json(a[0]))
     elif cmd == "json-put":
