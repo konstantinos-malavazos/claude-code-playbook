@@ -147,9 +147,9 @@ run() { # <script> <tool-name> <command> <expected-exit>
     shown=${shown//$'\r'/^}
     ran=$((ran + 1))
     if [ "$got" = "$4" ]; then
-        printf '  ok   [%s] %s\n' "$2" "$shown"
+        printf '  ok   %s [%s] %s\n' "${1##*/}" "$2" "$shown"
     else
-        printf '  FAIL [%s] exit=%s want=%s  %s\n' "$2" "$got" "$4" "$shown"
+        printf '  FAIL %s [%s] exit=%s want=%s  %s\n' "${1##*/}" "$2" "$got" "$4" "$shown"
         fail=$((fail + 1))
     fi
 }
@@ -159,9 +159,9 @@ run_raw() { # <script> <label> <raw-payload> <expected-exit>
     local got=$?
     ran=$((ran + 1))
     if [ "$got" = "$4" ]; then
-        printf '  ok   [%s]\n' "$2"
+        printf '  ok   %s [%s]\n' "${1##*/}" "$2"
     else
-        printf '  FAIL [%s] exit=%s want=%s\n' "$2" "$got" "$4"
+        printf '  FAIL %s [%s] exit=%s want=%s\n' "${1##*/}" "$2" "$got" "$4"
         fail=$((fail + 1))
     fi
 }
@@ -177,9 +177,9 @@ run_utf8() { # <script> <tool-name> <command, with no double quote or backslash>
     shown=${3//$'\n'/$TILDE}
     ran=$((ran + 1))
     if [ "$got" = "$4" ]; then
-        printf '  ok   [%s] %s\n' "$2" "$shown"
+        printf '  ok   %s [%s%s] %s\n' "${1##*/}" "$2" "${PYTHONIOENCODING:+ ($PYTHONIOENCODING)}" "$shown"
     else
-        printf '  FAIL [%s] exit=%s want=%s  %s\n' "$2" "$got" "$4" "$shown"
+        printf '  FAIL %s [%s%s] exit=%s want=%s  %s\n' "${1##*/}" "$2" "${PYTHONIOENCODING:+ ($PYTHONIOENCODING)}" "$got" "$4" "$shown"
         fail=$((fail + 1))
     fi
 }
@@ -213,9 +213,9 @@ run_cleanup() { # <label> <raw-payload> <cleared|kept> [forced-encoding]
     fi
     ran=$((ran + 1))
     if [ "$state" = "$3" ]; then
-        printf '  ok   [%s]\n' "$label"
+        printf '  ok   %s [%s]\n' "${CLEANUP_HOOK##*/}" "$label"
     else
-        printf '  FAIL [%s] got=%s want=%s\n' "$label" "$state" "$3"
+        printf '  FAIL %s [%s] got=%s want=%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$3"
         fail=$((fail + 1))
     fi
 }
@@ -265,9 +265,9 @@ EOF
 
     ran=$((ran + 1))
     if [ "$state" = "$3" ]; then
-        printf '  ok   [%s]\n' "$label"
+        printf '  ok   %s [%s]\n' "${FORMAT_HOOK##*/}" "$label"
     else
-        printf '  FAIL [%s] got=%s want=%s\n' "$label" "$state" "$3"
+        printf '  FAIL %s [%s] got=%s want=%s\n' "${FORMAT_HOOK##*/}" "$label" "$state" "$3"
         fail=$((fail + 1))
     fi
 }
@@ -287,9 +287,9 @@ run_msg() { # <script> <tool-name> <command> <expected-exit> <substring the mess
     shown=${3//$'\n'/$TILDE}
     ran=$((ran + 1))
     if [ "$got" = "$4" ] && [ "${out#*"$5"}" != "$out" ]; then
-        printf '  ok   [%s] %s — refusal names %s\n' "$2" "$shown" "$5"
+        printf '  ok   %s [%s] %s — refusal names %s\n' "${1##*/}" "$2" "$shown" "$5"
     else
-        printf '  FAIL [%s] exit=%s want=%s  %s — expected the message to name %s\n' "$2" "$got" "$4" "$shown" "$5"
+        printf '  FAIL %s [%s] exit=%s want=%s  %s — expected the message to name %s\n' "${1##*/}" "$2" "$got" "$4" "$shown" "$5"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     fi
@@ -300,9 +300,9 @@ run_raw_msg() { # <script> <label> <raw-payload> <expected-exit> <substring the 
     out=$(printf '%s' "$3" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" 2>&1 >/dev/null) || got=$?
     ran=$((ran + 1))
     if [ "$got" = "$4" ] && [ "${out#*"$5"}" != "$out" ]; then
-        printf '  ok   [%s] — refusal names %s\n' "$2" "$5"
+        printf '  ok   %s [%s] — refusal names %s\n' "${1##*/}" "$2" "$5"
     else
-        printf '  FAIL [%s] exit=%s want=%s  expected the message to name %s\n' "$2" "$got" "$4" "$5"
+        printf '  FAIL %s [%s] exit=%s want=%s  expected the message to name %s\n' "${1##*/}" "$2" "$got" "$4" "$5"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     fi
@@ -334,17 +334,17 @@ run_hold() { # <label> <timeout-literal|OMIT> <description> <expected-exit> [sub
     out=$(printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$HOLD_HOOK" 2>&1 >/dev/null) || got=$?
     ran=$((ran + 1))
     if [ "$got" != "$4" ]; then
-        printf '  FAIL [%s/%s] exit=%s want=%s  timeout=%s desc=%s\n' "$HOLD_TOOL" "$1" "$got" "$4" "$2" "$3"
+        printf '  FAIL %s [%s/%s] exit=%s want=%s  timeout=%s desc=%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$got" "$4" "$2" "$3"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     elif [ -n "${5-}" ] && [ "${out#*"$5"}" = "$out" ]; then
-        printf '  FAIL [%s/%s] exit=%s (correct) but the message never named %s\n' "$HOLD_TOOL" "$1" "$got" "$5"
+        printf '  FAIL %s [%s/%s] exit=%s (correct) but the message never named %s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$got" "$5"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     elif [ -n "${5-}" ]; then
-        printf '  ok   [%s/%s] timeout=%s — refusal names %s\n' "$HOLD_TOOL" "$1" "$2" "$5"
+        printf '  ok   %s [%s/%s] timeout=%s — refusal names %s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$2" "$5"
     else
-        printf '  ok   [%s/%s] timeout=%s\n' "$HOLD_TOOL" "$1" "$2"
+        printf '  ok   %s [%s/%s] timeout=%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$2"
     fi
 }
 
@@ -898,9 +898,9 @@ printf '{"tool_name":"Bash","cwd":%s,"tool_input":{"command":"%s"}}' "$HOOK_CWD_
 big_rc=$?
 ran=$((ran + 1))
 if [ "$big_rc" = 0 ]; then
-    printf '  ok   [Bash] a 256 KB command finished\n'
+    printf '  ok   %s [Bash] a 256 KB command finished\n' "${GIT_HOOK##*/}"
 else
-    printf '  FAIL [Bash] exit=%s want=0  a 256 KB command (124 = still running after 60 s)\n' "$big_rc"
+    printf '  FAIL %s [Bash] exit=%s want=0  a 256 KB command (124 = still running after 60 s)\n' "${GIT_HOOK##*/}" "$big_rc"
     fail=$((fail + 1))
 fi
 # One long word, outside the git segment: a 256 KB name, then 384 KB of unclosed ${.
@@ -912,9 +912,9 @@ for big_word in 'b"a" * 262144' 'b"${" * 196608'; do
     big_rc=$?
     ran=$((ran + 1))
     if [ "$big_rc" = 0 ]; then
-        printf '  ok   [Bash] git status; echo %s finished\n' "$big_word"
+        printf '  ok   %s [Bash] git status; echo %s finished\n' "${GIT_HOOK##*/}" "$big_word"
     else
-        printf '  FAIL [Bash] exit=%s want=0  git status; echo %s (124 = still running after 60 s)\n' "$big_rc" "$big_word"
+        printf '  FAIL %s [Bash] exit=%s want=0  git status; echo %s (124 = still running after 60 s)\n' "${GIT_HOOK##*/}" "$big_rc" "$big_word"
         fail=$((fail + 1))
     fi
 done
@@ -1632,10 +1632,10 @@ else
     run $GIT_HOOK Bash "git status" 0
     ran=$((ran + 1))
     if [ -e "$WMARK" ]; then
-        printf '  FAIL [order] the WindowsApps python3 ran — the real python beside it was not preferred\n'
+        printf '  FAIL %s [order] the WindowsApps python3 ran — the real python beside it was not preferred\n' "${GIT_HOOK##*/}"
         fail=$((fail + 1))
     else
-        printf '  ok   [order] a WindowsApps python3 was demoted behind the real python beside it\n'
+        printf '  ok   %s [order] a WindowsApps python3 was demoted behind the real python beside it\n' "${GIT_HOOK##*/}"
     fi
 
     # (b) the WindowsApps python is the ONLY python. Demoted it still runs and the hook
