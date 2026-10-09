@@ -303,3 +303,9 @@ the shape looks odd.
 hook matches a tracker CLI's write verbs. So on the `gh` and `glab` adapters the approval
 rule for shared trackers is enforced by instruction only, not by a hook. That is a
 decision, not an oversight.
+
+**One false block is accepted.** A command that only mentions a guarded one passes on its
+own, but is refused once its output is piped anywhere, even into `head`:
+`grep -n 'git add CLAUDE.md' notes.txt | head`. The infra, secret and git hooks all do this.
+They cannot tell `| head` from `| bash`, and `echo "git add -A" | bash` really does stage.
+Drop the pipe and the same command passes.
