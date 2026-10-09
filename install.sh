@@ -1488,7 +1488,14 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
         # Separators normalised because this one is meant to be COPIED AND RUN:
         # python builds these paths with os.path.join, so on Windows they come back
         # as C:/...\commands\x.md, and backslashes in a shell command are escapes.
-        TODO+=("${dest//\\//} was kept, so this update did not refresh it — you changed it after it was installed. See what this clone would have written: diff ${dest//\\//} ${src//\\//} — then either keep yours, or copy the new one over it by hand.")
+        case "$uid" in
+          skill:memory-schema|skill:review-guidelines)
+            TODO+=("${dest//\\//} was kept, so this update did not refresh it — you filled it in after it was installed. It ships as an unfilled stub, so do NOT copy the new one over it: that replaces your content with an empty template. See what changed upstream: diff ${dest//\\//} ${src//\\//} — and carry over by hand only the parts you want.")
+            ;;
+          *)
+            TODO+=("${dest//\\//} was kept, so this update did not refresh it — you changed it after it was installed. See what this clone would have written: diff ${dest//\\//} ${src//\\//} — then either keep yours, or copy the new one over it by hand.")
+            ;;
+        esac
         ;;
       orphan)
         # Recorded, still on disk, and this clone no longer ships it: renamed or
@@ -2334,7 +2341,13 @@ remove_mode() {
   stage "What removing would do"
   [[ -f "$MANIFEST" ]] || die "no manifest at $MANIFEST — this script has not installed anything."
 
-  pb plan-remove "$MANIFEST" > "$WORK/rplan.tsv"
+  # The current templates let a unit equal to a shipped version count as ours.
+  # Without them every changed file is kept, the safe side to fail on.
+  if pb discover "$TEMPLATES" "$CLAUDE_HOME" > "$UNITS"; then
+    pb plan-remove "$MANIFEST" "$UNITS" > "$WORK/rplan.tsv"
+  else
+    pb plan-remove "$MANIFEST" > "$WORK/rplan.tsv"
+  fi
   local action uid kind dest n_rm=0 n_keep=0 n_adopt=0
   while IFS=$'\t' read -r action uid kind dest; do
     [[ -z "$action" ]] && continue

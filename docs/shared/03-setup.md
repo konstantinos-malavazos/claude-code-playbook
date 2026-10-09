@@ -28,8 +28,8 @@ after step 4. Steps 5–8 are additive.
 >
 > **None of them ever overwrites or deletes a file you have edited.** An edited file is
 > reported and skipped, a `settings.json` value of yours that differs is left alone and
-> reported, and `remove` deletes only what still matches the hash it recorded — or was
-> adopted, which is never deleted at all.
+> reported, and `remove` deletes only what still matches the hash it recorded or a
+> version the playbook shipped. A file it adopted is never deleted at all.
 >
 > **It stops if Serena is not set up.** `install` and `update` both refuse, before
 > writing anything, when there is no Serena registration or plugin anywhere on the
