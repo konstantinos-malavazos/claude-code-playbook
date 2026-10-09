@@ -312,19 +312,19 @@ banner_pb() {
 ' "$DIM" "$TOTAL_STAGES" "$RESET"
   printf '%s' "$DIM"
   case "$MODE" in
-    remove|uninstall)
+    remove)
       printf '  This takes the playbook files back out of:\n'
       printf '    %s\n\n' "$CLAUDE_HOME"
       printf '  You are shown exactly what would go before anything is deleted, and\n'
       printf '  anything you edited yourself is kept.\n'
       ;;
-    update|upgrade)
+    update)
       printf '  This brings what you already have in:\n'
       printf '    %s\n' "$CLAUDE_HOME"
       printf '  up to date with this clone. It asks you nothing.\n'
       printf '  Files you edited yourself are left exactly as they are.\n'
       ;;
-    list|status)
+    list)
       printf '  This shows what is currently installed in:\n'
       printf '    %s\n\n' "$CLAUDE_HOME"
       printf '  It only reads. Nothing is written, changed or deleted.\n'
@@ -1968,7 +1968,7 @@ PY
       # asked anything: the missing grant was REPLAYED from the answers recorded at
       # install time, and saying "re-run and answer those prompts" without saying so
       # reads as if the user had just chosen it.
-      if [[ "$MODE" == "update" || "$MODE" == "upgrade" ]]; then
+      if [[ "$MODE" == "update" ]]; then
         TODO+=("Some agents were installed with no memory, tracker or Serena tools — the files are named under 'Did the tools actually make it into the agents?' above. This update did not choose that: it replayed the answers recorded when you first installed. Run ./install.sh to answer those questions again.")
       else
         TODO+=("Some agents were installed with no memory, tracker or Serena tools — see 'Did the tools actually make it into the agents?' above. They will not complain; they will run and do that part badly. Re-run ./install.sh to answer those prompts again.")
@@ -2494,18 +2494,18 @@ install_finish() {
 # main
 # ══════════════════════════════════════════════════════════════════════════
 case "$MODE" in
-  remove|uninstall)
+  remove)
     require_tty
     TOTAL_STAGES=3
     banner_pb "claude-code-playbook · remove" pause
     remove_mode
     ;;
-  update|upgrade)
+  update)
     TOTAL_STAGES=4
     banner_pb "claude-code-playbook · update"
     update_mode
     ;;
-  list|status)
+  list)
     # preflight · discover · current state
     TOTAL_STAGES=3
     banner_pb "claude-code-playbook · state"

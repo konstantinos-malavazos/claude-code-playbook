@@ -41,15 +41,11 @@
 
     Set $env:CLAUDE_HOME to install somewhere other than ~/.claude — a second,
     heavier option, useful when you want a throwaway install you can poke at rather
-    than a preview. The value is handed to bash untranslated, so write it the way
-    THAT bash sees the world:
-
-      Git Bash   /c/Users/you/claude-test
-      WSL        /home/you/claude-test, or /mnt/c/Users/you/claude-test
-
-    Not C:\Users\you\claude-test either way. Giving WSL a /c/... path does not
-    fail — it creates that directory inside the distro, and the install lands
-    somewhere you are not looking.
+    than a preview. A Windows path is translated for the bash that receives it.
+    A Windows-shaped value that cannot be translated (such as a relative path or
+    drive-relative like C:foo) is refused with a message, and a bash-shaped value
+    is passed as written. Note that giving WSL a /c/... path creates that directory
+    inside the distro rather than on the C: drive.
 #>
 
 [CmdletBinding()]
@@ -120,6 +116,41 @@ function Test-WslBash {
 function ConvertTo-BashQuoted {
     param([string]$Value)
     "'" + ($Value -replace "'", "'\''") + "'"
+}
+
+# WSL reads a Git Bash-style /c/... path as a folder at the distro root, so the WSL branch must go through wslpath.
+function ConvertTo-HandoffHome {
+    param([string]$Value, [bool]$Wsl)
+
+    $winShaped = $Value.Contains('\') -or ($Value -match '^[A-Za-z]:')
+    if (-not $winShaped) {
+        return $Value
+    }
+
+    if ($Wsl) {
+        if (($Value -match '^[A-Za-z]:[\\/]') -or ($Value -match '^\\\\')) {
+            $translated = Invoke-Probe 'wsl.exe' @('wslpath', '-a', ($Value -replace '\\', '/'))
+            $wslPath = [string]($translated.Output | Select-Object -First 1)
+            if ($translated.Code -eq 0 -and $wslPath.Trim()) {
+                return $wslPath.Trim()
+            }
+        }
+        Write-Fail "CLAUDE_HOME cannot be translated for this bash: $Value" @(
+            'Accepted forms for WSL:',
+            '  C:\Users\you\claude-test, /home/you/claude-test or /mnt/c/Users/you/claude-test'
+        )
+    } else {
+        if ($Value -match '^([A-Za-z]):[\\/](.*)$') {
+            $s = $Value -replace '\\', '/'
+            if ($s -match '^([A-Za-z]):(.*)$') {
+                return ('/' + $matches[1].ToLower() + $matches[2])
+            }
+        }
+        Write-Fail "CLAUDE_HOME cannot be translated for this bash: $Value" @(
+            'Accepted forms for Git Bash:',
+            '  C:\Users\you\claude-test  or  /c/Users/you/claude-test'
+        )
+    }
 }
 
 $here = $PSScriptRoot
@@ -273,17 +304,11 @@ Write-Host ''
 # CLAUDE_HOME lets you install somewhere other than ~/.claude. It has to be passed
 # INTO the command: PowerShell environment variables do not cross the WSL
 # boundary, so setting $env:CLAUDE_HOME alone would be silently ignored there.
-#
-# The value goes through verbatim — nothing below translates it — so it must be
-# written for the bash that receives it. Under Git Bash that is /c/Users/you/...;
-# under WSL it is /home/you/... or /mnt/c/Users/you/..., because there /c/Users
-# is not the C: drive, it is a path at the root of the distro. A Windows-shaped
-# C:\Users\you\... is wrong for both. None of these fail loudly: the wrong shape
-# installs successfully, somewhere you will not think to look.
 $envPrefix = ''
 if ($env:CLAUDE_HOME) {
-    $envPrefix = "CLAUDE_HOME=$(ConvertTo-BashQuoted $env:CLAUDE_HOME) "
-    Write-Host "  CLAUDE_HOME=$($env:CLAUDE_HOME)" -ForegroundColor DarkGray
+    $handoffHome = ConvertTo-HandoffHome $env:CLAUDE_HOME $useWsl
+    $envPrefix = "CLAUDE_HOME=$(ConvertTo-BashQuoted $handoffHome) "
+    Write-Host "  CLAUDE_HOME=$handoffHome" -ForegroundColor DarkGray
     Write-Host ''
 }
 
@@ -303,7 +328,7 @@ if ($useWsl) {
             '  cd /mnt/c/path/to/claude-code-playbook && ./install.sh'
         )
     }
-    & wsl.exe bash -c "cd $(ConvertTo-BashQuoted ($wslPath.Trim())) && ${envPrefix}./install.sh $Mode"
+    & wsl.exe bash -lc "cd $(ConvertTo-BashQuoted ($wslPath.Trim())) && ${envPrefix}./install.sh $Mode"
 } else {
     & $bash -lc "cd $(ConvertTo-BashQuoted ($here -replace '\\', '/')) && ${envPrefix}./install.sh $Mode"
 }
