@@ -76,7 +76,9 @@ fi
 IFS= read -r -d '' payload || true
 reason="$(py_run "$payload" '
 import json, sys
-sys.stdout.write(json.load(sys.stdin).get("reason") or "")
+# Read and write both use the buffer: bytes read with a text-mode write
+# fails on any character the machine code page lacks.
+sys.stdout.buffer.write((json.loads(sys.stdin.buffer.read()).get("reason") or "").encode("utf-8"))
 ')" || { echo "cleanup-handoffs: the payload did not parse as JSON — leaving the handoffs in place. $(py_tried)" >&2; exit 0; }
 
 # Don't wipe if the session is being resumed — the resume flow needs the handoffs.

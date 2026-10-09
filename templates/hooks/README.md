@@ -90,7 +90,7 @@ re-opens the multi-line flatten bug this directory has already shipped once.
 bash templates/hooks/test-hooks.sh
 ```
 
-It covers all five blocking hooks: what must be blocked, what must be allowed, `Bash` and
+It covers all seven hooks. `cleanup-handoffs.sh` and `format-on-edit.sh` always exit 0, so for them it checks what they leave behind on a payload carrying non-ASCII text: whether the handoff folders were cleared or kept, and whether the edited file reached the formatter. For the five blocking hooks it covers what must be blocked, what must be allowed, `Bash` and
 `PowerShell` payloads, multi-line commands, LF **and** CRLF line endings, and **both sides
 of every conditional line**: a listed repo and an unlisted one, `.claude/agents/` and
 `.claude/handoffs/`.
@@ -212,7 +212,7 @@ where the bug goes to live.**
 | `cleanup-handoffs.sh` | SessionEnd | delete the ephemeral handoff dirs | ✓ | ✓ |
 | `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited | ✓ | ✓ |
 | `repo-allowlist.sample` | — | the per-repo answers the two git hooks read; install **empty** at `~/.claude/repo-allowlist` | ✓ | |
-| `test-hooks.sh` | — | regression suite for the five blocking hooks; run it, don't read it | ✓ | ✓ |
+| `test-hooks.sh` | — | regression suite for all seven hooks; run it, don't read it | ✓ | ✓ |
 
 The **solo** / **team** columns say which entrance needs each template. The allowlist is the
 first row to claim one column: on the team path the driver does not own the repo, so both

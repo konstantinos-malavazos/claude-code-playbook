@@ -74,8 +74,10 @@ fi
 IFS= read -r -d '' payload || true
 file="$(py_run "$payload" '
 import json, sys
-ti = json.load(sys.stdin).get("tool_input") or {}
-sys.stdout.write(ti.get("file_path") or "")
+# Read and write both use the buffer: bytes read with a text-mode write
+# fails on any character the machine code page lacks.
+ti = json.loads(sys.stdin.buffer.read()).get("tool_input") or {}
+sys.stdout.buffer.write((ti.get("file_path") or "").encode("utf-8"))
 ')" || { echo "format-on-edit: the payload did not parse as JSON — skipping the format. $(py_tried)" >&2; exit 0; }
 [ -z "$file" ] && exit 0
 [ -f "$file" ] || exit 0

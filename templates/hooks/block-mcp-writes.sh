@@ -66,7 +66,9 @@ py_run() { # <stdin> <program> [args…] — first candidate that answers wins
 IFS= read -r -d '' payload || true
 tool="$(py_run "$payload" '
 import json, sys
-sys.stdout.write(json.load(sys.stdin).get("tool_name") or "")
+# Read and write both use the buffer: bytes read with a text-mode write
+# fails on any character the machine code page lacks.
+sys.stdout.buffer.write((json.loads(sys.stdin.buffer.read()).get("tool_name") or "").encode("utf-8"))
 ')" || block "the payload did not parse as JSON — refusing to guess which tool this is. $(py_tried)"
 
 # An EMPTY tool name is the second way this hook used to fail open: a parse that

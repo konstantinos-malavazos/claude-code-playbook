@@ -120,7 +120,9 @@ ESTIMATE = re.compile(
     r"(?:ms|msec|s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b",
     re.I)
 
-data = json.load(sys.stdin)
+# Bytes decoded as UTF-8. A text-mode read uses the Windows code page, and a byte that page
+# has no character for comes back as a surrogate, which the UTF-8 write below refuses.
+data = json.loads(sys.stdin.buffer.read())
 ti = data.get("tool_input")
 if not isinstance(ti, dict):
     # A well-formed payload with no tool_input asked for no timeout. Nothing to judge.
