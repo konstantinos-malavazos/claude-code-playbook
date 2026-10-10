@@ -18,8 +18,8 @@ re-driving the same ten steps by hand.
   most agents hold `Write`/`Edit` for their own handoff files. The hard guarantees are the
   hooks (below). Scope = cheap + focused.
 - **Handoffs are files, not chat.** Agents pass context through
-  `<workspace>/.claude/handoffs/<TICKET>/<agent>.md`, which **auto-delete at session
-  end**. In-flight noise never pollutes durable memory.
+  `<workspace>/.claude/handoffs/<TICKET>/<agent>.md`, which **are deleted at a later
+  session end, once nothing has written to them for a day**. In-flight noise never pollutes durable memory.
 - **Two-tier review.** `@repo-reviewer` works in-repo (diff, acceptance criteria, tests).
   `@release-reviewer` checks cross-repo blast radius (contract/payload coupling,
   downstream consumers, schema collisions).
@@ -83,7 +83,7 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
    [Model escalation](#model-escalation-cheap-by-default-escalated-by-weight). Pin exact
    model *ids* so an alias does not silently downgrade you.
 3. **Handoffs are files.** Inspect them under `…/handoffs/<TICKET>/` while it runs. They
-   vanish at session end.
+   vanish at a later session end, once nothing has written to them for a day.
 
 ---
 

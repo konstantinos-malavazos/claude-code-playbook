@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# SessionEnd hook. Deletes ephemeral pipeline handoff dirs so in-flight state never
-# lingers or leaks into memory. Skips when the session ended for a resume.
+# SessionEnd hook. Deletes handoff folders that nothing has written to for a day, so
+# in-flight state does not linger, and leaves a folder another session is still using.
+# Skips when the session ended for a resume.
 
 set -euo pipefail
 
@@ -88,10 +89,17 @@ fi
 
 # Point this at your workspace's handoffs root.
 HANDOFFS_ROOT="${WORKSPACE_HANDOFFS_ROOT:-$PWD/.claude/handoffs}"
+STALE_MINUTES=1440
 
 if [ -d "$HANDOFFS_ROOT" ]; then
-    # Remove per-ticket handoff dirs but keep the root.
-    find "$HANDOFFS_ROOT" -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
+    # A folder's own mtime does not move when a file inside it is edited, so look inside it.
+    find "$HANDOFFS_ROOT" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null |
+        while IFS= read -r -d '' d; do
+            recent="$(find "$d" -mmin "-$STALE_MINUTES" -print -quit 2>/dev/null)" || continue
+            if [ -z "$recent" ]; then
+                rm -rf -- "$d" 2>/dev/null || true
+            fi
+        done || true
 fi
 
 exit 0

@@ -221,7 +221,8 @@ Copy the hooks you want from `templates/hooks/` into `~/.claude/hooks/` and wire
 - `block-secret-staging.sh` — no `.env`, key files or credential-shaped names
 - `block-unexplained-long-hold.sh` — no `Bash` or `PowerShell` call asking for more than the default
   timeout unless its `description` says how long you expect it to take
-- `cleanup-handoffs.sh` — wipe ephemeral handoffs at session end
+- `cleanup-handoffs.sh` — wipe ephemeral handoffs at session end, once nothing has written
+  to them for a day
 
 **Also create `~/.claude/repo-allowlist`, empty.** Copy the comments out of
 `templates/hooks/repo-allowlist.sample` and add nothing. Two of the hooks above read it.

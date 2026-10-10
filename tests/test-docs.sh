@@ -12,6 +12,7 @@
 #   D-F  the shim rule is linked by its real anchor, and the two docs sentences
 #        that already name a dispatch's role and skill stay that way
 #   D-G  every skill a template names ships, or is allowlisted
+#   D-H  every tracked .md is stored with LF line endings
 #
 #   bash tests/test-docs.sh              # all sections
 #   bash tests/test-docs.sh D-B D-D      # only these
@@ -909,6 +910,48 @@ if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
   while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
 else
   pass "D-G · every skill named in templates ships or is allowlisted"
+fi
+fi
+
+# ---------------------------------------------------------------- D-H
+# The working copy cannot answer this: with core.autocrlf=true every .md is CRLF on disk
+# and LF in the index, so a CRLF blob from a machine without autocrlf only shows in the
+# index. --format needs git 2.38 or later.
+if want D-H; then
+banner "D-H · every tracked .md is stored with LF line endings"
+d_h_list() { git -C "$1" ls-files --format='%(eolinfo:index) %(path)' -- '*.md'; }
+d_h_bad() { # stdin: d_h_list lines; prints each path stored crlf or mixed
+  local eol path
+  while IFS=' ' read -r eol path; do
+    case "$eol" in crlf|mixed) printf '%s\n' "$path" ;; esac
+  done
+}
+D_H_LIST="$(d_h_list "$REPO")"
+D_H_SEEN="$(printf '%s\n' "$D_H_LIST" | grep -c '\.md$')"
+if [ "${D_H_SEEN:-0}" -ge 50 ]; then
+  pass "D-H · read the stored line endings of ${D_H_SEEN} tracked .md files"
+else
+  fail "D-H · git ls-files --format returned ${D_H_SEEN:-0} .md lines (needs git 2.38 or later)"
+fi
+D_H_TMP="$(mktemp -d)"
+D_H_CTRL=""
+if git init -q "$D_H_TMP" &&
+   printf 'a\r\n' > "$D_H_TMP/crlf.md" &&
+   printf 'a\n' > "$D_H_TMP/lf.md" &&
+   git -C "$D_H_TMP" -c core.autocrlf=false add crlf.md lf.md; then
+  D_H_CTRL="$(d_h_list "$D_H_TMP" | d_h_bad)"
+fi
+rm -rf "$D_H_TMP"
+if [ "$D_H_CTRL" = "crlf.md" ]; then
+  pass "D-H · negative control (CRLF blob flagged, LF blob not) passed"
+else
+  fail "D-H · negative control failed: flagged '${D_H_CTRL}', want 'crlf.md'"
+fi
+D_H_BAD="$(printf '%s\n' "$D_H_LIST" | d_h_bad)"
+if [ -n "$D_H_BAD" ]; then
+  while IFS= read -r b; do fail "D-H · stored with CRLF line endings: $b"; done <<< "$D_H_BAD"
+else
+  pass "D-H · every tracked .md is stored with LF line endings"
 fi
 fi
 

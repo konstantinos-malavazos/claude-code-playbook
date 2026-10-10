@@ -30,7 +30,8 @@ Banking it once saves the next person (or the next-you) from paying for it again
 
 Memory is only valuable if it's **signal-dense**. So:
 
-- **In-flight ticket state** → filesystem handoff files, auto-deleted at session end.
+- **In-flight ticket state** → filesystem handoff files, deleted at a later session end once
+  nothing has written to them for a day.
   Never written to Forgetful.
 - **Durable conclusions** → one consolidated memory per ticket, written only when the
   ticket is done (root cause, fix shape, blast radius, reusable recipes, settled

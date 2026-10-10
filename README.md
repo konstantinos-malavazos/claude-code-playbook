@@ -170,6 +170,47 @@ claude-code-playbook/
     └── test-install-ps1.ps1         install.ps1's preflight, under PowerShell 5.1 and 7
 ```
 
+### Running the installer suite
+
+`tests/test-installer.sh` does real installs into a throwaway folder, so it is slow. A full
+run takes about 9 minutes on a Windows laptop. That is close to the 10-minute limit on any
+single command an agent can wait for, and a slower machine goes over it. An agent that
+starts it in the background never sees it finish. So an agent runs it in chunks, one after
+another, each short enough to wait for.
+
+The number is rounded on purpose: it depends on your machine. The command that measured it
+is the one to trust. Run it yourself and believe your own number:
+
+```bash
+time bash tests/test-installer.sh
+```
+
+At the end of every run the suite prints how long each section took, and the total.
+
+**Some sections must run in the same chunk.** They reuse what an earlier section set up.
+Put each group below in one chunk, or a section runs twice and its results count twice:
+
+- `6 7 9 10` — asking for any of these also runs section 6, the full install the others
+  test.
+- `M4 M6` — M6 checks a report from M4's run.
+- `T1 T2` — T2 reuses T1's install.
+
+**Give each chunk its own scratch folder.** Sections reuse the same folder names inside
+it, so two chunks sharing one folder can trip over each other. Each of these chunks took
+under four minutes:
+
+```bash
+S=/tmp/installer-run
+PLAYBOOK_TEST_DIR="$S/i1" bash tests/test-installer.sh 13 17 1 2 3 4 5 6 7 9 10 11 8 14 19 15 16 18
+PLAYBOOK_TEST_DIR="$S/i2" bash tests/test-installer.sh M1 M2 M8 M3 M4 M6 M5 P1
+PLAYBOOK_TEST_DIR="$S/i3" bash tests/test-installer.sh U1 U2 U3 U4 U5 U6 U7 S1 S2 S3 S4 S5 S6
+PLAYBOOK_TEST_DIR="$S/i4" bash tests/test-installer.sh T1 T2 T3 T4 T5 T6 T7
+```
+
+Every chunk must end with `failed 0`. Add up the `passed` lines: they should match a full
+run's. A section name that does not exist runs nothing and still passes, so check the
+section list at the end of each run.
+
 ---
 
 ## How to use this playbook

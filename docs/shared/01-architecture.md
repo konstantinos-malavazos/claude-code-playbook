@@ -98,7 +98,7 @@ This chain is the single thing you **must** adapt to your own stack. See
 
 | Kind | Mechanism | Lifetime |
 |---|---|---|
-| **Ephemeral pipeline state** | filesystem handoff files under `<workspace>/.claude/handoffs/<TICKET>/` | auto-deleted at `SessionEnd` |
+| **Ephemeral pipeline state** | filesystem handoff files under `<workspace>/.claude/handoffs/<TICKET>/` | deleted at a later `SessionEnd`, once a day untouched |
 | **Durable knowledge** | a persistent memory store (Forgetful) | permanent, cross-session, cross-machine |
 
 Only the distilled conclusion of a ticket becomes a durable memory. Everything in-flight

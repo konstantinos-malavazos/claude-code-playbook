@@ -84,7 +84,8 @@ You answer UTC. It is cheap to reverse: one default in one function, so no defer
 - The orchestrator consolidates one durable memory: *"Per-user timezone lives on `User.timezone`
   (IANA, null=UTC); feed formatting stays centralized in `formatFeedTime(ts, tz)`; default
   unknown-region = UTC (decided PROJ-482)."*
-- Handoff files evaporate at session end.
+- Handoff files evaporate at a later session end, once nothing has written to them for a
+  day.
 - The agent pushes the branch, because this repo is allowlisted. **You** open the PR.
 
 ---

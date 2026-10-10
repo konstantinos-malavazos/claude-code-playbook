@@ -37,7 +37,7 @@ mixes concerns, and has no guardrails. Instead:
   and code sweep, then hands the *distilled brief* to the planner. The expensive context
   is discarded. The planner stays lean.
 - **Handoffs are files, not chat.** Agents pass state through handoff files on disk that
-  auto-delete at session end. In-flight noise never reaches long-term memory.
+  are deleted at a later session end, once nothing has written to them for a day. In-flight noise never reaches long-term memory.
 
 ---
 
@@ -47,7 +47,7 @@ The single most important design decision:
 
 | Kind | Mechanism | Lifetime | Example |
 |---|---|---|---|
-| **Ephemeral pipeline state** | filesystem handoff files (`…/handoffs/<TICKET>/`) | auto-deleted at `SessionEnd` | "Backend added field `X`; the client must map it to `Y`." |
+| **Ephemeral pipeline state** | filesystem handoff files (`…/handoffs/<TICKET>/`) | deleted at a later `SessionEnd`, once a day untouched | "Backend added field `X`; the client must map it to `Y`." |
 | **Durable knowledge** | a persistent memory store (Forgetful) | permanent, cross-session | "Root cause: the fee is sourced from the wrong upstream event." |
 
 In-flight chatter would pollute the semantic memory if written to it, so it goes to

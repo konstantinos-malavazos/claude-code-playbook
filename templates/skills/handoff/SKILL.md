@@ -22,15 +22,12 @@ Save it as a **file at the root** of `<workspace>/.claude/handoffs/` — **never
 
 This is mechanical, not stylistic. The `SessionEnd` hook
 ([`../../hooks/cleanup-handoffs.sh`](../../hooks/cleanup-handoffs.sh)) removes every
-subdirectory of the handoffs root and keeps the root itself:
+subdirectory of the handoffs root that nothing has written to for a day, and never touches
+the root itself or the files in it.
 
-```sh
-find "$HANDOFFS_ROOT" -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
-```
-
-`-type d` is the whole story. **Directories go, root-level files stay.** A handoff written one
-level too deep is deleted by the hook that fires as you finish writing it, and nothing warns
-you — the next session simply finds nothing. Check the path before you write, not after.
+**Directories go, root-level files stay.** A handoff written one level too deep is deleted
+by a session end a day later, and nothing warns you — the next session simply finds
+nothing. Check the path before you write, not after.
 
 ## One file per subject
 

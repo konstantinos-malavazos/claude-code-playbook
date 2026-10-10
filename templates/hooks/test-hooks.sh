@@ -192,6 +192,7 @@ run_cleanup() { # <label> <raw-payload> <cleared|kept> [forced-encoding]
     fi
     rm -rf "$SCRATCH/handoffs"
     mkdir -p "$SCRATCH/handoffs/T1"
+    touch -t 200001010000 "$SCRATCH/handoffs/T1"
     local hook_abs="$PWD/$CLEANUP_HOOK"
     if [ -n "$enc" ]; then
         (
@@ -218,6 +219,40 @@ run_cleanup() { # <label> <raw-payload> <cleared|kept> [forced-encoding]
         printf '  FAIL %s [%s] got=%s want=%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$3"
         fail=$((fail + 1))
     fi
+}
+
+run_cleanup_pair() { # one real end over a day-old folder and a folder still being written
+    rm -rf "$SCRATCH/handoffs"
+    mkdir -p "$SCRATCH/handoffs/OLD" "$SCRATCH/handoffs/LIVE"
+    : > "$SCRATCH/handoffs/OLD/a.md"
+    touch -t 200001010000 "$SCRATCH/handoffs/OLD/a.md" "$SCRATCH/handoffs/OLD"
+    : > "$SCRATCH/handoffs/LIVE/planner.md"
+    # Ages the folder only: editing a file that already exists leaves its folder's mtime alone.
+    touch -t 200001010000 "$SCRATCH/handoffs/LIVE"
+    local hook_abs="$PWD/$CLEANUP_HOOK"
+    (
+        unset PYTHONIOENCODING
+        cd "$SCRATCH" || exit 1
+        printf '%s' '{"reason":"other"}' | WORKSPACE_HANDOFFS_ROOT="$SCRATCH/handoffs" HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
+    )
+    local d want state label
+    for d in LIVE OLD; do
+        if [ "$d" = LIVE ]; then
+            want=kept
+            label="cleanup: a folder another session is still writing survives a real end"
+        else
+            want=cleared
+            label="cleanup: a day-old folder is still cleared in the same run"
+        fi
+        if [ -d "$SCRATCH/handoffs/$d" ]; then state=kept; else state=cleared; fi
+        ran=$((ran + 1))
+        if [ "$state" = "$want" ]; then
+            printf '  ok   %s [%s]\n' "${CLEANUP_HOOK##*/}" "$label"
+        else
+            printf '  FAIL %s [%s] got=%s want=%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$want"
+            fail=$((fail + 1))
+        fi
+    done
 }
 
 run_format() { # <label> <file-name> <formatted|skipped> [forced-encoding]
@@ -1492,6 +1527,7 @@ run_cleanup "cleanup: other transcript with arrow" "$p_clean_forced1" cleared cp
 
 printf -v p_clean_forced2 '{"reason":"resume","transcript_path":"/tmp/x%s"}' "$ARROW"
 run_cleanup "cleanup: resume transcript with arrow" "$p_clean_forced2" kept cp1252
+run_cleanup_pair
 
 run_format "format: arrow py file" "a${ARROW}.py" formatted cp1252
 

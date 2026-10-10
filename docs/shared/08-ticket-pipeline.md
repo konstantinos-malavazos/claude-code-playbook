@@ -20,7 +20,8 @@ your layer specialists for the implementer steps, and your git host for "MR/PR".
 | 6 | `release-reviewer` | cross-repo Serena read; **comments only** | appended findings → final verdict |
 | 7 | orchestrator + human | — | consolidated memory; agent pushes the branch where allowlisted, human opens the MR/PR |
 
-Handoffs live in `<workspace>/.claude/handoffs/<TICKET>/` and evaporate at session end.
+Handoffs live in `<workspace>/.claude/handoffs/<TICKET>/` and evaporate at a later session end,
+once nothing has written to them for a day.
 
 Every step from 2 onward is bound by the same rule: **Serena is the only sanctioned way
 to read code, and the only sanctioned way to change it** (see
