@@ -4,6 +4,8 @@
 #
 #   bash tests/test-installer.sh            # all tests
 #   bash tests/test-installer.sh 5 8        # only these
+# Some sections share state; how long a run takes and how to split one safely are in
+# README.md, section "Running the installer suite".
 
 # The repo is the parent of tests/. The sandbox and the logs go to a temp dir, never
 # into the repo: every run redirects HOME and CLAUDE_HOME into it, so a stray path
@@ -66,13 +68,27 @@ fi
 
 PASS=0; FAIL=0
 FAILED_NAMES=()
+SECTION_LABEL=""; SECTION_START=0
+SECTION_ROWS=()
 
 pass() { PASS=$((PASS+1)); printf '    PASS  %s\n' "$1"; }
 fail() { FAIL=$((FAIL+1)); FAILED_NAMES+=("$1"); printf '    FAIL  %s\n' "$1"; }
 chk()  { if [ "$1" = "0" ]; then pass "$2"; else fail "$2"; fi; }
 yn()   { if [ "$1" = "0" ]; then pass "$2"; else fail "$2"; fi; }
 
-banner() { printf '\n=== %s\n' "$1"; }
+# $SECONDS, not date: a fork per banner costs ~30ms on Windows.
+close_section() {
+    [ -n "$SECTION_LABEL" ] || return 0
+    local row
+    printf -v row '%5ss  %s' "$((SECONDS - SECTION_START))" "$SECTION_LABEL"
+    SECTION_ROWS+=("$row")
+}
+
+banner() {
+    close_section
+    SECTION_LABEL="$1"; SECTION_START=$SECONDS
+    printf '\n=== %s\n' "$1"
+}
 
 fresh_env() {
   HOME_DIR="$SANDBOX/$1/home"
@@ -314,13 +330,6 @@ if grep -qF -- '-ExecutionPolicy Bypass -File .\install.ps1' "$REPO/install.ps1"
 else
   fail "install.ps1's .EXAMPLE block still shows a bare .\\install.ps1"
 fi
-fi
-
-# ---------------------------------------------------------------- 12 hooks
-if want 12; then
-banner "12 · templates/hooks/test-hooks.sh"
-( cd "$REPO" && bash templates/hooks/test-hooks.sh ) > "$LOGS/hooks.out" 2>&1
-chk $? "test-hooks.sh passes (see logs/hooks.out)"
 fi
 
 # ---------------------------------------------------------------- 1 list
@@ -2035,6 +2044,11 @@ sys.exit(0 if uid in rows and counted == len(rows) and counted >= 1 else 1)
 PYT7C
 chk $? "A3 the damaged unit is counted in \"N would be brought up to date\""
 fi
+
+close_section
+printf '\n--- time per section (whole seconds, run order)\n'
+for _row in ${SECTION_ROWS[@]+"${SECTION_ROWS[@]}"}; do printf '  %s\n' "$_row"; done
+printf '  %s sections   %ss total\n' "${#SECTION_ROWS[@]}" "$SECONDS"
 
 printf '\n================================\n'
 printf '  passed %s   failed %s\n' "$PASS" "$FAIL"

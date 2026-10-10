@@ -123,7 +123,7 @@ state is the one the kill *creates* — an orphaned hook child blocked forever r
 payload from stdin with no writer left to send it EOF, which is reproducible in every hook
 in this directory. So let the run finish. When you want something shorter, it is
 `tests/test-installer.sh` that takes a selection of sections
-(`bash tests/test-installer.sh 12 13`); this suite runs whole.
+(`bash tests/test-installer.sh 13 17`); this suite runs whole.
 
 **A green run now means two things, and it needs both:** the patterns match, **and** every
 blocking hook fails closed. The second half is its own section — each blocking hook is
@@ -209,7 +209,7 @@ where the bug goes to live.**
 | `block-infra-staging.sh` | PreToolUse · Bash\|PowerShell | sort AI-infra paths: `.claude/agents\|skills` through, `CLAUDE.md` if allowlisted, the rest blocked | ✓ | ✓ |
 | `block-secret-staging.sh` | PreToolUse · Bash\|PowerShell | block staging `.env`, key files and credential-shaped names; block token literals anywhere | ✓ | ✓ |
 | `block-unexplained-long-hold.sh` | PreToolUse · Bash\|PowerShell | block a call asking for more than the tool's default timeout with no expected duration in its `description` | ✓ | ✓ |
-| `cleanup-handoffs.sh` | SessionEnd | delete the ephemeral handoff dirs | ✓ | ✓ |
+| `cleanup-handoffs.sh` | SessionEnd | delete the ephemeral handoff dirs nothing has written to for a day | ✓ | ✓ |
 | `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited | ✓ | ✓ |
 | `repo-allowlist.sample` | — | the per-repo answers the two git hooks read; install **empty** at `~/.claude/repo-allowlist` | ✓ | |
 | `test-hooks.sh` | — | regression suite for all seven hooks; run it, don't read it | ✓ | ✓ |

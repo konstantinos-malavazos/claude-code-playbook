@@ -71,4 +71,4 @@ into per-repo files.>
 ## Handoffs
 
 Ephemeral pipeline state → `<workspace>/.claude/handoffs/<TICKET-ID>/<agent>.md`
-(`.gitignore`d, cleared at session end). Durable knowledge → memory, on APPROVE only.
+(`.gitignore`d, cleared at a later session end once untouched for a day). Durable knowledge → memory, on APPROVE only.
