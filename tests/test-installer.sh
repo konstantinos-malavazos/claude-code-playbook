@@ -12,6 +12,28 @@
 # here would be the one thing this suite must never do — touch the real ~/.claude.
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
+
+# Every argument must name a section, or it would match no `want` and run nothing,
+# green. The valid ids are read from this file's own `want <id>` calls, before any
+# setup, so a typo stops the run before it touches anything.
+if [ "$#" -gt 0 ]; then
+    _ids=" $(grep -vE '^[[:space:]]*#' "${BASH_SOURCE[0]}" \
+             | grep -oE '(^|[^[:alnum:]_])want [[:alnum:]]+' | sed 's/.*want //' \
+             | sort -u | tr '\n' ' ')"
+    if [ -z "${_ids// /}" ]; then
+        echo "found no sections in ${BASH_SOURCE[0]}" >&2
+        exit 2
+    fi
+    _bad=0
+    for _a in "$@"; do
+        case "$_ids" in
+            *" $_a "*) ;;
+            *) echo "unknown section id: $_a" >&2; _bad=1 ;;
+        esac
+    done
+    [ "$_bad" = "0" ] || exit 2
+fi
+
 SCRATCH="${PLAYBOOK_TEST_DIR:-${TMPDIR:-/tmp}/playbook-install-tests}"
 SANDBOX="$SCRATCH/sandbox"
 LOGS="$SCRATCH/logs"
@@ -255,6 +277,14 @@ if command -v shellcheck >/dev/null 2>&1; then
 else
   printf '    SKIP  shellcheck — NOT INSTALLED on this machine, so NOT run\n'
 fi
+# A section id that matches no `want` must stop the run, not run nothing and pass. The
+# child gets its own PLAYBOOK_TEST_DIR so it can never touch this run's sandbox.
+( PLAYBOOK_TEST_DIR="$SCRATCH/typo" bash "$HERE/test-installer.sh" NO_SUCH_SECTION ) \
+  > "$LOGS/typo.out" 2>&1
+TYPO_RC=$?
+yn "$([ "$TYPO_RC" != "0" ] && echo 0 || echo 1)" "an unknown section id exits non-zero (rc=$TYPO_RC)"
+yn "$(grep -qF 'NO_SUCH_SECTION' "$LOGS/typo.out" && echo 0 || echo 1)" \
+   "an unknown section id is named in the output"
 fi
 
 # ------------------------------------------------- 17 the documented Windows command
@@ -2043,6 +2073,543 @@ sys.stdout.write("    (outdated rows: %s | counted: %d)\n"
 sys.exit(0 if uid in rows and counted == len(rows) and counted >= 1 else 1)
 PYT7C
 chk $? "A3 the damaged unit is counted in \"N would be brought up to date\""
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# R1-R3 · remove: what it keeps, and what it reports
+# ══════════════════════════════════════════════════════════════════════════
+
+# ---------------------------------------------------------------- R1
+# Catches: remove taking back too much or too little of settings.json — the user's own
+# key and hook must come through unchanged, ours must not stay wired — and a recorded
+# file left on disk.
+if want R1; then
+banner "R1 · remove keeps the user's settings and leaves no recorded file behind"
+fresh_env r1; with_servers
+cat > "$CH/settings.json" <<'JSON'
+{
+  "model": "r1-own-model",
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Write", "hooks": [ { "type": "command", "command": "echo r1-user-hook" } ] }
+    ]
+  }
+}
+JSON
+"$PY" - "$CH/settings.json" "$SANDBOX/r1/user.json" <<'PYR1A'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+json.dump({"model": d["model"], "hooks": d["hooks"]}, open(sys.argv[2], "w", encoding="utf-8"),
+          sort_keys=True)
+PYR1A
+chk $? "recorded the user's own settings key and hook"
+keys r1 "${FULL[@]}"; run install r1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+cp "$CH/.playbook-install.json" "$SANDBOX/r1/manifest.json" 2>/dev/null
+chk $? "kept a copy of the manifest"
+"$PY" - "$CH/settings.json" <<'PYR1B'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+cmds = [h.get("command", "") for blocks in (d.get("hooks") or {}).values()
+        for b in blocks for h in b.get("hooks") or []]
+sys.exit(0 if any(c != "echo r1-user-hook" for c in cmds) else 1)
+PYR1B
+chk $? "the install wired its own hooks in beside the user's"
+keys r1r '' 'y'; run remove r1r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "remove exits 0 (rc=$RC)"
+"$PY" - "$CH/settings.json" "$SANDBOX/r1/user.json" <<'PYR1C'
+import json, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+want = json.load(open(sys.argv[2], encoding="utf-8"))
+got = {"model": d.get("model"), "hooks": d.get("hooks")}
+sys.exit(0 if json.dumps(got, sort_keys=True) == json.dumps(want, sort_keys=True) else 1)
+PYR1C
+chk $? "the user's key and hook survive exactly, and none of ours is left wired"
+"$PY" - "$SANDBOX/r1/manifest.json" <<'PYR1D'
+import json, os, sys
+units = json.load(open(sys.argv[1], encoding="utf-8"))["units"]
+dests = [r["dest"] for r in units.values() if r.get("dest") and not r.get("adopted")]
+left = [d for d in dests if os.path.exists(d)]
+sys.stdout.write("    (%d recorded, %d left: %s)\n" % (len(dests), len(left), ", ".join(left[:3])))
+sys.exit(0 if dests and not left else 1)
+PYR1D
+chk $? "no file the manifest recorded is left on disk"
+fi
+
+# ---------------------------------------------------------------- R2
+# Catches: remove deleting a file the user changed after it was installed.
+if want R2; then
+banner "R2 · remove keeps a file the user changed, and says so"
+fresh_env r2; with_servers
+keys r2 "${FULL[@]}"; run install r2
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+R2F="$CH/commands/start-ticket.md"
+if [ -f "$R2F" ] && printf '\nR2-USER-EDIT\n' >> "$R2F"; then
+  pass "R2 setup: edited the installed start-ticket.md"
+else
+  fail "R2 setup: edited the installed start-ticket.md"
+fi
+keys r2r '' 'y'; run remove r2r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "remove exits 0 (rc=$RC)"
+yn "$(grep -qF 'R2-USER-EDIT' "$R2F" 2>/dev/null && echo 0 || echo 1)" \
+   "the edited file is still there with the user's change in it"
+yn "$(grep -qE 'command:start-ticket.*\(you changed it\)' "$LOGS/r2r.out" && echo 0 || echo 1)" \
+   "the preview names it as kept because the user changed it"
+yn "$([ ! -e "$CH/agents/ticket-analyzer.md" ] && echo 0 || echo 1)" "an unedited file beside it is removed"
+fi
+
+# ---------------------------------------------------------------- R3
+# Catches: remove passing over a unit whose file is already gone without a word.
+if want R3; then
+banner "R3 · remove reports a unit whose file was already deleted"
+fresh_env r3; with_servers
+keys r3 "${FULL[@]}"; run install r3
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+if [ -f "$CH/commands/start-ticket.md" ] && rm -f "$CH/commands/start-ticket.md"; then
+  pass "R3 setup: deleted the installed start-ticket.md"
+else
+  fail "R3 setup: deleted the installed start-ticket.md"
+fi
+keys r3r '' 'y'; run remove r3r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "remove exits 0 (rc=$RC)"
+yn "$(grep -qE 'command:start-ticket.*already deleted' "$LOGS/r3r.out" && echo 0 || echo 1)" \
+   "the preview names command:start-ticket as already deleted"
+inlog r3r "1 already gone from disk, so there is nothing to delete" "the preview counts it"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# L1-L4 · list and update report the true state
+# ══════════════════════════════════════════════════════════════════════════
+
+# ---------------------------------------------------------------- L1
+# Catches: `list` offering the other tracker adapters as additions — installing one
+# would replace the tracker.md already there, not add to it.
+if want L1; then
+banner "L1 · list does not offer a second tracker"
+fresh_env l1; with_servers
+keys l1 "${FULL[@]}"; run install l1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+nokeys l1l; run list l1l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+"$PY" - "$LOGS/l1l.out" <<'PYL1'
+import io, re, sys
+rows, trk, counted = [], [], 0
+for line in io.open(sys.argv[1], encoding="utf-8", errors="replace"):
+    s = re.sub(r"\x1b\[[0-9;]*m", "", line).strip()
+    m = re.match(r"^(\S+)\s+(tracker:\S+)$", s)
+    if m:
+        trk.append(m.group(1) + " " + m.group(2))
+    m = re.match(r"^available\s+(\S+)$", s)
+    if m:
+        rows.append(m.group(1))
+    m = re.match(r"^(\d+) more could be added", s)
+    if m:
+        counted = int(m.group(1))
+offered = [u for u in rows if u.startswith("tracker:")]
+sys.stdout.write("    (tracker rows: %s | available: %d | counted: %d)\n"
+                 % (", ".join(trk) or "<none>", len(rows), counted))
+ok = (any(t.startswith("current ") for t in trk) and not offered
+      and rows and counted == len(rows))
+sys.exit(0 if ok else 1)
+PYL1
+chk $? "the installed tracker is listed, no other tracker is available, and the count matches the rows"
+fi
+
+# ---------------------------------------------------------------- L2
+# Catches: `list` showing a missing unit and not saying what brings it back.
+if want L2; then
+banner "L2 · list says how to restore a missing unit"
+fresh_env l2; with_servers
+keys l2 "${FULL[@]}"; run install l2
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+if [ -f "$CH/commands/start-ticket.md" ] && rm -f "$CH/commands/start-ticket.md"; then
+  pass "L2 setup: deleted the installed start-ticket.md"
+else
+  fail "L2 setup: deleted the installed start-ticket.md"
+fi
+nokeys l2l; run list l2l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+yn "$(grep -qE 'missing +command:start-ticket' "$LOGS/l2l.out" && echo 0 || echo 1)" \
+   "list reports command:start-ticket as missing"
+yn "$(grep -E 'would be restored by:' "$LOGS/l2l.out" | grep -qF './install.sh update' && echo 0 || echo 1)" \
+   "list says ./install.sh update would restore it"
+nokeys l2u; run update l2u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "update exits 0 (rc=$RC)"
+yn "$([ -f "$CH/commands/start-ticket.md" ] && echo 0 || echo 1)" "and update really does put it back"
+fi
+
+# ---------------------------------------------------------------- L3
+# Catches: update's "N other unit(s) available" disagreeing with the rows `list` prints.
+if want L3; then
+banner "L3 · update's available count matches list"
+fresh_env l3; with_servers
+keys l3 "${FULL[@]}"; run install l3
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+nokeys l3u; run update l3u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "update exits 0 (rc=$RC)"
+nokeys l3l; run list l3l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+"$PY" - "$LOGS/l3u.out" "$LOGS/l3l.out" <<'PYL3'
+import io, re, sys
+def lines(p):
+    for line in io.open(p, encoding="utf-8", errors="replace"):
+        yield re.sub(r"\x1b\[[0-9;]*m", "", line).strip()
+n = None
+for s in lines(sys.argv[1]):
+    m = re.match(r"^(\d+) other unit\(s\) available and not installed", s)
+    if m:
+        n = int(m.group(1))
+rows = []
+for s in lines(sys.argv[2]):
+    m = re.match(r"^available\s+(\S+)$", s)
+    if m:
+        rows.append(m.group(1))
+trk = [u for u in rows if u.startswith("tracker:")]
+sys.stdout.write("    (update says: %s | list rows: %d | tracker rows: %s)\n"
+                 % (n, len(rows), ", ".join(trk) or "<none>"))
+sys.exit(0 if n is not None and n == len(rows) and not trk else 1)
+PYL3
+chk $? "update's count is present and equals list's available rows, with no tracker among them"
+fi
+
+# ---------------------------------------------------------------- L4
+# Catches: `list` exiting 0 when the plan-state classifier crashes, so anything keyed
+# on the exit code reads a traceback as a successful listing.
+if want L4; then
+banner "L4 · list exits non-zero when plan-state fails"
+fresh_env l4; with_servers
+L4R="$SANDBOX/l4/repo"
+clone_repo "$L4R"
+chk $? "copied the installer into a sandbox clone"
+keys l4 "${FULL[@]}"; run_in "$L4R" install l4
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+# Breaks plan-state alone: preflight, discover and the recorded-config read that list
+# runs before it still work, so a non-zero exit can only come from plan-state.
+"$PY" - "$L4R/install-lib.py" <<'PYL4'
+import sys
+p = sys.argv[1]
+src = open(p, "rb").read()
+sig = b"def plan_state(manifest, units, spec=None):\n"
+assert src.count(sig) == 1, "plan_state signature not found exactly once"
+open(p, "wb").write(src.replace(sig, sig + b"    raise RuntimeError('L4 forced plan-state failure')\n"))
+PYL4
+chk $? "broke plan-state in the clone's install-lib.py"
+nokeys l4l; run_in "$L4R" list l4l
+yn "$(grep -qF 'L4 forced plan-state failure' "$LOGS/l4l.err" && echo 0 || echo 1)" \
+   "list reached the broken plan-state (its error is on stderr)"
+yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "list exits non-zero (rc=$RC)"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# SW1-SW2 · picking a different tracker on a re-run
+# ══════════════════════════════════════════════════════════════════════════
+
+# ---------------------------------------------------------------- SW1
+# Catches: the new adapter planned as a hand-copied stranger, so tracker.md keeps the
+# old adapter and the manifest keeps the old record.
+if want SW1 || want SW2; then
+banner "SW1 · re-running install with jira replaces the local-markdown adapter"
+fresh_env sw; with_servers
+keys sw1 "${FULL[@]}"; run install sw1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+# One line found only in each adapter, read from the templates, never written here.
+"$PY" - "$REPO/templates/trackers/jira.md" "$REPO/templates/trackers/local-markdown.md" \
+       "$SANDBOX/sw/markers.txt" <<'PYSW1'
+import io, sys
+def body(p):
+    return [l.strip() for l in io.open(p, encoding="utf-8").read().splitlines()]
+j, l = body(sys.argv[1]), body(sys.argv[2])
+def only(a, b):
+    for s in a:
+        if len(s) >= 20 and "<" not in s and ">" not in s and s not in b:
+            return s
+    raise SystemExit("no line found only in one adapter")
+io.open(sys.argv[3], "w", encoding="utf-8", newline="\n").write(only(j, l) + "\n" + only(l, j) + "\n")
+PYSW1
+chk $? "found a marker line unique to each adapter"
+SWJ="$(sed -n 1p "$SANDBOX/sw/markers.txt" 2>/dev/null)"
+SWL="$(sed -n 2p "$SANDBOX/sw/markers.txt" 2>/dev/null)"
+yn "$(grep -qF -- "$SWL" "$CH/tracker.md" 2>/dev/null && echo 0 || echo 1)" \
+   "before the switch tracker.md is the local-markdown adapter"
+#       banner discover seeded-pause menu:5 tracker:3(jira) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · jira fields x3 · tracker pause
+keys sw2 '' '' '' '5' '3' '' 'i' '' '' '' '' '' '' '' '' 'y' '' '' '' ''
+run install sw2
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the second install exits 0 (rc=$RC)"
+yn "$(grep -qF -- "$SWJ" "$CH/tracker.md" 2>/dev/null && echo 0 || echo 1)" \
+   "tracker.md now carries the jira adapter"
+yn "$(grep -qF -- "$SWL" "$CH/tracker.md" 2>/dev/null && echo 1 || echo 0)" \
+   "tracker.md no longer carries the local-markdown adapter"
+"$PY" - "$CH/.playbook-install.json" <<'PYSW2'
+import json, sys
+u = json.load(open(sys.argv[1], encoding="utf-8"))["units"]
+trk = sorted(k for k in u if k.startswith("tracker:"))
+sys.stdout.write("    (recorded trackers: %s)\n" % (", ".join(trk) or "<none>"))
+sys.exit(0 if trk == ["tracker:jira"] else 1)
+PYSW2
+chk $? "the manifest records tracker:jira and nothing for local-markdown"
+fi
+
+# ---------------------------------------------------------------- SW2
+# Catches: the adopt screen offering the installer's own tracker.md back to the user.
+if want SW1 || want SW2; then
+banner "SW2 · the switch does not offer tracker.md for adoption"
+inlog sw2 "UPDATED — this installer wrote these before" "the confirm screen plans an update"
+notinlog sw2 "Files already here that this script did not install" "no adopt screen"
+notinlog sw2 "LEFT ALONE — already here, and this installer did not put them there" \
+         "nothing is planned as a stranger's file"
+yn "$(grep -qE 'tracker:[a-z-]+ — present but not installed' "$LOGS/sw2.out" && echo 1 || echo 0)" \
+   "no tracker is reported as present but not installed"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# ST1-ST4 · a filled, rewritten or swapped file that only drifted is not "edited"
+# ══════════════════════════════════════════════════════════════════════════
+
+# ---------------------------------------------------------------- ST1
+# Catches: a placeholder-filled unit whose line endings changed being called edited,
+# and then kept by remove as the user's work.
+if want ST1; then
+banner "ST1 · a filled agent that only changed line endings is current"
+fresh_env st1; with_servers
+keys st1 "${FULL[@]}"; run install st1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+"$PY" "$REPO/install-lib.py" discover "$REPO/templates" "$CH" > "$SANDBOX/st1/units.json"
+chk $? "discovered the units"
+"$PY" - "$SANDBOX/st1/units.json" "$CH/.playbook-install.json" "$SANDBOX/st1/uid.txt" <<'PYST1'
+import hashlib, io, json, sys
+units = json.load(open(sys.argv[1], encoding="utf-8"))
+m = json.load(open(sys.argv[2], encoding="utf-8"))
+assert (m.get("config") or {}).get("placeholders", {}).get("values"), "no recorded answers"
+def lf(p):
+    return open(p, "rb").read().replace(b"\r\n", b"\n")
+pick = None
+for uid, rec in sorted(m["units"].items()):
+    u = units.get(uid)
+    if u and u["kind"] == "agent" and rec["dest"].endswith(".md") and lf(rec["dest"]) != lf(u["src"]):
+        pick = (uid, rec)
+        break
+assert pick, "no recorded agent differs from its template"
+uid, rec = pick
+data = open(rec["dest"], "rb").read()
+flip = data.replace(b"\r\n", b"\n") if b"\r\n" in data else data.replace(b"\n", b"\r\n")
+open(rec["dest"], "wb").write(flip)
+assert hashlib.sha256(flip).hexdigest() != rec["hash"], "flipping endings did not change the hash"
+io.open(sys.argv[3], "w", encoding="utf-8", newline="\n").write(uid + "\t" + rec["dest"])
+PYST1
+chk $? "flipped the line endings of a filled agent (so its hash no longer matches)"
+ST1UID="$(cut -f1 "$SANDBOX/st1/uid.txt" 2>/dev/null)"
+ST1DEST="$(cut -f2 "$SANDBOX/st1/uid.txt" 2>/dev/null)"
+nokeys st1l; run list st1l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+yn "$(grep -qE "current +$ST1UID\$" "$LOGS/st1l.out" && echo 0 || echo 1)" "list reports $ST1UID as current"
+yn "$(grep -qE "edited +$ST1UID\$" "$LOGS/st1l.out" && echo 1 || echo 0)" "list does not call $ST1UID edited"
+keys st1r '' 'y'; run remove st1r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "remove exits 0 (rc=$RC)"
+yn "$([ -n "$ST1DEST" ] && [ ! -e "$ST1DEST" ] && echo 0 || echo 1)" "remove deletes it rather than keeping it as edited"
+fi
+
+# ---------------------------------------------------------------- ST2
+# Catches: a Serena-rewritten unit being called edited when the rewrite is on record.
+if want ST2; then
+banner "ST2 · an agent with the recorded Serena prefix rewrite is current"
+fresh_env st2; with_servers
+keys st2 "${FULL[@]}"; run install st2
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+"$PY" "$REPO/install-lib.py" discover "$REPO/templates" "$CH" > "$SANDBOX/st2/units.json"
+chk $? "discovered the units"
+"$PY" - "$SANDBOX/st2/units.json" "$CH/.playbook-install.json" "$SANDBOX/st2" <<'PYST2A'
+import io, json, os, sys
+units = json.load(open(sys.argv[1], encoding="utf-8"))
+m = json.load(open(sys.argv[2], encoding="utf-8"))
+pick = None
+for uid, rec in sorted(m["units"].items()):
+    u = units.get(uid)
+    if u and u["kind"] == "agent" and "mcp__serena__" in io.open(rec["dest"], encoding="utf-8").read():
+        pick = (uid, rec["dest"])
+        break
+assert pick, "no recorded agent carries mcp__serena__"
+json.dump([pick[1]], open(os.path.join(sys.argv[3], "paths.json"), "w"))
+io.open(os.path.join(sys.argv[3], "uid.txt"), "w", encoding="utf-8", newline="\n").write(pick[0] + "\t" + pick[1])
+PYST2A
+chk $? "picked a recorded agent that names mcp__serena__"
+ST2UID="$(cut -f1 "$SANDBOX/st2/uid.txt" 2>/dev/null)"
+ST2DEST="$(cut -f2 "$SANDBOX/st2/uid.txt" 2>/dev/null)"
+"$PY" "$REPO/install-lib.py" serena-rewrite "$SANDBOX/st2/paths.json" mcp__plugin_serena_serena__ >/dev/null
+chk $? "rewrote its Serena prefix by hand"
+yn "$(grep -qF 'mcp__serena__' "$ST2DEST" 2>/dev/null && echo 1 || echo 0)" "the rewrite really changed the file"
+"$PY" - "$CH/.playbook-install.json" <<'PYST2B'
+import json, sys
+p = sys.argv[1]
+m = json.load(open(p, encoding="utf-8"))
+m.setdefault("config", {})["serena_prefix"] = "mcp__plugin_serena_serena__"
+json.dump(m, open(p, "w", encoding="utf-8"), indent=2)
+PYST2B
+chk $? "recorded the same prefix in the manifest"
+nokeys st2l; run list st2l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+yn "$(grep -qE "current +$ST2UID\$" "$LOGS/st2l.out" && echo 0 || echo 1)" "list reports $ST2UID as current"
+yn "$(grep -qE "edited +$ST2UID\$" "$LOGS/st2l.out" && echo 1 || echo 0)" "list does not call $ST2UID edited"
+fi
+
+# ---------------------------------------------------------------- ST3
+# Catches: a tracker.md filled from the recorded tracker answers being called edited
+# once its line endings changed, and then kept by remove as the user's work.
+if want ST3; then
+banner "ST3 · a tracker filled from its recorded answers that only changed line endings is current"
+fresh_env st3; with_servers
+# Not a path: MSYS would rewrite a /c/... argv for python and the compare would miss.
+ST3M="st3-workspace-marker"
+ST3K=( "${FULL[@]}" ); ST3K[15]="$ST3M"
+keys st3 "${ST3K[@]}"; run install st3
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+inlog st3 "→ $ST3M" "the tracker stage filled a field with the marker answer"
+"$PY" - "$CH/.playbook-install.json" "$CH/tracker.md" "$ST3M" "$SANDBOX/st3/uid.txt" <<'PYST3'
+import hashlib, io, json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+vals = ((m.get("config") or {}).get("tracker") or {}).get("values") or {}
+assert sys.argv[3] in vals.values(), "the tracker answer is not recorded: %r" % vals
+trk = sorted(k for k in m["units"] if k.startswith("tracker:"))
+assert len(trk) == 1, "expected one recorded tracker, got %r" % trk
+rec = m["units"][trk[0]]
+data = open(sys.argv[2], "rb").read()
+assert sys.argv[3].encode("utf-8") in data, "tracker.md does not carry the answer"
+flip = data.replace(b"\r\n", b"\n") if b"\r\n" in data else data.replace(b"\n", b"\r\n")
+open(sys.argv[2], "wb").write(flip)
+assert hashlib.sha256(flip).hexdigest() != rec["hash"], "flipping endings did not change the hash"
+io.open(sys.argv[4], "w", encoding="utf-8", newline="\n").write(trk[0])
+PYST3
+chk $? "flipped the line endings of the filled tracker.md (so its hash no longer matches)"
+ST3UID="$(cat "$SANDBOX/st3/uid.txt" 2>/dev/null)"
+nokeys st3l; run list st3l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+yn "$([ -n "$ST3UID" ] && grep -qE "current +$ST3UID\$" "$LOGS/st3l.out" && echo 0 || echo 1)" "list reports $ST3UID as current"
+yn "$(grep -qE "edited +$ST3UID\$" "$LOGS/st3l.out" && echo 1 || echo 0)" "list does not call $ST3UID edited"
+keys st3r '' 'y'; run remove st3r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "remove exits 0 (rc=$RC)"
+yn "$([ ! -e "$CH/tracker.md" ] && echo 0 || echo 1)" "remove deletes tracker.md rather than keeping it as edited"
+fi
+
+# ---------------------------------------------------------------- ST4
+# Catches: a memory-schema skill swapped to the Forgetful variant and rewritten to a
+# connector prefix being called edited once its line endings changed.
+if want ST4; then
+banner "ST4 · a memory-schema swapped to Forgetful under a connector prefix is current"
+fresh_env st4; with_serena; with_memory_connector
+keys st4 "${FULL[@]}"; run install st4
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+ST4D="$CH/skills/memory-schema"
+yn "$(grep -qF 'mcp__claude_ai_forgetful__' "$ST4D/SKILL.md" 2>/dev/null && echo 0 || echo 1)" \
+   "SKILL.md carries the connector prefix"
+yn "$([ ! -e "$ST4D/forgetful.SKILL.md" ] && echo 0 || echo 1)" "the Forgetful variant was swapped in"
+"$PY" - "$CH/.playbook-install.json" <<'PYST4A'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+mem = (m.get("config") or {}).get("memory") or {}
+sys.stdout.write("    (recorded memory: %r)\n" % mem)
+sys.exit(0 if mem.get("server") == "forgetful" else 1)
+PYST4A
+chk $? "the manifest records the memory server as forgetful"
+"$PY" - "$REPO/install-lib.py" "$CH/.playbook-install.json" "$ST4D" <<'PYST4B'
+import importlib.util, json, os, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("pblib", sys.argv[1])
+pblib = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(pblib)
+rec = json.load(open(sys.argv[2], encoding="utf-8"))["units"]["skill:memory-schema"]
+p = os.path.join(sys.argv[3], "SKILL.md")
+data = open(p, "rb").read()
+flip = data.replace(b"\r\n", b"\n") if b"\r\n" in data else data.replace(b"\n", b"\r\n")
+open(p, "wb").write(flip)
+assert pblib.hash_path(sys.argv[3]) != rec["hash"], "flipping endings did not change the hash"
+PYST4B
+chk $? "flipped the line endings of the swapped SKILL.md (so the unit hash no longer matches)"
+nokeys st4l; run list st4l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+yn "$(grep -qE 'current +skill:memory-schema$' "$LOGS/st4l.out" && echo 0 || echo 1)" "list reports skill:memory-schema as current"
+yn "$(grep -qE 'edited +skill:memory-schema$' "$LOGS/st4l.out" && echo 1 || echo 0)" "list does not call skill:memory-schema edited"
+fi
+
+# ---------------------------------------------------------------- ST5
+# Catches: the stale check crashing on an older shipped version that the recorded
+# answers leave unchanged (a memory-schema with no Forgetful variant), so list dies
+# with a traceback instead of reporting the edited unit.
+# The clone carries its own two-commit history, so the case does not depend on how
+# deep the real repo was cloned; the history check fails if that setup did not land.
+if want ST5; then
+banner "ST5 · an edited memory-schema is edited when an older version has no Forgetful variant"
+fresh_env st5; with_servers
+ST5R="$SANDBOX/st5/repo"; ST5MS="$ST5R/templates/skills/memory-schema"
+ST5GIT=(git -C "$ST5R" -c core.autocrlf=false -c user.name=st5 -c user.email=st5@example.invalid -c commit.gpgsign=false)
+clone_repo "$ST5R" && mv "$ST5MS/forgetful.SKILL.md" "$SANDBOX/st5/forgetful.SKILL.md" \
+  && "${ST5GIT[@]}" init -q && "${ST5GIT[@]}" add install.sh install-lib.py templates \
+  && "${ST5GIT[@]}" commit -q -m older \
+  && mv "$SANDBOX/st5/forgetful.SKILL.md" "$ST5MS/forgetful.SKILL.md" \
+  && "${ST5GIT[@]}" add templates && "${ST5GIT[@]}" commit -q -m current \
+  && echo "    (st5 clone history committed)"
+chk $? "committed a clone history whose older memory-schema has no forgetful.SKILL.md"
+"$PY" - "$ST5R/install-lib.py" "$ST5MS" <<'PYST5A'
+import importlib.util, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("pblib", sys.argv[1])
+pblib = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(pblib)
+versions = list(pblib._shipped_versions(sys.argv[2]))
+sys.stdout.write("    (shipped memory-schema versions: %d)\n" % len(versions))
+assert any("forgetful.SKILL.md" not in v for v in versions), "no version without the Forgetful variant"
+assert any("forgetful.SKILL.md" in v for v in versions), "no version with the Forgetful variant"
+PYST5A
+chk $? "the stale check sees a shipped memory-schema without the Forgetful variant"
+keys st5 "${FULL[@]}"; run_in "$ST5R" install st5
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+"$PY" - "$CH/.playbook-install.json" <<'PYST5B'
+import json, sys
+p = sys.argv[1]
+m = json.load(open(p, encoding="utf-8"))
+cfg = m.setdefault("config", {})
+assert (cfg.get("memory") or {}).get("server") == "forgetful", "memory server: %r" % cfg.get("memory")
+assert not cfg.get("serena_prefix"), "serena prefix: %r" % cfg.get("serena_prefix")
+cfg["placeholders"] = {"values": {}, "delete": []}
+json.dump(m, open(p, "w", encoding="utf-8"), indent=2)
+PYST5B
+chk $? "the manifest records Forgetful and no Serena prefix; its placeholder answers are cleared"
+printf '\nst5 user edit\n' >> "$CH/skills/memory-schema/SKILL.md"
+chk $? "edited the installed memory-schema SKILL.md"
+nokeys st5l; run_in "$ST5R" list st5l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+yn "$(grep -qF 'Traceback' "$LOGS/st5l.err" && echo 1 || echo 0)" "list prints no traceback"
+yn "$(grep -qE 'edited +skill:memory-schema$' "$LOGS/st5l.out" && echo 0 || echo 1)" "list reports skill:memory-schema as edited"
+fi
+
+# ---------------------------------------------------------------- LF1
+# Catches: the placeholder fill and the Serena rewrite writing CRLF on Windows. Linux
+# writes LF either way, so this can only go red on Windows.
+if want LF1; then
+banner "LF1 · the placeholder fill and the Serena rewrite write LF"
+LF1D="$SCRATCH/lf1"
+rm -rf "$LF1D" && mkdir -p "$LF1D" && "$PY" - "$LF1D" <<'PYLF1'
+import io, json, os, sys
+d = sys.argv[1]
+md = os.path.join(d, "agent.md")
+sr = os.path.join(d, "serena.md")
+io.open(md, "w", encoding="utf-8", newline="\n").write("---\nname: lf1\nmodel: <fast-model-id>\n---\nbody\n")
+io.open(sr, "w", encoding="utf-8", newline="\n").write("tools: mcp__serena__find_symbol\nline two\n")
+json.dump({"paths": [md], "values": {"<fast-model-id>": "lf1-model"}, "delete": []},
+          open(os.path.join(d, "spec.json"), "w"))
+json.dump([sr], open(os.path.join(d, "paths.json"), "w"))
+PYLF1
+chk $? "wrote LF fixtures"
+"$PY" "$REPO/install-lib.py" apply-placeholders "$LF1D/spec.json" >/dev/null
+chk $? "apply-placeholders ran"
+yn "$(grep -qF 'model: lf1-model' "$LF1D/agent.md" && echo 0 || echo 1)" "the placeholder was filled"
+yn "$([ "$(tr -cd '\r' < "$LF1D/agent.md" | wc -c | tr -d ' ')" = "0" ] && echo 0 || echo 1)" \
+   "the filled file has no CR bytes"
+"$PY" "$REPO/install-lib.py" serena-rewrite "$LF1D/paths.json" mcp__plugin_serena_serena__ >/dev/null
+chk $? "serena-rewrite ran"
+yn "$(grep -qF 'mcp__plugin_serena_serena__find_symbol' "$LF1D/serena.md" && echo 0 || echo 1)" \
+   "the prefix was rewritten"
+yn "$([ "$(tr -cd '\r' < "$LF1D/serena.md" | wc -c | tr -d ' ')" = "0" ] && echo 0 || echo 1)" \
+   "the rewritten file has no CR bytes"
 fi
 
 close_section

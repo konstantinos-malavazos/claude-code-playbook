@@ -5,6 +5,7 @@
 #
 #   D-A  every internal link and anchor resolves
 #   D-B  no prose count contradicts the tree
+#   M7   the memory gate and the docs agree
 #   D-C  every /command named in prose ships a template, or is allowlisted
 #   D-D  the README layout tree names every top-level entry
 #   D-E  the two copies of the placeholder acceptance grep agree, and
@@ -13,6 +14,8 @@
 #        that already name a dispatch's role and skill stay that way
 #   D-G  every skill a template names ships, or is allowlisted
 #   D-H  every tracked .md is stored with LF line endings
+#   D-I  the README's coupled installer-suite section groups match the suite's guards
+#   D-J  every installer-suite section id is in a README chunk
 #
 #   bash tests/test-docs.sh              # all sections
 #   bash tests/test-docs.sh D-B D-D      # only these
@@ -54,7 +57,28 @@ want() { [ -z "$WANT" ] && return 0; case " $WANT " in *" $1 "*) return 0;; esac
 
 # Every section reads markdown, and the fenced-block rule is the one thing they all
 # have to agree on, so the readers live in one python module the sections import.
-PY="$(command -v python3 || command -v python || true)"
+#
+# The candidate list is the one in all seven hooks and test-hooks.sh: a WindowsApps
+# python3 goes last, never dropped (why: block-dangerous-git.sh), then the first
+# candidate that runs `-c pass` wins.
+PY_LIST=()
+PY_LAST=()
+while IFS= read -r _p; do
+    [ -n "$_p" ] || continue
+    case "${_p,,}" in
+        */windowsapps/*) PY_LAST+=("$_p") ;;
+        *)               PY_LIST+=("$_p") ;;
+    esac
+done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
+PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
+
+PY=""
+for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
+    if "$_c" -c "pass" >/dev/null 2>&1; then
+        PY="$_c"
+        break
+    fi
+done
 
 printf 'docs scrub — %s\n' "$REPO"
 
@@ -152,6 +176,9 @@ spec = importlib.util.spec_from_file_location(
     "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
 R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
 
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
+
 REPO = R.REPO
 LINK = re.compile(r"(?<!\\)\[(?:[^\[\]]|\[[^\]]*\])*\]\(\s*(<[^>]*>|[^()\s]*(?:\([^()]*\)[^()\s]*)*)\s*(?:\"[^\"]*\")?\)")
 SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*:", re.I)
@@ -193,9 +220,9 @@ for rel in files:
             if frag and frag not in anchors_of(dest_rel):
                 bad.append("%s:%d  no such anchor: %s" % (rel, n, target))
 
-print("CHECKED %d" % checked)
+emit("CHECKED %d" % checked)
 for b in bad:
-    print("BAD " + b)
+    emit("BAD " + b)
 PYEOF
 D_A_CHECKED="$(sed -n 's/^CHECKED //p' "$REPO/tests/.docs-out")"
 # Positive control: a matcher that found no links would pass by having nothing to
@@ -228,6 +255,9 @@ spec = importlib.util.spec_from_file_location(
 R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
 REPO = R.REPO
 
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
+
 # --- derive, from the tree ------------------------------------------------
 # README.md is documentation for the template set, not an agent — and it contains
 # `mcp__serena__` because it explains the prefix. Counting it is the exact bug.
@@ -249,8 +279,8 @@ skip = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
 hook_files = [os.path.basename(f) for f in sorted(glob.glob(os.path.join(REPO, "templates/hooks/*.sh")))]
 HOOKS = len([f for f in hook_files if f not in skip])
 
-print("DERIVED agents=%d serena=%d memory=%d hooks=%d skip=%s"
-      % (AGENTS, SERENA, MEMORY, HOOKS, ",".join(sorted(skip))))
+emit("DERIVED agents=%d serena=%d memory=%d hooks=%d skip=%s"
+     % (AGENTS, SERENA, MEMORY, HOOKS, ",".join(sorted(skip))))
 
 WORDS = {"one":1,"two":2,"three":3,"four":4,"five":5,"six":6,"seven":7,"eight":8,
          "nine":9,"ten":10,"eleven":11,"twelve":12,"thirteen":13,"fourteen":14,
@@ -317,9 +347,9 @@ for rel in SOURCES:
                 bad.append("%s:%d  \"%s\" — the installer wires %d hooks (SKIP_HOOKS excluded)"
                            % (rel, n, m.group(0), HOOKS))
 
-print("SEEN %d" % seen)
+emit("SEEN %d" % seen)
 for b in bad:
-    print("BAD " + b)
+    emit("BAD " + b)
 PYEOF
 sed -n 's/^DERIVED /           derived: /p' "$REPO/tests/.docs-out"
 D_B_SEEN="$(sed -n 's/^SEEN //p' "$REPO/tests/.docs-out")"
@@ -424,10 +454,13 @@ fi
 if want D-C; then
 banner "D-C · every /command named in prose ships, or is allowlisted"
 DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
-import glob, os, re, importlib.util
+import glob, os, sys, re, importlib.util
 spec = importlib.util.spec_from_file_location(
     "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
 R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
 REPO = R.REPO
 
 SHIPS = set()
@@ -494,10 +527,10 @@ for rel in R.tracked(".md"):
                 continue
             bad.append("%s:%d  /%s is named in prose but ships no template" % (rel, n, name))
 
-print("SHIPS %d" % len(SHIPS))
-print("SEEN %d" % seen)
+emit("SHIPS %d" % len(SHIPS))
+emit("SEEN %d" % seen)
 for b in sorted(set(bad)):
-    print("BAD " + b)
+    emit("BAD " + b)
 PYEOF
 D_C_SHIPS="$(sed -n 's/^SHIPS //p' "$REPO/tests/.docs-out")"
 D_C_SEEN="$(sed -n 's/^SEEN //p' "$REPO/tests/.docs-out")"
@@ -522,10 +555,13 @@ fi
 if want D-D; then
 banner "D-D · the README layout tree names every top-level entry"
 DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
-import os, re, subprocess, importlib.util
+import os, sys, re, subprocess, importlib.util
 spec = importlib.util.spec_from_file_location(
     "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
 R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
 REPO = R.REPO
 
 # Tracked, so an ignored scratch file (.claude/, a .stackdump) is not a gap in the
@@ -536,8 +572,8 @@ top = sorted(set(subprocess.check_output(
 readme = R.read("README.md")
 m = re.search(r"^```\s*\nclaude-code-playbook/\n(.*?)^```", readme, re.M | re.S)
 if not m:
-    print("BAD README.md  the `claude-code-playbook/` layout tree is gone")
-    print("TREE 0"); raise SystemExit
+    emit("BAD README.md  the `claude-code-playbook/` layout tree is gone")
+    emit("TREE 0"); raise SystemExit
 block = m.group(1)
 # Only the top level: a line whose connector sits in the first column.
 named = set()
@@ -546,10 +582,10 @@ for line in block.splitlines():
     if mm:
         named.add(mm.group(1).rstrip("/"))
 
-print("TREE %d" % len(named))
+emit("TREE %d" % len(named))
 for entry in top:
     if entry not in named:
-        print("BAD README.md  the layout tree does not name top-level `%s`" % entry)
+        emit("BAD README.md  the layout tree does not name top-level `%s`" % entry)
 PYEOF
 D_D_TREE="$(sed -n 's/^TREE //p' "$REPO/tests/.docs-out")"
 if [ "${D_D_TREE:-0}" -ge 5 ]; then
@@ -594,10 +630,13 @@ fi
 if want D-E; then
 banner "D-E · the acceptance grep and the skill that fills its placeholders"
 DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
-import os, re, importlib.util
+import os, sys, re, importlib.util
 spec = importlib.util.spec_from_file_location(
     "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
 R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
 
 # ---- A1 · the two copies of the acceptance grep agree -------------------
 # Read RAW, not through strip_fences: one copy lives in a ```bash block and the
@@ -615,25 +654,25 @@ for rel in COPIES:
         if "name" in clean and "model" in clean and "tools" in clean:
             hits.append((clean, tuple(paths.split())))
     if len(hits) != 1:
-        print("BAD %s  expected exactly 1 copy of the (name|model|tools) "
-              "acceptance grep, parsed %d — the parser is broken, or the "
-              "command moved" % (rel, len(hits)))
+        emit("BAD %s  expected exactly 1 copy of the (name|model|tools) "
+             "acceptance grep, parsed %d — the parser is broken, or the "
+             "command moved" % (rel, len(hits)))
         continue
     parsed[rel] = hits[0]
 
-print("A1PARSED %d" % len(parsed))
+emit("A1PARSED %d" % len(parsed))
 if len(parsed) == len(COPIES):
     a, b = (parsed[r] for r in COPIES)
-    print("A1PATHS %d" % len(a[1]))
+    emit("A1PATHS %d" % len(a[1]))
     if a[1] != b[1]:
-        print("BAD %s vs %s  the acceptance grep's path list has drifted: "
-              "%s  vs  %s" % (COPIES[0], COPIES[1],
-                              " ".join(a[1]) or "(none)", " ".join(b[1]) or "(none)"))
+        emit("BAD %s vs %s  the acceptance grep's path list has drifted: "
+             "%s  vs  %s" % (COPIES[0], COPIES[1],
+                             " ".join(a[1]) or "(none)", " ".join(b[1]) or "(none)"))
     if a[0] != b[0]:
-        print("BAD %s vs %s  the acceptance grep's pattern has drifted: "
-              "%s  vs  %s" % (COPIES[0], COPIES[1], a[0], b[0]))
+        emit("BAD %s vs %s  the acceptance grep's pattern has drifted: "
+             "%s  vs  %s" % (COPIES[0], COPIES[1], a[0], b[0]))
 else:
-    print("A1PATHS 0")
+    emit("A1PATHS 0")
 
 # ---- A2 · the skill names every placeholder its templates carry ---------
 # Anchored to the same three frontmatter keys the acceptance grep is anchored to,
@@ -653,14 +692,14 @@ for rel in TEMPLATES:
             for t in TOK.findall(line):
                 tokens.setdefault(t, rel)
 
-print("A2TOKENS %d" % len(tokens))
+emit("A2TOKENS %d" % len(tokens))
 skill = R.read(SKILL)
 for t, rel in sorted(tokens.items()):
     if ("<%s>" % t) not in skill:
-        print("BAD %s  carries <%s> on a name:/model:/tools: line and %s never "
-              "mentions it — every generated specialist ships the bracket, and an "
-              "unresolvable tools: name is stripped at launch with no error"
-              % (rel, t, SKILL))
+        emit("BAD %s  carries <%s> on a name:/model:/tools: line and %s never "
+             "mentions it — every generated specialist ships the bracket, and an "
+             "unresolvable tools: name is stripped at launch with no error"
+             % (rel, t, SKILL))
 PYEOF
 A1_PARSED="$(sed -n 's/^A1PARSED //p' "$REPO/tests/.docs-out")"
 A1_PATHS="$(sed -n 's/^A1PATHS //p' "$REPO/tests/.docs-out")"
@@ -718,16 +757,19 @@ fi
 if want D-F; then
 banner "D-F · the shim rule is linked by its real anchor, and two already-correct docs sentences are pinned"
 DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
-import os, re, importlib.util
+import os, sys, re, importlib.util
 spec = importlib.util.spec_from_file_location(
     "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
 R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
 
 OWNER  = "templates/hooks/README.md"
 ANCHOR = "do-not-kill-a-slow-run-on-windows"
 
 owner_anchors = R.anchors(R.read(OWNER))
-print("OWNERANCHOR %d" % (1 if ANCHOR in owner_anchors else 0))
+emit("OWNERANCHOR %d" % (1 if ANCHOR in owner_anchors else 0))
 
 LINK = re.compile(r"\(([^()\s]*hooks/README\.md)#([^()\s]*)\)")
 links = []
@@ -735,7 +777,7 @@ for rel in R.tracked(".md"):
     for n, line in enumerate(R.strip_fences(R.read(rel)).splitlines(), 1):
         for m in LINK.finditer(line):
             links.append((rel, n, m.group(2), line))
-print("SHIMLINKS %d" % len(links))
+emit("SHIMLINKS %d" % len(links))
 # That file has other headings and linking to one of them is perfectly ordinary,
 # so a fragment that is not the shim anchor is only wrong when the line it sits
 # on is TALKING ABOUT the shim rule. That is the near miss worth catching: a
@@ -745,25 +787,25 @@ SUBJECT = re.compile(r"kill", re.I), re.compile(r"slow", re.I)
 for rel, n, frag, line in links:
     if frag != ANCHOR:
         if all(p.search(line) for p in SUBJECT):
-            print("BAD %s:%d  is about killing a slow run and links into %s by #%s — the "
-                  "shim rule's anchor is #%s, and the heading above it is not the rule"
-                  % (rel, n, OWNER, frag, ANCHOR))
+            emit("BAD %s:%d  is about killing a slow run and links into %s by #%s — the "
+                 "shim rule's anchor is #%s, and the heading above it is not the rule"
+                 % (rel, n, OWNER, frag, ANCHOR))
     elif frag not in owner_anchors:
-        print("BAD %s:%d  links to #%s and %s has no such heading — the anchor was "
-              "written, the heading was not" % (rel, n, frag, OWNER))
+        emit("BAD %s:%d  links to #%s and %s has no such heading — the anchor was "
+             "written, the heading was not" % (rel, n, frag, OWNER))
 
 # ---- the two pins, both read RAW ----------------------------------------
 # Counted rather than merely found: the kill gate names the dispatch twice, once
 # per search, and losing one of the two is the reword this pin exists to catch.
 KILLGATE = "docs/solo/02-the-kill-gate.md"
 raw = R.read(KILLGATE)
-print("COLDSUBS %d" % raw.count("COLD /research subagent"))
+emit("COLDSUBS %d" % raw.count("COLD /research subagent"))
 # Recorded, not asserted: if this ever prints 0 the diagram was unfenced and the
 # raw read above stopped being necessary. That is a simplification, not a defect.
-print("FENCED %d" % (0 if "COLD /research subagent" in R.strip_fences(raw) else 1))
+emit("FENCED %d" % (0 if "COLD /research subagent" in R.strip_fences(raw) else 1))
 
 FLOWS = "docs/shared/07-the-flows.md"
-print("TWOCOLD %d" % R.read(FLOWS).count("two cold search subagents"))
+emit("TWOCOLD %d" % R.read(FLOWS).count("two cold search subagents"))
 PYEOF
 sed -n 's/^FENCED 1/           note: the kill gate sentences are inside a fenced diagram, so that pin reads the raw file/p' "$REPO/tests/.docs-out"
 D_F_OWNER="$(sed -n 's/^OWNERANCHOR //p' "$REPO/tests/.docs-out")"
@@ -952,6 +994,174 @@ if [ -n "$D_H_BAD" ]; then
   while IFS= read -r b; do fail "D-H · stored with CRLF line endings: $b"; done <<< "$D_H_BAD"
 else
   pass "D-H · every tracked .md is stored with LF line endings"
+fi
+fi
+
+# ---------------------------------------------------------------- D-I
+# `if want A || want B` in tests/test-installer.sh marks sections that reuse one
+# another's setup, so a chunk that splits them runs one without it. The README tells a
+# reader which sections share a chunk; that list is a claim about the suite, and the
+# suite is the side that is derived. A group missing from the README, or one the suite
+# no longer has, is a chunk plan that fails on someone else's machine.
+if want D-I; then
+banner "D-I · the README's coupled section groups match the installer suite's guards"
+DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
+import os, re, sys, importlib.util
+spec = importlib.util.spec_from_file_location(
+    "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+GUARD = re.compile(r"^\s*if\s+(want\s+\S+(?:\s*\|\|\s*want\s+\S+)+)\s*;\s*then\b")
+HEAD = "**Some sections must run in the same chunk.**"
+BULLET = re.compile(r"^- `([^`]+)`")
+
+def guard_groups(text):
+    out = set()
+    for line in text.splitlines():
+        m = GUARD.match(line)
+        if m:
+            out.add(frozenset(p.split()[1] for p in m.group(1).split("||")))
+    return out
+
+def readme_groups(text):
+    out, inside = set(), False
+    for line in text.splitlines():
+        if line.startswith(HEAD):
+            inside = True
+        elif inside and line.startswith("**"):
+            break
+        elif inside:
+            m = BULLET.match(line)
+            if m:
+                out.add(frozenset(m.group(1).split()))
+    return out
+
+def show(group):
+    return " ".join(sorted(group, key=lambda i: (len(i), i)))
+
+guards = guard_groups(R.read("tests/test-installer.sh"))
+readme = readme_groups(R.read("README.md"))
+
+ctrl_guard = guard_groups("  if want A || want B; then\n# if want C || want D; then\nif want E; then\n")
+ctrl_readme = readme_groups(HEAD + "\n\n- `X Y` - why\n- not a group\n\n**Next.**\n\n- `Z W` - after\n")
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
+
+emit("GUARDS %d" % len(guards))
+emit("README %d" % len(readme))
+emit("CTRL_GUARD %d" % (1 if ctrl_guard == {frozenset({"A", "B"})} else 0))
+emit("CTRL_README %d" % (1 if ctrl_readme == {frozenset({"X", "Y"})} else 0))
+for g in sorted(guards - readme, key=show):
+    emit("BAD D-I · a guard in tests/test-installer.sh couples %s and the README does not list that group" % show(g))
+for g in sorted(readme - guards, key=show):
+    emit("BAD D-I · the README lists %s as a coupled group and tests/test-installer.sh has no such guard" % show(g))
+PYEOF
+D_I_GUARDS="$(sed -n 's/^GUARDS //p' "$REPO/tests/.docs-out")"
+D_I_README="$(sed -n 's/^README //p' "$REPO/tests/.docs-out")"
+if [ "${D_I_GUARDS:-0}" -ge 1 ] && [ "${D_I_README:-0}" -ge 1 ]; then
+  pass "D-I · read ${D_I_GUARDS} guard groups from the suite and ${D_I_README} from the README"
+else
+  fail "D-I · parser broken: ${D_I_GUARDS:-0} guard groups, ${D_I_README:-0} README groups"
+fi
+if [ "$(sed -n 's/^CTRL_GUARD //p' "$REPO/tests/.docs-out")" = "1" ]; then
+  pass "D-I · negative control (guard parser reads one group, skips a comment and a lone guard) passed"
+else
+  fail "D-I · negative control (guard parser) failed"
+fi
+if [ "$(sed -n 's/^CTRL_README //p' "$REPO/tests/.docs-out")" = "1" ]; then
+  pass "D-I · negative control (README parser stops at the next bold heading) passed"
+else
+  fail "D-I · negative control (README parser) failed"
+fi
+if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
+  while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
+else
+  pass "D-I · every coupled group is in the README, and every README group is a guard"
+fi
+fi
+
+# ---------------------------------------------------------------- D-J
+# The README's chunk list is how the installer suite is run in practice, and a section
+# named in no chunk is skipped by every run that follows it. The suite's own rule for
+# what counts as a section id is `want <id>` on a non-comment line (the unknown-id
+# check at the top of tests/test-installer.sh); this copies that rule. One direction
+# only: a README id the suite lacks is stopped at run time by that same check.
+if want D-J; then
+banner "D-J · every installer-suite section id is in a README chunk"
+DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
+import os, re, sys, importlib.util
+spec = importlib.util.spec_from_file_location(
+    "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+WANT = re.compile(r"(?:^|[^A-Za-z0-9_])want ([A-Za-z0-9]+)")
+HEAD = "### Running the installer suite"
+CHUNK = re.compile(r"bash tests/test-installer\.sh[ \t]+(\S.*)$")
+
+def suite_ids(text):
+    out = set()
+    for line in text.splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        out.update(WANT.findall(line))
+    return out
+
+def readme_ids(text):
+    out, inside, fenced = set(), False, False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        if line.startswith(HEAD):
+            inside = True
+        elif inside and not fenced and (line.startswith("---") or re.match(r"#{1,6} ", line)):
+            break
+        elif inside:
+            m = CHUNK.search(line)
+            if m:
+                out.update(m.group(1).split())
+    return out
+
+suite = suite_ids(R.read("tests/test-installer.sh"))
+readme = readme_ids(R.read("README.md"))
+
+ctrl_suite = suite_ids("if want X; then\n# want Y\nwant_Z\nfoo_want W\n")
+ctrl_readme = readme_ids(
+    HEAD + "\n\n```bash\ntime bash tests/test-installer.sh\n"
+    "PLAYBOOK_TEST_DIR=\"$S/i1\" bash tests/test-installer.sh A B\n# not a heading\n```\n\n"
+    "---\n\nbash tests/test-installer.sh Q\n")
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
+
+emit("SUITE %d" % len(suite))
+emit("README %d" % len(readme))
+emit("CTRL_SUITE %d" % (1 if ctrl_suite == {"X"} else 0))
+emit("CTRL_README %d" % (1 if ctrl_readme == {"A", "B"} else 0))
+for i in sorted(suite - readme, key=lambda i: (len(i), i)):
+    emit("BAD D-J · section %s of tests/test-installer.sh is in no README chunk, so a chunked run never runs it" % i)
+PYEOF
+D_J_SUITE="$(sed -n 's/^SUITE //p' "$REPO/tests/.docs-out")"
+D_J_README="$(sed -n 's/^README //p' "$REPO/tests/.docs-out")"
+if [ "${D_J_SUITE:-0}" -ge 1 ] && [ "${D_J_README:-0}" -ge 1 ]; then
+  pass "D-J · read ${D_J_SUITE} section ids from the suite and ${D_J_README} from the README chunks"
+else
+  fail "D-J · parser broken: ${D_J_SUITE:-0} suite ids, ${D_J_README:-0} README ids"
+fi
+if [ "$(sed -n 's/^CTRL_SUITE //p' "$REPO/tests/.docs-out")" = "1" ]; then
+  pass "D-J · negative control (suite parser reads one id, skips a comment and two lookalikes) passed"
+else
+  fail "D-J · negative control (suite parser) failed"
+fi
+if [ "$(sed -n 's/^CTRL_README //p' "$REPO/tests/.docs-out")" = "1" ]; then
+  pass "D-J · negative control (README parser reads a chunk, skips the no-id line, stops at the rule) passed"
+else
+  fail "D-J · negative control (README parser) failed"
+fi
+if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
+  while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
+else
+  pass "D-J · every section id in the suite is in a README chunk"
 fi
 fi
 

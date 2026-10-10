@@ -36,6 +36,29 @@
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
 
+# The candidate list is the one in all seven hooks and test-hooks.sh: a WindowsApps
+# python3 goes last, never dropped (why: block-dangerous-git.sh), then the first
+# candidate that runs `-c pass` wins. No working python leaves $PY empty, and each
+# python-backed section prints its own SKIP.
+PY_LIST=()
+PY_LAST=()
+while IFS= read -r _p; do
+    [ -n "$_p" ] || continue
+    case "${_p,,}" in
+        */windowsapps/*) PY_LAST+=("$_p") ;;
+        *)               PY_LIST+=("$_p") ;;
+    esac
+done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
+PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
+
+PY=""
+for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
+    if "$_c" -c "pass" >/dev/null 2>&1; then
+        PY="$_c"
+        break
+    fi
+done
+
 AGENTS="$REPO/templates/agents"
 COMMANDS="$REPO/templates/commands"
 TEMPLATES="$REPO/templates"
@@ -356,16 +379,16 @@ fi
 # silently, because a missing skill is not an error, it is an absence.
 if want A5; then
 banner "A5 · discover puts skill:dispatch-weight in command:start-ticket's needs"
-if command -v python3 >/dev/null 2>&1; then
+if [ -n "$PY" ]; then
   mkdir -p "$SCRATCH"
-  ( cd "$REPO" && python3 install-lib.py discover templates "$SCRATCH/fakehome" ) \
+  ( cd "$REPO" && "$PY" install-lib.py discover templates "$SCRATCH/fakehome" ) \
     > "$SCRATCH/discover.json" 2> "$SCRATCH/discover.err"
   chk $? "install-lib.py discover runs (errors in $SCRATCH/discover.err)"
 
   # One reader, three assertions: the extraction is python's job because the
   # output is JSON, but the verdicts stay in the harness so they tally like
   # every other line here.
-  UNITS="$(python3 -c '
+  UNITS="$("$PY" -c '
 import json, sys
 u = json.load(open(sys.argv[1]))
 for uid in sorted(u):
@@ -561,9 +584,9 @@ fi
 # would need a line per agent and would go stale the day someone adds one.
 if want A8; then
 banner "A8 · every agent declares the skills it loads"
-if command -v python3 >/dev/null 2>&1; then
+if [ -n "$PY" ]; then
   mkdir -p "$SCRATCH"
-  ( cd "$REPO" && python3 install-lib.py discover templates "$SCRATCH/fakehome" ) \
+  ( cd "$REPO" && "$PY" install-lib.py discover templates "$SCRATCH/fakehome" ) \
     > "$SCRATCH/discover-a8.json" 2> "$SCRATCH/discover-a8.err"
   chk $? "install-lib.py discover runs (errors in $SCRATCH/discover-a8.err)"
 
@@ -574,7 +597,7 @@ if command -v python3 >/dev/null 2>&1; then
   # The backticks in the regex below are python's, not command substitution.
   # SC2016 sees a single-quoted string with backticks in it and cannot tell.
   # shellcheck disable=SC2016
-  A8="$(cd "$REPO" && python3 -c '
+  A8="$(cd "$REPO" && "$PY" -c '
 import json, re, sys
 units = json.load(open(sys.argv[1]))
 skills = {u.split(":", 1)[1] for u in units if u.startswith("skill:")}
@@ -630,11 +653,11 @@ fi
 # that has stopped being one.
 if want A9; then
 banner "A9 · the three generation templates are not installable units"
-if command -v python3 >/dev/null 2>&1; then
+if [ -n "$PY" ]; then
   mkdir -p "$SCRATCH"
 
   # python reports what it found; the verdicts stay in the harness, as in A8.
-  A9="$(cd "$REPO" && python3 -c '
+  A9="$(cd "$REPO" && "$PY" -c '
 import importlib.util, os, sys
 
 spec = importlib.util.spec_from_file_location("pblib", "install-lib.py")
@@ -1522,15 +1545,15 @@ CATALOGUE_ONLY='close-ticket confirm-deployment'
 
 if want N3; then
 banner "N3 · every command a next step names actually ships"
-if command -v python3 >/dev/null 2>&1; then
+if [ -n "$PY" ]; then
   mkdir -p "$SCRATCH"
-  ( cd "$REPO" && python3 install-lib.py discover templates "$SCRATCH/fakehome" ) \
+  ( cd "$REPO" && "$PY" install-lib.py discover templates "$SCRATCH/fakehome" ) \
     > "$SCRATCH/discover-n3.json" 2> "$SCRATCH/discover-n3.err"
   chk $? "install-lib.py discover runs (errors in $SCRATCH/discover-n3.err)"
 
   # The same /command regex install-lib.py links edges with, so this asks the
   # question the installer will answer rather than a lookalike of it.
-  N3="$(cd "$REPO" && python3 -c '
+  N3="$(cd "$REPO" && "$PY" -c '
 import json, re, sys
 units = json.load(open(sys.argv[1]))
 names = {u.split(":", 1)[1] for u in units if u.split(":", 1)[0] in ("command", "skill")}
@@ -1581,13 +1604,13 @@ fi
 # an error, it is an absence.
 if want N4; then
 banner "N4 · discover puts skill:next-steps in every terminal unit's needs"
-if command -v python3 >/dev/null 2>&1; then
+if [ -n "$PY" ]; then
   mkdir -p "$SCRATCH"
-  ( cd "$REPO" && python3 install-lib.py discover templates "$SCRATCH/fakehome" ) \
+  ( cd "$REPO" && "$PY" install-lib.py discover templates "$SCRATCH/fakehome" ) \
     > "$SCRATCH/discover-n4.json" 2> "$SCRATCH/discover-n4.err"
   chk $? "install-lib.py discover runs (errors in $SCRATCH/discover-n4.err)"
 
-  EDGES="$(python3 -c '
+  EDGES="$("$PY" -c '
 import json, sys
 u = json.load(open(sys.argv[1]))
 print("theunit" if "skill:next-steps" in u else "nounit")
