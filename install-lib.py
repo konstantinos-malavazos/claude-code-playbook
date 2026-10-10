@@ -392,6 +392,34 @@ def scan_placeholders(paths):
     return {k: sorted(set(v)) for k, v in found.items()}
 
 
+def _fill_text(text, values, delete):
+    """`text` with apply_placeholders' fills and deletes applied, line by line."""
+    lines = text.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        key = line.split(":", 1)[0]
+        if key not in BLOCKING_KEYS:
+            # body line: fill the allow-listed tokens only, and never delete
+            new = line
+            for tok in BODY_FILL_TOKENS:
+                val = values.get(tok)
+                if val and tok in new:
+                    new = new.replace(tok, val)
+            lines[i] = new
+            continue
+        new = line
+        for tok, val in values.items():
+            if tok in new:
+                new = new.replace(tok, val)
+        for tok in delete:
+            if tok in new:
+                # take the token and exactly one adjacent separator
+                new = re.sub(r",\s*" + re.escape(tok), "", new)
+                new = re.sub(re.escape(tok) + r"\s*,\s*", "", new)
+                new = new.replace(tok, "")
+        lines[i] = new
+    return "".join(lines)
+
+
 def apply_placeholders(paths, values, delete):
     """Fill or delete blocking tokens in the three frontmatter keys, plus a narrow body fill.
 
@@ -411,37 +439,10 @@ def apply_placeholders(paths, values, delete):
                 text = read(f)
             except (UnicodeDecodeError, OSError):
                 continue
-            lines = text.splitlines(keepends=True)
-            dirty = False
-            for i, line in enumerate(lines):
-                key = line.split(":", 1)[0]
-                if key not in BLOCKING_KEYS:
-                    # body line: fill the allow-listed tokens only, and never delete
-                    new = line
-                    for tok in BODY_FILL_TOKENS:
-                        val = values.get(tok)
-                        if val and tok in new:
-                            new = new.replace(tok, val)
-                    if new != line:
-                        lines[i] = new
-                        dirty = True
-                    continue
-                new = line
-                for tok, val in values.items():
-                    if tok in new:
-                        new = new.replace(tok, val)
-                for tok in delete:
-                    if tok in new:
-                        # take the token and exactly one adjacent separator
-                        new = re.sub(r",\s*" + re.escape(tok), "", new)
-                        new = re.sub(re.escape(tok) + r"\s*,\s*", "", new)
-                        new = new.replace(tok, "")
-                if new != line:
-                    lines[i] = new
-                    dirty = True
-            if dirty:
-                with open(f, "w", encoding="utf-8") as fh:
-                    fh.write("".join(lines))
+            new = _fill_text(text, values, delete)
+            if new != text:
+                with open(f, "w", encoding="utf-8", newline="\n") as fh:
+                    fh.write(new)
                 changed.append(f)
     return changed
 
@@ -950,7 +951,7 @@ def rewrite_serena(paths, prefix_to):
                 continue
             if "mcp__serena__" not in text:
                 continue
-            with open(f, "w", encoding="utf-8") as fh:
+            with open(f, "w", encoding="utf-8", newline="\n") as fh:
                 fh.write(text.replace("mcp__serena__", prefix_to))
             changed.append(f)
     return changed
@@ -1326,22 +1327,88 @@ def _shipped_versions(src):
             yield files_map
 
 
-def _matches_a_shipped_version(unit, dest):
+def _as_installed(files, unit, config):
+    """`files` ({rel: bytes}) as the install path would have written them for `unit`
+    under the answers recorded in `config`, or None when those answers change nothing."""
+    config = config or {}
+    src = unit["src"]
+    prefix = config.get("serena_prefix") or ""
+    ph = config.get("placeholders") or {}
+    values = ph.get("values") or {}
+    delete = ph.get("delete") or []
+    tracker = (config.get("tracker") or {}).get("values") or {}
+    if unit.get("kind") != "tracker":
+        tracker = {}
+    memory = config.get("memory") or {}
+    swap = memory.get("server") == "forgetful" and "forgetful.SKILL.md" in files
+    if not (prefix or values or delete or tracker or swap):
+        return None
+    out = {}
+    for rel, data in files.items():
+        try:
+            text = data.replace(b"\r\n", b"\n").decode("utf-8")
+        except UnicodeDecodeError:
+            out[rel] = data
+            continue
+        # Same order as install_stage_body: the Serena rewrite, then the placeholder fill.
+        if prefix:
+            text = text.replace("mcp__serena__", prefix)
+        if (rel or os.path.basename(src)).endswith(".md"):
+            text = _fill_text(text, values, delete)
+        if tracker and rel == "":
+            for token, value in tracker.items():
+                text = text.replace(token, value)
+        out[rel] = text.encode("utf-8")
+    if swap:
+        # Mirrors memory_schema_swap in install.sh.
+        skill = out.pop("forgetful.SKILL.md")
+        mem_prefix = memory.get("prefix") or ""
+        if mem_prefix and mem_prefix != "mcp__forgetful__":
+            try:
+                skill = skill.decode("utf-8").replace("mcp__forgetful__", mem_prefix).encode("utf-8")
+            except UnicodeDecodeError:
+                pass
+        out["SKILL.md"] = skill
+    return out
+
+
+def _matches_a_shipped_version(unit, dest, config=None):
     """An installed unit equal, modulo CRLF, to a committed version of its template
-    is stale, not edited."""
+    is stale, not edited. Each candidate is compared raw first, then as the answers
+    recorded in `config` would have rewritten and filled it."""
     src = unit["src"]
     is_dir = os.path.isdir(src)
     try:
         got = _lf_digest(_unit_bytes(dest), is_dir)
-        tpl = _lf_digest(_unit_bytes(src), is_dir)
+        tpl_files = _unit_bytes(src)
     except OSError:
         return None
-    if got == tpl:
+    if _lf_digest(tpl_files, is_dir) == got:
         return "template"
+    seen = []
     for files in _shipped_versions(src):
         if _lf_digest(files, is_dir) == got:
             return "older"
+        seen.append(files)
+    filled = _as_installed(tpl_files, unit, config)
+    if filled is None:
+        return None
+    if _lf_digest(filled, is_dir) == got:
+        return "template"
+    for files in seen:
+        older = _as_installed(files, unit, config)
+        if older is not None and _lf_digest(older, is_dir) == got:
+            return "older"
     return None
+
+
+def exclusive_siblings(units, uid, recorded):
+    """The recorded uids that share `uid`'s `exclusive` tag: one destination, at most one ours."""
+    tag = (units.get(uid) or {}).get("exclusive")
+    if not tag:
+        return []
+    return sorted(r for r in recorded
+                  if r != uid and (units.get(r) or {}).get("exclusive") == tag)
 
 
 def plan_install(units, manifest, selected, spec=None):
@@ -1350,7 +1417,8 @@ def plan_install(units, manifest, selected, spec=None):
     Six actions, and only two of them write:
       * install        — nothing there yet
       * upgrade        — there, and still byte-identical to what we last wrote,
-                         or equal to a version this clone shipped
+                         or equal to a version this clone shipped, or written by a
+                         recorded sibling of an exclusive group being switched away from
       * current        — there, ours, and already the version we ship
       * skip-edited    — there, changed since we wrote it, and matches nothing
                          this clone ever shipped. Left alone. Reported.
@@ -1365,6 +1433,7 @@ def plan_install(units, manifest, selected, spec=None):
     answers on record yet, and every unit is `install` there anyway.
     """
     recorded = manifest.get("units") or {}
+    config = manifest.get("config")
     rows = []
     for uid in selected:
         unit = units.get(uid)
@@ -1390,14 +1459,25 @@ def plan_install(units, manifest, selected, spec=None):
         if current is None:
             action = "install"
         elif rec is None:
-            # On disk but not ours — a hand-copied file from the manual path.
-            # Never adopted HERE: install.sh offers adoption on the confirm stage and
-            # records it as "adopted": True in the manifest, which permanently exempts
-            # the unit from removal. Adopting silently would instead let a later remove
-            # delete work this script never wrote.
-            action = "skip-foreign"
+            sib = exclusive_siblings(units, uid, recorded)
+            if sib:
+                # No record for this uid, but a recorded sibling wrote this file, so
+                # it is ours: judged by the sibling's record, never offered for adoption.
+                srec = recorded[sib[0]]
+                if (current == srec.get("hash")
+                        or _matches_a_shipped_version(units[sib[0]], dest, config)):
+                    action = "upgrade"
+                else:
+                    action = "skip-edited"
+            else:
+                # On disk but not ours — a hand-copied file from the manual path.
+                # Never adopted HERE: install.sh offers adoption on the confirm stage and
+                # records it as "adopted": True in the manifest, which permanently exempts
+                # the unit from removal. Adopting silently would instead let a later remove
+                # delete work this script never wrote.
+                action = "skip-foreign"
         elif current != rec.get("hash"):
-            shipped = _matches_a_shipped_version(unit, dest)
+            shipped = _matches_a_shipped_version(unit, dest, config)
             if shipped == "template":
                 # A hook that differs from the template only by CRLF is rewritten:
                 # its shebang line does not run on Linux or macOS.
@@ -1458,7 +1538,7 @@ def plan_state(manifest, units, spec=None):
             if unit is None:
                 state = "edited"
             else:
-                shipped = _matches_a_shipped_version(unit, dest)
+                shipped = _matches_a_shipped_version(unit, dest, manifest.get("config"))
                 if shipped == "template":
                     if unit["kind"] == "hook" and current != unit["source_hash"]:
                         state = "outdated"
@@ -1494,7 +1574,7 @@ def plan_state(manifest, units, spec=None):
                 state = "outdated"
         rows.append((state, uid, rec.get("kind", "?")))
     for uid in sorted(units):
-        if uid not in recorded:
+        if uid not in recorded and not exclusive_siblings(units, uid, recorded):
             rows.append(("available", uid, units[uid]["kind"]))
     return rows
 
@@ -1523,7 +1603,8 @@ def plan_remove(manifest, units=None):
             action = "keep-adopted"
         elif current == rec.get("hash"):
             action = "remove"
-        elif uid in units and _matches_a_shipped_version(units[uid], dest):
+        elif uid in units and _matches_a_shipped_version(units[uid], dest,
+                                                         manifest.get("config")):
             action = "remove"
         else:
             action = "keep-edited"

@@ -163,7 +163,7 @@ claude-code-playbook/
 │   ├── mcp/          MCP config snippets (global + project) + settings snippet
 │   ├── trackers/     one adapter, installed at ~/.claude/tracker.md
 │   └── views/        pages a skill fills with data and you open in a browser
-└── tests/                           offline, no model, no network — `bash tests/<name>`
+└── tests/                           offline, no model, no network — `bash tests/<name>.sh`, or `powershell.exe -File` / `pwsh -File` for the `.ps1`
     ├── test-wiring.sh               wiring that fails open: dispatch weight · next-steps · halt blocks
     ├── test-docs.sh                 the docs' own claims: links · counts · commands · layout tree
     ├── test-installer.sh            real installs into a sandboxed HOME, plus the static checks
@@ -194,6 +194,7 @@ Put each group below in one chunk, or a section runs twice and its results count
   test.
 - `M4 M6` — M6 checks a report from M4's run.
 - `T1 T2` — T2 reuses T1's install.
+- `SW1 SW2` — SW2 reads SW1's second run.
 
 **Give each chunk its own scratch folder.** Sections reuse the same folder names inside
 it, so two chunks sharing one folder can trip over each other. Each of these chunks took
@@ -205,11 +206,13 @@ PLAYBOOK_TEST_DIR="$S/i1" bash tests/test-installer.sh 13 17 1 2 3 4 5 6 7 9 10 
 PLAYBOOK_TEST_DIR="$S/i2" bash tests/test-installer.sh M1 M2 M8 M3 M4 M6 M5 P1
 PLAYBOOK_TEST_DIR="$S/i3" bash tests/test-installer.sh U1 U2 U3 U4 U5 U6 U7 S1 S2 S3 S4 S5 S6
 PLAYBOOK_TEST_DIR="$S/i4" bash tests/test-installer.sh T1 T2 T3 T4 T5 T6 T7
+PLAYBOOK_TEST_DIR="$S/i5" bash tests/test-installer.sh R1 R2 R3 L1 L2 L3 L4
+PLAYBOOK_TEST_DIR="$S/i6" bash tests/test-installer.sh SW1 SW2 ST1 ST2 ST3 ST4 ST5 LF1
 ```
 
 Every chunk must end with `failed 0`. Add up the `passed` lines: they should match a full
-run's. A section name that does not exist runs nothing and still passes, so check the
-section list at the end of each run.
+run's. A section name that does not exist stops the run before anything starts, with
+`unknown section id: <name>` and exit code 2.
 
 ---
 

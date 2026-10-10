@@ -1614,14 +1614,15 @@ PY
 
 write_manifest() {
   py - "$MANIFEST" "$UNITS" "$SELECTED" "$WORK/merge.json" "$HERE" "$LIB" "$WORK/plan.tsv" \
-         "$PH_SPEC" "$SERENA_PREFIX" "$WORK/tracker.json" "$WORK/adopt.txt" <<'PY'
+         "$PH_SPEC" "$SERENA_PREFIX" "$WORK/tracker.json" "$WORK/adopt.txt" \
+         "$WORK/memory.json" <<'PY'
 import sys
 sys.dont_write_bytecode = True   # don't leave a __pycache__ in the user's clone
 
 import json, os, time, importlib.util
 
 (manifest_path, units_path, sel_path, merge_path, repo, lib_path, plan_path,
- ph_path, serena_prefix, tracker_path, adopt_path) = sys.argv[1:12]
+ ph_path, serena_prefix, tracker_path, adopt_path, memory_path) = sys.argv[1:13]
 
 # reuse the library's hashing so the manifest and the planner agree exactly
 spec = importlib.util.spec_from_file_location("pblib", lib_path)
@@ -1664,6 +1665,9 @@ if os.path.exists(tracker_path):
     merged = dict(prior)
     merged.update(new.get("values", {}))
     config["tracker"] = {"adapter": new.get("adapter"), "values": merged}
+if os.path.exists(memory_path):
+    mem = json.load(open(memory_path))
+    config["memory"] = {"server": mem.get("server") or "", "prefix": mem.get("prefix") or ""}
 if config:
     manifest["config"] = config
 
@@ -1712,6 +1716,11 @@ for uid in selected:
     # remove must never delete it — not on this run and not on any later one.
     if uid in adopted or (manifest["units"].get(uid) or {}).get("adopted"):
         rec["adopted"] = True
+    # This uid now owns the destination its exclusive siblings shared.
+    for sib in pblib.exclusive_siblings(units, uid, manifest["units"]):
+        if manifest["units"][sib].get("adopted"):
+            rec["adopted"] = True
+        del manifest["units"][sib]
     manifest["units"][uid] = rec
 
 if os.path.exists(merge_path):
@@ -2309,7 +2318,7 @@ else:
         print("      Run ./install.sh to tick on the ones you want.")
 
 declined = sorted(u for u in units
-                  if u not in have and u in known_before and not u.startswith("tracker:"))
+                  if u not in have and u in known_before and not units[u].get("exclusive"))
 if declined:
     print("")
     print("      %d other unit(s) available and not installed — ./install.sh list shows them."
@@ -2348,17 +2357,19 @@ remove_mode() {
   else
     pb plan-remove "$MANIFEST" > "$WORK/rplan.tsv"
   fi
-  local action uid kind dest n_rm=0 n_keep=0 n_adopt=0
+  local action uid kind dest n_rm=0 n_keep=0 n_adopt=0 n_gone=0
   while IFS=$'\t' read -r action uid kind dest; do
     [[ -z "$action" ]] && continue
     case "$action" in
       remove)       printf '   %sremove%s  %s\n' "$RED" "$RESET" "$uid"; n_rm=$((n_rm + 1)) ;;
       keep-edited)  printf '   %skeep%s    %s  %s(you changed it)%s\n' "$GREEN" "$RESET" "$uid" "$DIM" "$RESET"; n_keep=$((n_keep + 1)) ;;
       keep-adopted) printf '   %skeep%s    %s  %s(adopted — this script never wrote it)%s\n' "$GREEN" "$RESET" "$uid" "$DIM" "$RESET"; n_adopt=$((n_adopt + 1)) ;;
+      gone)         printf '   gone    %s  %s(already deleted — nothing to remove)%s\n' "$uid" "$DIM" "$RESET"; n_gone=$((n_gone + 1)) ;;
     esac
   done < "$WORK/rplan.tsv"
   printf '\n'
   note "$n_rm will be deleted · $n_keep kept, because you edited them yourself"
+  [[ "$n_gone" -gt 0 ]] && note "$n_gone already gone from disk, so there is nothing to delete"
   [[ "$n_adopt" -gt 0 ]] && note "$n_adopt kept because they were adopted, not installed by this script"
   note "Settings this installer added are taken back out; anything you added"
   note "yourself stays exactly where it is."
@@ -2372,6 +2383,7 @@ remove_mode() {
       remove)       rm -rf "$dest"; REMOVED+=("$uid") ;;
       keep-edited)  LEFT_ALONE+=("$uid — kept, you changed it since install") ;;
       keep-adopted) LEFT_ALONE+=("$uid — kept, adopted rather than installed; this script never wrote it") ;;
+      gone)         LEFT_ALONE+=("$uid — already gone from disk; nothing to delete") ;;
     esac
   done < "$WORK/rplan.tsv"
 
@@ -2423,17 +2435,20 @@ list_mode() {
     # there is nothing recorded — plan-state then gets a path load_json reads as
     # {}. Its stdout is the Serena prefix, which nothing here wants.
     load_recorded_config >/dev/null || true
-    local state uid kind n_out=0 n_new=0
+    local state uid kind plan n_out=0 n_new=0 n_miss=0
+    # Assigned apart from `local`, which would hide plan-state's exit status.
+    plan="$(pb plan-state "$MANIFEST" "$UNITS" "$PH_SPEC")" \
+      || die "could not read what is installed: install-lib.py plan-state failed (its error is above)"
     while IFS=$'\t' read -r state uid kind; do
       case "$state" in
         current)   printf '   %s%-10s%s %s\n' "$GREEN" "current"  "$RESET" "$uid" ;;
         outdated)  printf '   %s%-10s%s %s\n' "$YELLOW" "outdated" "$RESET" "$uid"; n_out=$((n_out + 1)) ;;
         edited)    printf '   %s%-10s%s %s\n' "$BOLD" "edited"   "$RESET" "$uid" ;;
-        missing)   printf '   %-10s %s\n' "missing"   "$uid" ;;
+        missing)   printf '   %-10s %s\n' "missing"   "$uid"; n_miss=$((n_miss + 1)) ;;
         orphaned)  printf '   %s%-10s%s %s\n' "$YELLOW" "orphaned" "$RESET" "$uid" ;;
         available) printf '   %s%-10s%s %s\n' "$DIM" "available" "$RESET" "$uid"; n_new=$((n_new + 1)) ;;
       esac
-    done < <(pb plan-state "$MANIFEST" "$UNITS" "$PH_SPEC")
+    done <<< "$plan"
     printf '\n'
     note "current   = you have the same version this clone ships"
     note "outdated  = this clone has a newer version than the one you installed"
@@ -2444,6 +2459,7 @@ list_mode() {
     printf '\n'
     [[ "$n_out" -gt 0 ]] && say "$n_out would be brought up to date by:  ./install.sh update"
     [[ "$n_new" -gt 0 ]] && say "$n_new more could be added by:            ./install.sh"
+    [[ "$n_miss" -gt 0 ]] && say "$n_miss would be restored by:            ./install.sh update"
   else
     note "nothing installed by this script yet (there is no $MANIFEST)"
   fi
