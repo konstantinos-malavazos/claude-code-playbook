@@ -19,8 +19,8 @@
       pwsh.exe       -NoProfile -File tests/test-install-ps1.ps1
 
     It needs the same things install.ps1 needs — Git Bash and a python inside it —
-    because four of the seven sections run the real installer end to end. Sections 4
-    and 7 reach install.sh, so a break in EITHER half lands here.
+    because five of the nine sections run the real installer end to end. Sections 4,
+    7 and 9 reach install.sh, so a break in EITHER half lands here.
 
 .NOTES
     Nothing here writes to the real ~/.claude: every run that gets as far as install.sh
@@ -75,8 +75,8 @@ function notcrashed($result, $n) {
         'the script died on a PowerShell error record instead of printing its own message'
 }
 
-# C:\Users\x -> /c/Users/x. install.ps1 hands CLAUDE_HOME to bash verbatim by design,
-# so a Windows-shaped value would install somewhere nobody is looking.
+# C:\Users\x -> /c/Users/x.
+# Sections 4 and 7 hand install.ps1 an already bash-shaped value, which must pass through unchanged.
 function ConvertTo-BashPath([string]$p) {
     $s = $p -replace '\\', '/'
     if ($s -match '^([A-Za-z]):(.*)$') { '/' + $matches[1].ToLower() + $matches[2] } else { $s }
@@ -234,6 +234,37 @@ notinlog $r7 'discovery failed' 'discovery does not fail'
 notinlog $r7 'unexpected EOF' 'bash got a terminated command'
 notinlog $r7 "can't open file" 'python opened every path it was handed'
 notcrashed $r7 'no raw PowerShell error'
+
+# ---------------------------------------------------------------- 8 wsl shell flags
+banner '8 · the WSL hand-off runs the shell its python probe ran'
+$matchA = [regex]::Matches($src, '(?m)Invoke-Probe ''wsl\.exe'' @\(''bash'', ''([^'']*)'', \$pythonProbe\)')
+$matchB = [regex]::Matches($src, '(?m)& wsl\.exe bash ([^\s]+) "cd')
+chk ($matchA.Count -eq 1) 'WSL probe line matched exactly once' "matched $($matchA.Count) times, expected 1"
+chk ($matchB.Count -eq 1) 'WSL hand-off line matched exactly once' "matched $($matchB.Count) times, expected 1"
+if ($matchA.Count -eq 1 -and $matchB.Count -eq 1) {
+    $flagA = $matchA[0].Groups[1].Value
+    $flagB = $matchB[0].Groups[1].Value
+    chk ($flagA -eq $flagB) 'the WSL hand-off uses the same bash flag as the WSL probe' `
+        "probe used '$flagA' but hand-off used '$flagB'"
+}
+
+# ---------------------------------------------------------------- 9 claude_home translation
+banner '9 · a Windows-shaped CLAUDE_HOME is translated or refused'
+$h9 = (Join-Path $Work 'home9\.claude') -replace '/', '\'
+New-Item -ItemType Directory -Force -Path $h9 | Out-Null
+$r9a = Invoke-Installer -Dir $Repo -Log 'winhome' -Mode 'list' -WithEnv @{ CLAUDE_HOME = $h9 }
+chk ($r9a.Code -eq 0) 'exits 0' "rc=$($r9a.Code) — see $($r9a.Log)"
+$expectedPattern = 'currently installed in:\r?\n\s+' + [regex]::Escape((ConvertTo-BashPath $h9))
+chk ($r9a.Text -match $expectedPattern) 'install.sh gets the bash form of a Windows CLAUDE_HOME' `
+    "expected match for $expectedPattern"
+notinlog $r9a $h9 'the raw Windows path reaches nobody'
+notcrashed $r9a 'no raw PowerShell error'
+
+$r9b = Invoke-Installer -Dir $Repo -Log 'relhome' -Mode 'list' -WithEnv @{ CLAUDE_HOME = 'relative\.claude' }
+chk ($r9b.Code -ne 0) 'exits non-zero' "rc=$($r9b.Code)"
+inlog $r9b 'CLAUDE_HOME cannot be translated for this bash' 'CLAUDE_HOME cannot be translated for this bash'
+notinlog $r9b 'this clone can install' 'install.sh was never reached'
+notcrashed $r9b 'no raw PowerShell error'
 
 Write-Host ''
 Write-Host '================================'

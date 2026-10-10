@@ -541,6 +541,17 @@ yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "wrote nothing ($(n_files) fi
 inboth t14 "stdin is not a terminal" "says why"
 fi
 
+if want 19; then
+banner "19 - install.sh refuses the removed mode aliases"
+for t19word in uninstall upgrade status; do
+  fresh_env "t19$t19word"; with_servers
+  run_raw "$t19word" "t19$t19word"
+  yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "$t19word: exits non-zero (rc=$RC)"
+  inboth "t19$t19word" "unknown mode: $t19word" "$t19word: says unknown mode"
+  yn "$([ "$(n_files)" = "0" ] && echo 0 || echo 1)" "$t19word: wrote nothing ($(n_files) files)"
+done
+fi
+
 # ------------------------------------------------- 15 remove with no one there
 # `confirm` at EOF used to read as "no", so remove exited 0 reporting "nothing
 # changed" - a decline the user never made. Silence must not answer for them.
