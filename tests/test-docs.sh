@@ -4,7 +4,7 @@
 # whoever last counted:
 #
 #   D-A  every internal link and anchor resolves
-#   D-B  no prose count contradicts the tree
+#   D-B  no prose count contradicts the tree (totals, blocking, ordinals)
 #   M7   the memory gate and the docs agree
 #   D-C  every /command named in prose ships a template, or is allowlisted
 #   D-D  the README layout tree names every top-level entry
@@ -16,9 +16,11 @@
 #   D-H  every tracked .md is stored with LF line endings
 #   D-I  the README's coupled installer-suite section groups match the suite's guards
 #   D-J  every installer-suite section id is in a README chunk
+#   D-K  every markdown table row has its table's cell count
+#   D-L  a section id that names no section, and a missing python, fail the run
 #
 #   bash tests/test-docs.sh              # all sections
-#   bash tests/test-docs.sh D-B D-D      # only these
+#   bash tests/test-docs.sh D-B D-D      # only these; an unknown id stops the run (exit 2)
 #
 # Deterministic and offline: no network, no model, no install. It reads the docs
 # and the tree and asserts the docs still describe the tree.
@@ -55,6 +57,26 @@ banner() { printf '\n=== %s\n' "$1"; }
 WANT="$*"
 want() { [ -z "$WANT" ] && return 0; case " $WANT " in *" $1 "*) return 0;; esac; return 1; }
 
+# Every argument must name a section, or it would match no `want` and run nothing,
+# green. Ids come from column-0 `if want <id>;` lines only: the python control
+# strings below hold `want A` and the like, which a looser match would accept.
+if [ "$#" -gt 0 ]; then
+    _ids=" $(grep -oE '^if want [[:alnum:]-]+;' "${BASH_SOURCE[0]}" \
+             | sed -e 's/^if want //' -e 's/;$//' | sort -u | tr '\n' ' ')"
+    if [ -z "${_ids// /}" ]; then
+        echo "found no sections in ${BASH_SOURCE[0]}" >&2
+        exit 2
+    fi
+    _bad=0
+    for _a in "$@"; do
+        case "$_ids" in
+            *" $_a "*) ;;
+            *) echo "unknown section id: $_a" >&2; _bad=1 ;;
+        esac
+    done
+    [ "$_bad" = "0" ] || exit 2
+fi
+
 # Every section reads markdown, and the fenced-block rule is the one thing they all
 # have to agree on, so the readers live in one python module the sections import.
 #
@@ -83,9 +105,9 @@ done
 printf 'docs scrub — %s\n' "$REPO"
 
 if [ -z "$PY" ]; then
-  printf '\n    SKIP  python3 — NOT INSTALLED on this machine, so NOTHING here ran\n'
-  printf '\n=== 0 passed, 0 failed (suite skipped)\n'
-  exit 0
+  printf '\n    FAIL  python — no working python3 or python, so NOTHING here ran\n'
+  printf '\n=== 0 passed, 1 failed (nothing ran)\n'
+  exit 1
 fi
 
 # ---------------------------------------------------------------- shared readers
@@ -246,10 +268,13 @@ fi
 # the installer cannot drift apart even if both are edited.
 #
 # Catches: §2 and §4 of #109, permanently, including the next agent added.
+#
+# Out of reach: a count with no noun ("Three things stay blocked") names no set, so
+# there is no derived number to hold it to.
 if want D-B; then
 banner "D-B · no prose count contradicts the tree"
 DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
-import glob, os, re, sys, importlib.util
+import glob, json, os, re, sys, importlib.util
 spec = importlib.util.spec_from_file_location(
     "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
 R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
@@ -276,11 +301,24 @@ MEMORY = len([f for f in agent_files if MEMTOK.search(R.read(os.path.relpath(f, 
 lib = R.read("install-lib.py")
 m = re.search(r"SKIP_HOOKS\s*=\s*\{([^}]*)\}", lib)
 skip = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
+skip_found = len(skip) if m else -1
 hook_files = [os.path.basename(f) for f in sorted(glob.glob(os.path.join(REPO, "templates/hooks/*.sh")))]
 HOOKS = len([f for f in hook_files if f not in skip])
 
-emit("DERIVED agents=%d serena=%d memory=%d hooks=%d skip=%s"
-     % (AGENTS, SERENA, MEMORY, HOOKS, ",".join(sorted(skip))))
+# "Blocking" is what the installer wires to PreToolUse, read from the snippet it
+# merges into settings.json.
+try:
+    pre = json.loads(R.read("templates/hooks/settings-hooks.snippet.json"))["hooks"]["PreToolUse"]
+    BLOCKING = set(os.path.basename(h["command"]) for e in pre for h in e["hooks"])
+    BLOCKING &= set(f for f in hook_files if f not in skip)
+    blocking_found = len(BLOCKING)
+except (OSError, ValueError, KeyError, TypeError):
+    BLOCKING, blocking_found = set(), -1
+
+emit("DERIVED agents=%d serena=%d memory=%d hooks=%d blocking=%d skip=%s"
+     % (AGENTS, SERENA, MEMORY, HOOKS, len(BLOCKING), ",".join(sorted(skip))))
+emit("SKIPFOUND %d" % skip_found)
+emit("BLOCKFOUND %d" % blocking_found)
 
 WORDS = {"one":1,"two":2,"three":3,"four":4,"five":5,"six":6,"seven":7,"eight":8,
          "nine":9,"ten":10,"eleven":11,"twelve":12,"thirteen":13,"fourteen":14,
@@ -305,9 +343,44 @@ INVENTORY = re.compile(r"Serena|refuse to run", re.I)
 # memory-declaring subset, not the Serena one. Without this the two subsets share a
 # regex and any true memory count reads as a wrong Serena count.
 MEMCLAIM = re.compile(r"memory", re.I)
-# A count with a qualifier between it and the noun ("four blocking hooks") is a claim
-# about a subset, not the total, and deliberately does not match.
+# "blocking" is the one qualifier with a set the tree can derive. Any other word
+# between the count and the noun ("the two git hooks") matches nothing.
 HOOKS_RE = re.compile(r"\b(%s) (?:guardrail )?hooks\b" % NUM, re.I)
+BLOCKING_RE = re.compile(r"\b(%s) blocking hooks\b" % NUM, re.I)
+
+ORDINALS = {"first":1,"second":2,"third":3,"fourth":4,"fifth":5,"sixth":6,"seventh":7,
+            "eighth":8,"ninth":9,"tenth":10,"eleventh":11,"twelfth":12,"thirteenth":13,
+            "fourteenth":14,"fifteenth":15,"sixteenth":16,"seventeenth":17,
+            "eighteenth":18,"nineteenth":19,"twentieth":20}
+ORD = r"(?:\d+(?:st|nd|rd|th)|" + "|".join(sorted(ORDINALS, key=len, reverse=True)) + r")"
+
+def ordval(tok):
+    t = tok.lower()
+    return int(t[:-2]) if t[:-2].isdigit() else ORDINALS[t]
+
+# Singular only, so it never sees "hooks". An ordinal hook is a hypothetical one past
+# the set ("a phantom eighth hook"), so it must be the total plus one.
+ORD_HOOK_RE = re.compile(r"\b(%s) (?:guardrail )?hook\b" % ORD, re.I)
+
+def hook_claims(line, hooks, blocking):
+    """(claims seen, [why each wrong one is wrong]) for the hook counts on LINE."""
+    seen, out = 0, []
+    for m in HOOKS_RE.finditer(line):
+        seen += 1
+        if val(m.group(1)) != hooks:
+            out.append("\"%s\" — the installer wires %d hooks (SKIP_HOOKS excluded)"
+                       % (m.group(0), hooks))
+    for m in BLOCKING_RE.finditer(line):
+        seen += 1
+        if val(m.group(1)) != blocking:
+            out.append("\"%s\" — the installer wires %d blocking (PreToolUse) hooks"
+                       % (m.group(0), blocking))
+    for m in ORD_HOOK_RE.finditer(line):
+        seen += 1
+        if ordval(m.group(1)) != hooks + 1:
+            out.append("\"%s\" — an ordinal hook is one past the %d the installer wires"
+                       % (m.group(0), hooks))
+    return seen, out
 
 # The docs and the two installers. tests/ is excluded: a suite that reasons ABOUT
 # these numbers is not a doc making a claim.
@@ -340,13 +413,25 @@ for rel in SOURCES:
                 if v != subset:
                     bad.append("%s:%d  \"%s\" — %d agents declare %s tools, not %d"
                                % (rel, n, m.group(0), subset, what, v))
-        for m in HOOKS_RE.finditer(line):
-            seen += 1
-            v = val(m.group(1))
-            if v != HOOKS:
-                bad.append("%s:%d  \"%s\" — the installer wires %d hooks (SKIP_HOOKS excluded)"
-                           % (rel, n, m.group(0), HOOKS))
+        s, msgs = hook_claims(line, HOOKS, len(BLOCKING))
+        seen += s
+        for msg in msgs:
+            bad.append("%s:%d  %s" % (rel, n, msg))
 
+# Controls through the same function, worded from the dicts so no number is written
+# down here: the right claim must be seen and pass, the wrong one must be flagged.
+WORD_OF = {v: k for k, v in WORDS.items()}
+ORD_OF = {v: k for k, v in ORDINALS.items()}
+
+def control(right, wrong):
+    rs, rbad = hook_claims(right, HOOKS, len(BLOCKING))
+    _, wbad = hook_claims(wrong, HOOKS, len(BLOCKING))
+    return 1 if rs == 1 and not rbad and wbad else 0
+
+emit("CTRL_ORD %d" % control("a phantom %s hook" % ORD_OF.get(HOOKS + 1),
+                             "a phantom %s hook" % ORD_OF.get(HOOKS + 2)))
+emit("CTRL_BLOCKING %d" % control("the %s blocking hooks" % WORD_OF.get(len(BLOCKING)),
+                                  "the %s blocking hooks" % WORD_OF.get(len(BLOCKING) + 1)))
 emit("SEEN %d" % seen)
 for b in bad:
     emit("BAD " + b)
@@ -354,12 +439,30 @@ PYEOF
 sed -n 's/^DERIVED /           derived: /p' "$REPO/tests/.docs-out"
 D_B_SEEN="$(sed -n 's/^SEEN //p' "$REPO/tests/.docs-out")"
 D_B_SKIP="$(sed -n 's/^DERIVED .*skip=//p' "$REPO/tests/.docs-out")"
-# Two positive controls. An empty SKIP_HOOKS would silently make the hook total
-# wrong-but-consistent, and a regex that matched nothing would pass by default.
-if [ -n "$D_B_SKIP" ]; then
+D_B_SKIPFOUND="$(sed -n 's/^SKIPFOUND //p' "$REPO/tests/.docs-out")"
+D_B_BLOCKFOUND="$(sed -n 's/^BLOCKFOUND //p' "$REPO/tests/.docs-out")"
+# Positive controls. A missing SKIP_HOOKS makes the hook total wrong-but-consistent,
+# a missing snippet leaves no blocking set, and a regex that matched nothing would
+# pass by default.
+if [ "${D_B_SKIPFOUND:--1}" -ge 1 ]; then
   pass "SKIP_HOOKS parsed out of install-lib.py: $D_B_SKIP"
 else
-  fail "SKIP_HOOKS did not parse — the hook total is being derived from nothing"
+  fail "SKIP_HOOKS not found in install-lib.py (got ${D_B_SKIPFOUND:-nothing})"
+fi
+if [ "${D_B_BLOCKFOUND:--1}" -ge 1 ]; then
+  pass "read ${D_B_BLOCKFOUND} blocking (PreToolUse) hooks from settings-hooks.snippet.json"
+else
+  fail "blocking hooks not found in settings-hooks.snippet.json (got ${D_B_BLOCKFOUND:-nothing})"
+fi
+if [ "$(sed -n 's/^CTRL_ORD //p' "$REPO/tests/.docs-out")" = "1" ]; then
+  pass "negative control (a wrong ordinal hook flagged, the right one not) passed"
+else
+  fail "negative control (a wrong ordinal hook flagged, the right one not) failed"
+fi
+if [ "$(sed -n 's/^CTRL_BLOCKING //p' "$REPO/tests/.docs-out")" = "1" ]; then
+  pass "negative control (a wrong blocking-hook count flagged, the right one not) passed"
+else
+  fail "negative control (a wrong blocking-hook count flagged, the right one not) failed"
 fi
 if [ "${D_B_SEEN:-0}" -ge 4 ]; then
   pass "found $D_B_SEEN written-down counts to check"
@@ -1163,6 +1266,153 @@ if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
 else
   pass "D-J · every section id in the suite is in a README chunk"
 fi
+fi
+
+# ---------------------------------------------------------------- D-K
+# GitHub splits a table row on every pipe not preceded by a backslash, inside a code
+# span too, so `<main|develop>` in a cell adds cells and pushes the row's tail out of
+# its column. A row whose cell count differs from its delimiter row's is that defect.
+if want D-K; then
+banner "D-K · every markdown table row has its table's cell count"
+DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
+import os, re, sys, importlib.util
+spec = importlib.util.spec_from_file_location(
+    "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+QUOTE = re.compile(r"^\s{0,3}(?:>\s?)*")
+PIPE = re.compile(r"(?<!\\)\|")
+DELIM = re.compile(r"^\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?$")
+
+def cells(row):
+    s = row.strip()
+    if s.startswith("|"):
+        s = s[1:]
+    if s.endswith("|") and not s.endswith("\\|"):
+        s = s[:-1]
+    return len(PIPE.split(s))
+
+def bad_rows(lines):
+    """(tables, rows, [(1-based line, cells, width)]) for every table in LINES."""
+    lines = [QUOTE.sub("", l, count=1) for l in lines]
+    tables, rows, out = 0, 0, []
+    i = 1
+    while i < len(lines):
+        if not (PIPE.search(lines[i - 1]) and DELIM.match(lines[i].strip())):
+            i += 1
+            continue
+        tables += 1
+        width = cells(lines[i])
+        members = [i - 1]
+        j = i + 1
+        while j < len(lines) and lines[j].strip() and PIPE.search(lines[j]):
+            members.append(j)
+            j += 1
+        for k in members:
+            rows += 1
+            c = cells(lines[k])
+            if c != width:
+                out.append((k + 1, c, width))
+        i = j
+    return tables, rows, out
+
+tables, rows, bad = 0, 0, []
+for rel in R.tracked(".md"):
+    if not (rel.startswith(("templates/", "docs/")) or "/" not in rel):
+        continue
+    t, r, b = bad_rows(R.strip_fences(R.read(rel)).splitlines())
+    tables += t
+    rows += r
+    for n, c, w in b:
+        bad.append("D-K · %s:%d has %d cells, its table has %d" % (rel, n, c, w))
+
+_, _, ctrl_broken = bad_rows(["| a | b |", "|---|---|", "| `x|y` | z |"])
+ctrl_t, _, ctrl_escaped = bad_rows(["| a | b |", "|---|---|", "| `x\\|y` | z |"])
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
+
+emit("TABLES %d" % tables)
+emit("ROWS %d" % rows)
+emit("CTRL_BROKEN %d" % (1 if ctrl_broken else 0))
+emit("CTRL_ESCAPED %d" % (1 if ctrl_t == 1 and not ctrl_escaped else 0))
+for b in bad:
+    emit("BAD " + b)
+PYEOF
+D_K_TABLES="$(sed -n 's/^TABLES //p' "$REPO/tests/.docs-out")"
+D_K_ROWS="$(sed -n 's/^ROWS //p' "$REPO/tests/.docs-out")"
+if [ "${D_K_TABLES:-0}" -ge 100 ]; then
+  pass "D-K · read ${D_K_TABLES} tables, ${D_K_ROWS:-0} rows"
+else
+  fail "D-K · found only ${D_K_TABLES:-0} tables — the table reader is broken, not the docs"
+  sed -n '1,5p' "$REPO/tests/.docs-out"
+fi
+if [ "$(sed -n 's/^CTRL_BROKEN //p' "$REPO/tests/.docs-out")" = "1" ]; then
+  pass "D-K · negative control (a bare pipe in a cell is flagged) passed"
+else
+  fail "D-K · negative control (a bare pipe in a cell is flagged) failed"
+fi
+if [ "$(sed -n 's/^CTRL_ESCAPED //p' "$REPO/tests/.docs-out")" = "1" ]; then
+  pass "D-K · negative control (an escaped pipe in a cell is not flagged) passed"
+else
+  fail "D-K · negative control (an escaped pipe in a cell is not flagged) failed"
+fi
+if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
+  while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
+else
+  pass "D-K · every table row has its table's cell count"
+fi
+fi
+
+# ---------------------------------------------------------------- D-L
+# A run that checked nothing must not exit 0. Every child below names a section: with
+# no argument a child would run every section, this one included, and recurse.
+if want D-L; then
+banner "D-L · a section id that names no section, and a missing python, fail the run"
+D_L_TMP="$(mktemp -d)"
+bash "$HERE/test-docs.sh" NO_SUCH_SECTION > "$D_L_TMP/typo.out" 2>&1
+D_L_RC=$?
+if [ "$D_L_RC" != "0" ]; then
+  pass "D-L · an unknown section id exits non-zero (rc=$D_L_RC)"
+else
+  fail "D-L · an unknown section id exits non-zero (rc=$D_L_RC)"
+fi
+if grep -qF 'NO_SUCH_SECTION' "$D_L_TMP/typo.out"; then
+  pass "D-L · an unknown section id is named in the output"
+else
+  fail "D-L · an unknown section id is named in the output"
+fi
+D_L_STUB="$D_L_TMP/stub"
+mkdir -p "$D_L_STUB" &&
+  printf '#!/bin/sh\nexit 9009\n' > "$D_L_STUB/python3" &&
+  cp "$D_L_STUB/python3" "$D_L_STUB/python" &&
+  chmod +x "$D_L_STUB/python3" "$D_L_STUB/python"
+if [ "$(PATH="$D_L_STUB:$PATH" command -v python3)" = "$D_L_STUB/python3" ] &&
+   [ "$(PATH="$D_L_STUB:$PATH" command -v python)" = "$D_L_STUB/python" ]; then
+  PATH="$D_L_STUB:$PATH" bash "$HERE/test-docs.sh" D-H > "$D_L_TMP/nopy.out" 2>&1
+  D_L_RC=$?
+  if [ "$D_L_RC" != "0" ]; then
+    pass "D-L · no working python exits non-zero (rc=$D_L_RC)"
+  else
+    fail "D-L · no working python exits non-zero (rc=$D_L_RC)"
+  fi
+else
+  fail "D-L · [setup] stub python is not first on PATH — the no-python case did not run"
+fi
+PLAYBOOK_TEST_DIR="$D_L_TMP/wiring" bash "$HERE/test-wiring.sh" NO_SUCH_SECTION \
+  > "$D_L_TMP/wiring.out" 2>&1
+D_L_RC=$?
+if [ "$D_L_RC" != "0" ]; then
+  pass "D-L · test-wiring.sh: an unknown section id exits non-zero (rc=$D_L_RC)"
+else
+  fail "D-L · test-wiring.sh: an unknown section id exits non-zero (rc=$D_L_RC)"
+fi
+if grep -qF 'NO_SUCH_SECTION' "$D_L_TMP/wiring.out"; then
+  pass "D-L · test-wiring.sh: an unknown section id is named in the output"
+else
+  fail "D-L · test-wiring.sh: an unknown section id is named in the output"
+fi
+rm -rf "$D_L_TMP"
 fi
 
 rm -f "$REPO/tests/.docs-out" "$REPO/tests/.docs-readers.py"

@@ -33,8 +33,8 @@ This table is an **index**, not the owner: each repo also states its own branch 
 
 | Repo | Main branch |
 |---|---|
-| `<repo-a>` | `<main|develop|...>` |
-| `<repo-b>` | `<main|develop|...>` |
+| `<repo-a>` | `<main\|develop\|...>` |
+| `<repo-b>` | `<main\|develop\|...>` |
 
 For any repo not listed: detect via `git symbolic-ref refs/remotes/origin/HEAD` and ASK
 before branching.
