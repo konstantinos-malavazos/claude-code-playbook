@@ -165,7 +165,7 @@ claude-code-playbook/
 │   └── views/        pages a skill fills with data and you open in a browser
 └── tests/                           offline, no model, no network — `bash tests/<name>.sh`, or `powershell.exe -File` / `pwsh -File` for the `.ps1`
     ├── test-wiring.sh               wiring that fails open: dispatch weight · next-steps · halt blocks
-    ├── test-docs.sh                 the docs' own claims: links · counts · commands · layout tree
+    ├── test-docs.sh                 the docs' own claims: links · counts · commands · layout tree · table shape
     ├── test-installer.sh            real installs into a sandboxed HOME, plus the static checks
     └── test-install-ps1.ps1         install.ps1's preflight, under PowerShell 5.1 and 7
 ```

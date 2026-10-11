@@ -12,7 +12,7 @@
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
-#   bash tests/test-wiring.sh A1 N2      # only these
+#   bash tests/test-wiring.sh A1 N2      # only these; an unknown id stops the run (exit 2)
 #
 # Deterministic and offline: no network, no model, no install. It reads the
 # templates and the docs and asserts both wirings are still wired.
@@ -78,6 +78,25 @@ banner() { printf '\n=== %s\n' "$1"; }
 
 WANT="$*"
 want() { [ -z "$WANT" ] && return 0; case " $WANT " in *" $1 "*) return 0;; esac; return 1; }
+
+# Every argument must name a section, or it would match no `want` and run nothing,
+# green.
+if [ "$#" -gt 0 ]; then
+    _ids=" $(grep -oE '^if want [[:alnum:]-]+;' "${BASH_SOURCE[0]}" \
+             | sed -e 's/^if want //' -e 's/;$//' | sort -u | tr '\n' ' ')"
+    if [ -z "${_ids// /}" ]; then
+        echo "found no sections in ${BASH_SOURCE[0]}" >&2
+        exit 2
+    fi
+    _bad=0
+    for _a in "$@"; do
+        case "$_ids" in
+            *" $_a "*) ;;
+            *) echo "unknown section id: $_a" >&2; _bad=1 ;;
+        esac
+    done
+    [ "$_bad" = "0" ] || exit 2
+fi
 
 # ---------------------------------------------------------------- readers
 #
@@ -1241,7 +1260,7 @@ done
 # one a guardrail has. SKIP_HOOKS is read out of the installer itself, the way
 # tests/test-docs.sh derives the same set, so a hook the installer stops wiring
 # stops being asserted here without anyone editing this file. Pure bash on
-# purpose: tests/test-docs.sh exits early with a SKIP when there is no python,
+# purpose: tests/test-docs.sh fails without running anything when there is no python,
 # and this check has to run on the machine that has none.
 A12_WIRINGS="$TEMPLATES/hooks/settings-hooks.snippet.json $TEMPLATES/mcp/settings.json.snippet"
 A12_SKIP="$(sed -n 's/^SKIP_HOOKS[[:space:]]*=[[:space:]]*{\(.*\)}.*/\1/p' "$REPO/install-lib.py" \
