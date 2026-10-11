@@ -36,7 +36,11 @@ agent and carries on, **whoever spawned it owns checking on it** — at each mul
 stated expectation. The harness notifies you when a background agent finishes and never
 while it is silent, so a stuck one and a working one read identically until you look, and
 nothing in this repo looks for you. Report what the check found rather than extending the
-wait. Every such dispatch also states a persona, by the rule in the
+wait. **The command owns all backgrounding**: a dispatched subagent does not background its
+own runs. When a subagent hands the run back to its parent, the command runs it — in the
+foreground, in chunks that fit under the tool's maximum, or in the background with its
+expectation stated and checked as above. A hand-back after the tool stopped a run names
+what the subagent stopped; re-run it only once none of that is still running. Every such dispatch also states a persona, by the rule in the
 [agents README](../agents/README.md) — the same three answers, in the same order.
 
 ## The set

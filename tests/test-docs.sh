@@ -18,6 +18,7 @@
 #   D-J  every installer-suite section id is in a README chunk
 #   D-K  every markdown table row has its table's cell count
 #   D-L  a section id that names no section, and a missing python, fail the run
+#   D-M  a subagent waits in the foreground or hands the run back
 #
 #   bash tests/test-docs.sh              # all sections
 #   bash tests/test-docs.sh D-B D-D      # only these; an unknown id stops the run (exit 2)
@@ -1413,6 +1414,70 @@ else
   fail "D-L · test-wiring.sh: an unknown section id is named in the output"
 fi
 rm -rf "$D_L_TMP"
+fi
+
+# ---------------------------------------------------------------- D-M
+# A subagent's run can end before work it backgrounded does, and nothing then wakes it.
+# So the files a subagent or its parent reads must say: wait in the foreground, or save
+# the work and hand the run back. A pinned phrase may break across lines.
+#
+# Catches: a reword that drops the hand-back, or the stop-by-command-line step, from a
+# file that carries the rule; and "background by design" / "Poll in the background",
+# which tell a subagent to background work it needs, anywhere in a tracked .md.
+if want D-M; then
+banner "D-M · a subagent waits in the foreground or hands the run back"
+DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
+import os, sys, re, importlib.util
+spec = importlib.util.spec_from_file_location(
+    "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
+
+def phrase(words):
+    return re.compile(r"\s+".join(re.escape(w) for w in words.split()))
+
+HANDBACK = "hands the run back to its parent"
+BYCMD = "by its command line, not by the PID you started"
+PINS = (
+    ("templates/agents/README.md", (HANDBACK, BYCMD)),
+    ("templates/commands/README.md", (HANDBACK,)),
+    ("templates/agents/tester.md", (HANDBACK, BYCMD)),
+    ("templates/claude-md/global.CLAUDE.md", (HANDBACK, BYCMD)),
+)
+RETIRED = ("background by design", "Poll in the background")
+
+read = 0
+for rel, wanted in PINS:
+    if not os.path.isfile(os.path.join(R.REPO, rel)):
+        emit("BAD D-M · %s does not exist, so nothing there can carry the rule" % rel)
+        continue
+    text = R.strip_fences(R.read(rel))
+    read += 1
+    for p in wanted:
+        if not phrase(p).search(text):
+            emit("BAD D-M · %s does not say \"%s\"" % (rel, p))
+emit("READ %d" % read)
+
+for rel in R.tracked(".md"):
+    text = R.strip_fences(R.read(rel))
+    for p in RETIRED:
+        for m in phrase(p).finditer(text):
+            emit("BAD D-M · %s:%d still says \"%s\"" % (rel, text.count("\n", 0, m.start()) + 1, p))
+PYEOF
+D_M_READ="$(sed -n 's/^READ //p' "$REPO/tests/.docs-out")"
+if [ "${D_M_READ:-0}" = "4" ]; then
+  pass "D-M · read all 4 files that must carry the rule"
+else
+  fail "D-M · read ${D_M_READ:-0} of the 4 files that must carry the rule — the reader is broken, not the docs"
+  sed -n '1,5p' "$REPO/tests/.docs-out"
+fi
+if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
+  while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
+else
+  pass "D-M · every pinned file states the rule, and no tracked .md carries the retired advice"
+fi
 fi
 
 rm -f "$REPO/tests/.docs-out" "$REPO/tests/.docs-readers.py"

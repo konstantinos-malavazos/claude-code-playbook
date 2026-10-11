@@ -253,9 +253,23 @@ directory name. Same placeholder, opposite consequence:
   guardrail nobody keeps is worse than none. The tool is **already bounded**: it has a default
   timeout and a maximum, both properties of the harness version, so read them off the tool
   rather than from any sentence here. What is unbounded is the *unexplained long hold* — a
-  call asking for materially more than the default while saying nothing about why. Anything
-  you expect to run past the maximum goes to the **background by design**, decided before you
-  launch it and not after it appears to hang.
+  call asking for materially more than the default while saying nothing about why.
+  **Only the main session runs work in the background**, decided before it launches the run
+  and not after the run appears to hang. A subagent cannot count on being woken once its
+  turn ends, so it never backgrounds work it needs to see finish. When the remaining run
+  fits under the tool's maximum, the subagent waits in the foreground: one bounded call that
+  loops on the completion condition, with an explicit timeout and a stated expectation.
+  When it does not fit, the subagent splits the run; when it cannot be split, it saves its
+  work to its handoff and hands the run back to its parent with the exact command, its
+  expectation and the follow-on step. A parent that is itself a subagent applies the same
+  rule, up to the main session.
+  **A run of unknown length runs in the foreground at the tool's maximum.** If the tool stops
+  it, part of it can still be running — on Windows the timeout kills Git Bash's launcher
+  shim, not the shell behind it. Find what is left by its command line, not by the PID you
+  started, stop the whole tree (`taskkill /T /F` on Windows), check that nothing is left,
+  and name what you stopped in the hand-back. This is the one kill the
+  [no-kill rule](../hooks/README.md#do-not-kill-a-slow-run-on-windows) leaves you: the run
+  is already stopped, and what you remove is its orphans.
   **Stating an expectation is not writing a runtime into a doc.** The estimate is yours, for
   this one call, and it dies when the call returns. A second-count written into prose is the
   opposite thing and stays refused: a runtime is a property of the machine that measured it,
@@ -264,7 +278,11 @@ directory name. Same placeholder, opposite consequence:
 - **Report an overrun at three times the stated expectation, or ten minutes, whichever comes
   first.** A ratio with a floor: the ratio scales with the job, the floor catches the call
   you expected to be instant. Check spawned work at each multiple of its stated expectation —
-  the harness notifies you on completion and never on silence. Never a per-script
+  the harness notifies you on completion and never on silence. That check binds whoever
+  holds the turn: the main session for its background work, the dispatcher for a subagent.
+  The Agent tool takes no timeout, so a dispatch states its expectation in the prompt.
+  **Nothing in this repo enforces the check** — no hook sees a backgrounded call, and no
+  hook fires on the passage of time. Never a per-script
   second-count; the trigger is measured against your own estimate, so it survives a faster
   machine and a slower suite without being rewritten.
   **The required response is report-and-stop**: say what you expected, what has actually

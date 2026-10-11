@@ -117,6 +117,7 @@ ALLOWLIST
 HOOK_HOME="$DENY_HOME"   # every case runs unlisted unless it says otherwise
 HOOK_CWD="$REPO"
 HOOK_PATH="$PATH"        # the no-parser section swaps this for one with no python
+HOOK_ORIGIN=""           # the scratch repo's origin when it is not allowed-repo
 
 # HOOK_CWD is assigned once and never reassigned, so its JSON encoding is the same string
 # for every case in this file. It used to be recomputed inside run(), which is one python
@@ -128,6 +129,38 @@ HOOK_CWD_JSON=$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$HOOK
 # $TILDE is a variable rather than a literal because the replacement half of a
 # ${var//pat/repl} is tilde-expanded.
 TILDE='~'
+
+# The settings a case runs under that its result line would not otherwise show: which
+# allowlist home, which PATH, which origin. Names only the non-default ones, so no two
+# result lines read the same. Assigns SUF instead of printing: $(...) would fork per case.
+# Home and PATH labels are read off the variables that hold them, so a label cannot
+# disagree with what ran.
+settings_suffix() {
+    local s=""
+    if [ "$HOOK_HOME" = "$ALLOW_HOME" ]; then
+        s="listed home"
+    fi
+    if [ "$HOOK_PATH" != "$PATH" ]; then
+        local p="PATH changed"
+        if [ "$HOOK_PATH" = "${NOPY_PATH-}" ]; then
+            p="no python on PATH"
+        elif [ "$HOOK_PATH" = "${STUBDIR-}:${NOPY_PATH-}" ]; then
+            p="python3 stub on PATH"
+        elif [ "$HOOK_PATH" = "${WAPPS_MIX-}:${REALDIR-}:${NOPY_PATH-}" ]; then
+            p="WindowsApps python3 beside a real python"
+        elif [ "$HOOK_PATH" = "${WAPPS_REAL-}:${NOPY_PATH-}" ]; then
+            p="WindowsApps python3 only"
+        fi
+        s="${s:+$s, }$p"
+    fi
+    if [ -n "$HOOK_ORIGIN" ]; then
+        s="${s:+$s, }$HOOK_ORIGIN origin"
+    fi
+    SUF=""
+    if [ -n "$s" ]; then
+        SUF="  {$s}"
+    fi
+}
 
 run() { # <script> <tool-name> <command> <expected-exit>
     local payload
@@ -146,40 +179,57 @@ run() { # <script> <tool-name> <command> <expected-exit>
     shown=${3//$'\n'/$TILDE}
     shown=${shown//$'\r'/^}
     ran=$((ran + 1))
+    settings_suffix
     if [ "$got" = "$4" ]; then
-        printf '  ok   %s [%s] %s\n' "${1##*/}" "$2" "$shown"
+        printf '  ok   %s [%s] %s%s\n' "${1##*/}" "$2" "$shown" "$SUF"
     else
-        printf '  FAIL %s [%s] exit=%s want=%s  %s\n' "${1##*/}" "$2" "$got" "$4" "$shown"
+        printf '  FAIL %s [%s] exit=%s want=%s  %s%s\n' "${1##*/}" "$2" "$got" "$4" "$shown" "$SUF"
         fail=$((fail + 1))
     fi
 }
 
 run_raw() { # <script> <label> <raw-payload> <expected-exit>
-    printf '%s' "$3" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" >/dev/null 2>&1
+    # Both encoding variables cleared, never inherited: a caller exporting either one runs
+    # the hook in UTF-8, and a native-encoding row then goes green against a hook that
+    # breaks in the native code page.
+    (
+        unset PYTHONIOENCODING PYTHONUTF8
+        printf '%s' "$3" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" >/dev/null 2>&1
+    )
     local got=$?
     ran=$((ran + 1))
+    settings_suffix
     if [ "$got" = "$4" ]; then
-        printf '  ok   %s [%s]\n' "${1##*/}" "$2"
+        printf '  ok   %s [%s]%s\n' "${1##*/}" "$2" "$SUF"
     else
-        printf '  FAIL %s [%s] exit=%s want=%s\n' "${1##*/}" "$2" "$got" "$4"
+        printf '  FAIL %s [%s] exit=%s want=%s%s\n' "${1##*/}" "$2" "$got" "$4" "$SUF"
         fail=$((fail + 1))
     fi
 }
 
-run_utf8() { # <script> <tool-name> <command, with no double quote or backslash> <expected-exit>
+run_utf8() { # <script> <tool-name> <command, with no double quote or backslash> <expected-exit> [forced-encoding]
     # run() builds its JSON with json.dumps, which escapes every non-ASCII character, so a
     # hook never sees a raw UTF-8 byte from it. This sends the command's bytes as they are.
-    local payload got shown
+    # The encoding comes from the fifth argument and nowhere else: both variables are
+    # cleared first, so an exported one cannot turn a native row into a UTF-8 row.
+    local payload got shown enc="${5-}"
     printf -v payload '{"tool_name":"%s","cwd":%s,"tool_input":{"command":"%s"}}' "$2" \
         "$HOOK_CWD_JSON" "$3"
-    printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" >/dev/null 2>&1
+    (
+        unset PYTHONIOENCODING PYTHONUTF8
+        if [ -n "$enc" ]; then
+            export PYTHONIOENCODING="$enc"
+        fi
+        printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" >/dev/null 2>&1
+    )
     got=$?
     shown=${3//$'\n'/$TILDE}
     ran=$((ran + 1))
+    settings_suffix
     if [ "$got" = "$4" ]; then
-        printf '  ok   %s [%s%s] %s\n' "${1##*/}" "$2" "${PYTHONIOENCODING:+ ($PYTHONIOENCODING)}" "$shown"
+        printf '  ok   %s [%s%s] %s%s\n' "${1##*/}" "$2" "${enc:+ ($enc)}" "$shown" "$SUF"
     else
-        printf '  FAIL %s [%s%s] exit=%s want=%s  %s\n' "${1##*/}" "$2" "${PYTHONIOENCODING:+ ($PYTHONIOENCODING)}" "$got" "$4" "$shown"
+        printf '  FAIL %s [%s%s] exit=%s want=%s  %s%s\n' "${1##*/}" "$2" "${enc:+ ($enc)}" "$got" "$4" "$shown" "$SUF"
         fail=$((fail + 1))
     fi
 }
@@ -201,7 +251,7 @@ run_cleanup() { # <label> <raw-payload> <cleared|kept> [forced-encoding]
         )
     else
         (
-            unset PYTHONIOENCODING
+            unset PYTHONIOENCODING PYTHONUTF8
             cd "$SCRATCH" || exit 1
             printf '%s' "$2" | WORKSPACE_HANDOFFS_ROOT="$SCRATCH/handoffs" HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
         )
@@ -213,10 +263,11 @@ run_cleanup() { # <label> <raw-payload> <cleared|kept> [forced-encoding]
         state="cleared"
     fi
     ran=$((ran + 1))
+    settings_suffix
     if [ "$state" = "$3" ]; then
-        printf '  ok   %s [%s]\n' "${CLEANUP_HOOK##*/}" "$label"
+        printf '  ok   %s [%s]%s\n' "${CLEANUP_HOOK##*/}" "$label" "$SUF"
     else
-        printf '  FAIL %s [%s] got=%s want=%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$3"
+        printf '  FAIL %s [%s] got=%s want=%s%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$3" "$SUF"
         fail=$((fail + 1))
     fi
 }
@@ -231,7 +282,7 @@ run_cleanup_pair() { # one real end over a day-old folder and a folder still bei
     touch -t 200001010000 "$SCRATCH/handoffs/LIVE"
     local hook_abs="$PWD/$CLEANUP_HOOK"
     (
-        unset PYTHONIOENCODING
+        unset PYTHONIOENCODING PYTHONUTF8
         cd "$SCRATCH" || exit 1
         printf '%s' '{"reason":"other"}' | WORKSPACE_HANDOFFS_ROOT="$SCRATCH/handoffs" HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
     )
@@ -246,10 +297,11 @@ run_cleanup_pair() { # one real end over a day-old folder and a folder still bei
         fi
         if [ -d "$SCRATCH/handoffs/$d" ]; then state=kept; else state=cleared; fi
         ran=$((ran + 1))
+        settings_suffix
         if [ "$state" = "$want" ]; then
-            printf '  ok   %s [%s]\n' "${CLEANUP_HOOK##*/}" "$label"
+            printf '  ok   %s [%s]%s\n' "${CLEANUP_HOOK##*/}" "$label" "$SUF"
         else
-            printf '  FAIL %s [%s] got=%s want=%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$want"
+            printf '  FAIL %s [%s] got=%s want=%s%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$want" "$SUF"
             fail=$((fail + 1))
         fi
     done
@@ -282,7 +334,7 @@ EOF
         )
     else
         (
-            unset PYTHONIOENCODING
+            unset PYTHONIOENCODING PYTHONUTF8
             printf '%s' "$payload" | PATH="$SCRATCH/fmtstub:$HOOK_PATH" HOME="$HOOK_HOME" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
         )
     fi
@@ -299,10 +351,11 @@ EOF
     fi
 
     ran=$((ran + 1))
+    settings_suffix
     if [ "$state" = "$3" ]; then
-        printf '  ok   %s [%s]\n' "${FORMAT_HOOK##*/}" "$label"
+        printf '  ok   %s [%s]%s\n' "${FORMAT_HOOK##*/}" "$label" "$SUF"
     else
-        printf '  FAIL %s [%s] got=%s want=%s\n' "${FORMAT_HOOK##*/}" "$label" "$state" "$3"
+        printf '  FAIL %s [%s] got=%s want=%s%s\n' "${FORMAT_HOOK##*/}" "$label" "$state" "$3" "$SUF"
         fail=$((fail + 1))
     fi
 }
@@ -321,10 +374,11 @@ run_msg() { # <script> <tool-name> <command> <expected-exit> <substring the mess
     out=$(printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" 2>&1 >/dev/null) || got=$?
     shown=${3//$'\n'/$TILDE}
     ran=$((ran + 1))
+    settings_suffix
     if [ "$got" = "$4" ] && [ "${out#*"$5"}" != "$out" ]; then
-        printf '  ok   %s [%s] %s — refusal names %s\n' "${1##*/}" "$2" "$shown" "$5"
+        printf '  ok   %s [%s] %s — refusal names %s%s\n' "${1##*/}" "$2" "$shown" "$5" "$SUF"
     else
-        printf '  FAIL %s [%s] exit=%s want=%s  %s — expected the message to name %s\n' "${1##*/}" "$2" "$got" "$4" "$shown" "$5"
+        printf '  FAIL %s [%s] exit=%s want=%s  %s — expected the message to name %s%s\n' "${1##*/}" "$2" "$got" "$4" "$shown" "$5" "$SUF"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     fi
@@ -334,10 +388,11 @@ run_raw_msg() { # <script> <label> <raw-payload> <expected-exit> <substring the 
     local out got=0
     out=$(printf '%s' "$3" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$1" 2>&1 >/dev/null) || got=$?
     ran=$((ran + 1))
+    settings_suffix
     if [ "$got" = "$4" ] && [ "${out#*"$5"}" != "$out" ]; then
-        printf '  ok   %s [%s] — refusal names %s\n' "${1##*/}" "$2" "$5"
+        printf '  ok   %s [%s] — refusal names %s%s\n' "${1##*/}" "$2" "$5" "$SUF"
     else
-        printf '  FAIL %s [%s] exit=%s want=%s  expected the message to name %s\n' "${1##*/}" "$2" "$got" "$4" "$5"
+        printf '  FAIL %s [%s] exit=%s want=%s  expected the message to name %s%s\n' "${1##*/}" "$2" "$got" "$4" "$5" "$SUF"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     fi
@@ -368,18 +423,19 @@ run_hold() { # <label> <timeout-literal|OMIT> <description> <expected-exit> [sub
     # its remedy from one that just says no, and the remedy IS the behaviour under test.
     out=$(printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$HOLD_HOOK" 2>&1 >/dev/null) || got=$?
     ran=$((ran + 1))
+    settings_suffix
     if [ "$got" != "$4" ]; then
-        printf '  FAIL %s [%s/%s] exit=%s want=%s  timeout=%s desc=%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$got" "$4" "$2" "$3"
+        printf '  FAIL %s [%s/%s] exit=%s want=%s  timeout=%s desc=%s%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$got" "$4" "$2" "$3" "$SUF"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     elif [ -n "${5-}" ] && [ "${out#*"$5"}" = "$out" ]; then
-        printf '  FAIL %s [%s/%s] exit=%s (correct) but the message never named %s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$got" "$5"
+        printf '  FAIL %s [%s/%s] exit=%s (correct) but the message never named %s%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$got" "$5" "$SUF"
         printf '       message was: %s\n' "$out"
         fail=$((fail + 1))
     elif [ -n "${5-}" ]; then
-        printf '  ok   %s [%s/%s] timeout=%s — refusal names %s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$2" "$5"
+        printf '  ok   %s [%s/%s] timeout=%s — refusal names %s%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$2" "$5" "$SUF"
     else
-        printf '  ok   %s [%s/%s] timeout=%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$2"
+        printf '  ok   %s [%s/%s] timeout=%s%s\n' "${HOLD_HOOK##*/}" "$HOLD_TOOL" "$1" "$2" "$SUF"
     fi
 }
 
@@ -932,10 +988,11 @@ printf '{"tool_name":"Bash","cwd":%s,"tool_input":{"command":"%s"}}' "$HOOK_CWD_
     | HOME="$HOOK_HOME" PATH="$HOOK_PATH" timeout 60 "$BASH_BIN" "$GIT_HOOK" >/dev/null 2>&1
 big_rc=$?
 ran=$((ran + 1))
+settings_suffix
 if [ "$big_rc" = 0 ]; then
-    printf '  ok   %s [Bash] a 256 KB command finished\n' "${GIT_HOOK##*/}"
+    printf '  ok   %s [Bash] a 256 KB command finished%s\n' "${GIT_HOOK##*/}" "$SUF"
 else
-    printf '  FAIL %s [Bash] exit=%s want=0  a 256 KB command (124 = still running after 60 s)\n' "${GIT_HOOK##*/}" "$big_rc"
+    printf '  FAIL %s [Bash] exit=%s want=0  a 256 KB command (124 = still running after 60 s)%s\n' "${GIT_HOOK##*/}" "$big_rc" "$SUF"
     fail=$((fail + 1))
 fi
 # One long word, outside the git segment: a 256 KB name, then 384 KB of unclosed ${.
@@ -946,10 +1003,11 @@ for big_word in 'b"a" * 262144' 'b"${" * 196608'; do
         | HOME="$HOOK_HOME" PATH="$HOOK_PATH" timeout 60 "$BASH_BIN" "$GIT_HOOK" >/dev/null 2>&1
     big_rc=$?
     ran=$((ran + 1))
+    settings_suffix
     if [ "$big_rc" = 0 ]; then
-        printf '  ok   %s [Bash] git status; echo %s finished\n' "${GIT_HOOK##*/}" "$big_word"
+        printf '  ok   %s [Bash] git status; echo %s finished%s\n' "${GIT_HOOK##*/}" "$big_word" "$SUF"
     else
-        printf '  FAIL %s [Bash] exit=%s want=0  git status; echo %s (124 = still running after 60 s)\n' "${GIT_HOOK##*/}" "$big_rc" "$big_word"
+        printf '  FAIL %s [Bash] exit=%s want=0  git status; echo %s (124 = still running after 60 s)%s\n' "${GIT_HOOK##*/}" "$big_rc" "$big_word" "$SUF"
         fail=$((fail + 1))
     fi
 done
@@ -1036,10 +1094,10 @@ HOOK_HOME="$DENY_HOME"
 echo "block-infra-staging.sh — the two answers are independent"
 # github.com/example/push-only says push yes, own-claude-md NO.
 HOOK_HOME="$ALLOW_HOME"
-git -C "$REPO" remote set-url origin https://github.com/example/push-only.git 2>/dev/null
+git -C "$REPO" remote set-url origin https://github.com/example/push-only.git 2>/dev/null && HOOK_ORIGIN=push-only
 run $GIT_HOOK   Bash     "git push origin main"                            0
 run $INFRA_HOOK Bash     "git add CLAUDE.md"                               2
-git -C "$REPO" remote set-url origin https://github.com/example/allowed-repo.git 2>/dev/null
+git -C "$REPO" remote set-url origin https://github.com/example/allowed-repo.git 2>/dev/null && HOOK_ORIGIN=""
 HOOK_HOME="$DENY_HOME"
 
 echo "block-infra-staging.sh — a never-stage name counts only at a path boundary"
@@ -1401,10 +1459,16 @@ run_hold "one ms over the default" 120001 "run the regression suite"           2
 # call does not go — same rule as an unreadable payload.
 run_hold "a non-numeric timeout"   '"5 minutes"' "run the regression suite"    2
 # Past the tool's maximum the tool itself will refuse, so the remedy is not "state the
-# expectation" — it is "run it in the background". Different message, same exit code, and
-# only a message assertion can tell the two apart.
+# expectation". The refusal says who may background (the main session), what a subagent
+# does instead (hand the run back), and how to stop a run the tool cut off (find it by
+# command line, stop it as a tree). Same exit code as the plain refusal; only a message
+# assertion can tell them apart.
 run_hold "past the maximum"        900000 "run the regression suite; expect 12 minutes" 2 \
-    "goes to the BACKGROUND by design"
+    "hands the run back to its parent"
+run_hold "past the maximum, main session may background" 900000 "run the regression suite; expect 12 minutes" 2 \
+    "the main session may run it in the BACKGROUND"
+run_hold "past the maximum, a stopped run is stopped as a tree" 900000 "run the regression suite; expect 12 minutes" 2 \
+    "by its command line, not by the PID you started"
 
 echo "block-unexplained-long-hold.sh — the refusal must carry a remedy runnable from where it fired"
 # An exit code cannot tell a stop that can be acted on from one that strands the reader.
@@ -1519,8 +1583,8 @@ run_cleanup "cleanup: other with arrow" "$p_clean_native" cleared
 run_format "format: arrow py file" "a${ARROW}.py" formatted
 
 echo "raw UTF-8 input — forced PYTHONIOENCODING=cp1252"
-PYTHONIOENCODING=cp1252 run_utf8 $MCP_HOOK "mcp__github__get_${ARROW}" "x" 0
-PYTHONIOENCODING=cp1252 run_utf8 $MCP_HOOK Bash "echo ${ARROW}" 0
+run_utf8 $MCP_HOOK "mcp__github__get_${ARROW}" "x" 0 cp1252
+run_utf8 $MCP_HOOK Bash "echo ${ARROW}" 0 cp1252
 
 printf -v p_clean_forced1 '{"reason":"other","transcript_path":"/tmp/x%s"}' "$ARROW"
 run_cleanup "cleanup: other transcript with arrow" "$p_clean_forced1" cleared cp1252
@@ -1667,11 +1731,12 @@ else
     HOOK_PATH="$WAPPS_MIX:$REALDIR:$NOPY_PATH"
     run $GIT_HOOK Bash "git status" 0
     ran=$((ran + 1))
+    settings_suffix
     if [ -e "$WMARK" ]; then
-        printf '  FAIL %s [order] the WindowsApps python3 ran — the real python beside it was not preferred\n' "${GIT_HOOK##*/}"
+        printf '  FAIL %s [order] the WindowsApps python3 ran — the real python beside it was not preferred%s\n' "${GIT_HOOK##*/}" "$SUF"
         fail=$((fail + 1))
     else
-        printf '  ok   %s [order] a WindowsApps python3 was demoted behind the real python beside it\n' "${GIT_HOOK##*/}"
+        printf '  ok   %s [order] a WindowsApps python3 was demoted behind the real python beside it%s\n' "${GIT_HOOK##*/}" "$SUF"
     fi
 
     # (b) the WindowsApps python is the ONLY python. Demoted it still runs and the hook

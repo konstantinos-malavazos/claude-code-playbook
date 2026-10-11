@@ -336,7 +336,9 @@ the answer is stop, but say which situation you are in.
    silent, so an agent that died and one still working look the same until you look.
 6. **Write the picture**, if the page template is installed — after the research claims,
    so those tickets draw as claimed. Do not open it unless asked.
-7. **Stop.** Charting hand-resolves nothing. Sizing the map is one session's work.
+7. **Stop — once every research agent has reported, or has been reported as overrun.**
+   Keep the turn until then; step 6 runs meanwhile. A session that stops early can take its
+   background agents with it. Charting hand-resolves nothing. Sizing the map is one session's work.
 
 ### Work through the map
 
