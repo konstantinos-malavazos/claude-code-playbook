@@ -93,8 +93,14 @@ approval first, stating the action, the reason, and how to reverse it.
 ## Step 3 — reconcile (read-only; poll until landed, then confirm it stays)
 
 Poll the verify store per AC, filtered by the produced ids, honouring the seams' timeout,
-poll interval and **N consecutive stable reads**. Poll in the background; never sleep-poll
-synchronously. One matching read is not proof: landing is asynchronous and it flaps, and a
+poll interval and **N consecutive stable reads**. When the seams' timeout fits under the
+tool's maximum, poll in one bounded foreground call that loops on the landed condition, with
+an explicit timeout and a stated expectation; you cannot count on being woken once your turn
+ends. When it does not fit, save your state to your handoff: the tester hands the run back to
+its parent with the exact poll and what "landed" means. If the tool stops a poll, find what
+is still running by its command line, not by the PID you started, stop the whole tree
+(`taskkill /T /F` on Windows), check that nothing is left, and name it in the hand-back.
+One matching read is not proof: landing is asynchronous and it flaps, and a
 late re-sync can revert a row that was already correct. Report flaps. If the expected state
 never lands inside the timeout that AC is INCONCLUSIVE — FAIL if the AC asserts it must
 appear — with the diagnostic: what you produced, what you queried, last-seen state. Prefer

@@ -1106,8 +1106,8 @@ a12 "A12.1 · the persona rule keeps its third answer — a role line AND a name
 # --- A12.2 · AC5, the timeout duty
 a12 "A12.2 · a long call carries an explicit timeout and a stated expectation" \
     "$A12_AGENTS_README" 'A call you expect to run long carries an explicit timeout'
-a12 "A12.2 · work past the tool's maximum goes to the background by design" \
-    "$A12_AGENTS_README" 'goes to the background by design'
+a12 "A12.2 · only the main session runs work in the background" \
+    "$A12_AGENTS_README" 'Only the main session runs work in the background'
 
 # --- A12.3 · AC6, the overrun trigger, stated ONCE
 # A census rather than a presence check, and for the reason A4 is a census: two

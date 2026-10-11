@@ -33,6 +33,10 @@
 #   are the other one; they must agree, and what tells you the boundary still lands where
 #   you think it does is running that suite.
 #
+# BLIND TO BACKGROUND WORK. This judges only the timeout field, so a backgrounded call
+# that asks for no long timeout passes untouched. The rule that a subagent never
+# backgrounds work it needs (templates/agents/README.md) is enforced by nothing here.
+#
 # WHY THE THRESHOLD IS THE DEFAULT AND NOT SOME ROUND NUMBER ABOVE IT. Anything at or
 # under the default is untouched, deliberately. A rule that fires on `ls` is a rule nobody
 # keeps, and a guardrail nobody keeps is worse than none. Picking 5 minutes, or twice the
@@ -198,7 +202,7 @@ if [ "$kind" = "NONNUMERIC" ]; then
 fi
 
 if [ "$kind" = "OVERMAX" ]; then
-    block "this $tool call asks for a ${3}ms timeout, past the tool's ${5}ms maximum, so the tool will reject it whatever this hook says — and stating an expectation does not change that. Work you expect to run that long goes to the BACKGROUND by design, decided before you launch it and not after it appears to hang. $RULE"
+    block "this $tool call asks for a ${3}ms timeout, past the tool's ${5}ms maximum, so the tool will reject it whatever this hook says — and stating an expectation does not change that. Split the work into parts that each fit under ${5}ms and wait for each in the foreground. Work that cannot be split: the main session may run it in the BACKGROUND, decided before launch, and check on it; a subagent may not, because its run can end before the work does — it saves its work to its handoff and hands the run back to its parent, naming the exact command. A run whose length you cannot tell runs in the foreground at the ${5}ms maximum; if the tool stops it, find what is still running by its command line, not by the PID you started, stop the whole tree (taskkill /T /F on Windows), check nothing is left, and name what you stopped in the hand-back. $RULE"
 fi
 
 block "this $tool call asks to hold for ${3}ms — more than the ${4}ms default — and its description says nothing about how long you expect it to take. That is the unexplained long hold: a wait with nothing to measure it against, so nobody can tell a slow run from a stuck one. $RULE $REMEDY"

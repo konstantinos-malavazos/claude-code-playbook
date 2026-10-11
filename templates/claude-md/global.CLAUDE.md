@@ -119,6 +119,16 @@ In-flight pipeline state lives in `<workspace>/.claude/handoffs/<TICKET-ID>/<age
 `.gitignore`d and cleared at a later session end, once untouched for a day. Durable knowledge goes to memory. Ephemeral
 state goes to handoff files. Never write in-flight chatter to memory.
 
+## Long-running work
+
+Only the main session runs work in the background. A subagent waits for its work in the
+foreground, splits what will not fit under the tool's maximum, or saves its work to its
+handoff and hands the run back to its parent with the exact command. If you cannot tell how
+long a run takes, run it at the tool's maximum; if the tool stops it, find what is still
+running by its command line, not by the PID you started, stop the whole tree
+(`taskkill /T /F` on Windows), check nothing is left, and name what you stopped in the
+hand-back.
+
 ## End-of-session writeback
 
 When a session uncovers a durable decision / root cause / gotcha not already in memory,

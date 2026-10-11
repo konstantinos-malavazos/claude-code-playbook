@@ -118,7 +118,9 @@ no agent template is written for this dispatch.
 frontier and the next session fires a second agent at the same question.
 
 **You spawned them, so you own checking on them** — at each multiple of its stated
-expectation, not once at the end.
+expectation, not once at the end. Keep the turn while they run: go to step 8 only once every
+research agent has reported, or has been reported as overrun. A session that stops early
+can take its background agents with it.
 
 ## 8. Stop, and hand back
 
