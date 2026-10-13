@@ -138,7 +138,7 @@ tests       (none — ticket 1 said this stack does not gate on day one)
 serena      find_symbol PantryLine → returns a real result, not empty
 ```
 
-The map closes. **One memory** is written: *what this project is and why.*
+The map closes. **One memory** is written: *what this project is and who it is for.*
 
 ### What stage 2 hands to the bootstrap
 
@@ -149,7 +149,7 @@ The map closes. **One memory** is written: *what this project is and why.*
 | **The Serena verdict: yes** | Same ticket. Decided by *will you ever need to ask who calls this?* |
 | **The bootstrap checks** | Tail ticket 2. The first place they can run is stage 3. |
 | **The settled name: `alias`** | The map's `Notes`. |
-| **One memory** | *What this project is and why.* Stage 3 writes the second. |
+| **One memory** | *What this project is and who it is for.* Stage 3 writes the second. |
 
 Nothing is in anyone's head. Serena is not indexed, and that is correct, because the repo
 is three weeks old and still empty.

@@ -23,7 +23,9 @@ invisible until you notice, months later, that nothing ever compounded. **13 of 
 agents** declare memory tools, and none of them halts without them.
 
 Running a memory server other than Forgetful is fine: the installer asks for your own tool
-names. What it will not do is continue with no memory server at all.
+names. What it will not do is continue with no memory server at all. Detection goes by
+name: the installer looks for one of the names in `MEMORY_SERVER_KEYS` in `install-lib.py`,
+so if yours is registered under another name, register it under one of those as well.
 
 ---
 

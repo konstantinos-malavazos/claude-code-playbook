@@ -75,6 +75,8 @@ not about any particular codebase:
 - **Ticket-tracker policy** — which adapter is installed at `~/.claude/tracker.md`, and
   the write rule: "ask before writing anywhere other people can see it."
 - **Handoff protocol** — where in-flight agent state lives and that it's ephemeral.
+- **End-of-session writeback** — what a session writes to memory before it ends. A
+  skill's own memory-write rule takes precedence over it while that skill runs.
 - **Communication style** — terse vs verbose, when to expand.
 - **Coding-behaviour defaults** — think-before-coding, simplicity, surgical changes.
 

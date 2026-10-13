@@ -28,14 +28,18 @@ Banking it once saves the next person (or the next-you) from paying for it again
 
 ## The two-memory rule (the reason it stays useful)
 
-Memory is only valuable if it's **signal-dense**. So:
+Memory is only valuable if it's **signal-dense**. The rule: **write what the next reader
+will read, and nothing else.** So:
 
 - **In-flight ticket state** → filesystem handoff files, deleted at a later session end once
   nothing has written to them for a day.
   Never written to Forgetful.
-- **Durable conclusions** → one consolidated memory per ticket, written only when the
-  ticket is done (root cause, fix shape, blast radius, reusable recipes, settled
-  decisions).
+- **Durable conclusions** → one consolidated memory per unit of work, written only when
+  that unit is done (root cause, fix shape, blast radius, reusable recipes, settled
+  decisions). Each unit has one owner:
+  - **per ticket** — `/start-ticket`, when you approve the review;
+  - **per map** — charting, when the map closes;
+  - **per project** — the bootstrap's memory two.
 
 If you write chatter to memory, retrieval degrades and the whole pillar rots. Guard the
 gate: nothing enters memory un-reviewed. See [10-memory-hygiene.md](10-memory-hygiene.md).

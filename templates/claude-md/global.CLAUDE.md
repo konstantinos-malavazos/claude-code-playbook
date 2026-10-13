@@ -133,6 +133,7 @@ hand-back.
 
 When a session uncovers a durable decision / root cause / gotcha not already in memory,
 write ONE atomic memory before ending (tagged by functionality, never by ticket id).
+While a skill with its own memory-write rule is running, that rule wins over this one.
 
 ## Communication style
 
