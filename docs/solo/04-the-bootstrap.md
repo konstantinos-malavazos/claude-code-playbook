@@ -28,7 +28,7 @@ are in this order*. The template owns *how to run them*.
 | **The stack, and the layer chain** | Named **together**, by the tail's first ticket in [charting](03-charting.md#the-tail). The method is in [06-choosing-the-stack.md](06-choosing-the-stack.md). |
 | **The Serena verdict** | Decided with the stack, on the test *will you ever need to ask who calls this?* |
 | **The bootstrap checks** | The tail's second ticket wrote them, against the stack. Stage 3 is the first place they can run. |
-| **One memory** | *What this project is and why*, written when the map closed. Stage 3 writes the second. |
+| **One memory** | *What this project is and who it is for*, written when the map closed. Stage 3 writes the second. |
 
 **Nothing here is re-opened.** Stage 3 is a checklist you execute. If it turns out a
 decision was wrong, that is [the backwards step](03-charting.md#one-backwards-step), not a
