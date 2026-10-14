@@ -63,7 +63,7 @@ what the subagent stopped; re-run it only once none of that is still running. Ev
 `end-of-day`, `garden-memory` and `encode-codebase` divide the memory work three ways and do
 not overlap. `end-of-day` nominates what today settled. `encode-codebase` reads a repo in and
 is the only one that creates memories in bulk. `garden-memory` keeps what is already there
-healthy, and is the only one that applies a rename map. `encode-codebase` needs the
+healthy. `encode-codebase` needs the
 `## Memory encoding` section of the repo's `CLAUDE.md` and stops naming the missing line
 without it; copying its four agents alone installs nothing.
 

@@ -19,6 +19,13 @@ description: >-
 > its place here, then write your own.
 
 ## Call shape
+
+**Step 0 — load the tools.** The memory tools can be **deferred**: listed by name, but
+with no schema until loaded. Before the first call, load them with `ToolSearch`
+(`select:<memory-tool-names>` — every memory tool you call, comma-separated). An unloaded
+tool is not an absent tool. Never conclude the server is missing because a call failed
+with a schema error.
+
 - Create: `<create-memory-tool>` with fields `<title>`, `<content>`, `<tags>`, `<...>`.
 - Update: `<update-memory-tool>` ...
 - Link: `<link-tool>` — note the argument order/direction if it's asymmetric.

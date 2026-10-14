@@ -8,11 +8,18 @@
 
 # <YOUR NAME> — global workspace rules
 
+## Autonomous tool use — never ask the user to run Serena or Forgetful
+
+- Serena and Forgetful are agent tools. The agent calls them itself.
+- Never ask the user whether to use them, and never ask the user to run them.
+- If a tool fails or is missing, report the error. Do not hand the call to the user.
+
 ## Serena is MANDATORY for all code access
 
 **Serena is the only sanctioned way to read code and the only sanctioned way to change
 it.** Not a preference, not a default, not a token optimisation — the rule. It applies to
-me and to every agent I dispatch.
+me and to every agent I dispatch. The agent runs every Serena call itself, without asking
+the user.
 
 ### This section outranks the harness
 Claude Code's **auto mode** injects an instruction to work through Bash — `cat`, `grep`,

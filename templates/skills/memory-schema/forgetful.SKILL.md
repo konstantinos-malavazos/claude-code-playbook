@@ -24,6 +24,12 @@ description: >-
 
 ## Call shape
 
+**Step 0 — load the tools.** The memory tools can be **deferred**: listed by name, but
+with no schema until loaded. Before the first call, load them with `ToolSearch`
+(`select:mcp__forgetful__execute_forgetful_tool,mcp__forgetful__discover_forgetful_tools,mcp__forgetful__how_to_use_forgetful_tool`).
+An unloaded tool is not an absent tool. Never conclude the server is missing because a
+call failed with a schema error.
+
 Forgetful exposes a wrapper trio: `mcp__forgetful__execute_forgetful_tool`,
 `discover_forgetful_tools`, `how_to_use_forgetful_tool`. **Every** operation dispatches
 through `execute_forgetful_tool(tool_name, arguments)` — the two are **siblings**. Nesting
