@@ -98,11 +98,11 @@ This chain is the single thing you **must** adapt to your own stack. See
 
 | Kind | Mechanism | Lifetime |
 |---|---|---|
-| **Ephemeral pipeline state** | filesystem handoff files under `<workspace>/.claude/handoffs/<TICKET>/` | deleted at a later `SessionEnd`, once a day untouched |
+| **Ephemeral pipeline state** | filesystem handoff files under `<workspace>/.claude/handoffs/<TICKET>/` | scratch space; stays until you delete it, never a durable store |
 | **Durable knowledge** | a persistent memory store (Forgetful) | permanent, cross-session, cross-machine |
 
 Only the distilled conclusion of a ticket becomes a durable memory. Everything in-flight
-lives on disk and evaporates. See [05-forgetful.md](05-forgetful.md) and
+lives on disk as scratch space, which you clear when you choose. See [05-forgetful.md](05-forgetful.md) and
 [10-memory-hygiene.md](10-memory-hygiene.md).
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

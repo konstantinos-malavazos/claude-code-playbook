@@ -8,7 +8,7 @@ to be a `//` line lives here, under the entry it explains.
 |---|---|---|
 | [`global.claude.json.snippet`](global.claude.json.snippet) | `~/.claude.json` | every project |
 | [`project.mcp.json.snippet`](project.mcp.json.snippet) | `<workspace>/.mcp.json` | one working copy |
-| [`settings.json.snippet`](settings.json.snippet) | `~/.claude/settings.json` | model, env, hooks wiring |
+| [`settings.json.snippet`](settings.json.snippet) | `~/.claude/settings.json` | model, hooks wiring |
 
 Merge the `mcpServers` entries into your existing file rather than replacing it, and keep
 secrets in environment variables.

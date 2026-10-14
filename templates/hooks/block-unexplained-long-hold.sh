@@ -48,56 +48,17 @@ set -euo pipefail
 block() { echo "BLOCKED by block-unexplained-long-hold: $1" >&2; exit 2; }
 
 # python parses the payload and a payload it cannot read is a BLOCK, never a pass.
-# Duplicated from block-dangerous-git.sh, deliberately — the reasoning for all of it (why
-# python and not jq or sed, why 127 is the same class as success, why a WindowsApps
-# python3 goes to the END of the list and is never dropped, and why nothing is probed
-# until we are refusing anyway) is in the notes there. The code below is byte-identical in
-# all seven hooks and in test-hooks.sh.
-PY_LIST=()
-PY_LAST=()
-# ONE command substitution, not one per candidate. A fork costs ~30ms on Windows and this
-# runs on every single hook invocation, so asking twice cost measurably more than the
-# whole ordering decision it feeds. The `true` keeps the list non-fatal when neither name
-# resolves; the empty-line guard is what a missing candidate looks like here.
-while IFS= read -r _p; do
-    [ -n "$_p" ] || continue
-    case "${_p,,}" in
-        */windowsapps/*) PY_LAST+=("$_p") ;;
-        *)               PY_LIST+=("$_p") ;;
-    esac
-done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
-PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
-
-py_tried() { # the refusal's evidence: every candidate by resolved path, with a verdict
-    local _c _out=""
-    for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
-        if "$_c" -c "pass" >/dev/null 2>&1; then
-            _out="${_out}${_out:+, }${_c} (is python)"
-        else
-            _out="${_out}${_out:+, }${_c} (on PATH, but not a working python)"
-        fi
-    done
-    printf 'interpreter tried: %s' "${_out:-none — no python3 or python on PATH}"
-}
-
-py_run() { # <stdin> <program> [args…] — first candidate that answers wins
-    local _in="$1" _prog="$2" _c _rc=127
-    shift 2
-    for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
-        _rc=0
-        printf '%s' "$_in" | "$_c" -c "$_prog" "$@" 2>/dev/null || _rc=$?
-        [ "$_rc" -eq 0 ] && return 0
-        # 3 is the PROGRAM saying no, not the interpreter failing to be python. Handing
-        # the same input to a different interpreter would get the same answer.
-        [ "$_rc" -eq 3 ] && return 3
-    done
-    return "$_rc"
-}
+_lib="${BASH_SOURCE[0]//\\//}"
+case "$_lib" in */*) _lib="${_lib%/*}/_lib/common.sh" ;; *) _lib="_lib/common.sh" ;; esac
+HOOK_LIB_LOADED=
+# shellcheck source=/dev/null
+if ! . "$_lib" 2>/dev/null || [ "$HOOK_LIB_LOADED" != 1 ]; then
+    block "the shared hook library is missing or broken at $_lib — re-run the installer."
+fi
 
 [ "${#PY_LIST[@]}" -gt 0 ] || block "no python3 or python on PATH — this hook cannot read the timeout it exists to check."
 
-# `read -d ""` rather than $(cat) — the reasoning is in block-mcp-writes.sh.
-IFS= read -r -d '' payload || true
+hook_read_payload
 
 # ONE program does the whole judgement, and it reports through the EXIT CODE, not through
 # a string bash then has to re-parse. Exit 3 is the finding ("this is an unexplained long
@@ -112,7 +73,7 @@ IFS= read -r -d '' payload || true
 # the wait against at all. Writing it out in words ("about four minutes") does not pass —
 # and the refusal says exactly what shape does, so the remedy is one edit away.
 rc=0
-detail="$(py_run "$payload" '
+detail="$(py_run "$HOOK_PAYLOAD" '
 import json, re, sys
 
 DEFAULT_MS = 120000          # the Bash tool default; ASSUMED equal for PowerShell

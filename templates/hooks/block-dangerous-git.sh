@@ -23,81 +23,20 @@ block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
 # "ask"` needs no parser and is the honest verdict, but "yes, and don't ask again" makes
 # the approval durable, so one keystroke turns the guard off for good. A prompt is not a
 # guardrail; it is trust with an extra keystroke. See README.md.
-# --- CHOOSING THE INTERPRETER, AND SAYING WHICH ONE -----------------------------
-# DUPLICATED VERBATIM into all seven hooks and into test-hooks.sh, on purpose, exactly as
-# the allowlist lookup and the argument tokenizer below are. A shared file cannot work
-# here: install-lib.py discovers every templates/hooks/*.sh and installs each one as a
-# hook, so a helper file is either a phantom eighth hook or never installed at all — and
-# the hooks that ship are standalone copies in ~/.claude/hooks/ with nothing to source.
-#
-# ORDER, NEVER EXCLUSION. On Windows `command -v python3` usually resolves to the
-# Microsoft Store app-execution alias under AppData/Local/Microsoft/WindowsApps. That
-# alias is not one thing: where the Store package is installed it forwards to a real
-# interpreter (measured on the reference machine at 163ms a spawn against 60ms for the
-# real python sitting beside it on PATH), and where it is not, it prints an advert and
-# exits 9009. So a WindowsApps path goes to the END of the list, and is never dropped: on
-# a machine where the alias is the only python, refusing it would block every command
-# these hooks exist to judge. A guardrail that bricks the machine is not the safer
-# failure — this is a preference, not a ban.
-#
-# NOTHING IS PROBED HERE, and that is the point. A `-c` probe is a whole extra process on
-# every single invocation, against a hook whose entire job is one. The parse below already
-# IS the probe: a stub fails it exactly the way a missing interpreter does, so the next
-# candidate is tried and the happy path pays nothing at all. Only the refusal path — where
-# the call is being blocked anyway — asks each candidate whether it is python, so the
-# message can name the RESOLVED PATH it tried. `python3` names the thing the user already
-# typed; the path is the thing they can act on.
-PY_LIST=()
-PY_LAST=()
-# ONE command substitution, not one per candidate. A fork costs ~30ms on Windows and this
-# runs on every single hook invocation, so asking twice cost measurably more than the
-# whole ordering decision it feeds. The `true` keeps the list non-fatal when neither name
-# resolves; the empty-line guard is what a missing candidate looks like here.
-while IFS= read -r _p; do
-    [ -n "$_p" ] || continue
-    case "${_p,,}" in
-        */windowsapps/*) PY_LAST+=("$_p") ;;
-        *)               PY_LIST+=("$_p") ;;
-    esac
-done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
-PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
-
-py_tried() { # the refusal's evidence: every candidate by resolved path, with a verdict
-    local _c _out=""
-    for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
-        if "$_c" -c "pass" >/dev/null 2>&1; then
-            _out="${_out}${_out:+, }${_c} (is python)"
-        else
-            _out="${_out}${_out:+, }${_c} (on PATH, but not a working python)"
-        fi
-    done
-    printf 'interpreter tried: %s' "${_out:-none — no python3 or python on PATH}"
-}
-
-py_run() { # <stdin> <program> [args…] — first candidate that answers wins
-    local _in="$1" _prog="$2" _c _rc=127
-    shift 2
-    for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
-        _rc=0
-        printf '%s' "$_in" | "$_c" -c "$_prog" "$@" 2>/dev/null || _rc=$?
-        [ "$_rc" -eq 0 ] && return 0
-        # 3 is the PROGRAM saying no, not the interpreter failing to be python. Handing
-        # the same input to a different interpreter would get the same answer.
-        [ "$_rc" -eq 3 ] && return 3
-    done
-    return "$_rc"
-}
+# The interpreter choice, the payload read, the allowlist lookup and the tokenizer's
+# shared python live in _lib/common.sh beside this file. Found by parameter expansion,
+# not dirname: no fork, and the no-python cases run on a PATH that may have lost dirname.
+_lib="${BASH_SOURCE[0]//\\//}"
+case "$_lib" in */*) _lib="${_lib%/*}/_lib/common.sh" ;; *) _lib="_lib/common.sh" ;; esac
+HOOK_LIB_LOADED=
+# shellcheck source=/dev/null
+if ! . "$_lib" 2>/dev/null || [ "$HOOK_LIB_LOADED" != 1 ]; then
+    block "the shared hook library is missing or broken at $_lib — re-run the installer."
+fi
 
 [ "${#PY_LIST[@]}" -gt 0 ] || block "no python3 or python on PATH — this hook cannot read the command it exists to check."
 
-# `read -d ""` rather than $(cat). A command substitution forks a subshell and then execs
-# cat, which measured 37ms on Windows — more than choosing the interpreter above and more
-# than the parse itself on an ordinary payload, for reading one string off stdin. `-d ""`
-# reads to EOF (a JSON payload carries no NUL), `-r` keeps backslashes literal, `IFS=`
-# keeps leading and trailing whitespace, and the non-zero exit at EOF is the expected
-# outcome, not a failure. The only difference from $(cat) is that a trailing newline
-# survives, and no JSON reader cares. Measured faster at 4KB as well as at 60 bytes.
-IFS= read -r -d '' payload || true
+hook_read_payload
 
 # BOTH FIELDS ARE WRITTEN THROUGH THE BINARY BUFFER. This is the INPUT side of the very
 # hazard the tokenizer's OUTPUT was hardened against (see the note at its final write). One
@@ -133,39 +72,6 @@ IFS= read -r -d '' payload || true
 # payload_fields() for why the two became one, and why the binary buffer matters MORE now
 # rather than less. Nothing between here and there reads the payload.
 
-# --- The allowlist -------------------------------------------------------------
-# ~/.claude/repo-allowlist answers two questions per repo, keyed by REMOTE URL, both
-# defaulting to no. See repo-allowlist.sample. This lookup is duplicated verbatim in
-# block-infra-staging.sh on purpose — and so is the argument tokenizer below, payload_fields(),
-# which is a parameterised second copy of staged_args() in that same file. A shared file
-# you can forget to copy turns a guardrail into one that silently stops guarding, which is
-# the failure this whole directory is built to avoid. Duplication is loud; a missing
-# include is not. The divergences between the two tokenizers are listed at payload_fields().
-allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
-    local field="$1" file="$HOME/.claude/repo-allowlist" dir remote key push own
-    [ -r "$file" ] || return 1
-    # Prefer the payload's cwd if the harness sends one; fall back to ours. A payload
-    # that PARSES and simply carries no cwd is the fallback case; a payload that will
-    # not parse at all was the fail-closed case — and it is now handled once, up front,
-    # before this function can be reached. This used to re-parse the payload in a second
-    # python process, which only ran on the push and claude-md paths; folding it into the
-    # single parse removed a spawn without adding one, because the field comes back from
-    # a program that was going to run anyway.
-    dir="$payload_cwd"
-    [ -n "$dir" ] && [ -d "$dir" ] || dir="$PWD"
-    remote="$(git -C "$dir" config --get remote.origin.url 2>/dev/null || true)"
-    [ -n "$remote" ] || return 1
-    while read -r key push own; do
-        case "$key" in ''|\#*) continue ;; esac
-        case "$remote" in *"$key"*) ;; *) continue ;; esac
-        case "$field" in
-            push)      [ "$push" = "yes" ] && return 0 ;;
-            claude-md) [ "$own"  = "yes" ] && return 0 ;;
-        esac
-    done < "$file"
-    return 1
-}
-
 # --- What does this command actually DO? ---------------------------------------
 # Every rule below reads the ARGUMENTS of a git subcommand, never the command text.
 #
@@ -175,9 +81,9 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 # about it — including, measurably, the notes for this very ticket (#117). And because a
 # compound command dies whole, anything chained in FRONT of the mention never ran either.
 #
-# This is a parameterised SECOND COPY of staged_args() in block-infra-staging.sh, kept
-# separate on purpose (see the allowlist note above). The deliberate divergences, each a
-# real decision and not a transcription slip:
+# This program shares its helpers with staged_args() in _lib/common.sh, but not its
+# reading of the arguments. The deliberate divergences, each a real decision and not a
+# transcription slip:
 #
 #   1. It emits for EVERY subcommand, not a fixed SUB map. staged_args() does
 #      `sub = SUB.get(...)` and `continue`s on a miss, i.e. a subcommand it does not know
@@ -242,7 +148,7 @@ allowlist_says() { # <push|claude-md> — exit 0 = yes, 1 = no
 # rows came back rather than testing the command text a second time.
 payload_fields() { # prints cwd \x1e <tokenized rows> \x1e command; exit 3 = unparsable
     # shellcheck disable=SC2016  # this argument is a python program, not shell
-    py_run "$payload" '
+    py_run "$HOOK_PAYLOAD" "$HOOK_PY_SHARED"'
 import json, re, shlex, sys
 
 # Bytes decoded as UTF-8. A text-mode read uses the Windows code page, and a byte that page
@@ -255,30 +161,9 @@ CMD = _ti.get("command") or _ti.get("script") or ""
 def emit(rows):
     sys.stdout.buffer.write((CWD + "\x1e" + rows + "\x1e" + CMD).encode("utf-8"))
 
-# A quote or a dollar can sit INSIDE the word git, and shlex leaves the dollar glued to the
-# token it produces. Squashing those characters out only ever DELETES, so a git that was
-# there is still there: every test on a squashed string widens what gets inspected, and can
-# never narrow it. The decision of what to block stays the tokenizer.
-_SQUASH = {ord(c): None for c in (chr(34), chr(39), "$", chr(92))}
-
-def squash(s):
-    return s.translate(_SQUASH).lower()
-
-# The pre-filter. A construct bash may remove is recognised by the character that STARTS
-# it, never by where it ends: a g or gi followed directly by a dollar, or by a backtick
-# read as one, may still be git. Quotes, backslash and line breaks are deleted first.
-_MAY_BE_GIT = str.maketrans(chr(96), "$", chr(34) + chr(39) + chr(92) + chr(10) + chr(13))
-
-def may_be_git(s):
-    v = s.translate(_MAY_BE_GIT).lower()
-    return "git" in v or "g$" in v or "gi$" in v
-
 if not may_be_git(CMD):
     emit("")
     sys.exit(0)
-
-# The options git itself takes BEFORE the subcommand. These take a separate value.
-GLOBAL_VAL = {"-C", "-c", "--git-dir", "--work-tree", "--exec-path", "--namespace"}
 
 # Options whose value is a message, a mode, a ref or a file to READ — never a flag we
 # judge. Options that may OMIT their value (--force-with-lease, --signed, --contains,
@@ -297,60 +182,6 @@ VAL = {
     "reset": {"--pathspec-from-file"},
 }
 
-OPS = (";", "&&", "||", "|", "&", "|&", "(", ")")
-
-# A brace expansion or a substitution span can expand to NOTHING, so bash hands git the
-# same word with or without it: git${x} add, git add$(true) .env and git`true` add are all
-# git add. Only the program word and the verb are read through word() — dropping a span
-# from a PATH changes the text the path rules match and turns a block into an allow.
-_OPEN = re.compile(r"\$[{(]|\x60")
-_CLOSE = {"{": "}", "(": ")", "\x60": "\x60"}
-
-# The same result as deleting every match of \$\{[^}]*\}|\$\([^)]*\)|\x60[^\x60]*\x60, in
-# linear time: an opener whose closer appears nowhere after it is never searched for again.
-def drop_spans(w):
-    out, cut, i, dead = [], 0, 0, set()
-    while True:
-        m = _OPEN.search(w, i)
-        if not m:
-            break
-        c = _CLOSE[m.group()[-1]]
-        k = -1 if c in dead else w.find(c, m.end())
-        if k < 0:
-            dead.add(c)
-            i = m.start() + 1
-            continue
-        out.append(w[cut:m.start()])
-        cut = i = k + 1
-    out.append(w[cut:])
-    return "".join(out)
-
-def word(w):
-    return squash(drop_spans(w))
-
-# The program word is git when any reading of it is: as written, with a positional or a
-# nested brace span removed, and with each alternative of its first brace list. Reading
-# every alternative is quadratic, so a list too large to read is taken as git, which only
-# adds rows.
-_BARE = re.compile(r"\$\{(?:[^{}]|\{[^{}]*\})*\}|\$[0-9@]")
-_BRACE = re.compile(r"\{([^{},]*(?:,[^{},]*)+)\}")
-
-def is_git(w):
-    # A path separator may be either slash; the program may carry the .exe suffix on
-    # Windows. Only the BASENAME decides, so /usr/bin/git and C:\bin\git.exe both count.
-    # word() runs only AFTER the separator is normalised: it drops backslashes, and doing
-    # it first would swallow the separator of a Windows path and lose the basename.
-    b = w.replace("\\", "/").rsplit("/", 1)[-1]
-    reads = [b]
-    m = _BRACE.search(b)
-    if m:
-        pre, suf, alts = b[:m.start()], b[m.end():], m.group(1).split(",")
-        if len(alts) * (len(pre) + len(suf)) > 65536:
-            return True
-        reads += [pre + a + suf for a in alts]
-    return any(word(x) in ("git", "git.exe") or word(_BARE.sub("", x)) in ("git", "git.exe")
-               for x in reads)
-
 def deb(w):
     # WHAT BASH WILL HAND GIT, used to decide OPTION-NESS and nothing else.
     #
@@ -368,7 +199,7 @@ def deb(w):
     #
     # THIS IS NOT lex.escape SET TO A BACKSLASH, and that is the point. Doing it in the
     # tokenizer would rewrite every PATH too, which is exactly what the empty escape
-    # exists to prevent, here and identically in staged_args() in block-infra-staging.sh.
+    # exists to prevent, here and identically in staged_args() in _lib/common.sh.
     # A path word is still emitted EXACTLY as it was written; only the option decision and
     # the option label read through the escape. Both directions are cases in test-hooks.sh.
     #
@@ -379,116 +210,6 @@ def deb(w):
     # i.e. not a regression of this branch, and it belongs with the other option-spelling
     # gaps on #141 rather than in a fix scoped to what this branch moved.
     return w.replace("\\", "").lstrip("$")
-
-HEREDOC_WORD = re.compile(r"-?[ \t]*([\x27\x22]?)([A-Za-z_][A-Za-z0-9_]*)\1(?![^\s;&|()<>])")
-
-def heredoc_ops(line, quote):
-    # WHICH <<WORD ON THIS LINE IS A REAL HEREDOC OPERATOR, read the way bash reads it.
-    # Returns the line with every operator span removed, the terminator words in order,
-    # and the quote state at the end of the line (a quoted string may run onto the next
-    # line, and bash keeps reading it as one string).
-    #   - Inside single or double quotes, << is text. Outside single quotes a backslash
-    #     escapes the next character, as it does in bash.
-    #   - An unquoted # that starts a word begins a comment; nothing after it is scanned.
-    #   - <<< is a here-string and never a heredoc, whatever follows it.
-    #   - EVERY real operator on the line is collected, not only the first.
-    #   - A word that runs on past the name (<<EOF-1) is not taken, so its lines are judged.
-    # An unbalanced quote leaves the rest of the payload quoted, so no later operator is
-    # honoured and every later line is judged: that mistake blocks, it does not swallow.
-    keep, ops, cut, i, n = [], [], 0, 0, len(line)
-    while i < n:
-        c = line[i]
-        if quote == "\x27":
-            if c == "\x27":
-                quote = ""
-            i += 1
-        elif c == "\\":
-            i += 2
-        elif quote:
-            if c == quote:
-                quote = ""
-            i += 1
-        elif c in "\x27\x22":
-            quote = c
-            i += 1
-        elif c == "#" and (i == 0 or line[i - 1] in " \t;&|()<>"):
-            break
-        elif line.startswith("<<<", i):
-            i += 3
-        elif line.startswith("<<", i):
-            m = HEREDOC_WORD.match(line, i + 2)
-            if m:
-                ops.append(m.group(2))
-                keep.append(line[cut:i])
-                cut = i = m.end()
-            else:
-                i += 2
-        else:
-            i += 1
-    keep.append(line[cut:])
-    return "".join(keep), ops, quote
-
-def strip_heredocs(s):
-    # A heredoc body is DATA, not a command. A line inside one that begins with git is
-    # prose ABOUT git, which is what this repo is full of.
-    #
-    # heredoc_ops AND THIS FUNCTION ARE IDENTICAL TEXT in block-dangerous-git.sh and
-    # block-infra-staging.sh. A change to one is a change to make to the other.
-    #
-    # THREE THINGS THIS FUNCTION MUST NOT DO, each a fail-open:
-    #
-    #   1. DROP THE REST OF THE OPERATOR LINE. In bash the body starts on the NEXT line, so
-    #      whatever follows the operator on THIS one is a real command that really runs:
-    #      cat <<EOF ; git branch -D feature, cat <<EOF > n.txt && git add -A.
-    #   2. SWALLOW WHEN THE TERMINATOR NEVER COMES. With no terminator the swallow is the
-    #      whole rest of the payload, judged by nothing. An unterminated heredoc is a shape
-    #      bash itself refuses to run (a git shim records no call), so judging those lines
-    #      cannot cost a real false positive. With several operators on one line, every
-    #      terminator must be found in order, or no line is treated as a body.
-    #   3. TAKE A <<WORD THAT BASH DOES NOT: one inside quotes or after a #, the word of a
-    #      <<<EOF here-string, or only the first of several operators on a line. Any of
-    #      those drops the lines up to a coincidental terminator unjudged.
-    #
-    # 1 DEPENDS ON 3. In grep -n "<<\x27PY\x27" install.sh followed by a force push, the quoted
-    # <<\x27PY\x27 is not an operator, so the line stays whole and the force push is judged.
-    lines = s.replace("\r\n", "\n").replace("\r", "\n").split("\n")
-    out, i, quote, pending = [], 0, "", []
-    while i < len(lines):
-        text, ops, quote = heredoc_ops(lines[i], quote)
-        out.append(text)
-        pending += ops
-        i += 1
-        if pending and not quote:
-            j, closed = i, True
-            for term in pending:
-                while j < len(lines) and lines[j].strip() != term:
-                    j += 1
-                if j >= len(lines):
-                    closed = False
-                    break
-                j += 1
-            if closed:             # every terminator found: real heredocs, bodies are data
-                i = j
-            # else: not heredocs after all — judge those lines, do not discard them
-            pending = []
-    return "\n".join(out)
-
-# A name that an assignment EARLIER IN THE SAME PAYLOAD gives a whitespace-only value.
-# A match starts only at the head of a name: retried at every letter of a long word, the
-# scan is quadratic.
-_WS_ASSIGN = re.compile(r"(?<![A-Za-z0-9_])[0-9]*([A-Za-z_][A-Za-z0-9_]*)=([\"" + chr(39) + r"])[ \t]+\2")
-
-def split_ws(src):
-    # An expansion that yields whitespace is a word SPLIT when bash runs the command, while
-    # a quote pair only glues. That is the whole difference between git${IFS}add, which
-    # stages, and git""add, which is the single word gitadd and stages nothing — so a
-    # literal space here, and nothing else touched, is what lets the tokenizer see it.
-    # Two shapes are closed: $IFS, and a name this payload assigns a whitespace-only value.
-    # NOT closed: ${IFS:0:1}, $(printf " "), a dollar-quoted tab, and a name set in an
-    # earlier tool call — the hook only ever sees one command.
-    names = {"IFS"} | {m.group(1) for m in _WS_ASSIGN.finditer(src)}
-    alt = "|".join(sorted(names))
-    return re.sub(r"\$\{(?:" + alt + r")\}|\$(?:" + alt + r")(?![A-Za-z0-9_])", " ", src)
 
 def prepare(src):
 # A LINE CONTINUATION is ONE command written over two lines, not two commands, so it has
@@ -535,40 +256,6 @@ def prepare(src):
 # whitespace, which would run two commands together into one segment. A backtick becomes
 # a separator too (divergence 5): it is command substitution, and shlex does not know it.
     return src.replace("\n", " ; ").replace("\x60", " ; ")
-
-def tokenize(src):
-    lex = shlex.shlex(src, posix=True, punctuation_chars=True)
-    lex.whitespace_split = True
-    lex.escape = ""      # a backslash is a Windows path separator here, never an escape
-    lex.commenters = ""
-    return list(lex)     # raises ValueError when shlex refuses; the caller decides
-
-def fallback_tokens(src):
-    # For an INNER string shlex refuses (an apostrophe inside double quotes is enough).
-    # It is still judged: quote marks are dropped and the text is split on whitespace and
-    # on the separators shlex would have split.
-    src = src.replace("\x27", "").replace("\x22", "")
-    return re.findall(r"\|\||&&|\|&|[;&|()]|[<>]+|[^\s;&|()<>]+", src)
-
-# A token matching this tokenizes to more than one word, so it may be a command string.
-MULTI = re.compile(r"[\s;&|()<>\x60]")
-
-# Commands that never run their arguments, so none of those arguments is a candidate.
-# The command is the first word of the segment after LEADERS and VAR=value words; an
-# option, a path or an unlisted wrapper in that place leaves the arguments candidates.
-# Substitution spans inside these arguments are still read by span_views.
-# rg with --pre runs a command, so it is not exempt.
-NO_EXEC = frozenset(("echo", "printf", "grep", "rg", "gh"))
-LEADERS = frozenset(("sudo", "env", "time", "command", "nohup", "nice", "exec", "!",
-                     "if", "then", "elif", "else", "do", "while", "until"))
-
-def runs_no_args(words):
-    k = 0
-    while k < len(words) and (words[k] in LEADERS or re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[k])):
-        k += 1
-    if k < len(words) and words[k] == "rg":
-        return not any(w == "--pre" or w.startswith("--pre=") for w in words[k + 1:])
-    return k < len(words) and words[k] in NO_EXEC
 
 def seg_rows(toks, out, cands):
     # Appends the rows for toks to out, and to cands every token that may itself be a
@@ -645,55 +332,6 @@ def seg_rows(toks, out, cands):
             cands.extend(w for i, w in enumerate(words) if i not in is_val and MULTI.search(w))
             cands.extend(w[6:] for w in words if w.startswith("--pre="))   # one token, value glued on
 
-MAX_DEPTH = 4
-
-def span_views(s):
-    # The inner text of every outermost dollar-paren span and backtick span outside single quotes,
-    # then s with every span removed (an empty substitution glues its neighbours into one
-    # word). An unclosed span runs to the end of s. Deeper spans are found on the next level.
-    # A single-quoted span is never expanded here; if the quoted text is itself run (bash -c)
-    # it is a multi-word candidate and its spans are found when that text is read.
-    views, keep, cut, i, n, quote = [], [], 0, 0, len(s), ""
-    while i < n:
-        c = s[i]
-        if quote == "\x27" or (c == "\x27" and not quote):
-            quote = "\x27" if quote != c else ""
-            i += 1
-            continue
-        if c == "\x22":
-            quote = "" if quote else c
-        if s.startswith("\x24(", i):
-            k, level = i + 2, 1
-            while k < n and level:
-                level += {"(": 1, ")": -1}.get(s[k], 0)
-                k += 1
-            views.append(s[i + 2:k - 1] if level == 0 else s[i + 2:])
-        elif c == "\x60":
-            k = s.find("\x60", i + 1)
-            k = n if k < 0 else k + 1
-            views.append(s[i + 1:k - 1] if s[k - 1:k] == "\x60" and k - 1 > i else s[i + 1:])
-        else:
-            i += 1
-            continue
-        keep.append(s[cut:i])
-        cut = i = k
-    if views:
-        views.append("".join(keep) + s[cut:])
-    return views
-
-# What bash may build from the text, each as a view of its own: a backslash-newline
-# deleted rather than joined with a space, an unbraced name ended by a quote removed, and
-# $IFS removed where the same text sets IFS empty. It only ADDS views.
-_QNAME = re.compile(r"(?<=[A-Za-z0-9_])\$[A-Za-z_][A-Za-z0-9_]*(?=[\x22\x27])")
-_EMPTY_IFS = re.compile(r"(?<![A-Za-z0-9_])IFS=(?:\x27\x27|\x22\x22)?(?![^\s;&|()])")
-_IFS_REF = re.compile(r"\$\{IFS\}|\$IFS(?![A-Za-z0-9_])")
-
-def alt_views(s):
-    views = [re.sub(r"\\\n+", "", s), _QNAME.sub("", s)]
-    if _EMPTY_IFS.search(s):
-        views.append(_IFS_REF.sub("", s))
-    return [v for v in views if v != s]
-
 src = strip_heredocs(CMD)
 try:
     toks = tokenize(prepare(src))
@@ -750,7 +388,7 @@ _rc=0
 fields="$(payload_fields)" || _rc=$?
 case "$_rc" in
     0) ;;
-    3) block "this command could not be read well enough to tell what it does — refusing rather than guessing." ;;
+    3) block "this command could not be read well enough to tell what it does — refusing rather than guessing. Rewrite it with plain quoting (no nested, escaped or unbalanced quotes), or ask the user to run it." ;;
     *) block "the payload did not parse as JSON — refusing to guess what this command does. $(py_tried)" ;;
 esac
 
@@ -788,6 +426,37 @@ while [[ $norm == *"  "* ]]; do
     norm="${norm//  / }"
 done
 
+# Where a push lands: the part of a refspec after its `:`, less a leading `+` and
+# `refs/heads/`. HEAD and @ are the checked-out branch, read once and only when needed.
+head_branch=""
+push_target_check() { # <refspec | --all | --mirror | --branches> — blocks a push that lands on main, master or develop
+    local ref="${1#+}" d
+    # The empty refspec `:` and these three options push every branch, trunk included,
+    # without naming one.
+    case "$ref" in
+        :|--all|--mirror|--branches)
+            allowlist_says trunk-push "$payload_cwd" || \
+                block "git push $1 reaches every branch, main, master and develop included. Push a feature branch by name, or set the 4th field (trunk-push) to yes for this repo in ~/.claude/repo-allowlist."
+            return 0 ;;
+    esac
+    ref="${ref##*:}"
+    ref="${ref#refs/heads/}"
+    case "$ref" in
+        HEAD|@)
+            if [ -z "$head_branch" ]; then
+                d="$payload_cwd"
+                [ -n "$d" ] && [ -d "$d" ] || d="$PWD"
+                head_branch="$(git -C "$d" symbolic-ref --short -q HEAD 2>/dev/null || true)"
+            fi
+            ref="$head_branch" ;;
+    esac
+    case "$ref" in
+        main|master|develop)
+            allowlist_says trunk-push "$payload_cwd" || \
+                block "git push to $ref — a trunk branch. Push a feature branch, or set the 4th field (trunk-push) to yes for this repo in ~/.claude/repo-allowlist." ;;
+    esac
+}
+
 # --- Hard blocks ---------------------------------------------------------------
 # The pre-filter never asks for the verb: `git -C <dir> push` does not put the verb
 # next to the program name, and a filter that demanded that let the whole command past.
@@ -816,16 +485,37 @@ if [ -n "$args" ]; then
     #     `echo "git push --force" > x.sh; bash x.sh`. A redirect only: `tee` is not in
     #     NO_EXEC, so the same shape through a pipe is judged.
     push_checked=""
+    push_open=""    # a push with no refspec seen yet: it lands on the checked-out branch
+    push_pos=0
     while IFS="$(printf '\t')" read -r sub kind arg; do
         [ -n "$sub" ] || continue
 
+        # A `sub` row starts a git invocation, so it closes the push before it.
+        if [ "$kind" = sub ]; then
+            [ -z "$push_open" ] || push_target_check HEAD
+            push_open=""
+            if [ "$sub" = push ]; then
+                push_open=1
+                push_pos=0
+            fi
+        fi
+
         # git push — the human pushes manually, unless this repo is allowlisted for it.
         # The `sub` row is why a bare `git push` with no arguments is caught. Asked once
-        # per command: allowlist_says re-parses the payload to find out which repo it is.
+        # per command.
         if [ "$sub" = push ] && [ -z "$push_checked" ]; then
             push_checked=1
-            allowlist_says push || \
+            allowlist_says push "$payload_cwd" || \
                 block "git push is not allowed here — this repo is not in ~/.claude/repo-allowlist with push: yes. Push manually, or add a line."
+        fi
+
+        # A push's first positional is the remote; every one after it is a refspec.
+        if [ "$sub" = push ] && [ "$kind" = path ]; then
+            push_pos=$((push_pos + 1))
+            if [ "$push_pos" -gt 1 ]; then
+                push_open=""
+                push_target_check "$arg"
+            fi
         fi
 
         # Bare `git add -A` / `git add .` sweeps in whatever is lying around, .claude/ and
@@ -890,11 +580,15 @@ if [ -n "$args" ]; then
             push)
                 case "$arg" in
                     --force*) block "git push --force" ;;
+                    --all|--mirror|--branches) push_target_check "$arg" ;;
+                    # With no refspec, --tags pushes the tags and no branch.
+                    --tags)   push_open="" ;;
                     --*)      ;;
                     -*[fF]*)  block "git push --force" ;;
                 esac ;;
         esac
     done <<< "$args"
+    [ -z "$push_open" ] || push_target_check HEAD
 fi
 
 # --- Two rules that are deliberately NOT tokenized ------------------------------

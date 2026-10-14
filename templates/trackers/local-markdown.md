@@ -44,8 +44,8 @@ like they were not involved. For that case, move the whole tree to the workspace
 **Workspace chart state is not committed**, so it trades the committed-record property for
 being able to exist at all. Two rules come with it:
 
-- **Never put it under the handoffs directory.** Those auto-delete at session end and a map
-  runs for weeks. This is the single most expensive mistake available here.
+- **Never put it under the handoffs directory.** Those are scratch space, never a durable
+  store, and a map runs for weeks. This is the single most expensive mistake available here.
 - `<KEY>` is a folder name only. The tracker writes nothing back to the hosted tracker the
   key belongs to.
 

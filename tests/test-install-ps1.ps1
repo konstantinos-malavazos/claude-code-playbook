@@ -19,13 +19,14 @@
       pwsh.exe       -NoProfile -File tests/test-install-ps1.ps1
 
     It needs the same things install.ps1 needs — Git Bash and a python inside it —
-    because five of the nine sections run the real installer end to end. Sections 4,
-    7 and 9 reach install.sh, so a break in EITHER half lands here.
+    because seven of the eleven sections run the real installer end to end. Sections
+    4, 7, 9, 10 and 11 reach install.sh, so a break in EITHER half lands here.
 
 .NOTES
     Nothing here writes to the real ~/.claude: every run that gets as far as install.sh
-    is `list`, which changes nothing, and CLAUDE_HOME is redirected into a temp dir
-    anyway. Set PLAYBOOK_TEST_DIR to move that temp dir, as the bash suites do.
+    is `list`, which changes nothing, except section 10's install and section 11's
+    updates, which run with HOME and CLAUDE_HOME both redirected into the temp dir. Set PLAYBOOK_TEST_DIR to move that
+    temp dir, as the bash suites do.
 #>
 
 # Deliberate, and the subject of section 5: this suite runs commands that are MEANT to
@@ -89,7 +90,8 @@ function Invoke-Installer {
         [string]$Dir,
         [string]$Log,
         [string]$Mode = 'list',
-        [hashtable]$WithEnv = @{}
+        [hashtable]$WithEnv = @{},
+        [string]$StdinFile = ''
     )
     $saved = @{}
     foreach ($k in $WithEnv.Keys) {
@@ -101,9 +103,21 @@ function Invoke-Installer {
         $hostArgs = @('-NoProfile')
         if ($HostExe -match 'powershell\.exe$') { $hostArgs += @('-ExecutionPolicy', 'Bypass') }
         $hostArgs += @('-File', (Join-Path $Dir 'install.ps1'), $Mode)
-        & $HostExe @hostArgs *> $outFile
-        $code = $LASTEXITCODE
-        [pscustomobject]@{ Code = $code; Text = (Get-Content $outFile -Raw); Log = $outFile }
+        if ($StdinFile) {
+            # Keystrokes for an install: the child inherits this stdin, and so does the
+            # bash it hands off to. Start-Process joins its arguments with spaces and
+            # quotes none of them, so a path with a space is quoted here.
+            $errFile = Join-Path $Logs "$Log.err.txt"
+            $quoted = $hostArgs | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }
+            $p = Start-Process -FilePath $HostExe -ArgumentList $quoted -NoNewWindow -Wait -PassThru `
+                    -RedirectStandardInput $StdinFile -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+            $text = [string](Get-Content $outFile -Raw) + [string](Get-Content $errFile -Raw)
+            [pscustomobject]@{ Code = $p.ExitCode; Text = $text; Log = $outFile }
+        } else {
+            & $HostExe @hostArgs *> $outFile
+            $code = $LASTEXITCODE
+            [pscustomobject]@{ Code = $code; Text = (Get-Content $outFile -Raw); Log = $outFile }
+        }
     } finally {
         foreach ($k in $saved.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) }
     }
@@ -237,8 +251,14 @@ notcrashed $r7 'no raw PowerShell error'
 
 # ---------------------------------------------------------------- 8 wsl shell flags
 banner '8 · the WSL hand-off runs the shell its python probe ran'
-$matchA = [regex]::Matches($src, '(?m)Invoke-Probe ''wsl\.exe'' @\(''bash'', ''([^'']*)'', \$pythonProbe\)')
-$matchB = [regex]::Matches($src, '(?m)& wsl\.exe bash ([^\s]+) "cd')
+$matchA = [regex]::Matches($src, '(?m)Invoke-Probe ''wsl\.exe'' @\(''-e'', ''bash'', ''([^'']*)'', \$pythonProbe\)')
+$matchB = [regex]::Matches($src, '(?m)& wsl\.exe -e bash ([^\s]+) "cd')
+# Without -e, wsl.exe hands the rest of its command line to the distro's default shell,
+# which expands a $ or backtick in a path before bash or wslpath ever sees it. -l lists
+# distros and runs nothing.
+$noE = [regex]::Matches($src, '(?m)(Invoke-Probe ''wsl\.exe'' @\((?!''-e'',|''-l'',)|^\s*& wsl\.exe (?!-e ))[^\r\n]*')
+chk ($noE.Count -eq 0) 'every wsl.exe call that runs a program passes -e' `
+    "found $($noE.Count): $(($noE | ForEach-Object { $_.Value.Trim() }) -join ' | ')"
 chk ($matchA.Count -eq 1) 'WSL probe line matched exactly once' "matched $($matchA.Count) times, expected 1"
 chk ($matchB.Count -eq 1) 'WSL hand-off line matched exactly once' "matched $($matchB.Count) times, expected 1"
 if ($matchA.Count -eq 1 -and $matchB.Count -eq 1) {
@@ -265,6 +285,80 @@ chk ($r9b.Code -ne 0) 'exits non-zero' "rc=$($r9b.Code)"
 inlog $r9b 'CLAUDE_HOME cannot be translated for this bash' 'CLAUDE_HOME cannot be translated for this bash'
 notinlog $r9b 'this clone can install' 'install.sh was never reached'
 notcrashed $r9b 'no raw PowerShell error'
+
+# ---------------------------------------------------------------- 10 the hook library
+# Every hook sources hooks/_lib/common.sh and refuses every call without it, so an
+# install through this door has to land it. A real install: keystrokes on stdin, and a
+# scratch HOME holding the two MCP servers the install gates on.
+banner '10 · an install through install.ps1 lands hooks/_lib/common.sh'
+$home10 = Join-Path $Work 'home10'
+$ch10   = Join-Path $home10 '.claude'
+$ws10   = Join-Path $Work 'ws10'
+New-Item -ItemType Directory -Force -Path $ch10, $ws10 | Out-Null
+[IO.File]::WriteAllText((Join-Path $home10 '.claude.json'),
+    '{ "mcpServers": { "serena": { "command": "uvx", "args": ["serena"] }, "forgetful": { "command": "forgetful-mcp" } } }')
+# The same answers as tests/test-installer.sh's FULL list, LF-terminated for bash's read.
+$keys10 = Join-Path $Work 'keys10.in'
+$answers10 = @('', '', '5', '4', '', 'i', '', '', '', '', '', '', '', '', 'y', (ConvertTo-BashPath $ws10), '')
+[IO.File]::WriteAllText($keys10, (($answers10 -join "`n") + "`n"))
+$r10 = Invoke-Installer -Dir $Repo -Log 'install-hook-lib' -Mode 'install' -StdinFile $keys10 `
+        -WithEnv @{ HOME = (ConvertTo-BashPath $home10); CLAUDE_HOME = (ConvertTo-BashPath $ch10); PLAYBOOK_SCRIPTED_INPUT = '1' }
+chk ($r10.Code -eq 0) 'exits 0' "rc=$($r10.Code) — see $($r10.Log)"
+$lib10 = Join-Path $ch10 'hooks\_lib\common.sh'
+chk (Test-Path $lib10) 'wrote hooks/_lib/common.sh' "see $($r10.Log)"
+if (Test-Path $lib10) {
+    chk (-not ([IO.File]::ReadAllBytes($lib10) -contains 13)) 'hooks/_lib/common.sh has no CR bytes' 'a CRLF library breaks every hook'
+}
+notcrashed $r10 'no raw PowerShell error'
+
+# ---------------------------------------------------------------- 11 a retired hook
+# cleanup-handoffs.sh deleted handoff folders at every session end. An update through this
+# door must delete the recorded copy and its SessionEnd entry, keep a SessionEnd hook of
+# the user's own, and leave every other hook wired. Builds on section 10's install.
+banner '11 · update through install.ps1 retires cleanup-handoffs'
+$man11 = Join-Path $ch10 '.playbook-install.json'
+$set11 = Join-Path $ch10 'settings.json'
+$hook11 = Join-Path $ch10 'hooks\cleanup-handoffs.sh'
+$seeded11 = $false
+if ((Test-Path $man11) -and (Test-Path $set11)) {
+    [IO.File]::WriteAllText($hook11, "#!/usr/bin/env bash`n# section 11 as installed`nexit 0`n")
+    $hash11 = (Get-FileHash -Algorithm SHA256 $hook11).Hash.ToLower()
+    $mtext = [IO.File]::ReadAllText($man11)
+    $dm = [regex]::Match($mtext, '"hook:block-dangerous-git": \{[^}]*?"dest": "([^"]*)block-dangerous-git\.sh"')
+    $stext = [IO.File]::ReadAllText($set11)
+    $nUnits = ([regex]'"units": \{').Matches($mtext).Count
+    $nHooks = ([regex]'"hooks": \{').Matches($stext).Count
+    if ($dm.Success -and $nUnits -eq 1 -and $nHooks -eq 1) {
+        $rec = '"units": {' + "`n" + '    "hook:cleanup-handoffs": {"kind": "hook", "dest": "' + $dm.Groups[1].Value +
+               'cleanup-handoffs.sh", "hash": "' + $hash11 + '", "source_hash": "' + ('0' * 64) + '"},'
+        [IO.File]::WriteAllText($man11, $mtext.Replace('"units": {', $rec))
+        $ours = '{"type": "command", "command": "~/.claude/hooks/cleanup-handoffs.sh"}'
+        $end = '"hooks": {' + "`n" + '    "SessionEnd": [{"hooks": [' + $ours + ']}, {"hooks": [' +
+               '{"type": "command", "command": "~/bin/my-session-end.sh"}, ' + $ours + ']}],'
+        [IO.File]::WriteAllText($set11, $stext.Replace('"hooks": {', $end))
+        $seeded11 = $true
+    }
+}
+chk $seeded11 'seeded a recorded, wired cleanup-handoffs beside a SessionEnd hook of the user''s own' `
+    "section 10's install did not leave a manifest and settings.json shaped as expected — see $($r10.Log)"
+if ($seeded11) {
+    $empty11 = Join-Path $Work 'keys11.in'
+    [IO.File]::WriteAllText($empty11, '')
+    $env11 = @{ HOME = (ConvertTo-BashPath $home10); CLAUDE_HOME = (ConvertTo-BashPath $ch10); PLAYBOOK_SCRIPTED_INPUT = '1' }
+    $r11 = Invoke-Installer -Dir $Repo -Log 'update-retire' -Mode 'update' -StdinFile $empty11 -WithEnv $env11
+    chk ($r11.Code -eq 0) 'update exits 0' "rc=$($r11.Code) — see $($r11.Log)"
+    chk (-not (Test-Path $hook11)) 'update deleted hooks/cleanup-handoffs.sh' "see $($r11.Log)"
+    $after11 = [IO.File]::ReadAllText($set11)
+    chk (-not $after11.Contains('cleanup-handoffs')) 'settings.json no longer names cleanup-handoffs' $set11
+    chk $after11.Contains('~/bin/my-session-end.sh') 'the user''s own SessionEnd hook is still wired' $set11
+    chk $after11.Contains('~/.claude/hooks/block-dangerous-git.sh') 'the PreToolUse hooks are still wired' $set11
+    chk (-not [IO.File]::ReadAllText($man11).Contains('hook:cleanup-handoffs')) `
+        'the manifest no longer records hook:cleanup-handoffs' $man11
+    notcrashed $r11 'no raw PowerShell error'
+    $r11b = Invoke-Installer -Dir $Repo -Log 'update-retire-again' -Mode 'update' -StdinFile $empty11 -WithEnv $env11
+    chk ($r11b.Code -eq 0) 'a second update exits 0' "rc=$($r11b.Code) — see $($r11b.Log)"
+    chk ([IO.File]::ReadAllText($set11) -ceq $after11) 'a second update leaves settings.json unchanged' $set11
+}
 
 Write-Host ''
 Write-Host '================================'

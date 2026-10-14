@@ -36,8 +36,8 @@ mixes concerns, and has no guardrails. Instead:
 - **Retrieval is offloaded.** A throwaway "gatherer" context does the token-heavy memory
   and code sweep, then hands the *distilled brief* to the planner. The expensive context
   is discarded. The planner stays lean.
-- **Handoffs are files, not chat.** Agents pass state through handoff files on disk that
-  are deleted at a later session end, once nothing has written to them for a day. In-flight noise never reaches long-term memory.
+- **Handoffs are files, not chat.** Agents pass state through handoff files on disk: scratch space that
+  stays until you delete it, never a durable store. In-flight noise never reaches long-term memory.
 
 ---
 
@@ -47,11 +47,11 @@ The single most important design decision:
 
 | Kind | Mechanism | Lifetime | Example |
 |---|---|---|---|
-| **Ephemeral pipeline state** | filesystem handoff files (`…/handoffs/<TICKET>/`) | deleted at a later `SessionEnd`, once a day untouched | "Backend added field `X`; the client must map it to `Y`." |
+| **Ephemeral pipeline state** | filesystem handoff files (`…/handoffs/<TICKET>/`) | scratch space; stays until you delete it, never a durable store | "Backend added field `X`; the client must map it to `Y`." |
 | **Durable knowledge** | a persistent memory store (Forgetful) | permanent, cross-session | "Root cause: the fee is sourced from the wrong upstream event." |
 
 In-flight chatter would pollute the semantic memory if written to it, so it goes to
-disk and evaporates. Only the distilled, durable conclusion is consolidated into **one**
+disk as scratch space. Only the distilled, durable conclusion is consolidated into **one**
 memory when the ticket is done. This keeps memory retrieval signal-dense.
 
 ---

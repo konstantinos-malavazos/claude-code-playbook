@@ -104,7 +104,7 @@ function Invoke-Probe {
 # whenever it likes. `wsl -l -q` lists it exactly like a real distro, so a name check
 # is guesswork and the honest test is to run bash and see.
 function Test-WslBash {
-    (Invoke-Probe 'wsl.exe' @('bash', '-c', 'exit 0')).Code -eq 0
+    (Invoke-Probe 'wsl.exe' @('-e', 'bash', '-c', 'exit 0')).Code -eq 0
 }
 
 # Everything handed to bash below travels inside single quotes, and one apostrophe
@@ -129,7 +129,7 @@ function ConvertTo-HandoffHome {
 
     if ($Wsl) {
         if (($Value -match '^[A-Za-z]:[\\/]') -or ($Value -match '^\\\\')) {
-            $translated = Invoke-Probe 'wsl.exe' @('wslpath', '-a', ($Value -replace '\\', '/'))
+            $translated = Invoke-Probe 'wsl.exe' @('-e', 'wslpath', '-a', ($Value -replace '\\', '/'))
             $wslPath = [string]($translated.Output | Select-Object -First 1)
             if ($translated.Code -eq 0 -and $wslPath.Trim()) {
                 return $wslPath.Trim()
@@ -271,7 +271,7 @@ Write-Ok "bash: $bash$(if ($useWsl) { ' (WSL)' })"
 $pythonProbe = 'for c in python3 python; do command -v $c >/dev/null 2>&1 && $c -c ''import sys; sys.exit(0 if sys.version_info>=(3,7) else 1)'' 2>/dev/null && { echo $c; exit 0; }; done; exit 1'
 
 if ($useWsl) {
-    $python = Invoke-Probe 'wsl.exe' @('bash', '-lc', $pythonProbe)
+    $python = Invoke-Probe 'wsl.exe' @('-e', 'bash', '-lc', $pythonProbe)
 } else {
     $python = Invoke-Probe $bash @('-lc', $pythonProbe)
 }
@@ -320,7 +320,7 @@ $ErrorActionPreference = 'Continue'
 
 if ($useWsl) {
     # Translate the Windows path so the Linux side can find the clone.
-    $translated = Invoke-Probe 'wsl.exe' @('wslpath', '-a', ($here -replace '\\', '/'))
+    $translated = Invoke-Probe 'wsl.exe' @('-e', 'wslpath', '-a', ($here -replace '\\', '/'))
     $wslPath = [string]($translated.Output | Select-Object -First 1)
     if ($translated.Code -ne 0 -or -not $wslPath) {
         Write-Fail 'Could not translate this directory into a WSL path.' @(
@@ -328,7 +328,7 @@ if ($useWsl) {
             '  cd /mnt/c/path/to/claude-code-playbook && ./install.sh'
         )
     }
-    & wsl.exe bash -lc "cd $(ConvertTo-BashQuoted ($wslPath.Trim())) && ${envPrefix}./install.sh $Mode"
+    & wsl.exe -e bash -lc "cd $(ConvertTo-BashQuoted ($wslPath.Trim())) && ${envPrefix}./install.sh $Mode"
 } else {
     & $bash -lc "cd $(ConvertTo-BashQuoted ($here -replace '\\', '/')) && ${envPrefix}./install.sh $Mode"
 }

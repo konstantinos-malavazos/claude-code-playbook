@@ -103,8 +103,8 @@ path that changed under you gets reused unchanged and the first sign is a failin
    from the Propagation line. One read is not proof: landing is asynchronous and it flaps, so a
    late re-sync can revert a row that was already correct.
 6. **Write the plan** to `<workspace>/.claude/test-runs/<TICKET-ID>/test-plan.md` — the
-   **persistent** dir, not `handoffs/`, which is wiped at session end while a test run spans
-   sessions. Keep `planner-notes.md` beside it current so a resume is lossless.
+   **persistent** dir, not `handoffs/`, which is scratch space and never a durable store, while a
+   test run spans sessions. Keep `planner-notes.md` beside it current so a resume is lossless.
 7. **STOP for approval.** Show the plan; wait for an explicit human go-ahead. Needing more than
    the briefs hold, flush your notes and end the turn with `## DATA REQUEST — <TICKET-ID>`: the
    one question, the tool class, the scope, the decision it blocks — you cannot spawn a

@@ -8,10 +8,17 @@ description: >-
   repo-reviewer.md. RELEASE MODE:
   dispatched by /confirm-deployment over a <fromTag>..<toTag> delta for one repo; reviews
   the aggregate diff + a deploy-risk artifact scan and writes a per-repo GO/NO-GO.
-  Read-only on code in both modes.
+  Writes only handoff files and chart reviews through Write/Edit (hook-enforced); Bash can
+  still write files.
 tools: Read, Grep, Glob, Write, Edit, Bash, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file, mcp__serena__get_diagnostics_for_file
 model: <strong-model-id>
 effort: high
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "~/.claude/hooks/handoffs-only.sh"
 ---
 
 You are the senior reviewer. You see what the in-repo reviewer cannot: everything
@@ -72,6 +79,6 @@ topics/queues, config/secrets, destructive data ops — do your own scoped memor
 and write a per-repo **GO / NO-GO** report with the specific risks.
 
 ## You must NOT
-- Edit production code (comments/reports only).
+- Edit production code. You keep `Bash` to run tests and git, and `Bash` can still write files. The `handoffs-only` hook closes only the `Write`/`Edit` route.
 - Clear a consumer, or declare a blast radius empty, on grep evidence alone.
 - Push, merge, deploy, or write to the tracker.

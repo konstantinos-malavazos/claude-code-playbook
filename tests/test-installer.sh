@@ -47,12 +47,11 @@ LOGS="$SCRATCH/logs"
 # would build the sandbox wrong and every later failure would point at the installer
 # instead of at the interpreter — correct by luck, and the diagnostic lies (#146).
 #
-# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in all seven hooks and in
-# templates/hooks/test-hooks.sh, and it has to be: a suite that picked its interpreter
-# by a different rule from the code it tests is testing something else. Why a
-# WindowsApps python3 goes to the END of the list and is never dropped is written out
-# in templates/hooks/block-dangerous-git.sh — a guardrail that bricks the machine is
-# not the safer failure, so this is a preference, not a ban.
+# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in templates/hooks/_lib/common.sh,
+# and it has to be: a suite that picked its interpreter by a different rule from the
+# code it tests is testing something else. Why a WindowsApps python3 goes to the END of
+# the list and is never dropped is written out in that file — a guardrail that bricks
+# the machine is not the safer failure, so this is a preference, not a ban.
 PY_LIST=()
 PY_LAST=()
 # ONE command substitution, not one per candidate. A fork costs ~30ms on Windows, so
@@ -2492,6 +2491,9 @@ notinlog sw2 "LEFT ALONE — already here, and this installer did not put them t
          "nothing is planned as a stranger's file"
 yn "$(grep -qE 'tracker:[a-z-]+ — present but not installed' "$LOGS/sw2.out" && echo 1 || echo 0)" \
    "no tracker is reported as present but not installed"
+# Unticking plans nothing, so the seeded menu must not promise a removal.
+notinlog sw2 "Untick something to have it removed" "the seeded menu does not promise that unticking removes"
+inlog sw2 "Unticking leaves it installed" "the seeded menu says unticking leaves a unit installed"
 fi
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -2600,11 +2602,13 @@ notinlog sw4j "tracker:jira — you edited it since install; diff against" \
          "the summary offers no diff against jira.md, which was never installed"
 notinlog sw4j "trackers/jira.md — then either keep yours, or copy the new one over it by hand" \
          "no to-do offers jira.md to copy over the local-markdown tracker.md"
-SW4F="$(grep -F 'Fill in <' "$LOGS/sw4j.out" | grep -F 'tracker.md' | grep -oE '<[A-Za-z-]+>' | sort -u | tr '\n' ' ')"
-SW4X=""
-for t in $SW4F; do grep -qF -- "$t" "$CH/tracker.md" || SW4X="$SW4X $t"; done
-yn "$([ -n "$SW4F" ] && [ -z "$SW4X" ] && echo 0 || echo 1)" \
-   "the fill-in to-do names only blanks in the tracker.md on disk (${SW4F:-none}; not on disk:${SW4X:- none})"
+# The tracker.md this run left alone is not checked for blanks, so no fill-in to-do
+# can name jira's blanks for a file that is still local-markdown.
+SW4F="$(grep -F 'Fill in <' "$LOGS/sw4j.out" | grep -F 'tracker.md')"
+yn "$([ -z "$SW4F" ] && echo 0 || echo 1)" \
+   "no fill-in to-do for the tracker.md that was left alone (${SW4F:-none})"
+inlog sw4j "this run did not write it, so its blanks were not checked" \
+      "check 3 says it left the edited tracker.md alone"
 fi
 
 # ---------------------------------------------------------------- SW5
@@ -3099,6 +3103,412 @@ yn "$(grep -qF 'mcp__plugin_serena_serena__find_symbol' "$LF1D/serena.md" && ech
    "the prefix was rewritten"
 yn "$([ "$(tr -cd '\r' < "$LF1D/serena.md" | wc -c | tr -d ' ')" = "0" ] && echo 0 || echo 1)" \
    "the rewritten file has no CR bytes"
+fi
+
+# ---------------------------------------------------------------- HL1
+# Catches: a hook installed without _lib/common.sh beside it. The hook fails closed, so
+# every Bash call is refused — after a fresh install, after an update from a manifest
+# that has no record of the library, and after a selection of one hook.
+if want HL1; then
+banner "HL1 · the shared hook library ships with the hooks, is never a hook, and leaves with remove"
+fresh_env hl1; with_servers
+keys hl1 "${FULL[@]}"; run install hl1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "HL1 install exits 0 (rc=$RC)"
+HL1L="$CH/hooks/_lib/common.sh"
+yn "$([ -f "$HL1L" ] && echo 0 || echo 1)" "HL1 install wrote hooks/_lib/common.sh"
+yn "$([ -f "$HL1L" ] && [ "$(tr -cd '\r' < "$HL1L" | wc -c | tr -d ' ')" = "0" ] && echo 0 || echo 1)" \
+   "HL1 hooks/_lib/common.sh has no CR bytes"
+yn "$(cmp -s "$HL1L" "$REPO/templates/hooks/_lib/common.sh" && echo 0 || echo 1)" \
+   "HL1 hooks/_lib/common.sh is the shipped file"
+"$PY" - "$CH/.playbook-install.json" "$CH/settings.json" <<'PY'
+import json, sys
+units = json.load(open(sys.argv[1], encoding="utf-8"))["units"]
+settings = open(sys.argv[2], encoding="utf-8").read()
+assert (units.get("support:hook-lib") or {}).get("kind") == "hook-lib", "no support:hook-lib record"
+assert not [u for u in units if u.startswith("hook:") and ("_lib" in u or "common" in u)], "recorded as a hook"
+assert "_lib" not in settings and "common.sh" not in settings, "settings.json names the library"
+PY
+chk $? "HL1 the manifest records support:hook-lib, no hook unit for it, and settings.json never names it"
+"$PY" - "$REPO/install-lib.py" "$REPO/templates" "$SANDBOX/hl1/discover-dest" <<'PY'
+import importlib.util, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("install_lib", sys.argv[1])
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+units = mod.discover(sys.argv[2], sys.argv[3])
+hooks = sorted(u for u in units if u.startswith("hook:"))
+assert len(hooks) >= 5, "only %d hook units discovered" % len(hooks)
+missing = [h for h in hooks if "support:hook-lib" not in mod.resolve_deps(units, [h])[0]]
+assert not missing, "selecting these alone leaves the library out: %s" % missing
+PY
+chk $? "HL1 selecting any one hook pulls support:hook-lib"
+
+# A CRLF copy of the library breaks every hook at once: outdated, never current.
+if sed -i 's/$/\r/' "$HL1L" && [ "$(tr -cd '\r' < "$HL1L" | wc -c | tr -d ' ')" -gt 0 ]; then
+  pass "HL1 setup: hooks/_lib/common.sh converted to CRLF"
+else
+  fail "HL1 setup: hooks/_lib/common.sh converted to CRLF"
+fi
+nokeys hl1l; run list hl1l
+if grep -qE 'outdated +support:hook-lib' "$LOGS/hl1l.out"; then pass "HL1 list reports a CRLF library as outdated"; else fail "HL1 list reports a CRLF library as outdated"; fi
+nokeys hl1c; run update hl1c
+yn "$([ "$(tr -cd '\r' < "$HL1L" | wc -c | tr -d ' ')" = "0" ] && echo 0 || echo 1)" "HL1 update rewrote a CRLF library as LF"
+
+# An install from before the library existed: no file, and no record of one.
+if rm -rf "$CH/hooks/_lib" && "$PY" - "$CH/.playbook-install.json" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+m["units"].pop("support:hook-lib", None)
+json.dump(m, open(sys.argv[1], "w", encoding="utf-8"), indent=2)
+PY
+then pass "HL1 setup: the library and its record removed"; else fail "HL1 setup: the library and its record removed"; fi
+nokeys hl1u; run update hl1u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "HL1 update exits 0 (rc=$RC)"
+yn "$([ -f "$HL1L" ] && echo 0 || echo 1)" "HL1 update from a manifest without the library installs it"
+
+# Gone afterwards only counts if it was there before.
+HL1PRE=no; [ -f "$HL1L" ] && HL1PRE=yes
+keys hl1r '' 'y'; run remove hl1r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "HL1 remove exits 0 (rc=$RC)"
+yn "$([ "$HL1PRE" = yes ] && [ ! -e "$CH/hooks/_lib" ] && echo 0 || echo 1)" \
+   "HL1 remove deletes hooks/_lib (present before: $HL1PRE)"
+fi
+
+# ---------------------------------------------------------------- HO1
+# Catches: an agent-scoped hook reported UNWIRED on every install, merged into
+# settings.json (every session would get it), or left behind when an agent that wires
+# it in its frontmatter is installed alone — the agent then calls a missing file, a
+# non-blocking error, and the write it exists to stop goes through.
+if want HO1; then
+banner "HO1 · an agent-scoped hook installs with its agents, and stays out of settings.json"
+fresh_env ho1; with_servers
+keys ho1 "${FULL[@]}"; run install ho1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "HO1 install exits 0 (rc=$RC)"
+yn "$([ -f "$CH/hooks/handoffs-only.sh" ] && echo 0 || echo 1)" "HO1 install wrote hooks/handoffs-only.sh"
+inlog ho1 "wired    block-dangerous-git" "HO1 control: the wiring readback ran"
+notinlog ho1 "UNWIRED  handoffs-only" "HO1 the wiring readback does not call handoffs-only UNWIRED"
+yn "$([ -f "$CH/settings.json" ] && ! grep -qF "handoffs-only" "$CH/settings.json" && echo 0 || echo 1)" \
+   "HO1 settings.json never names handoffs-only"
+inlog ho1 "merged hook wiring" "HO1 control: a full install merges the hook wiring"
+
+# Only aligner, so the only hook is the agent-scoped one: nothing goes into settings.json,
+# and the closing screens must not talk about wiring that does not exist.
+fresh_env ho1a; with_servers
+keys ho1a '' '' '1' 'n' '' '2' 'n' '' '3' 'n' '1' '' '4' 'n' '' '6' 'n' '' '7' \
+          'i' 'later' '' '' '' '' '' '' '' '' 'y' '' '' '' ''
+run install ho1a
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "HO1 aligner-only install exits 0 (rc=$RC)"
+inlog ho1a "1 [x] aligner" "HO1 setup: item 1 of the agent list is aligner"
+yn "$([ -f "$CH/agents/aligner.md" ] && [ -f "$CH/hooks/handoffs-only.sh" ] && echo 0 || echo 1)" \
+   "HO1 aligner-only install wrote aligner and handoffs-only"
+notinlog ho1a "merged hook wiring" "HO1 aligner-only install merges no hook wiring"
+notinlog ho1a "Are the guardrails switched on?" "HO1 aligner-only install prints no wiring readback"
+notinlog ho1a "Claude cannot run 'git push'" "HO1 aligner-only install gives no push to-do"
+notinlog ho1a "Check each guardrail really fires" "HO1 aligner-only install gives no guardrail to-do"
+
+# The edge itself, on a tree whose only agents are fixtures: one wires a shipped hook in
+# its frontmatter, one names a hook that does not exist.
+HO1T="$SANDBOX/ho1/templates"
+if mkdir -p "$HO1T/agents" && cp -R "$REPO/templates/hooks" "$HO1T/hooks" \
+   && printf -- '---\nname: probe\nhooks:\n  PreToolUse:\n    - matcher: "Write|Edit"\n      hooks:\n        - type: command\n          command: "~/.claude/hooks/handoffs-only.sh"\n---\nbody\n' > "$HO1T/agents/probe.md" \
+   && printf -- '---\nname: ghost\n---\nRuns ~/.claude/hooks/no-such-hook.sh.\n' > "$HO1T/agents/ghost.md"
+then pass "HO1 setup: a fixture tree with two agents"; else fail "HO1 setup: a fixture tree with two agents"; fi
+"$PY" - "$REPO/install-lib.py" "$HO1T" "$SANDBOX/ho1/discover-dest" <<'PY'
+import importlib.util, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("install_lib", sys.argv[1])
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+units = mod.discover(sys.argv[2], sys.argv[3])
+full = mod.resolve_deps(units, ["agent:probe"])[0]
+assert "hook:handoffs-only" in full and "support:hook-lib" in full, full
+assert not [n for n in units["agent:ghost"]["needs"] if n.startswith("hook:")], units["agent:ghost"]["needs"]
+PY
+chk $? "HO1 an agent that wires a hook pulls it and the library; a hook that does not exist is no edge"
+
+# The shipped agents that carry it.
+"$PY" - "$REPO/install-lib.py" "$REPO/templates" "$SANDBOX/ho1/discover-dest" <<'PY'
+import importlib.util, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("install_lib", sys.argv[1])
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+units = mod.discover(sys.argv[2], sys.argv[3])
+short = [a for a in ("agent:aligner", "agent:repo-reviewer", "agent:release-reviewer")
+         if not {"hook:handoffs-only", "support:hook-lib"} <= set(mod.resolve_deps(units, [a])[0])]
+assert not short, "installed alone, these leave handoffs-only or its library out: %s" % short
+PY
+chk $? "HO1 aligner, repo-reviewer and release-reviewer each pull hook:handoffs-only and support:hook-lib"
+fi
+
+# ---------------------------------------------------------------- RT1
+# Catches: a retired hook left on disk and wired after update. cleanup-handoffs.sh deleted
+# handoff folders at every session end; still wired, it keeps doing that with no template
+# behind it. Its SessionEnd entry must go and every other hook entry must stay.
+#
+# rt1_seed MODE — the hook as an older install left it, wired under SessionEnd twice: in a
+# block of its own, and inside a block that also holds a SessionEnd hook of the user's own.
+#   recorded  on disk, recorded with its hash, its added paths recorded
+#   edited    on disk, recorded, but changed since: its hash is not the recorded one
+#   handcopy  on disk, no record (the manual install path), matching nothing ever shipped
+rt1_seed() {
+  "$PY" - "$CH/.playbook-install.json" "$CH/settings.json" "$1" "$SANDBOX/rt1/pre.json" <<'PY'
+import hashlib, json, os, sys
+mpath, spath, mode, snap = sys.argv[1:5]
+m = json.load(open(mpath, encoding="utf-8"))
+s = json.load(open(spath, encoding="utf-8"))
+if not os.path.exists(snap):
+    json.dump({k: v for k, v in s["hooks"].items() if k != "SessionEnd"}, open(snap, "w", encoding="utf-8"))
+dest = os.path.join(os.path.dirname(m["units"]["hook:block-dangerous-git"]["dest"]), "cleanup-handoffs.sh")
+body = {"recorded": b"#!/usr/bin/env bash\n# RT1 as installed\nexit 0\n",
+        "edited": b"#!/usr/bin/env bash\n# RT1 changed by hand\nexit 0\n",
+        "handcopy": b"#!/usr/bin/env bash\n# RT1 copied by hand\nexit 0\n"}[mode]
+with open(dest, "wb") as fh:
+    fh.write(body)
+if mode != "handcopy":
+    recorded = b"#!/usr/bin/env bash\n# RT1 as installed\nexit 0\n"
+    m["units"]["hook:cleanup-handoffs"] = {"kind": "hook", "dest": dest,
+                                          "hash": hashlib.sha256(recorded).hexdigest(),
+                                          "source_hash": "0" * 64}
+ours = {"type": "command", "command": "~/.claude/hooks/cleanup-handoffs.sh"}
+own_block = {"hooks": [ours]}
+shared = {"hooks": [{"type": "command", "command": "~/bin/my-session-end.sh"}, ours]}
+s["hooks"]["SessionEnd"] = [own_block, shared]
+if mode == "recorded":
+    for j in m["json"]:
+        if j["target"].replace("\\", "/").endswith("/settings.json"):
+            j["added"] += [["hooks", "SessionEnd"],
+                           ["hooks", "SessionEnd", json.dumps(own_block, sort_keys=True)]]
+json.dump(m, open(mpath, "w", encoding="utf-8"), indent=2)
+json.dump(s, open(spath, "w", encoding="utf-8"), indent=2)
+print("seeded", mode, dest)
+PY
+}
+
+# rt1_check PREFIX — one named case per line the python prints: "ok|name" or "no|name".
+rt1_check() {
+  local verdict name
+  while IFS='|' read -r verdict name; do
+    [ -n "$name" ] || continue
+    if [ "$verdict" = ok ]; then pass "$1 $name"; else fail "$1 $name"; fi
+  done < <("$PY" - "$CH/.playbook-install.json" "$CH/settings.json" "$SANDBOX/rt1/pre.json" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+s = json.load(open(sys.argv[2], encoding="utf-8"))
+snap = json.load(open(sys.argv[3], encoding="utf-8"))
+hooks = s.get("hooks") or {}
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("ok" if ok else "no", name)).encode("utf-8"))
+say("cleanup-handoffs" not in json.dumps(s), "settings.json no longer names cleanup-handoffs")
+own = [h for b in hooks.get("SessionEnd") or [] for h in b.get("hooks") or []
+       if h.get("command") == "~/bin/my-session-end.sh"]
+say(len(own) == 1, "the user's own SessionEnd hook is still wired, once")
+say({k: v for k, v in hooks.items() if k != "SessionEnd"} == snap,
+    "every other hook entry is unchanged")
+say("hook:cleanup-handoffs" not in m["units"], "the manifest no longer records hook:cleanup-handoffs")
+added = [p for j in m["json"] for p in j.get("added") or []]
+say(not [p for p in added if "cleanup-handoffs" in json.dumps(p) or p == ["hooks", "SessionEnd"]],
+    "the manifest records no added path for it")
+PY
+)
+}
+
+if want RT1; then
+banner "RT1 · update retires cleanup-handoffs: its file, its settings entry and its record go"
+fresh_env rt1; with_servers
+# A hooks key of the user's own, so the install records its events one by one rather
+# than the whole key, and remove below takes back only what was ours.
+cat > "$CH/settings.json" <<'JSON'
+{ "hooks": { "Stop": [ { "hooks": [ { "type": "command", "command": "~/bin/my-stop.sh" } ] } ] } }
+JSON
+keys rt1 "${FULL[@]}"; run install rt1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RT1 install exits 0 (rc=$RC)"
+RT1H="$CH/hooks/cleanup-handoffs.sh"
+if rt1_seed recorded > "$LOGS/rt1-seed.out" && [ -f "$RT1H" ] && grep -qF 'cleanup-handoffs' "$CH/settings.json"
+then pass "RT1 setup: a recorded, wired cleanup-handoffs beside a SessionEnd hook of the user's own"
+else fail "RT1 setup: a recorded, wired cleanup-handoffs beside a SessionEnd hook of the user's own"; fi
+nokeys rt1u; run update rt1u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RT1 update exits 0 (rc=$RC)"
+yn "$([ ! -e "$RT1H" ] && echo 0 || echo 1)" "RT1 update deleted hooks/cleanup-handoffs.sh"
+rt1_check "RT1 recorded:"
+inlog rt1u "hook:cleanup-handoffs — retired" "RT1 the summary says it was retired"
+
+# A second update has nothing left to do.
+cp "$CH/settings.json" "$SANDBOX/rt1/settings.after1"
+nokeys rt1u2; run update rt1u2
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RT1 second update exits 0 (rc=$RC)"
+yn "$(cmp -s "$CH/settings.json" "$SANDBOX/rt1/settings.after1" && echo 0 || echo 1)" \
+   "RT1 a second update leaves settings.json byte-identical"
+notinlog rt1u2 "cleanup-handoffs" "RT1 a second update does not mention cleanup-handoffs"
+
+# Changed since install: unwired and unrecorded, but the file is the user's and stays.
+if rt1_seed edited > "$LOGS/rt1-seed2.out" && grep -qF 'changed by hand' "$RT1H"
+then pass "RT1 setup: an edited copy, recorded and wired"; else fail "RT1 setup: an edited copy, recorded and wired"; fi
+nokeys rt1e; run update rt1e
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RT1 update over an edited copy exits 0 (rc=$RC)"
+yn "$(grep -qF 'changed by hand' "$RT1H" 2>/dev/null && echo 0 || echo 1)" "RT1 an edited copy is kept"
+rt1_check "RT1 edited:"
+inlog rt1e "cleanup-handoffs.sh is no longer wired" "RT1 an edited copy is named in a to-do"
+
+# Copied by hand and never recorded: unwired, kept, and named.
+if rt1_seed handcopy > "$LOGS/rt1-seed3.out" && grep -qF 'copied by hand' "$RT1H"
+then pass "RT1 setup: a hand copy, unrecorded and wired"; else fail "RT1 setup: a hand copy, unrecorded and wired"; fi
+nokeys rt1h; run update rt1h
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RT1 update over a hand copy exits 0 (rc=$RC)"
+yn "$(grep -qF 'copied by hand' "$RT1H" 2>/dev/null && echo 0 || echo 1)" "RT1 a hand copy that matches nothing shipped is kept"
+rt1_check "RT1 hand copy:"
+inlog rt1h "cleanup-handoffs.sh is no longer wired" "RT1 a hand copy is named in a to-do"
+
+# remove after a retirement: the recorded paths that are gone are skipped, not tripped over.
+keys rt1r '' 'y'; run remove rt1r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RT1 remove after a retirement exits 0 (rc=$RC)"
+"$PY" - "$CH/settings.json" <<'PY'
+import json, sys
+s = json.load(open(sys.argv[1], encoding="utf-8"))
+own = [h for b in (s.get("hooks") or {}).get("SessionEnd") or [] for h in b.get("hooks") or []
+       if h.get("command") == "~/bin/my-session-end.sh"]
+assert len(own) == 1, own
+PY
+chk $? "RT1 remove leaves the user's own SessionEnd hook wired"
+
+# A copy matching a committed version of the retired template is ours, recorded or not.
+# Built on a scratch git repo, because CI checks this repo out one commit deep.
+RT1G="$SANDBOX/rt1/git"
+if mkdir -p "$RT1G/templates/hooks" "$RT1G/claude/hooks" \
+   && printf '#!/usr/bin/env bash\nexit 0\n' > "$RT1G/templates/hooks/keep.sh" \
+   && printf '#!/usr/bin/env bash\n# shipped once\nexit 0\n' > "$RT1G/templates/hooks/cleanup-handoffs.sh" \
+   && git -C "$RT1G" init -q && git -C "$RT1G" add templates \
+   && git -C "$RT1G" -c user.name=t -c user.email=t@t commit -qm one \
+   && git -C "$RT1G" rm -q templates/hooks/cleanup-handoffs.sh \
+   && git -C "$RT1G" -c user.name=t -c user.email=t@t commit -qm two \
+   && printf '#!/usr/bin/env bash\r\n# shipped once\r\nexit 0\r\n' > "$RT1G/claude/hooks/cleanup-handoffs.sh"
+then pass "RT1 setup: a scratch repo whose history ships cleanup-handoffs.sh, and a CRLF copy of it"
+else fail "RT1 setup: a scratch repo whose history ships cleanup-handoffs.sh, and a CRLF copy of it"; fi
+"$PY" - "$REPO/install-lib.py" "$RT1G" <<'PY'
+import importlib.util, os, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("install_lib", sys.argv[1])
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+g = sys.argv[2]
+units = {"hook:keep": {"id": "hook:keep", "kind": "hook", "needs": [],
+                       "src": os.path.join(g, "templates", "hooks", "keep.sh"),
+                       "dest": os.path.join(g, "claude", "hooks", "keep.sh"),
+                       "source_hash": "0" * 64}}
+rows = mod.plan_install(units, {}, [])
+retire = [r for r in rows if r[1] == "hook:cleanup-handoffs"]
+assert [r[0] for r in retire] == ["retire"], rows
+PY
+chk $? "RT1 an unrecorded copy equal to a shipped version, CRLF aside, is planned for deletion"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# FX1-FX3 · a tracker this clone stopped shipping, and to-dos already done
+# ══════════════════════════════════════════════════════════════════════════
+
+# ---------------------------------------------------------------- FX1
+# Catches: a switch away from a recorded tracker this clone no longer ships planned
+# as skip-foreign, because a record with no unit behind it carries no exclusive tag.
+if want FX1; then
+banner "FX1 · a switch away from a tracker this clone no longer ships replaces tracker.md"
+fresh_env fx1; with_servers
+sw_markers "$SANDBOX/fx1/markers.txt"; chk $? "found a marker line unique to each adapter"
+FX1J="$(sed -n 1p "$SANDBOX/fx1/markers.txt" 2>/dev/null)"
+keys fx1 "${FULL[@]}"; run install fx1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+"$PY" - "$CH/.playbook-install.json" <<'PYFX1'
+import json, sys
+p = sys.argv[1]
+m = json.load(open(p, encoding="utf-8"))
+m["units"]["tracker:gone"] = m["units"].pop("tracker:local-markdown")
+m.setdefault("config", {}).setdefault("tracker", {})["adapter"] = "gone"
+json.dump(m, open(p, "w", encoding="utf-8"), indent=2, sort_keys=True)
+PYFX1
+chk $? "renamed the tracker record to tracker:gone, an adapter this clone does not ship"
+FX1S="$(sw_state)"
+yn "$([ "$FX1S" = "tracker:gone|gone" ] && echo 0 || echo 1)" \
+   "setup: the manifest records only tracker:gone ($FX1S)"
+#       banner discover seeded-pause menu:5 tracker:3(jira) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · jira fields x3 · tracker pause
+keys fx1j '' '' '' '5' '3' '' 'i' '' '' '' '' '' '' '' '' 'y' '' '' '' ''
+run install fx1j
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the switch exits 0 (rc=$RC)"
+notinlog fx1j "Files already here that this script did not install" "tracker.md is not offered for adoption"
+notinlog fx1j "this clone no longer ships tracker:gone" \
+         "no to-do tells the user to delete the tracker.md the switch just wrote"
+yn "$(grep -qF -- "$FX1J" "$CH/tracker.md" 2>/dev/null && echo 0 || echo 1)" \
+   "tracker.md now carries the jira adapter"
+FX1S="$(sw_state)"
+yn "$([ "${FX1S%%|*}" = "tracker:jira" ] && echo 0 || echo 1)" \
+   "the manifest records tracker:jira and no other tracker ($FX1S)"
+fi
+
+# ---------------------------------------------------------------- FX2
+# Catches: closing to-dos for work already done (an allowlist with an entry, the
+# shared-place question answered in prose, a CLAUDE.md that already names
+# tracker.md), and a left-alone diff path with mixed separators. The separator case
+# is red only on Windows, where python joins paths with a backslash.
+if want FX2; then
+banner "FX2 · the closing to-dos name only what is still to do"
+fresh_env fx2; with_servers
+#       banner discover menu:5 tracker:1(github) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · owner · repo · tracker pause
+keys fx2 '' '' '5' '1' '' 'i' '' '' '' '' '' '' '' '' 'y' 'octo' 'weekend-project' ''
+run install fx2
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+# shellcheck disable=SC2088  # the literal ~ is the text being looked for
+yn "$(grep -qF '~/.claude/tracker.md' "$CH/CLAUDE.md" 2>/dev/null && echo 0 || echo 1)" \
+   "setup: the installed global CLAUDE.md names ~/.claude/tracker.md"
+inlog fx2 "Claude cannot run 'git push' in any repo" "an allowlist with no entry keeps the push to-do"
+inlog fx2 "Answer 'Is this a shared place?'" "an unanswered github tracker keeps the shared-place to-do"
+notinlog fx2 "Add a line to your global CLAUDE.md pointing at" \
+         "a CLAUDE.md naming ~/.claude/tracker.md gets no pointer to-do"
+printf '# a comment\ngithub.com/octo/weekend-project    yes    yes\n' >> "$CH/repo-allowlist"
+"$PY" - "$CH/tracker.md" <<'PYFX2'
+import io, re, sys
+p = sys.argv[1]
+t = io.open(p, encoding="utf-8", newline="").read()
+n = len(re.findall("<yes[^>]*>", t))
+assert n == 1, "expected one unanswered shared-place token, found %d" % n
+io.open(p, "w", encoding="utf-8", newline="").write(
+    re.sub("<yes[^>]*>", "Per repo: yes for anything public", t))
+PYFX2
+chk $? "answered the shared-place question in prose"
+printf '# my own global rules, and no tracker pointer\n' > "$CH/CLAUDE.md"
+nokeys fx2u; run update fx2u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update exits 0 (rc=$RC)"
+notinlog fx2u "Claude cannot run 'git push' in any repo" "an allowlist with an entry gets no push to-do"
+notinlog fx2u "Answer 'Is this a shared place?'" "a shared-place answer in prose gets no to-do"
+inlog fx2u "Add a line to your global CLAUDE.md pointing at" \
+      "a CLAUDE.md that does not name tracker.md keeps the pointer to-do"
+FX2D="$(grep -F 'you edited it since install; diff against' "$LOGS/fx2u.out")"
+printf '    (%s)\n' "$FX2D"
+yn "$("$PY" -c 'import sys; s = sys.stdin.read(); print(0 if "diff against" in s and chr(92) not in s else 1)' <<< "$FX2D")" \
+   "every left-alone diff path uses one separator"
+fi
+
+# ---------------------------------------------------------------- FX3
+# Catches: "Fill in <repo>" demanded of a tracker.md this run did not write. A
+# hand-written one may use <repo> on purpose, as a per-call placeholder.
+if want FX3; then
+banner "FX3 · the tracker blanks are checked only in a tracker.md this run wrote"
+fresh_env fx3; with_servers
+keys fx3 "${FULL[@]}"; run install fx3
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the local-markdown install exits 0 (rc=$RC)"
+inlog fx3 "Fill in <repo>" "an installed tracker.md with a blank keeps its fill-in to-do"
+fresh_env fx3f; with_servers
+printf '# my tracker\n\nRead an issue: gh issue view N --repo <repo>\n' > "$CH/tracker.md"
+#       banner discover menu:5 tracker:4(local-markdown) back i · serena x2 · models x2
+#       memory x2 · pause x2 · adopt n · adopt pause · y · <workspace> · tracker pause
+keys fx3f '' '' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'n' '' 'y' "$SANDBOX/ws" ''
+run install fx3f
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install beside a hand-written tracker.md exits 0 (rc=$RC)"
+inlog fx3f "Left alone. They stay yours" "setup: adopting the hand-written tracker.md was declined"
+notinlog fx3f "Fill in <repo>" "a hand-written tracker.md gets no fill-in to-do"
+inlog fx3f "this run did not write it, so its blanks were not checked" \
+      "check 3 says it left the hand-written tracker.md alone"
+yn "$(grep -qF -- '--repo <repo>' "$CH/tracker.md" 2>/dev/null && echo 0 || echo 1)" \
+   "the hand-written tracker.md still says <repo>"
 fi
 
 close_section

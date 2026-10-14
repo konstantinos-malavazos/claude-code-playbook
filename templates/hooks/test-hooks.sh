@@ -30,8 +30,8 @@ INFRA_HOOK=./block-infra-staging.sh
 SECRET_HOOK=./block-secret-staging.sh
 MCP_HOOK=./block-mcp-writes.sh
 HOLD_HOOK=./block-unexplained-long-hold.sh
-CLEANUP_HOOK=./cleanup-handoffs.sh
 FORMAT_HOOK=./format-on-edit.sh
+HANDOFFS_HOOK=./handoffs-only.sh
 
 # --- python ---------------------------------------------------------------------
 # The hooks parse their payload with python, and so does this suite when it builds one.
@@ -39,25 +39,16 @@ FORMAT_HOOK=./format-on-edit.sh
 # SUPPOSED to block, which is a case the suite tests rather than papers over. What it does
 # shim, at the bottom of this file, is the parser that is PRESENT and is not python.
 #
-# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in all seven hooks, and it has to be. If
+# THE CANDIDATE LIST IS THE HOOKS' OWN, read from _lib/common.sh, and it has to be. If
 # the suite picked its interpreter by a different rule from the hooks it tests, it would
 # be building payloads with one python and judging a hook that chose another — and the
 # case it would miss is exactly the one at the bottom of this file. Why a WindowsApps
-# python3 goes to the END of the list and is never dropped is in block-dangerous-git.sh.
-PY_LIST=()
-PY_LAST=()
-# ONE command substitution, not one per candidate. A fork costs ~30ms on Windows and this
-# runs on every single hook invocation, so asking twice cost measurably more than the
-# whole ordering decision it feeds. The `true` keeps the list non-fatal when neither name
-# resolves; the empty-line guard is what a missing candidate looks like here.
-while IFS= read -r _p; do
-    [ -n "$_p" ] || continue
-    case "${_p,,}" in
-        */windowsapps/*) PY_LAST+=("$_p") ;;
-        *)               PY_LIST+=("$_p") ;;
-    esac
-done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
-PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
+# python3 goes to the END of the list and is never dropped is in _lib/common.sh.
+# shellcheck source=/dev/null
+if ! . ./_lib/common.sh || [ "${HOOK_LIB_LOADED-}" != 1 ]; then
+    echo "FAIL: _lib/common.sh is missing or did not load — no hook can run without it." >&2
+    exit 1
+fi
 
 # The one place this file probes rather than letting the first real use decide: a harness
 # that cannot build a payload has no cases to run at all, so it may as well find out now,
@@ -103,6 +94,9 @@ REPO="$SCRATCH/repo"
 mkdir -p "$REPO"
 git init -q "$REPO" 2>/dev/null
 git -C "$REPO" remote add origin https://github.com/example/allowed-repo.git 2>/dev/null
+# The checked-out branch is where a bare `git push` lands. An unborn branch is enough:
+# symbolic-ref names it before any commit exists.
+git -C "$REPO" symbolic-ref HEAD refs/heads/feature
 
 DENY_HOME="$SCRATCH/home-unlisted"          # no allowlist at all — the default state
 mkdir -p "$DENY_HOME/.claude"
@@ -112,12 +106,15 @@ cat > "$ALLOW_HOME/.claude/repo-allowlist" <<'ALLOWLIST'
 # a comment line, which must be skipped
 github.com/example/allowed-repo    yes    yes
 github.com/example/push-only       yes    no
+github.com/example/trunk-ok        yes    yes    yes
+github.com/example/trunk-no        yes    yes    no
 ALLOWLIST
 
 HOOK_HOME="$DENY_HOME"   # every case runs unlisted unless it says otherwise
 HOOK_CWD="$REPO"
 HOOK_PATH="$PATH"        # the no-parser section swaps this for one with no python
 HOOK_ORIGIN=""           # the scratch repo's origin when it is not allowed-repo
+HOOK_BRANCH=""           # the scratch repo's checked-out branch when it is not feature
 
 # HOOK_CWD is assigned once and never reassigned, so its JSON encoding is the same string
 # for every case in this file. It used to be recomputed inside run(), which is one python
@@ -155,6 +152,9 @@ settings_suffix() {
     fi
     if [ -n "$HOOK_ORIGIN" ]; then
         s="${s:+$s, }$HOOK_ORIGIN origin"
+    fi
+    if [ -n "$HOOK_BRANCH" ]; then
+        s="${s:+$s, }on $HOOK_BRANCH"
     fi
     SUF=""
     if [ -n "$s" ]; then
@@ -232,79 +232,6 @@ run_utf8() { # <script> <tool-name> <command, with no double quote or backslash>
         printf '  FAIL %s [%s%s] exit=%s want=%s  %s%s\n' "${1##*/}" "$2" "${enc:+ ($enc)}" "$got" "$4" "$shown" "$SUF"
         fail=$((fail + 1))
     fi
-}
-
-run_cleanup() { # <label> <raw-payload> <cleared|kept> [forced-encoding]
-    local label="$1"
-    local enc="${4-}"
-    if [ -n "$enc" ] && [ "${label#*"$enc"}" = "$label" ]; then
-        label="$label ($enc)"
-    fi
-    rm -rf "$SCRATCH/handoffs"
-    mkdir -p "$SCRATCH/handoffs/T1"
-    touch -t 200001010000 "$SCRATCH/handoffs/T1"
-    local hook_abs="$PWD/$CLEANUP_HOOK"
-    if [ -n "$enc" ]; then
-        (
-            cd "$SCRATCH" || exit 1
-            printf '%s' "$2" | PYTHONIOENCODING="$enc" WORKSPACE_HANDOFFS_ROOT="$SCRATCH/handoffs" HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
-        )
-    else
-        (
-            unset PYTHONIOENCODING PYTHONUTF8
-            cd "$SCRATCH" || exit 1
-            printf '%s' "$2" | WORKSPACE_HANDOFFS_ROOT="$SCRATCH/handoffs" HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
-        )
-    fi
-    local state
-    if [ -d "$SCRATCH/handoffs/T1" ]; then
-        state="kept"
-    else
-        state="cleared"
-    fi
-    ran=$((ran + 1))
-    settings_suffix
-    if [ "$state" = "$3" ]; then
-        printf '  ok   %s [%s]%s\n' "${CLEANUP_HOOK##*/}" "$label" "$SUF"
-    else
-        printf '  FAIL %s [%s] got=%s want=%s%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$3" "$SUF"
-        fail=$((fail + 1))
-    fi
-}
-
-run_cleanup_pair() { # one real end over a day-old folder and a folder still being written
-    rm -rf "$SCRATCH/handoffs"
-    mkdir -p "$SCRATCH/handoffs/OLD" "$SCRATCH/handoffs/LIVE"
-    : > "$SCRATCH/handoffs/OLD/a.md"
-    touch -t 200001010000 "$SCRATCH/handoffs/OLD/a.md" "$SCRATCH/handoffs/OLD"
-    : > "$SCRATCH/handoffs/LIVE/planner.md"
-    # Ages the folder only: editing a file that already exists leaves its folder's mtime alone.
-    touch -t 200001010000 "$SCRATCH/handoffs/LIVE"
-    local hook_abs="$PWD/$CLEANUP_HOOK"
-    (
-        unset PYTHONIOENCODING PYTHONUTF8
-        cd "$SCRATCH" || exit 1
-        printf '%s' '{"reason":"other"}' | WORKSPACE_HANDOFFS_ROOT="$SCRATCH/handoffs" HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$hook_abs" >/dev/null 2>&1
-    )
-    local d want state label
-    for d in LIVE OLD; do
-        if [ "$d" = LIVE ]; then
-            want=kept
-            label="cleanup: a folder another session is still writing survives a real end"
-        else
-            want=cleared
-            label="cleanup: a day-old folder is still cleared in the same run"
-        fi
-        if [ -d "$SCRATCH/handoffs/$d" ]; then state=kept; else state=cleared; fi
-        ran=$((ran + 1))
-        settings_suffix
-        if [ "$state" = "$want" ]; then
-            printf '  ok   %s [%s]%s\n' "${CLEANUP_HOOK##*/}" "$label" "$SUF"
-        else
-            printf '  FAIL %s [%s] got=%s want=%s%s\n' "${CLEANUP_HOOK##*/}" "$label" "$state" "$want" "$SUF"
-            fail=$((fail + 1))
-        fi
-    done
 }
 
 run_format() { # <label> <file-name> <formatted|skipped> [forced-encoding]
@@ -398,6 +325,27 @@ run_raw_msg() { # <script> <label> <raw-payload> <expected-exit> <substring the 
     fi
 }
 
+run_write() { # <tool-name> <file_path> <expected-exit> [the whole message, exactly]
+    # The path is JSON-escaped in bash, not by python: a /-rooted argument handed to a
+    # native python on Windows is rewritten by MSYS before python sees it.
+    local esc payload out got=0
+    esc=${2//\\/\\\\}
+    esc=${esc//\"/\\\"}
+    printf -v payload '{"tool_name":"%s","tool_input":{"file_path":"%s","content":"x"}}' "$1" "$esc"
+    out=$(printf '%s' "$payload" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$HANDOFFS_HOOK" 2>&1 >/dev/null) || got=$?
+    ran=$((ran + 1))
+    settings_suffix
+    if [ "$got" = "$3" ] && { [ -z "${4-}" ] || [ "$out" = "$4" ]; }; then
+        printf '  ok   %s [%s] %s%s\n' "${HANDOFFS_HOOK##*/}" "$1" "$2" "$SUF"
+    else
+        printf '  FAIL %s [%s] exit=%s want=%s  %s%s\n' "${HANDOFFS_HOOK##*/}" "$1" "$got" "$3" "$2" "$SUF"
+        if [ -n "${4-}" ]; then
+            printf '       message wanted: %s\n       message was:    %s\n' "$4" "$out"
+        fi
+        fail=$((fail + 1))
+    fi
+}
+
 # The tool run_hold builds its payload for. `Bash` unless a section says otherwise — the
 # PowerShell section flips it and flips it back. It is a variable rather than a parameter
 # because every case in a section shares it, and a per-case argument that is the same on
@@ -486,6 +434,9 @@ run $GIT_HOOK Bash       "npm publish --no-verify"                              
 # A command we cannot tokenise is a BLOCK, for the same reason an unreadable payload is:
 # the hook did not find out what it was being asked to do, so it does not allow it.
 run $GIT_HOOK Bash       "git push 'unterminated"                                 2
+# The refusal has to say how to get past it, in all three hooks that can refuse this way.
+REWRITE_HINT="Rewrite it with plain quoting (no nested, escaped or unbalanced quotes), or ask the user to run it."
+run_msg $GIT_HOOK Bash   "git push 'unterminated"                                 2 "$REWRITE_HINT"
 
 # --- The command is not always the first word (#117 re-pass) ----------------------
 # Every case below was BLOCKED by the text scan this hook replaces and ALLOWED by the
@@ -880,7 +831,8 @@ EOF"                                                                            
 
 echo "block-dangerous-git.sh — the allowlist, listed repo"
 HOOK_HOME="$ALLOW_HOME"
-run $GIT_HOOK Bash       "git push origin master"                          0
+run $GIT_HOOK Bash       "git push origin feature"                         0
+run $GIT_HOOK Bash       "git push origin master"                          2
 run $GIT_HOOK PowerShell "git push"                                        0
 # Allowlisted for push is not allowlisted for everything: force and the sweep still go.
 run $GIT_HOOK Bash       "git push --force"                                2
@@ -971,13 +923,73 @@ run $GIT_HOOK Bash       'IFS=; git pu${IFS}sh --force'                    2
 run $GIT_HOOK Bash       '{git,} push --force'                             2
 # The same readings, with no force flag to find.
 run $GIT_HOOK Bash       '{git,} push'                                     0
-run $GIT_HOOK Bash       "$(printf 'git push \\\norigin main')"            0
+run $GIT_HOOK Bash       "$(printf 'git push \\\norigin feature')"         0
+run $GIT_HOOK Bash       "$(printf 'git push \\\norigin main')"            2
 # shellcheck disable=SC2016
 run $GIT_HOOK Bash       'git${x} push --force'                            2
 # shellcheck disable=SC2016
 run $GIT_HOOK Bash       'git push${x} --force'                            2
 run $GIT_HOOK Bash       "git pu\$''sh --force"                            2
 run $GIT_HOOK Bash       'git""push --force'                               0
+HOOK_HOME="$DENY_HOME"
+
+echo "block-dangerous-git.sh — a push to main, master or develop, listed repo"
+# Every case three ways: as written, followed by a CRLF line, and as PowerShell with its
+# last word on a backtick continuation.
+run_push3() { # <command> <expected-exit>
+    local bt=$'\x60'
+    run $GIT_HOOK Bash       "$1" "$2"
+    run $GIT_HOOK Bash       "$1"$'\r\n'"echo done" "$2"
+    run $GIT_HOOK PowerShell "${1% *} $bt"$'\r\n'"${1##* }" "$2"
+}
+HOOK_HOME="$ALLOW_HOME"
+# trunk-no: push yes, trunk-push written out as no.
+git -C "$REPO" remote set-url origin https://github.com/example/trunk-no.git 2>/dev/null && HOOK_ORIGIN=trunk-no
+run_push3 "git push origin main"                                                 2
+run_push3 "git push origin HEAD:develop"                                         2
+run_push3 "git push origin refs/heads/main"                                      2
+run_push3 "git push origin +master"                                              2
+run_push3 "git push origin feature:main"                                         2
+run_push3 "git push origin main:feature"                                         0
+run_push3 "git push origin feature"                                              0
+run_push3 "git push"                                                             0
+run_push3 "git push origin HEAD"                                                 0
+run $GIT_HOOK Bash       "git push origin feature && git push origin main"       2
+run_msg $GIT_HOOK Bash   "git push origin main"                                  2 "git push to main — a trunk branch. Push a feature branch, or set the 4th field (trunk-push) to yes for this repo in ~/.claude/repo-allowlist."
+# Every branch at once, trunk included, without naming one.
+run_push3 "git push --all"                                                       2
+run_push3 "git push origin --all"                                                2
+run_push3 "git push --mirror origin"                                             2
+run_push3 "git push --branches origin"                                           2
+run_push3 "git push origin :"                                                    2
+run_push3 "git push origin +:"                                                   2
+run_msg $GIT_HOOK Bash   "git push --all"                                        2 "git push --all reaches every branch, main, master and develop included."
+git -C "$REPO" symbolic-ref HEAD refs/heads/master && HOOK_BRANCH=master
+run_push3 "git push"                                                             2
+run_push3 "git push origin"                                                      2
+run_push3 "git push origin HEAD"                                                 2
+run_push3 "git push origin @"                                                    2
+run $GIT_HOOK Bash       "git push origin feature; git push"                     2
+# --tags with no refspec pushes the tags and no branch. Not run_push3: on a trunk checkout
+# the backtick-continued form reads as a second, bare push and is blocked for that.
+run $GIT_HOOK Bash       "git push --tags"                                       0
+run $GIT_HOOK Bash       "git push --tags"$'\r\n'"echo done"                     0
+run $GIT_HOOK Bash       "git push origin --tags"                                0
+run $GIT_HOOK Bash       "git push origin --tags"$'\r\n'"echo done"              0
+run_push3 "git push origin --tags master"                                        2
+run $GIT_HOOK Bash       "git push origin --tags; git push"                      2
+git -C "$REPO" symbolic-ref HEAD refs/heads/feature && HOOK_BRANCH=""
+# trunk-ok: trunk-push yes. The 4th field must not swallow own-claude-md either.
+git -C "$REPO" remote set-url origin https://github.com/example/trunk-ok.git 2>/dev/null && HOOK_ORIGIN=trunk-ok
+run_push3 "git push origin main"                                                 0
+run_push3 "git push --all"                                                       0
+run_push3 "git push --mirror origin"                                             0
+run_push3 "git push origin :"                                                    0
+run $INFRA_HOOK Bash     "git add CLAUDE.md"                                     0
+# allowed-repo: three fields, so trunk-push is no.
+git -C "$REPO" remote set-url origin https://github.com/example/allowed-repo.git 2>/dev/null && HOOK_ORIGIN=""
+run_push3 "git push origin main"                                                 2
+run_push3 "git push --all"                                                       2
 HOOK_HOME="$DENY_HOME"
 
 echo "block-dangerous-git.sh — a large command finishes"
@@ -1095,7 +1107,7 @@ echo "block-infra-staging.sh — the two answers are independent"
 # github.com/example/push-only says push yes, own-claude-md NO.
 HOOK_HOME="$ALLOW_HOME"
 git -C "$REPO" remote set-url origin https://github.com/example/push-only.git 2>/dev/null && HOOK_ORIGIN=push-only
-run $GIT_HOOK   Bash     "git push origin main"                            0
+run $GIT_HOOK   Bash     "git push origin feature"                         0
 run $INFRA_HOOK Bash     "git add CLAUDE.md"                               2
 git -C "$REPO" remote set-url origin https://github.com/example/allowed-repo.git 2>/dev/null && HOOK_ORIGIN=""
 HOOK_HOME="$DENY_HOME"
@@ -1187,6 +1199,7 @@ run $INFRA_HOOK Bash     "git commit -m 'document git add -A'"             0
 # A command we cannot tokenise is a BLOCK, for the same reason an unreadable payload is:
 # the hook did not find out what it was being asked to clear, so it does not clear it.
 run_msg $INFRA_HOOK Bash "git add 'unterminated"                           2 "could not be read well enough to tell what it stages"
+run_msg $INFRA_HOOK Bash "git add 'unterminated"                           2 "$REWRITE_HINT"
 
 echo "block-infra-staging.sh — must ALLOW (exit 0)"
 run $INFRA_HOOK Bash     "git add src/main.py"                             0
@@ -1348,6 +1361,7 @@ run $SECRET_HOOK Bash     'git add `echo .env`'                            2
 # shellcheck disable=SC2016
 run $SECRET_HOOK Bash     'git add .env$(true)'                            2
 run_msg $SECRET_HOOK Bash "git add \"unterminated" 2 "could not be read well enough to tell what it stages"
+run_msg $SECRET_HOOK Bash "git add \"unterminated" 2 "$REWRITE_HINT"
 
 echo "block-secret-staging.sh — must ALLOW (exit 0)"
 run $SECRET_HOOK Bash     "git add src/main.py"                            0
@@ -1534,6 +1548,27 @@ run_hold "the remedy is in the message"  300000 "" 2 \
     "re-issue the SAME call with the expectation in its description"
 HOLD_TOOL=Bash
 
+echo "handoffs-only.sh — Write/Edit reach handoff files and chart reviews, and nothing else"
+HO_SRC_MSG='Blocked: this agent may only write handoff files, not /ws/src/app.py'
+run_write Write '/ws/.claude/handoffs/205/x.md'                 0
+run_write Edit  '/ws/.claude/handoffs/205/x.md'                 0
+run_write Write 'C:\ws\.claude\handoffs\205\x.md'               0
+run_write Write '/ws/.claude/charts/K/reviews/repo-release.md'  0
+run_write Write '/ws/src/app.py'                                2 "$HO_SRC_MSG"
+run_write Edit  '/ws/src/app.py'                                2 "$HO_SRC_MSG"
+run_write Write 'C:\ws\src\app.py'                              2 'Blocked: this agent may only write handoff files, not C:\ws\src\app.py'
+run_write Write '/ws/.claude/handoffs/../../src/x'              2
+run_write Edit  'C:\ws\.claude\handoffs\205\..\..\..\src\x'     2
+run_write Write '/ws/.claude/charts/K/map.md'                   2
+run_write Write '/ws/.claude/charts/K/sub/reviews/x.md'         2
+run_write Write '/ws/.claude/handoffs'                          2
+run_write Write ''                                              2
+# The matcher decides which tools arrive; a tool that writes no file is not judged.
+run_write Read  '/ws/src/app.py'                                0
+run_raw_msg $HANDOFFS_HOOK "malformed JSON"   '{"tool_name":"Write","tool_input":'  2 "did not parse"
+run_raw_msg $HANDOFFS_HOOK "no tool_name"     '{"tool_input":{"file_path":"/ws/.claude/handoffs/205/x.md"}}' 2 "no tool_name"
+run_raw     $HANDOFFS_HOOK "valid JSON, wrong shape" '[]' 2
+
 echo "every blocking hook — an unreadable payload must BLOCK (exit 2)"
 # The other half of failing closed: the parser is present and the payload defeats it.
 # Same verdict as no parser at all, for the same reason — the hook did not find out what
@@ -1565,6 +1600,9 @@ printf -v EMDASH '\342\200\224'
 printf -v APPROX '\342\211\210'
 
 echo "raw UTF-8 input — native encoding"
+# On Windows these rows cannot catch a hook that reads its input in text mode: cp1252
+# with surrogateescape round-trips the bytes, so they stay green against it. The forced
+# cp1252 rows further down are the guard for that.
 printf -v p_hold1 '{"tool_name":"Bash","tool_input":{"command":"bash tests/test-docs.sh","description":"expect 90s%sslow","timeout":300000}}' "$EMDASH"
 run_raw $HOLD_HOOK "long-hold: expect 90s${EMDASH}slow" "$p_hold1" 0
 
@@ -1577,23 +1615,60 @@ run_raw $HOLD_HOOK "long-hold: slow ${ARROW} suite" "$p_hold3" 2
 run_utf8 $MCP_HOOK "mcp__github__get_${ARROW}"    "x" 0
 run_utf8 $MCP_HOOK "mcp__github__create_${ARROW}" "x" 2
 
-printf -v p_clean_native '{"reason":"other%s"}' "$ARROW"
-run_cleanup "cleanup: other with arrow" "$p_clean_native" cleared
-
 run_format "format: arrow py file" "a${ARROW}.py" formatted
 
 echo "raw UTF-8 input — forced PYTHONIOENCODING=cp1252"
 run_utf8 $MCP_HOOK "mcp__github__get_${ARROW}" "x" 0 cp1252
 run_utf8 $MCP_HOOK Bash "echo ${ARROW}" 0 cp1252
 
-printf -v p_clean_forced1 '{"reason":"other","transcript_path":"/tmp/x%s"}' "$ARROW"
-run_cleanup "cleanup: other transcript with arrow" "$p_clean_forced1" cleared cp1252
-
-printf -v p_clean_forced2 '{"reason":"resume","transcript_path":"/tmp/x%s"}' "$ARROW"
-run_cleanup "cleanup: resume transcript with arrow" "$p_clean_forced2" kept cp1252
-run_cleanup_pair
-
 run_format "format: arrow py file" "a${ARROW}.py" formatted cp1252
+
+echo "every hook — a missing, broken or cut-short _lib/common.sh"
+# A hook copied without the library beside it, or with one that will not load, has none of
+# the code it judges with. The blocking hooks must refuse (exit 2) and say why;
+# format-on-edit runs after the edit, so it says why and exits 0. The cut-short copy loses
+# only its last line, so it loads cleanly and only the end-of-file marker is missing.
+LIBLESS="$SCRATCH/lib-missing"
+BADLIB="$SCRATCH/lib-syntax-error"
+CUTLIB="$SCRATCH/lib-cut-short"
+GOODLIB="$SCRATCH/lib-intact"
+if mkdir -p "$LIBLESS" "$BADLIB/_lib" "$CUTLIB/_lib" "$GOODLIB/_lib" \
+   && cp ./*.sh "$LIBLESS/" && cp ./*.sh "$BADLIB/" && cp ./*.sh "$CUTLIB/" && cp ./*.sh "$GOODLIB/" \
+   && cp ./_lib/common.sh "$GOODLIB/_lib/common.sh" \
+   && sed '20a if then fi (' ./_lib/common.sh > "$BADLIB/_lib/common.sh" \
+   && ! "$BASH_BIN" -n "$BADLIB/_lib/common.sh" 2>/dev/null \
+   && sed '$d' ./_lib/common.sh > "$CUTLIB/_lib/common.sh" \
+   && "$BASH_BIN" -n "$CUTLIB/_lib/common.sh" \
+   && [ "$(tail -n 1 ./_lib/common.sh)" = "HOOK_LIB_LOADED=1" ]; then
+    P_GIT='{"tool_name":"Bash","cwd":'"$HOOK_CWD_JSON"',"tool_input":{"command":"git status"}}'
+    P_ADD='{"tool_name":"Bash","cwd":'"$HOOK_CWD_JSON"',"tool_input":{"command":"git add src/main.py"}}'
+    P_MCP='{"tool_name":"mcp__tracker__get_issue","cwd":'"$HOOK_CWD_JSON"',"tool_input":{}}'
+    P_HOLD='{"tool_name":"Bash","cwd":'"$HOOK_CWD_JSON"',"tool_input":{"command":"npm test"}}'
+    P_FMT='{"tool_name":"Write","tool_input":{"file_path":"'"$SCRATCH"'/never-written.py"}}'
+    P_HO='{"tool_name":"Write","tool_input":{"file_path":"/ws/.claude/handoffs/205/x.md"}}'
+    # Control: the same copies with the library beside them allow every one of these, so
+    # a refusal below is about the library and nothing else.
+    run_raw "$GOODLIB/block-dangerous-git.sh"          "lib intact: git status"          "$P_GIT"  0
+    run_raw "$GOODLIB/block-infra-staging.sh"          "lib intact: git add src/main.py" "$P_ADD"  0
+    run_raw "$GOODLIB/block-secret-staging.sh"         "lib intact: git add src/main.py" "$P_ADD"  0
+    run_raw "$GOODLIB/block-mcp-writes.sh"             "lib intact: get_issue"           "$P_MCP"  0
+    run_raw "$GOODLIB/block-unexplained-long-hold.sh"  "lib intact: npm test"            "$P_HOLD" 0
+    run_raw "$GOODLIB/format-on-edit.sh"               "lib intact: Write x.py"          "$P_FMT"  0
+    run_raw "$GOODLIB/handoffs-only.sh"                "lib intact: Write a handoff"     "$P_HO"   0
+    for d in "$LIBLESS" "$BADLIB" "$CUTLIB"; do
+        how="${d##*/}"
+        run_raw_msg "$d/block-dangerous-git.sh"         "$how: git status"          "$P_GIT"  2 "shared hook library"
+        run_raw_msg "$d/block-infra-staging.sh"         "$how: git add src/main.py" "$P_ADD"  2 "shared hook library"
+        run_raw_msg "$d/block-secret-staging.sh"        "$how: git add src/main.py" "$P_ADD"  2 "shared hook library"
+        run_raw_msg "$d/block-mcp-writes.sh"            "$how: get_issue"           "$P_MCP"  2 "shared hook library"
+        run_raw_msg "$d/block-unexplained-long-hold.sh" "$how: npm test"            "$P_HOLD" 2 "shared hook library"
+        run_raw_msg "$d/format-on-edit.sh"              "$how: Write x.py"          "$P_FMT"  0 "shared hook library"
+        run_raw_msg "$d/handoffs-only.sh"               "$how: Write a handoff"     "$P_HO"   2 "shared hook library"
+    done
+else
+    printf '  FAIL [setup] the hook copies and their library variants were not built — the library cases did not run\n'
+    fail=$((fail + 1))
+fi
 
 echo "every blocking hook — no parser on PATH must BLOCK (exit 2)"
 # The layer no code inside a hook can test for itself: what happens when the thing the
@@ -1630,6 +1705,8 @@ else
     # `timeout` field at all, which with a parser present is an ALLOW. So the 2 here is
     # entirely about not having found out what was being asked.
     run $HOLD_HOOK   Bash "npm test"                      2
+    # A handoff path, which with a parser present is an ALLOW.
+    run_write Write '/ws/.claude/handoffs/205/x.md'       2
     HOOK_PATH="$PATH"
 fi
 

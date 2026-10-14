@@ -62,6 +62,11 @@ SKIP_NAMES = {"README.md"}
 # never wired into settings.json — see docs/shared/03-setup.md step 7.
 SKIP_HOOKS = {"test-hooks.sh"}
 
+# Hooks this clone shipped once and has withdrawn. An update unwires them and deletes the
+# installed copy rather than reporting an orphan: a retired hook that stays wired keeps
+# running with no template behind it.
+RETIRED_HOOKS = {"cleanup-handoffs"}
+
 # The frontmatter keys the harness resolves. A placeholder left in any of these fails
 # silently or on first dispatch; anywhere else in the file it is prose and stays --
 # with one allow-listed exception, BODY_FILL_TOKENS below.
@@ -233,6 +238,13 @@ def discover(templates, claude_home):
             os.path.join(claude_home, "hooks", fn),
             executable=True)
 
+    # the library every hook sources from _lib/ beside it: one directory unit, like a
+    # skill, and never a hook of its own, so it is never wired
+    ldir = os.path.join(hdir, "_lib")
+    if os.path.isdir(ldir):
+        add("support:hook-lib", "hook-lib", ldir,
+            os.path.join(claude_home, "hooks", "_lib"))
+
     # the allowlist the blocking hooks read; installed with comments, zero entries
     sample = os.path.join(hdir, "repo-allowlist.sample")
     if os.path.exists(sample):
@@ -273,10 +285,10 @@ def discover(templates, claude_home):
 
 
 def _link_dependencies(units, templates):
-    """Discover command→agent, command→command and →skill edges from the bodies.
+    """Discover command→agent, command→command, →skill and agent→hook edges from the bodies.
 
-    An agent gets skill edges only. See the comments in the loop for why the other
-    two kinds stop at a command.
+    An agent gets skill and hook edges only. See the comments in the loop for why the
+    agent and command kinds stop at a command.
 
     Every edge is grepped out of the template text, so a new unit never needs a line
     here. Each discovered reference is INTERSECTED with what actually exists on disk
@@ -287,6 +299,7 @@ def _link_dependencies(units, templates):
     agents = {u["id"].split(":", 1)[1] for u in units.values() if u["kind"] == "agent"}
     skills = {u["id"].split(":", 1)[1] for u in units.values() if u["kind"] == "skill"}
     commands = {u["id"].split(":", 1)[1] for u in units.values() if u["kind"] == "command"}
+    hooks = {u["id"].split(":", 1)[1] for u in units.values() if u["kind"] == "hook"}
 
     for unit in units.values():
         if unit["kind"] not in ("command", "skill", "agent"):
@@ -320,13 +333,27 @@ def _link_dependencies(units, templates):
             if ref in skills and ref != me:
                 needs.add("skill:" + ref)
 
+        # A hook an agent wires in its own frontmatter runs only if the file is there.
+        # Missing, the call is a non-blocking error and the tool call it guards goes
+        # through, so the agent pulls the hook in.
+        if unit["kind"] == "agent":
+            for ref in set(re.findall(r"hooks/([A-Za-z0-9_-]+)\.sh", body)):
+                if ref in hooks:
+                    needs.add("hook:" + ref)
+
         unit["needs"] = sorted(needs)
 
     # The blocking hooks answer both their questions from the allowlist; without it
-    # they read a missing file. Installing one pulls it in.
+    # they read a missing file. A hook that sources _lib/ refuses every call without
+    # the library. Installing a hook pulls in what it names.
     for unit in units.values():
-        if unit["kind"] == "hook" and "repo-allowlist" in _unit_text(unit["src"]):
+        if unit["kind"] != "hook":
+            continue
+        text = _unit_text(unit["src"])
+        if "repo-allowlist" in text:
             unit["needs"] = sorted(set(unit["needs"]) | {"support:repo-allowlist"})
+        if "_lib/" in text and "support:hook-lib" in units:
+            unit["needs"] = sorted(set(unit["needs"]) | {"support:hook-lib"})
 
 
 def _unit_text(src):
@@ -1113,6 +1140,46 @@ def _prune_empty(node):
                 node.remove(item)
 
 
+def unwire_hooks(target, names):
+    """Remove every settings.json hook entry whose command is exactly
+    ~/.claude/hooks/<name>.sh, under any event, and the blocks and events that removal
+    empties. Nothing else moves — an empty container of the user's own included — and
+    the file is not rewritten when nothing matched."""
+    data = load_json(target)
+    want = {"~/.claude/hooks/%s.sh" % n for n in names}
+    removed = []
+    hooks = data.get("hooks") if isinstance(data, dict) else None
+    if not isinstance(hooks, dict):
+        return {"removed": removed, "target": target}
+    for event in list(hooks):
+        blocks = hooks[event]
+        if not isinstance(blocks, list):
+            continue
+        kept, touched = [], False
+        for block in blocks:
+            inner = block.get("hooks") if isinstance(block, dict) else None
+            gone = [h for h in inner or [] if isinstance(h, dict) and h.get("command") in want]
+            if not gone:
+                kept.append(block)
+                continue
+            touched = True
+            removed += ["hooks/%s/%s" % (event, h["command"]) for h in gone]
+            rest = [h for h in inner or [] if not (isinstance(h, dict) and h.get("command") in want)]
+            if rest:
+                block["hooks"] = rest
+                kept.append(block)
+        if touched:
+            if kept:
+                hooks[event] = kept
+            else:
+                del hooks[event]
+    if removed:
+        if not hooks:
+            del data["hooks"]
+        save_json(target, data)
+    return {"removed": removed, "target": target}
+
+
 def hook_wiring(snippet_path, installed_hooks):
     """Build the settings.json hook block, LIMITED to hooks actually being installed.
 
@@ -1196,6 +1263,10 @@ def verify_wiring(settings_path, snippet_path, installed_hooks):
 
     wired, miswired, unwired = [], [], []
     for name in sorted(installed_hooks):
+        # A hook the snippet never places is agent-scoped: its wiring lives in agent
+        # frontmatter, so settings.json is not where it is expected.
+        if name not in want:
+            continue
         actual = have.get(name, [])
         if not actual:
             unwired.append(name)
@@ -1403,18 +1474,78 @@ def _matches_a_shipped_version(unit, dest, config=None):
 
 
 def exclusive_siblings(units, uid, recorded):
-    """The recorded uids that share `uid`'s `exclusive` tag: one destination, at most one ours."""
-    tag = (units.get(uid) or {}).get("exclusive")
+    """The recorded uids that share `uid`'s `exclusive` tag: one destination, at most one ours.
+
+    A record this clone no longer ships has no unit and so no tag; it counts as a
+    sibling when it recorded the same destination.
+    """
+    unit = units.get(uid) or {}
+    tag = unit.get("exclusive")
     if not tag:
         return []
-    return sorted(r for r in recorded
-                  if r != uid and (units.get(r) or {}).get("exclusive") == tag)
+    dest = os.path.normcase(os.path.normpath(unit.get("dest") or ""))
+
+    def sibling(r):
+        if r in units:
+            return units[r].get("exclusive") == tag
+        rdest = (recorded.get(r) or {}).get("dest")
+        return bool(rdest) and os.path.normcase(os.path.normpath(rdest)) == dest
+
+    return sorted(r for r in recorded if r != uid and sibling(r))
+
+
+def _matches_retired_template(src, dest):
+    """`dest` equals, modulo CRLF, a committed version of the retired template `src`,
+    which is no longer on disk — only its history is."""
+    try:
+        got = _lf_digest(_unit_bytes(dest), False)
+    except OSError:
+        return False
+    return any(_lf_digest(files, False) == got for files in _shipped_versions(src))
+
+
+def _retired_hook_row(uid, rec, dest, src_dir):
+    """The plan row for a retired hook that is recorded, or on disk at `dest`.
+
+      * retire       — unwire it and delete the file: already gone, still the bytes we
+                       recorded, or a committed version of its template
+      * retire-kept  — unwire it and keep the file: adopted, changed since, or unknown
+    """
+    current = hash_path(dest)
+    adopted = bool(rec and rec.get("adopted"))
+    if current is None:
+        action = "retire"
+    elif adopted:
+        action = "retire-kept"
+    elif rec and current == rec.get("hash"):
+        action = "retire"
+    elif src_dir and _matches_retired_template(
+            os.path.join(src_dir, uid.split(":", 1)[1] + ".sh"), dest):
+        action = "retire"
+    else:
+        action = "retire-kept"
+    return (action, uid, (rec or {}).get("kind", "hook"), "-", dest)
+
+
+def drop_retired_paths(added, snippet_path):
+    """`added` without the settings.json paths a retired hook left behind: any path that
+    names a retired hook's command, and any under an event the hook snippet no longer
+    wires. Whatever is still under them is the user's, and remove must not take it."""
+    events = set((load_json(snippet_path).get("hooks") or {}).keys())
+    commands = ["/hooks/%s.sh" % name for name in RETIRED_HOOKS]
+
+    def stale(path):
+        if any(c in json.dumps(path) for c in commands):
+            return True
+        return len(path) >= 2 and path[0] == "hooks" and path[1] not in events
+
+    return [p for p in added if not stale(p)]
 
 
 def plan_install(units, manifest, selected, spec=None):
     """Decide, per selected unit, what an install run may actually do to it.
 
-    Seven actions, and only two of them write:
+    Nine actions. Two of them write a file and one deletes one:
       * install        — nothing there yet
       * upgrade        — there, and still byte-identical to what we last wrote,
                          or equal to a version this clone shipped, or written by a
@@ -1427,6 +1558,9 @@ def plan_install(units, manifest, selected, spec=None):
                          Reported only.
       * untrack        — recorded, no longer shipped, and gone from disk. Its record
                          is dropped.
+      * retire         — a RETIRED_HOOKS hook, recorded or on disk: unwired, its file
+                         deleted, its record dropped. See _retired_hook_row.
+      * retire-kept    — the same, but the file is the user's and stays.
 
     'skip-edited' is decision 8 and half of decision 7 in one line: an upgrade that
     clobbers an edited file is the same bug as a bad uninstall.
@@ -1437,10 +1571,19 @@ def plan_install(units, manifest, selected, spec=None):
     """
     recorded = manifest.get("units") or {}
     config = manifest.get("config")
+    hook_src = hook_dest = None
+    for u in units.values():
+        if u["kind"] == "hook":
+            hook_src, hook_dest = os.path.dirname(u["src"]), os.path.dirname(u["dest"])
+            break
+    retired = {"hook:" + name for name in RETIRED_HOOKS}
     rows = []
     for uid in selected:
         unit = units.get(uid)
         rec = recorded.get(uid)
+        if not unit and uid in retired and rec is not None and rec.get("dest"):
+            rows.append(_retired_hook_row(uid, rec, rec["dest"], hook_src))
+            continue
         if not unit:
             if rec is not None:
                 # "-" and not "": install.sh reads these rows with `read -r` under
@@ -1464,7 +1607,8 @@ def plan_install(units, manifest, selected, spec=None):
                 # it is ours: judged by the sibling's record, never offered for adoption.
                 srec = recorded[sib[0]]
                 if (current == srec.get("hash")
-                        or _matches_a_shipped_version(units[sib[0]], dest, config)):
+                        or (sib[0] in units
+                            and _matches_a_shipped_version(units[sib[0]], dest, config))):
                     action = "upgrade"
                 else:
                     action = "skip-edited"
@@ -1479,8 +1623,9 @@ def plan_install(units, manifest, selected, spec=None):
             shipped = _matches_a_shipped_version(unit, dest, config)
             if shipped == "template":
                 # A hook that differs from the template only by CRLF is rewritten:
-                # its shebang line does not run on Linux or macOS.
-                if unit["kind"] == "hook" and current != unit["source_hash"]:
+                # its shebang line does not run on Linux or macOS. So is the library
+                # every hook sources: CRLF there breaks all of them at once.
+                if unit["kind"] in ("hook", "hook-lib") and current != unit["source_hash"]:
                     action = "upgrade"
                 else:
                     action = "current"
@@ -1510,6 +1655,19 @@ def plan_install(units, manifest, selected, spec=None):
         else:
             action = "upgrade"
         rows.append((action, uid, unit["kind"], unit["src"], dest))
+    # An exclusive unit that writes its destination replaces the unshipped record
+    # there, so that record is not reported as still installed.
+    claimed = {os.path.normcase(os.path.normpath(r[4])) for r in rows
+               if r[0] in ("install", "upgrade") and (units.get(r[1]) or {}).get("exclusive")}
+    rows = [r for r in rows
+            if not (r[0] == "orphan" and os.path.normcase(os.path.normpath(r[4])) in claimed)]
+    # A retired hook not planned above: recorded but not selected, or a hand copy.
+    for uid in sorted(retired - {r[1] for r in rows}):
+        rec = recorded.get(uid)
+        dest = (rec or {}).get("dest") or (
+            os.path.join(hook_dest, uid.split(":", 1)[1] + ".sh") if hook_dest else None)
+        if dest and hash_path(dest) is not None:
+            rows.append(_retired_hook_row(uid, rec, dest, hook_src))
     return rows
 
 
@@ -1539,7 +1697,7 @@ def plan_state(manifest, units, spec=None):
             else:
                 shipped = _matches_a_shipped_version(unit, dest, manifest.get("config"))
                 if shipped == "template":
-                    if unit["kind"] == "hook" and current != unit["source_hash"]:
+                    if unit["kind"] in ("hook", "hook-lib") and current != unit["source_hash"]:
                         state = "outdated"
                     else:
                         state = "current"
@@ -1663,6 +1821,8 @@ def main(argv):
         out(unmerge_json(a[0], json.loads(read(a[1]))))
     elif cmd == "hook-wiring":
         out(hook_wiring(a[0], a[1:]))
+    elif cmd == "unwire-hooks":
+        out(unwire_hooks(a[0], a[1:]))
     elif cmd == "verify-wiring":
         out(verify_wiring(a[0], a[1], a[2:]))
     elif cmd == "plan-install":

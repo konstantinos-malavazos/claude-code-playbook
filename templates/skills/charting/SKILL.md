@@ -385,7 +385,7 @@ cleared by hand, not a jam.
 ## When a session ends mid-ticket
 
 **Post a progress comment, and keep the claim.** The tracker is the only durable surface
-left — handoff files auto-delete — and keeping the claim is safe precisely because the claim
+left — handoff files are scratch space, never a durable store — and keeping the claim is safe precisely because the claim
 was never a lock.
 
 ## When the map closes — one memory per map, not one per ticket

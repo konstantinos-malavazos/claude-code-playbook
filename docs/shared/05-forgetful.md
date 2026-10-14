@@ -31,12 +31,14 @@ Banking it once saves the next person (or the next-you) from paying for it again
 Memory is only valuable if it's **signal-dense**. The rule: **write what the next reader
 will read, and nothing else.** So:
 
-- **In-flight ticket state** → filesystem handoff files, deleted at a later session end once
-  nothing has written to them for a day.
+- **In-flight ticket state** → filesystem handoff files: scratch space that stays until you
+  delete it, never a durable store.
   Never written to Forgetful.
 - **Durable conclusions** → one consolidated memory per unit of work, written only when
   that unit is done (root cause, fix shape, blast radius, reusable recipes, settled
-  decisions). Each unit has one owner:
+  decisions). Each unit has one owner. These are the per-unit consolidations, not the only
+  durable writes: the global session-end writeback and `/end-of-day` also write memories.
+  The owners:
   - **per ticket** — `/start-ticket`, when you approve the review;
   - **per map** — charting, when the map closes;
   - **per project** — the bootstrap's memory two.
@@ -86,7 +88,7 @@ it is actually for.
 - **The gatherer** does the heavy sweep in a throwaway context and distils it into the
   handoff brief.
 - **On APPROVE**, the ticket's handoff files are consolidated into one durable memory;
-  the handoffs then evaporate.
+  the handoffs stay on disk as scratch space until you delete them.
 - **`/end-of-day`** harvests any other durable conclusions from the day.
 - **`/garden-memory`** periodically evaluates retrieval quality and prunes cruft.
 

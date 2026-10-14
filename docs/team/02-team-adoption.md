@@ -40,6 +40,8 @@ without assuming they share your editor, your shell config, or your patience.
    they must fire the same way for everyone. Put the hook scripts in a shared
    repository and document the install path. If hooks diverge, the team loses
    the guarantee that "push is blocked" means push is blocked for everyone.
+   Leave every allowlist line's `trunk-push` field out (it then reads `no`): on a
+   shared trunk, a push straight to `main`, `master` or `develop` reaches other people.
 
 ---
 

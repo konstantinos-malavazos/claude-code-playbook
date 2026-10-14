@@ -16,8 +16,8 @@ things in it are yours to adjust: keep only the hooks you actually installed, an
 - A **PreToolUse** hook that exits **exactly 2** and prints a reason to **stderr**
   **blocks** the tool call and shows the reason to the model.
 - Exit **0** allows the call.
-- **SessionEnd** / **PostToolUse** hooks run for side effects (cleanup, formatting) and
-  don't block. `SessionEnd` ignores the exit code entirely.
+- **PostToolUse** hooks run for side effects (formatting) and don't block: the tool call
+  has already happened.
 
 > **Only exit 2 blocks. Every other non-zero code is a *non-blocking* error.** The
 > transcript shows a hook-error notice, and **the tool call proceeds anyway**. So a guardrail
@@ -32,7 +32,8 @@ unanchored**, the moment any other character appears. So `Bash` matches only `Ba
 suffix. The bare server prefix matches nothing.
 
 > These templates are written for a POSIX shell (Git Bash on Windows works). They parse
-> their payload with **python**, using only the standard library. `command -v python3` and
+> their payload with **python**, using only the standard library, and pick it in the shared
+> library `_lib/common.sh`. `command -v python3` and
 > `command -v python` are collected as an **ordered preference, never an exclusion**: a
 > path under `AppData/Local/Microsoft/WindowsApps` — the Microsoft Store app-execution
 > alias — is moved to the **end** of the list and is never dropped, because on a machine
@@ -55,7 +56,8 @@ blind to exactly one failure, so the answer is layered rather than picked:
 | **Fail closed** | the hook exits **2** when it cannot parse | the script never running at all |
 | Check the wiring at setup | run a hook live and confirm it blocks | anything that changes afterwards |
 
-**The five blocking hooks exit `2` when they cannot read their payload**: no parser on
+**The five blocking hooks exit `2` when they cannot read their payload** — and so does the
+agent-scoped `handoffs-only.sh`: no parser on
 `PATH`, nothing on `PATH` that turns out to be a working python, or a payload that will
 not parse. This matters because of the box above: Claude
 Code treats every exit code other than `2` as a *non-blocking* error and runs the tool
@@ -70,13 +72,10 @@ prompt offers *"yes, and don't ask again"*, so one keystroke makes the approval 
 and turns the guard off for good, silently, wearing the appearance of a decision rather
 than a bug. A prompt is not a guardrail; it is trust with an extra keystroke.
 
-**`format-on-edit.sh` and `cleanup-handoffs.sh` cannot fail closed. They are not made to
-try.** The split is the harness's, not a judgement about which guards deserve to be
-strict: `PostToolUse` fires *after* the edit it would object to, and `SessionEnd` ignores
-the exit code entirely. Both say so in the file. They fail **soft** instead. No parser
-means they do nothing and print why on stderr, and `cleanup-handoffs.sh` fails in the
-direction that keeps data, since without the reason it cannot tell a resume from a real
-end.
+**`format-on-edit.sh` cannot fail closed. It is not made to try.** The split is the
+harness's, not a judgement about which guards deserve to be strict: `PostToolUse` fires
+*after* the edit it would object to. The file says so. It fails **soft** instead. No parser,
+or no shared library, means it does nothing and prints why on stderr.
 
 **The dependency is swapped, not removed.** python is a dependency too. It wins on being
 present where `jq` is not, on being a real JSON reader, and on precedent — the suite has
@@ -90,7 +89,7 @@ re-opens the multi-line flatten bug this directory has already shipped once.
 bash templates/hooks/test-hooks.sh
 ```
 
-It covers all seven hooks. `cleanup-handoffs.sh` and `format-on-edit.sh` always exit 0, so for them it checks what they leave behind on a payload carrying non-ASCII text: whether the handoff folders were cleared or kept, and whether the edited file reached the formatter. For the five blocking hooks it covers what must be blocked, what must be allowed, `Bash` and
+It covers all seven hooks. `format-on-edit.sh` always exits 0, so for it the suite checks what it leaves behind on a payload carrying non-ASCII text: whether the edited file reached the formatter. For the five blocking hooks and `handoffs-only.sh` it covers what must be blocked, what must be allowed, `Bash` and
 `PowerShell` payloads, multi-line commands, LF **and** CRLF line endings, and **both sides
 of every conditional line**: a listed repo and an unlisted one, `.claude/agents/` and
 `.claude/handoffs/`.
@@ -204,13 +203,13 @@ where the bug goes to live.**
 
 | Hook | Event | Job | solo | team |
 |---|---|---|---|---|
-| `block-dangerous-git.sh` | PreToolUse · Bash\|PowerShell | block reset --hard / force / --no-verify / branch -D / clean -fd, and push unless the repo is allowlisted | ✓ | ✓ |
+| `block-dangerous-git.sh` | PreToolUse · Bash\|PowerShell | block reset --hard / force / --no-verify / branch -D / clean -fd, push unless the repo is allowlisted, and push to `main`/`master`/`develop` unless its line says `trunk-push` | ✓ | ✓ |
 | `block-mcp-writes.sh` | PreToolUse · mcp (tracker, git-host) | read-only veto — only get/list/search pass | ✓ | ✓ |
 | `block-infra-staging.sh` | PreToolUse · Bash\|PowerShell | sort AI-infra paths: `.claude/agents\|skills` through, `CLAUDE.md` if allowlisted, the rest blocked | ✓ | ✓ |
 | `block-secret-staging.sh` | PreToolUse · Bash\|PowerShell | block staging `.env`, key files and credential-shaped names; block token literals anywhere | ✓ | ✓ |
 | `block-unexplained-long-hold.sh` | PreToolUse · Bash\|PowerShell | block a call asking for more than the tool's default timeout with no expected duration in its `description` | ✓ | ✓ |
-| `cleanup-handoffs.sh` | SessionEnd | delete the ephemeral handoff dirs nothing has written to for a day | ✓ | ✓ |
 | `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited | ✓ | ✓ |
+| `handoffs-only.sh` | PreToolUse · Write\|Edit, **agent frontmatter only** | let the reviewer agents write only under `.claude/handoffs/` (and release-reviewer's chart `reviews/`) | ✓ | ✓ |
 | `repo-allowlist.sample` | — | the per-repo answers the two git hooks read; install **empty** at `~/.claude/repo-allowlist` | ✓ | |
 | `test-hooks.sh` | — | regression suite for all seven hooks; run it, don't read it | ✓ | ✓ |
 
@@ -222,12 +221,13 @@ of its questions have one permanent answer and there is nothing to list.
 
 Two of the hooks above ask a question a bash script cannot answer: **is this repo mine?**
 `~/.claude/repo-allowlist` holds the answers: one line per repo, keyed by **remote URL**,
-two answers per entry, **both defaulting to no**.
+two or three answers per entry, **all defaulting to no**.
 
 | Question | Read by |
 |---|---|
 | May the agent `git push` here? | `block-dangerous-git.sh` |
 | Is this repo's `CLAUDE.md` its own — would a fresh clone need it? | `block-infra-staging.sh` |
+| May that push land on `main`, `master` or `develop`? (optional 4th field, `trunk-push`) | `block-dangerous-git.sh` |
 
 Three properties, all of them the point:
 
@@ -244,15 +244,36 @@ obeys — worth stating plainly rather than pretending the script got smarter. T
 behind each answer is in
 [`docs/solo/07-guardrails-when-solo.md`](../../docs/solo/07-guardrails-when-solo.md).
 
-> **The lookup is duplicated in both hooks, deliberately.** A shared file you can forget to
-> copy turns a guardrail into one that silently stops guarding — the exact failure this
-> directory exists to prevent. Duplication is loud; a missing include is not.
+> **The lookup lives in one shared library, `_lib/common.sh`, which every hook loads.** A
+> library you forget to copy must not turn a guardrail into one that silently stops
+> guarding, so a blocking hook that cannot load it — missing, broken, or cut short — exits 2
+> and blocks. Copy the `_lib/` folder with the hooks.
 
 **The hook and `.gitignore` have to sort the same way.** The hook blocks the *command*.
 `.gitignore` makes the file invisible to it. A blanket `.claude/` ignore line hides the
 generated specialists that are supposed to be committed, so whatever writes that line
 writes the `!.claude/agents/` and `!.claude/skills/` exceptions with it. Two mechanisms, one
 directory — moving one and not the other buys nothing.
+
+**The trunk list is fixed: `main`, `master`, `develop`.** The hook blocks a push that names
+one (`origin main`, `HEAD:develop`, `refs/heads/main`, `+main`), a bare `git push` while
+one is checked out, and a push that can reach every branch without naming one (`--all`,
+`--mirror`, `--branches`, the refspec `:`). A `--tags` push with no refspec moves only tags,
+so it is allowed. **Known gap:** a bare push from a feature branch that `push.default` or
+an upstream setting maps onto a trunk is not detected; the hook reads the command, not git's
+config.
+
+## `handoffs-only.sh` — agent-scoped, never in settings
+
+`aligner`, `repo-reviewer` and `release-reviewer` review code and must not change it. Each
+one wires `handoffs-only.sh` in its own frontmatter, on `Write|Edit`. A write is allowed only
+under `.claude/handoffs/`, or under `.claude/charts/<KEY>/reviews/` for release-reviewer's
+release mode. Anything else, a path with `..`, or a payload it cannot read is blocked with
+exit 2. The installer installs it with those agents. It never goes into `settings.json`,
+where it would block every session's edits.
+
+**The limit:** these agents keep `Bash` to run tests and git, and `Bash` can still write
+files. The hook closes only the `Write`/`Edit` route.
 
 ## `Bash` is not the only shell
 

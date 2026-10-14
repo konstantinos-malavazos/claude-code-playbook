@@ -698,7 +698,8 @@ selection_stage() {
   stage "What to install"
   if [[ "$seeded" == "yes" ]]; then
     note "Already ticked below: the $(wc -l < "$SELECTED" | tr -d ' ') things you installed last time."
-    note "Tick something to add it. Untick something to have it removed."
+    note "Tick something to add it. Unticking leaves it installed: delete its file"
+    note "by hand, or ./install.sh remove takes everything out."
     note "(./install.sh update refreshes what you have without asking anything.)"
     pause "Press Enter to continue"
   fi
@@ -1280,7 +1281,7 @@ hooks_warning_screen() {
   printf '\n'
   printf '  %sHow to allow a repo — one line in %s:%s\n\n' "$BOLD" "$CLAUDE_HOME/repo-allowlist" "$RESET"
   printf '      %sgithub.com/you/weekend-project    yes    yes%s\n\n' "$BOLD" "$RESET"
-  say "  Three things on one line, separated by spaces:"
+  say "  Three things on one line, separated by spaces, and an optional fourth:"
   say "    1  any recognisable piece of that repo's address. To see yours, run"
   say "         git config --get remote.origin.url"
   say "       inside the repo, and copy enough of it that no other repo of"
@@ -1289,10 +1290,12 @@ hooks_warning_screen() {
   say "    2  may Claude run git push in this repo?               yes or no"
   say "    3  does this repo's CLAUDE.md belong to the repo — would"
   say "       someone cloning it fresh on a new laptop need it?   yes or no"
+  say "    4  trunk-push: may Claude push to main, master or"
+  say "       develop here? Left out, it is no.                   yes or no"
   say "  Anything that is not exactly 'yes' is treated as no."
   printf '\n'
   note "That file is installed EMPTY on purpose. Any repo you have not thought"
-  note "about yet answers no to both questions, which is the safe answer. You"
+  note "about yet answers no to every question, which is the safe answer. You"
   note "add a line the first time a project actually needs one."
   printf '\n'
   note "Three things stay blocked everywhere, and no line in that file turns them"
@@ -1417,6 +1420,8 @@ TITLES = [
     ("skip-edited",  "LEFT ALONE — you edited these yourself since installing them"),
     ("skip-foreign", "LEFT ALONE — already here, and this installer did not put them there"),
     ("orphan",       "LEFT ALONE — installed once, and this clone no longer ships them"),
+    ("retire",       "REMOVED — retired hooks: the file and its settings.json entry are deleted"),
+    ("retire-kept",  "UNWIRED — retired hooks: the settings.json entry is deleted, the file you changed stays"),
 ]
 
 wrote_any = False
@@ -1494,6 +1499,18 @@ backup_file() {
   return 0
 }
 
+# settings_hooks — the selected hooks the settings snippet wires, space-separated. A hook
+# the snippet never places is agent-scoped: its wiring lives in agent frontmatter.
+# The match is the whole quoted command, the same equality hook-wiring applies.
+settings_hooks() {
+  local h
+  while IFS= read -r h; do
+    if grep -qF "\"~/.claude/hooks/$h.sh\"" "$HOOK_SNIPPET"; then
+      printf '%s ' "$h"
+    fi
+  done < <(sed -n 's/^hook://p' "$SELECTED")
+}
+
 install_stage() {
   stage "Writing the files"
   install_stage_body
@@ -1553,7 +1570,7 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
           LEFT_ALONE+=("$uid — not set up: tracker.md was edited since install, so it was left alone")
           continue
         fi
-        LEFT_ALONE+=("$uid — you edited it since install; diff against $src")
+        LEFT_ALONE+=("$uid — you edited it since install; diff against ${src//\\//}")
         # The summary line above says it once, in a class that scrolls past. An
         # edited file is frozen until somebody does something about it, which makes
         # it a to-do, not a footnote — and the to-do has to carry the actual command.
@@ -1577,6 +1594,17 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
         ;;
       untrack)
         UNTRACKED+=("$uid — its file is gone and this clone no longer ships it, so it is no longer tracked")
+        ;;
+      retire|retire-kept)
+        backup_file "$SETTINGS"
+        pb unwire-hooks "$SETTINGS" "${uid#hook:}" > "$WORK/unwire.json"
+        if [[ "$action" == "retire" ]]; then
+          rm -f "$dest"
+          REMOVED+=("$uid — retired: this clone no longer ships it, so its file and its settings.json entry were removed")
+        else
+          LEFT_ALONE+=("$uid — retired and unwired; its file was kept, because it is not a version this installer wrote")
+          TODO+=("${dest//\\//} is no longer wired in settings.json — this clone retired $uid — but the file was kept, because it is not a version this installer wrote. Delete it by hand.")
+        fi
         ;;
       skip-foreign)
         # Decision 3: adopted only when the user said yes on the confirm stage.
@@ -1616,7 +1644,7 @@ PY
 
   # ── hook wiring, filtered to the hooks actually installed ─────────────
   local hooks_installed
-  hooks_installed=$(sed -n 's/^hook://p' "$SELECTED" | tr '\n' ' ')
+  hooks_installed=$(settings_hooks)
   if [[ -n "${hooks_installed// /}" ]]; then
     backup_file "$SETTINGS"
     # shellcheck disable=SC2086
@@ -1625,7 +1653,9 @@ PY
     ok "merged hook wiring into $SETTINGS"
     # Decision 1: the same line the pre-install screen taught, repeated where the
     # user is standing when they next try to push.
-    TODO+=("Claude cannot run 'git push' in any repo until you allow that repo. Your OWN git push is unaffected. To allow one, add a line to $CLAUDE_HOME/repo-allowlist, like:   github.com/you/weekend-project    yes    yes   — that is (part of your remote URL from 'git config --get remote.origin.url') (may Claude push here? yes/no) (is this repo's CLAUDE.md its own? yes/no).")
+    if ! grep -qvE '^[[:space:]]*(#|$)' "$CLAUDE_HOME/repo-allowlist" 2>/dev/null; then
+      TODO+=("Claude cannot run 'git push' in any repo until you allow that repo. Your OWN git push is unaffected. To allow one, add a line to $CLAUDE_HOME/repo-allowlist, like:   github.com/you/weekend-project    yes    yes   — that is (part of your remote URL from 'git config --get remote.origin.url') (may Claude push here? yes/no) (is this repo's CLAUDE.md its own? yes/no). An optional 4th field, trunk-push, lets Claude push to main, master or develop there; it is no unless it says yes.")
+    fi
     while IFS= read -r line; do
       [[ -n "$line" ]] && CONFLICTS+=("$line")
     done < <(py -c 'import json,sys
@@ -1690,14 +1720,14 @@ PY
 write_manifest() {
   py - "$MANIFEST" "$UNITS" "$SELECTED" "$WORK/merge.json" "$HERE" "$LIB" "$WORK/plan.tsv" \
          "$PH_SPEC" "$SERENA_PREFIX" "$WORK/tracker.json" "$WORK/adopt.txt" \
-         "$WORK/memory.json" <<'PY'
+         "$WORK/memory.json" "$HOOK_SNIPPET" <<'PY'
 import sys
 sys.dont_write_bytecode = True   # don't leave a __pycache__ in the user's clone
 
 import json, os, time, importlib.util
 
 (manifest_path, units_path, sel_path, merge_path, repo, lib_path, plan_path,
- ph_path, serena_prefix, tracker_path, adopt_path, memory_path) = sys.argv[1:13]
+ ph_path, serena_prefix, tracker_path, adopt_path, memory_path, hook_snippet) = sys.argv[1:14]
 
 # reuse the library's hashing so the manifest and the planner agree exactly
 spec = importlib.util.spec_from_file_location("pblib", lib_path)
@@ -1763,7 +1793,7 @@ if os.path.exists(plan_path):
             parts = line.rstrip("\n").split("\t")
             if len(parts) >= 2 and parts[0].startswith("skip-"):
                 untouched.add(parts[1])
-            elif len(parts) >= 2 and parts[0] == "untrack":
+            elif len(parts) >= 2 and parts[0] in ("untrack", "retire", "retire-kept"):
                 untracked.append(parts[1])
 
 # Decision 3: adoption is a CONSENTED path through that same guard, and the only
@@ -1803,6 +1833,9 @@ for uid in selected:
 
 for uid in untracked:
     manifest["units"].pop(uid, None)
+
+for entry in manifest["json"]:
+    entry["added"] = pblib.drop_retired_paths(entry.get("added", []), hook_snippet)
 
 if os.path.exists(merge_path):
     rec = json.load(open(merge_path))
@@ -2210,7 +2243,7 @@ PY
   # 2 — wiring. Installing a hook is NOT wiring a hook, so this re-reads
   #     settings.json rather than trusting that the merge did what it said.
   local hooks_installed
-  hooks_installed=$(sed -n 's/^hook://p' "$SELECTED" | tr '\n' ' ')
+  hooks_installed=$(settings_hooks)
   if [[ -n "${hooks_installed// /}" ]]; then
     heading "2. Are the guardrails switched on? (read back from settings.json)"
     # shellcheck disable=SC2086
@@ -2244,17 +2277,28 @@ PY
   #     unfilled tracker passes every other gate here and fails at first use.
   if [[ -f "$CLAUDE_HOME/tracker.md" ]]; then
     heading "3. Is the tracker filled in?"
-    local left
-    left=$(grep -oE '<(owner|repo|MAP-KEY|LABEL-PREFIX|YOUR-DONE-STATUS|workspace)>' \
-             "$CLAUDE_HOME/tracker.md" 2>/dev/null | sort -u | tr '\n' ' ' || true)
-    if [[ -n "${left// /}" ]]; then
-      bad "no — still to fill in: $left"
-      TODO+=("Fill in ${left% } in $CLAUDE_HOME/tracker.md.")
+    # Only a tracker.md this run wrote or found unchanged is the template's: a
+    # hand-written or edited one may use a token such as <repo> on purpose.
+    if awk -F'\t' '$2 ~ /^tracker:/ && ($1 == "install" || $1 == "upgrade" || $1 == "current") { f = 1 }
+                   END { exit !f }' "$WORK/plan.tsv" 2>/dev/null; then
+      local left
+      left=$(grep -oE '<(owner|repo|MAP-KEY|LABEL-PREFIX|YOUR-DONE-STATUS|workspace)>' \
+               "$CLAUDE_HOME/tracker.md" 2>/dev/null | sort -u | tr '\n' ' ' || true)
+      if [[ -n "${left// /}" ]]; then
+        bad "no — still to fill in: $left"
+        TODO+=("Fill in ${left% } in $CLAUDE_HOME/tracker.md.")
+      else
+        ok "yes — the settings it asks for are all filled in"
+      fi
     else
-      ok "yes — the settings it asks for are all filled in"
+      note "  left alone — this run did not write it, so its blanks were not checked"
     fi
-    TODO+=("Answer 'Is this a shared place?' in $CLAUDE_HOME/tracker.md. It decides whether Claude needs your approval before writing to the tracker.")
-    TODO+=("Add a line to your global CLAUDE.md pointing at $CLAUDE_HOME/tracker.md, so it is loaded in every session.")
+    if grep -qF '<yes' "$CLAUDE_HOME/tracker.md" 2>/dev/null; then
+      TODO+=("Answer 'Is this a shared place?' in $CLAUDE_HOME/tracker.md. It decides whether Claude needs your approval before writing to the tracker.")
+    fi
+    if ! grep -qF 'tracker.md' "$CLAUDE_HOME/CLAUDE.md" 2>/dev/null; then
+      TODO+=("Add a line to your global CLAUDE.md pointing at $CLAUDE_HOME/tracker.md, so it is loaded in every session.")
+    fi
   fi
 
   # 4 — the two CLAUDE.md layers this installer deliberately does not place

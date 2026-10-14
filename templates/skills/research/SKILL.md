@@ -53,8 +53,8 @@ what backoff?" not "look into webhooks".
 
 ## Landing the result
 
-- **In-flight** → the findings file sits with the ticket's handoffs and evaporates with
-  them.
+- **In-flight** → the findings file sits with the ticket's handoffs: scratch space that
+  stays until you delete it, never a durable store.
 - **Durable** → a conclusion that will matter again (a rate limit, an auth quirk, a
   ruled-out approach) gets banked as a memory on APPROVE, tagged by
   topic/component, **never** by ticket id.
