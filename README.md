@@ -158,7 +158,7 @@ claude-code-playbook/
 │   ├── claude-md/    global · workspace · per-repo CLAUDE.md skeletons
 │   ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · map-reviewer · decision-steward · …
 │   ├── skills/       tdd · engineering-standards · grilling · pitch · charting · bootstrap · cut-backlog · next-steps · …
-│   ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory · start-massive · resume-massive · build-chart-ticket · encode-codebase · feeling-lucky · feeling-very-lucky
+│   ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory · start-massive · resume-massive · build-chart-ticket · feeling-lucky · feeling-very-lucky
 │   ├── hooks/        block-dangerous-git · block-infra-staging · block-secret-staging · block-mcp-writes · …
 │   ├── mcp/          MCP config snippets (global + project) + settings snippet
 │   ├── trackers/     one adapter, installed at ~/.claude/tracker.md
@@ -173,7 +173,7 @@ claude-code-playbook/
 ### Running the installer suite
 
 `tests/test-installer.sh` does real installs into a throwaway folder, so it is slow. A full
-run takes about 9 minutes on a Windows laptop. That is close to the 10-minute limit on any
+run takes about 10 minutes on a Windows laptop. That is at the 10-minute limit on any
 single command an agent can wait for, and a slower machine goes over it. An agent that
 starts it in the background never sees it finish. So an agent runs it in chunks, one after
 another, each short enough to wait for.
@@ -198,16 +198,17 @@ Put each group below in one chunk, or a section runs twice and its results count
 
 **Give each chunk its own scratch folder.** Sections reuse the same folder names inside
 it, so two chunks sharing one folder can trip over each other. Each of these chunks took
-under four minutes:
+under four and a half minutes:
 
 ```bash
 S=/tmp/installer-run
 PLAYBOOK_TEST_DIR="$S/i1" bash tests/test-installer.sh 13 17 1 2 3 4 5 6 7 9 10 11 8 14 19 15 16 18
 PLAYBOOK_TEST_DIR="$S/i2" bash tests/test-installer.sh M1 M2 M8 M3 M4 M6 M5 P1
-PLAYBOOK_TEST_DIR="$S/i3" bash tests/test-installer.sh U1 U2 U3 U4 U5 U6 U7 S1 S2 S3 S4 S5 S6
+PLAYBOOK_TEST_DIR="$S/i3" bash tests/test-installer.sh U1 U2 U3 U4 U5 U6 U7 U8 U9 S1 S2 S3 S4 S5 S6
 PLAYBOOK_TEST_DIR="$S/i4" bash tests/test-installer.sh T1 T2 T3 T4 T5 T6 T7
 PLAYBOOK_TEST_DIR="$S/i5" bash tests/test-installer.sh R1 R2 R3 L1 L2 L3 L4
-PLAYBOOK_TEST_DIR="$S/i6" bash tests/test-installer.sh SW1 SW2 ST1 ST2 ST3 ST4 ST5 LF1
+PLAYBOOK_TEST_DIR="$S/i6" bash tests/test-installer.sh SW1 SW2 ST1 ST2 ST3 ST4 ST5 ST6 LF1
+PLAYBOOK_TEST_DIR="$S/i7" bash tests/test-installer.sh SW3 SW4 SW5 SW6 SW7 SW8
 ```
 
 Every chunk must end with `failed 0`. Add up the `passed` lines: they should match a full
@@ -397,7 +398,7 @@ placeholders, wires the hooks, and then proves the wiring by re-reading `setting
 Five things worth knowing before you run it:
 
 - **It stops if Serena is not set up**, before writing anything, and prints the steps.
-  16 of the 20 agents halt and produce nothing without Serena, so a no-Serena install
+  12 of the 16 agents halt and produce nothing without Serena, so a no-Serena install
   would be a success message over a setup that refuses to work.
 - **`update` also stops if a recorded answer no longer means what it meant.** It replays
   what you answered at first install without asking again — correct only as long as those

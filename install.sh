@@ -274,8 +274,13 @@ UPGRADED=()
 REMOVED=()
 ADOPTED=()
 LEFT_ALONE=()
+UNTRACKED=()
 CONFLICTS=()
 TODO=()
+# TODO[FROM..TO) is what placeholder_stage added for the picked tracker. It is
+# dropped when confirm_stage finds that tracker left alone.
+TRK_TODO_FROM=0
+TRK_TODO_TO=0
 
 # Set to yes only when the user has explicitly chosen to go on without a tracker
 # adapter, having been shown what that costs.
@@ -620,12 +625,60 @@ tracker_required_screen() {
 # Returns 1 when there is no manifest to seed from (a fresh machine).
 seed_from_manifest() {
   [[ -f "$MANIFEST" ]] || return 1
-  py - "$MANIFEST" <<'PY' > "$SELECTED"
-import json, sys
-m = json.load(open(sys.argv[1]))
-for uid in sorted(m.get("units") or {}):
+  : > "$WORK/seed-repaired.tsv"
+  py - "$MANIFEST" "$UNITS" "$LIB" "$WORK/seed-repaired.tsv" <<'PY' > "$SELECTED"
+import sys
+sys.dont_write_bytecode = True   # don't leave a __pycache__ in the user's clone
+
+import json, importlib.util
+
+manifest_path, units_path, lib_path, repaired_path = sys.argv[1:5]
+spec = importlib.util.spec_from_file_location("pblib", lib_path)
+pblib = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(pblib)
+
+m = json.load(open(manifest_path))
+units = json.load(open(units_path))
+recorded = m.get("units") or {}
+
+# One destination per exclusive group. Two or more records for it with exactly one
+# not adopted is damage: the file is the one written for that record, and the adopted
+# ones claim it falsely, so remove would keep it. Any other shape is left as it is.
+dropped = []
+seen = set()
+for uid in sorted(recorded):
+    if uid in seen:
+        continue
+    sibs = pblib.exclusive_siblings(units, uid, recorded)
+    if not sibs:
+        continue
+    group = [uid] + sibs
+    seen.update(group)
+    kept = [g for g in group if not (recorded.get(g) or {}).get("adopted")]
+    if len(kept) != 1:
+        continue
+    for g in group:
+        if g != kept[0]:
+            del recorded[g]
+            dropped.append((g, kept[0]))
+    tracker = (m.get("config") or {}).get("tracker")
+    if (units.get(uid) or {}).get("exclusive") == "tracker" and isinstance(tracker, dict):
+        tracker["adapter"] = kept[0].split(":", 1)[1]
+
+if dropped:
+    with open(manifest_path, "w") as fh:
+        json.dump(m, fh, indent=2, sort_keys=True)
+        fh.write("\n")
+with open(repaired_path, "wb") as fh:
+    fh.write("".join("%s\t%s\n" % d for d in dropped).encode("utf-8"))
+
+for uid in sorted(recorded):
     print(uid)
 PY
+  local dropped kept
+  while IFS=$'\t' read -r dropped kept; do
+    [[ -n "$dropped" ]] && warn "repaired the install record: dropped $dropped, a second record for the file $kept owns"
+  done < "$WORK/seed-repaired.tsv"
   [[ -s "$SELECTED" ]]
 }
 
@@ -736,10 +789,10 @@ SERENA_PREFIX=""
 
 # serena_gate — Serena is MANDATORY, so no evidence means no install.
 #
-# 16 of the 20 agents declare Serena tools and every one of them carries a
+# 12 of the 16 agents declare Serena tools and every one of them carries a
 # "## HALTED — no Serena tools" block telling it to produce nothing; the global
 # CLAUDE.md says there is no Serena opt-out. So a no-Serena machine does not get
-# degraded agents, it gets sixteen agents that refuse to run. An installer that
+# degraded agents, it gets twelve agents that refuse to run. An installer that
 # reports success over that is the silent failure this whole issue is about.
 #
 # CRITICAL: this prints and then EXITS. It must not route through stage(), screen()
@@ -760,7 +813,7 @@ serena_gate() {
   printf '  %sNothing has been installed and nothing has been changed.%s\n\n' "$BOLD" "$RESET"
   say "Serena is a separate tool that lets Claude find and edit code by symbol"
   say "name instead of re-reading whole files. This playbook does not merely"
-  say "prefer it — 16 of its 20 agents refuse to run at all without it."
+  say "prefer it — 12 of its 16 agents refuse to run at all without it."
   printf '\n'
   say "Installing now would leave you with something that reports success and"
   say "then does nothing, so the installer stops here instead."
@@ -801,7 +854,7 @@ agents_declaring() {
 # memory_gate — memory is the SECOND pillar, and it is mandatory for the same
 # reason Serena is. The difference is how it fails: an agent with no Serena tools
 # halts and says so, while an agent with no memory tools runs to completion and
-# produces nothing durable. /encode-codebase, /end-of-day, /garden-memory,
+# produces nothing durable. /end-of-day, /garden-memory,
 # /test-ticket's banked recipes, charting's one-memory-per-map close and
 # /start-ticket's consolidation step all no-op in silence.
 #
@@ -1129,6 +1182,7 @@ placeholder_stage() {
   # gitlab-shape — which drives glab and registers no server either — down the MCP
   # path, where it drew a pointless probe and a TODO telling the user to register
   # a server their adapter never reads.
+  TRK_TODO_FROM=${#TODO[@]}
   if [[ -z "$trk_mcp" ]]; then
     ok "your tracker adapter is $chosen_tracker, which does not read through an MCP server"
     note "It needs no tracker MCP server, so the tracker blank is taken out of the"
@@ -1148,6 +1202,7 @@ placeholder_stage() {
       TODO+=("No tracker MCP was found, so <tracker-read-tools> was removed from: $(agents_declaring '<tracker-read-tools>' | tr '\n' ' ') — if your adapter needs one, register it and re-run the installer.")
     fi
   fi
+  TRK_TODO_TO=${#TODO[@]}
 
   if [[ -n "$trk_shell" ]]; then
     ok "$chosen_tracker is driven from the command line, so @ticket-analyzer gets $trk_shell"
@@ -1318,6 +1373,16 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
   # moment before anything is recorded.
   adopt_screen
 
+  # A tracker this run leaves alone keeps the tracker grants on record. The plan
+  # is redone because a changed grant can turn `current` into `upgrade`.
+  if tracker_left_alone "$WORK/plan-preview.tsv"; then
+    tracker_grants_as_recorded
+    if (( TRK_TODO_TO > TRK_TODO_FROM )); then
+      TODO=("${TODO[@]:0:TRK_TODO_FROM}" "${TODO[@]:TRK_TODO_TO}")
+    fi
+    pb plan-install "$UNITS" "$MANIFEST" "$WORK/closed.txt" "$PH_SPEC" > "$WORK/plan-preview.tsv"
+  fi
+
   if [[ -n "${hooks_selected// /}" ]]; then
     # shellcheck disable=SC2086
     pb hook-wiring "$HOOK_SNIPPET" $hooks_selected > "$WORK/wiring-preview.json"
@@ -1481,6 +1546,13 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
         printf '%s\n' "$dest" >> "$WORK/written.txt"
         ;;
       skip-edited)
+        # An unrecorded tracker here is a switch onto an edited tracker.md: the
+        # file is still the recorded adapter, so diffing it against this one's
+        # template misleads, and tracker_stage says how to finish the switch.
+        if [[ "$uid" == tracker:* ]] && ! manifest_records "$uid"; then
+          LEFT_ALONE+=("$uid — not set up: tracker.md was edited since install, so it was left alone")
+          continue
+        fi
         LEFT_ALONE+=("$uid — you edited it since install; diff against $src")
         # The summary line above says it once, in a class that scrolls past. An
         # edited file is frozen until somebody does something about it, which makes
@@ -1502,6 +1574,9 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
         # removed upstream. Say so and name the file. Deleting it without being
         # asked is not this script's call.
         TODO+=("${dest//\\//} is still installed, but this clone no longer ships $uid — it was renamed or removed since you installed it. Nothing was changed. Delete the file by hand if you do not want it any more.")
+        ;;
+      untrack)
+        UNTRACKED+=("$uid — its file is gone and this clone no longer ships it, so it is no longer tracked")
         ;;
       skip-foreign)
         # Decision 3: adopted only when the user said yes on the confirm stage.
@@ -1604,7 +1679,7 @@ memory_schema_swap() {
 import io, sys
 path, prefix = sys.argv[1], sys.argv[2]
 text = io.open(path, encoding="utf-8").read()
-io.open(path, "w", encoding="utf-8").write(text.replace("mcp__forgetful__", prefix))
+io.open(path, "w", encoding="utf-8", newline="\n").write(text.replace("mcp__forgetful__", prefix))
 PY
     ok "memory-schema: loaded the Forgetful variant, renamed to ${prefix}*"
   else
@@ -1681,12 +1756,15 @@ manifest["known"] = sorted(units)
 # edit as our own recorded content, and the next remove would then delete their
 # work as if we had written it. The old record (or no record) stands instead.
 untouched = set()
+untracked = []
 if os.path.exists(plan_path):
     with open(plan_path) as fh:
         for line in fh:
             parts = line.rstrip("\n").split("\t")
             if len(parts) >= 2 and parts[0].startswith("skip-"):
                 untouched.add(parts[1])
+            elif len(parts) >= 2 and parts[0] == "untrack":
+                untracked.append(parts[1])
 
 # Decision 3: adoption is a CONSENTED path through that same guard, and the only
 # one. The list is written by the confirm stage after the user says yes, and it can
@@ -1722,6 +1800,9 @@ for uid in selected:
             rec["adopted"] = True
         del manifest["units"][sib]
     manifest["units"][uid] = rec
+
+for uid in untracked:
+    manifest["units"].pop(uid, None)
 
 if os.path.exists(merge_path):
     rec = json.load(open(merge_path))
@@ -1794,6 +1875,60 @@ print(((m.get("config") or {}).get("tracker") or {}).get("values", {}).get(sys.a
 PY
 }
 
+# manifest_records UID — true when the install record holds UID.
+manifest_records() {
+  [[ -f "$MANIFEST" ]] || return 1
+  py - "$MANIFEST" "$1" <<'PY'
+import json, sys
+try:
+    m = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+sys.exit(0 if sys.argv[2] in (m.get("units") or {}) else 1)
+PY
+}
+
+# Succeeds when PLAN leaves the picked tracker's tracker.md alone and nothing makes
+# it that adapter's: no record says so and it is not being adopted. tracker_stage
+# then does not set it up.
+tracker_left_alone() {
+  local chosen act
+  chosen=$(sed -n 's/^tracker://p' "$SELECTED" | head -1)
+  [[ -n "$chosen" ]] || return 1
+  act=$(awk -F'\t' -v u="tracker:$chosen" '$2 == u { print $1; exit }' "$1" 2>/dev/null || true)
+  [[ "$act" == skip-* ]] || return 1
+  manifest_records "tracker:$chosen" && return 1
+  if [[ -f "$WORK/adopt.txt" ]] && grep -Fxq "tracker:$chosen" "$WORK/adopt.txt"; then
+    return 1
+  fi
+  return 0
+}
+
+# Gives the two tracker grant tokens in $PH_SPEC the answers the manifest records,
+# deleting any with none, so a tracker that is not set up decides no grants.
+tracker_grants_as_recorded() {
+  py - "$PH_SPEC" "$MANIFEST" <<'PY'
+import json, sys
+TOKENS = ("<tracker-read-tools>", "<tracker-shell-tools>")
+spec = json.load(open(sys.argv[1]))
+try:
+    ph = (json.load(open(sys.argv[2])).get("config") or {}).get("placeholders") or {}
+except Exception:
+    ph = {}
+recorded = ph.get("values") or {}
+values = spec.setdefault("values", {})
+delete = [t for t in spec.get("delete") or [] if t not in TOKENS]
+for tok in TOKENS:
+    values.pop(tok, None)
+    if tok in recorded:
+        values[tok] = recorded[tok]
+    else:
+        delete.append(tok)
+spec["delete"] = delete
+json.dump(spec, open(sys.argv[1], "w"), indent=2)
+PY
+}
+
 # tracker_apply TOKEN VALUE — substitute one token throughout tracker.md.
 tracker_apply() {
   py - "$CLAUDE_HOME/tracker.md" "$1" "$2" <<'PY'
@@ -1801,7 +1936,7 @@ import sys
 path, token, value = sys.argv[1], sys.argv[2], sys.argv[3]
 with open(path, encoding="utf-8") as fh:
     text = fh.read()
-with open(path, "w", encoding="utf-8") as fh:
+with open(path, "w", encoding="utf-8", newline="\n") as fh:
     fh.write(text.replace(token, value))
 PY
 }
@@ -1826,8 +1961,9 @@ try:
     m = json.load(open(sys.argv[1]))
 except Exception:
     sys.exit(0)
+# Bytes, not print: Windows text stdout ends each line CR LF, and read -r keeps the CR.
 for k, v in (((m.get("config") or {}).get("tracker") or {}).get("values") or {}).items():
-    print("%s|%s" % (k, v))
+    sys.stdout.buffer.write(("%s|%s\n" % (k, v)).encode("utf-8"))
 PY
 )
   [[ "$n" -gt 0 ]] && ok "re-applied $n recorded tracker value(s)"
@@ -1860,6 +1996,25 @@ tracker_stage() {
     say "command by hand before you rely on it."
     TODO+=("Write and verify the GitLab adapter commands in $CLAUDE_HOME/tracker.md.")
     printf '\n'; pause "Press Enter to continue"; return 0
+  fi
+
+  # tracker.md was left alone, and no record says it is $chosen's: a switch onto an
+  # edited file, or a hand-copied one not adopted. Filling it or recording $chosen
+  # would describe an adapter that is not on disk.
+  local act
+  act=$(awk -F'\t' -v u="tracker:$chosen" '$2 == u { print $1; exit }' "$WORK/plan.tsv" 2>/dev/null || true)
+  if [[ "$act" == skip-* ]] && ! manifest_records "tracker:$chosen"; then
+    if [[ "$act" == "skip-foreign" ]]; then
+      warn "tracker.md was already there and this installer did not put it there, so it was left alone and $chosen is not set up."
+      TODO+=("Set up $chosen: re-run ./install.sh and say yes when it offers to adopt $CLAUDE_HOME/tracker.md, or move that file aside and re-run ./install.sh to pick $chosen again.")
+    else
+      warn "tracker.md was changed since it was installed, so it was left alone and $chosen is not set up."
+      TODO+=("Finish switching to $chosen: move your edits out of $CLAUDE_HOME/tracker.md, delete it, and re-run ./install.sh to pick $chosen again.")
+    fi
+    note "No agent was given tracker tools for $chosen."
+    printf '\n'
+    pause "Press Enter to continue"
+    return 0
   fi
 
   # The field list is fed on fd 3, not stdin. On stdin the `read answer` below
@@ -1943,6 +2098,14 @@ verify_stage() {
     # the two apart, so both are passed in.
     local trk_adapter trk_mcp
     trk_adapter=$(sed -n 's/^tracker://p' "$SELECTED" | head -1)
+    # A picked tracker that was left alone did not decide the grants, so it must
+    # not judge them: the recorded tracker, or none, did.
+    if tracker_left_alone "$WORK/plan.tsv"; then
+      trk_adapter=$(py -c 'import json,sys
+u = json.load(open(sys.argv[1])).get("units") or {}
+sys.stdout.buffer.write(next((k[len("tracker:"):] for k in sorted(u) if k.startswith("tracker:")), "").encode("utf-8"))' \
+                    "$MANIFEST" 2>/dev/null || true)
+    fi
     pb tracker-detect "$HOME" "$PWD" > "$WORK/tracker-mcp-verify.json"
     trk_mcp=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["server"] or "")' \
               "$WORK/tracker-mcp-verify.json")
@@ -2329,6 +2492,7 @@ PY
   verify_stage
   install_finish "Update complete"
   note "was: $had units"
+  retired_units_block
   exit 0
 }
 
@@ -2490,6 +2654,7 @@ install_finish() {
   _summarise "adopted"                     ${ADOPTED[@]+"${ADOPTED[@]}"}
   _summarise "removed"                     ${REMOVED[@]+"${REMOVED[@]}"}
   _summarise "left alone"                  ${LEFT_ALONE[@]+"${LEFT_ALONE[@]}"}
+  _summarise "no longer tracked"           ${UNTRACKED[@]+"${UNTRACKED[@]}"}
   _summarise "conflicts — your value kept" ${CONFLICTS[@]+"${CONFLICTS[@]}"}
 
   if [[ ${#TODO[@]} -gt 0 ]]; then
@@ -2503,6 +2668,32 @@ install_finish() {
   note "./install.sh list    see what you have now"
   note "./install.sh update  bring it up to date with this clone"
   note "./install.sh remove  take it all back out again"
+  printf '\n'
+}
+
+retired_units_block() {
+  local rel shown
+  local -a present=()
+  for rel in commands/encode-codebase.md agents/encoder.md agents/encode-recon.md \
+             agents/encode-rechecker.md agents/encode-corrector.md skills/memory-tag-lint; do
+    if [[ -e "$CLAUDE_HOME/$rel" ]]; then present+=("$rel"); fi
+  done
+  [[ ${#present[@]} -gt 0 ]] || return 0
+
+  heading "Retired units still on disk"
+  say "The encode-codebase command, @encoder, @encode-recon, @encode-rechecker,"
+  say "@encode-corrector and the memory-tag-lint skill are retired: Serena reads"
+  say "code structure live, and memory keeps only what the code cannot tell you."
+  say "Nothing was deleted. These are still installed:"
+  for rel in "${present[@]}"; do
+    shown="$CLAUDE_HOME/$rel"
+    if [[ -n "$CYGPATH" ]]; then shown="$("$CYGPATH" -m "$shown")"; fi
+    if [[ "$rel" == skills/* ]]; then shown="$shown (folder)"; fi
+    say "  $shown"
+  done
+  say "Delete them by hand, and delete any '## Memory encoding' section from each"
+  say "repo's CLAUDE.md."
+  say "The steps, for bash and PowerShell: docs/shared/03-setup.md#retired-units"
   printf '\n'
 }
 

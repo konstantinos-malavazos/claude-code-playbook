@@ -223,7 +223,7 @@ command_class() {
   case "$1" in
     start-ticket|fix-ticket|build-chart-ticket) printf 'weighs' ;;
     start-massive|resume-massive)               printf 'delegates' ;;
-    encode-codebase|feeling-lucky)              printf 'not-a-dispatch' ;;
+    feeling-lucky)                              printf 'not-a-dispatch' ;;
     *)                                          printf 'UNCLASSIFIED' ;;
   esac
 }
@@ -428,7 +428,7 @@ for n in u.get("command:start-ticket", {}).get("needs", []):
     pass "command:start-ticket needs skill:dispatch-weight, so preset_minimal pulls it in" ;;
   *) fail "command:start-ticket does NOT need skill:dispatch-weight — the backtick reference stopped matching, and a minimal install ships agents pointing at a skill that is not there" ;; esac
 else
-  printf '    SKIP  python3 — NOT INSTALLED on this machine, so A5 NOT run\n'
+  printf '    SKIP  python — no working python3 or python, so A5 NOT run\n'
 fi
 fi
 
@@ -649,7 +649,7 @@ print("missing %d" % missing)
     fail "an agent names a skill it does not declare — tick that agent alone and the skill is absent, silently" ;;
   esac
 else
-  printf '    SKIP  python3 — NOT INSTALLED on this machine, so A8 NOT run\n'
+  printf '    SKIP  python — no working python3 or python, so A8 NOT run\n'
 fi
 fi
 
@@ -783,7 +783,7 @@ print("SEP " + ("ok" if win in lib.NEVER_INSTALL else "broken(" + win + ")"))
     fail "stage 2 promises [$NOTED] but NEVER_INSTALL excludes [$GUARDED]"
   fi
 else
-  printf '    SKIP  python3 — NOT INSTALLED on this machine, so A9 NOT run\n'
+  printf '    SKIP  python — no working python3 or python, so A9 NOT run\n'
 fi
 fi
 
@@ -1428,14 +1428,14 @@ fi
 terminal_class() {
   case "$1" in
     # every command template ships a flow, and every flow has an ending
-    build-chart-ticket|encode-codebase|end-of-day|feeling-lucky|feeling-very-lucky) printf 'terminal' ;;
+    build-chart-ticket|end-of-day|feeling-lucky|feeling-very-lucky)                 printf 'terminal' ;;
     fix-ticket|garden-memory|resume-massive|resume-ticket|start-massive)            printf 'terminal' ;;
     start-ticket|test-ticket)                                                       printf 'terminal' ;;
     # the skills a human is left standing at the end of
     adapt-to-stack|bootstrap|charting|cut-backlog|grilling|handoff)                 printf 'terminal' ;;
     pitch|prototype|research|to-questionnaire|to-tickets|wizard)                    printf 'terminal' ;;
     # always-loaded skills, the block's own definition, and a generation template
-    commit-conventions|diagnose|dispatch-weight|memory-schema|memory-tag-lint)      printf 'not-terminal' ;;
+    commit-conventions|diagnose|dispatch-weight|memory-schema)                      printf 'not-terminal' ;;
     tdd|to-spec|wait-what|next-steps|engineering-standards|review-guidelines)       printf 'not-terminal' ;;
     *)                                                                              printf 'UNCLASSIFIED' ;;
   esac
@@ -1497,10 +1497,10 @@ done
 
 # A classification list that had drifted to zero terminals would pass every line
 # above while asserting nothing at all.
-if [ "$n_terminal" = "24" ]; then
-  pass "24 terminal points, which is the inventory this landed against"
+if [ "$n_terminal" = "23" ]; then
+  pass "23 terminal points, which is the inventory this landed against"
 else
-  fail "$n_terminal terminal points, not 24 — the inventory moved; change it here deliberately"
+  fail "$n_terminal terminal points, not 23 — the inventory moved; change it here deliberately"
 fi
 fi
 
@@ -1595,7 +1595,7 @@ for r in refs:
     pass "every command the skill names is a template unit"
   fi
 else
-  printf '    SKIP  python3 — NOT INSTALLED on this machine, so half of N3 NOT run\n'
+  printf '    SKIP  python — no working python3 or python, so half of N3 NOT run\n'
 fi
 
 clean=yes
@@ -1618,7 +1618,7 @@ fi
 # behind any selection holding one of them — preset_minimal included, through
 # command:start-ticket.
 #
-# Catches: a reword that breaks the backtick match, leaving 24 call sites pointing
+# Catches: a reword that breaks the backtick match, leaving every call site pointing
 # at a skill that was never installed. That fails silently: a missing skill is not
 # an error, it is an absence.
 if want N4; then
@@ -1652,7 +1652,7 @@ for uid in sorted(u):
     esac
   done
 else
-  printf '    SKIP  python3 — NOT INSTALLED on this machine, so N4 NOT run\n'
+  printf '    SKIP  python — no working python3 or python, so N4 NOT run\n'
 fi
 fi
 
