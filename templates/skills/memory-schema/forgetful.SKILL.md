@@ -136,9 +136,10 @@ between them, and bridge with a Memory linked to both (`link_entity_to_memory` +
 ## Quirks worth knowing before you hit them
 
 - `query_memory` does **not** accept `limit`. Omit it.
-- `query_memory` ranks by semantic similarity; it is **not exhaustive**. For anything that
-  must enumerate completely — an inventory, a per-item sweep — write a Document and read
-  the Document. Do not ask a similarity search for a complete list.
+- `query_memory` ranks by semantic similarity; it is **not exhaustive**. Never ask it for a
+  complete list. A question that enumerates code — every X that implements Y, every caller
+  of Z — goes to the code through Serena. Do not write a memory or a Document to read the
+  list back later; it is stale the moment the code changes.
 - `list_entities` takes `project_ids` (**plural**, `list[int]`) — not `project_id`, and
   not `limit`.
 - `search_entities` *does* take `limit`. Don't conflate the two.
@@ -149,8 +150,8 @@ between them, and bridge with a Memory linked to both (`link_entity_to_memory` +
 
 - **Memory** — one atomic fact or conclusion, ≤ 2000 chars: a convention, a gotcha, a root
   cause, a job's behaviour.
-- **Document** — long-form, ≤ 100K: an architecture write-up, an inventory, a codified set
-  of rulings. Anything a query must return *completely*.
+- **Document** — long-form, ≤ 100K: an architecture write-up, a codified set of rulings —
+  text the code cannot tell you. Not an inventory of code: Serena answers that live.
 - **Entity** — real-world things only: a team, a vendor, a queue topic, a source table, a
   server you integrate with → `Other` + `custom_type` for anything not in the enum. Code
   and the jobs that run it are **Memories**, not entities.
@@ -163,8 +164,7 @@ between them, and bridge with a Memory linked to both (`link_entity_to_memory` +
   search by topic later and never by ticket number. Put the ticket id in `content` if you
   want the provenance.
 - Include your scope/project tag, so `/garden-memory` can find untagged strays.
-- Ten tags is the cap. Respect your locked vocabulary if you have one
-  (see [`../memory-tag-lint/SKILL.md`](../memory-tag-lint/SKILL.md)).
+- Ten tags is the cap. Respect your locked vocabulary if you have one.
 
 ## Content rules
 

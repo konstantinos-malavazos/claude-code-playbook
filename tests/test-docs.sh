@@ -243,7 +243,23 @@ for rel in files:
             if frag and frag not in anchors_of(dest_rel):
                 bad.append("%s:%d  no such anchor: %s" % (rel, n, target))
 
+# The installers print doc#anchor pointers as plain text, not as markdown links,
+# so the loop above never sees them. Paths resolve from the repo root.
+POINTER = re.compile(r"(?<![\w./-])((?:docs|templates)/[\w./-]+\.md)#([a-z0-9-]+)")
+pointers = 0
+for rel in ("install.sh", "install.ps1"):
+    for n, line in enumerate(R.read(rel).splitlines(), 1):
+        for m in POINTER.finditer(line):
+            path, frag = m.group(1), m.group(2)
+            pointers += 1
+            checked += 1
+            if not os.path.exists(os.path.join(REPO, path)):
+                bad.append("%s:%d  no such path: %s#%s" % (rel, n, path, frag)); continue
+            if frag not in anchors_of(path):
+                bad.append("%s:%d  no such anchor: %s#%s" % (rel, n, path, frag))
+
 emit("CHECKED %d" % checked)
+emit("POINTERS %d" % pointers)
 for b in bad:
     emit("BAD " + b)
 PYEOF
@@ -255,6 +271,12 @@ if [ "${D_A_CHECKED:-0}" -ge 100 ]; then
 else
   fail "the link matcher found only ${D_A_CHECKED:-0} internal links — the matcher is broken, not the docs"
   sed -n '1,5p' "$REPO/tests/.docs-out"
+fi
+D_A_POINTERS="$(sed -n 's/^POINTERS //p' "$REPO/tests/.docs-out")"
+if [ "${D_A_POINTERS:-0}" -ge 1 ]; then
+  pass "D-A · read $D_A_POINTERS doc pointer(s) in the installers"
+else
+  fail "D-A · read ${D_A_POINTERS:-0} doc pointers in the installers — the installer pointer reader is broken"
 fi
 if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
   while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")

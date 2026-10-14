@@ -34,7 +34,7 @@ after step 4. Steps 5–8 are additive.
 > **It stops if Serena is not set up.** `install` and `update` both refuse, before
 > writing anything, when there is no Serena registration or plugin anywhere on the
 > machine, and print the steps below instead. That is step 2 being enforced rather than
-> warned about: 16 of the 20 agents declare Serena tools and every one of them halts
+> warned about: 12 of the 16 agents declare Serena tools and every one of them halts
 > without them, so a no-Serena install is a success message over a setup that cannot run.
 >
 > **It also stops if a recorded answer no longer means what it meant.** `update` replays
@@ -342,6 +342,41 @@ the three on its own does nothing.
 the solo path runs ([../solo/03-charting.md](../solo/03-charting.md)). It is also how you
 chart a foggy effort on a repo you already shipped: same skill, no commands wrapped around
 it, each make handed to `/start-ticket`.
+
+## Retired units
+
+These no longer ship:
+
+- the `encode-codebase` command;
+- the `encoder`, `encode-recon`, `encode-rechecker` and `encode-corrector` agents;
+- the `memory-tag-lint` skill.
+
+Serena reads code structure live. Memory keeps only what reading the code would not tell you.
+
+`./install.sh update` deletes nothing. While any of these files is still on disk, it lists
+them and points here. Delete them by hand. After that, the next `update` stops tracking them.
+
+In Git Bash, macOS or Linux:
+
+```bash
+rm -f ~/.claude/commands/encode-codebase.md \
+      ~/.claude/agents/encoder.md ~/.claude/agents/encode-recon.md \
+      ~/.claude/agents/encode-rechecker.md ~/.claude/agents/encode-corrector.md
+rm -rf ~/.claude/skills/memory-tag-lint
+```
+
+In PowerShell:
+
+```powershell
+$c = "$env:USERPROFILE\.claude"
+Remove-Item -ErrorAction SilentlyContinue "$c\commands\encode-codebase.md", "$c\agents\encoder.md", "$c\agents\encode-recon.md", "$c\agents\encode-rechecker.md", "$c\agents\encode-corrector.md"
+Remove-Item -Recurse -ErrorAction SilentlyContinue "$c\skills\memory-tag-lint"
+```
+
+If you set `CLAUDE_HOME`, use that folder instead of `~/.claude`.
+
+Then open the `CLAUDE.md` of every repo you set up. If it has a `## Memory encoding` section,
+delete it: from that heading down to the line before the next `## ` heading.
 
 ---
 

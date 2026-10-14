@@ -160,8 +160,8 @@ directory name. Same placeholder, opposite consequence:
   the planner, the plan meets a human at the grilling gate, and each verdict is consolidated
   by the orchestrator before a human opens the PR. `xhigh` is kept for the agents whose answer
   is the last word — `map-reviewer` closing a map, `pitch-judge` killing an idea,
-  `decision-steward` answering unattended, and `aligner`, `fixer-planner`, `test-planner` and
-  the two encode auditors, none of which has a reviewer of its own.
+  `decision-steward` answering unattended, and `aligner`, `fixer-planner` and `test-planner`,
+  none of which has a reviewer of its own.
 
   Where the work is bounded but one call inside it still needs judgement, `high` — `tester`
   executes an approved plan, but deciding FAIL versus INCONCLUSIVE is not mechanical. Where
@@ -216,8 +216,7 @@ directory name. Same placeholder, opposite consequence:
   Forgetful has no per-operation tools: reads and writes both dispatch through
   `execute_forgetful_tool`, so an agent granted memory *read* is thereby granted memory
   *write*. Wherever an agent says it is read-only on memory "by charter **and by tool
-  grant**" — `encode-recon.md` says exactly that — only the charter half survives on a
-  wrapper-trio server. The instruction still binds the agent; the frontmatter does not
+  grant**", only the charter half survives on a wrapper-trio server. The instruction still binds the agent; the frontmatter does not
   enforce it. `install.sh` says so out loud when it detects Forgetful, rather than shipping
   a split the recommended server cannot honour. If you run a memory server that *does*
   expose separate read and write tools, fill the two placeholders differently and the
@@ -334,10 +333,6 @@ carries `mcp__serena__activate_project` for this.
 | `fixer-planner.md` | QA bounce-back → root cause + fix plan; stops rather than guessing a cause | ✓ | ✓ |
 | `test-planner.md` | criteria → an approved staging test plan; owns the produce-recipe loop (plans and banks, never runs) | ✓ | ✓ |
 | `tester.md` | runs the approved plan — calls the produce driver, reconciles, verdicts, confirms or corrects the recipe | ✓ | ✓ |
-| `encode-recon.md` | **`/encode-codebase`** — studies a repo once, drafts the tag vocabulary, ranks the work (read-only on memory) | ✓ | ✓ |
-| `encoder.md` | **`/encode-codebase`** — encodes ONE batch then exits; a fresh instance per batch keeps context clean | ✓ | ✓ |
-| `encode-rechecker.md` | **`/encode-codebase`** — independent audit of a batch, assuming nothing (**holds no memory write tool**) | ✓ | ✓ |
-| `encode-corrector.md` | **`/encode-codebase`** — applies ONE approved correction, re-verifying it first | ✓ | ✓ |
 | `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |
 | `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | | ✓ |
 | `decision-steward.md` | one grilling question on an unattended walk → an answer **plus a basis** (**gathers no evidence**) | ✓ | |

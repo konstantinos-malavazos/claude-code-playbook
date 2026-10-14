@@ -43,6 +43,8 @@ with a schema error.
 
 ## Content rules
 - One atomic fact/conclusion per memory. State **what** and **why**.
+- Never write a memory to answer an enumeration over code (every X that implements Y). Ask
+  the code through Serena; a stored list is stale the moment the code changes.
 - Link related memories so one query returns the whole chain
   (root cause → fix → blast radius → recipe).
 - For recipes/hypotheses, set a **confidence** and a **validated** marker. Flip

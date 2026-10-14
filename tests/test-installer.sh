@@ -738,6 +738,20 @@ sys.stdout.buffer.write((" ".join(mod.MEMORY_SERVER_KEYS) + "\n").encode("utf-8"
 PY
 }
 
+# never_install_agents - the agent filenames in install-lib.py's NEVER_INSTALL, one
+# per line, read through the same loader as memory_keys.
+never_install_agents() {
+  "$PY" - "$REPO/install-lib.py" <<'PY'
+import importlib.util, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("install_lib", sys.argv[1])
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+names = sorted(p.split("/", 1)[1] for p in mod.NEVER_INSTALL if p.startswith("agents/"))
+sys.stdout.buffer.write("".join(n + "\n" for n in names).encode("utf-8"))
+PY
+}
+
 # ---------------------------------------------------------------- M1
 # Catches: the gate silently regressing to a note(), which is what it was before.
 if want M1; then
@@ -942,23 +956,27 @@ fi
 if want M3; then
 banner "M3 · Enter FILLS the memory tools — it does not delete them"
 # The `e` preset — everything — so this covers every memory-declaring agent the
-# installer can place, not just the handful in the default selection. #105's "done
-# when" asks for the tools present in all 13 that declare them; two of those 13,
-# layer-specialist and slice-layer-specialist, are in NEVER_INSTALL because they are
-# generated per repo, so 11 is the whole of what any install can produce.
+# installer can place, not just the handful in the default selection: every template
+# that declares the tools, less the per-repo generated ones in NEVER_INSTALL.
 fresh_env m3; with_servers
 keys m3 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
 run install m3
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "exits 0"
-M3_MISSING=""; M3_N=0
+M3_NEVER="$(never_install_agents | tr '\n' ' ')"
+yn "$([ -n "${M3_NEVER// /}" ] && echo 0 || echo 1)" \
+   "NEVER_INSTALL's agents were read from install-lib.py (${M3_NEVER% })"
+M3_MISSING=""; M3_ABSENT=""; M3_N=0; M3_WANT=0
 while IFS= read -r a; do
   [ -n "$a" ] || continue
-  [ -f "$CH/agents/$a" ] || continue
+  case " $M3_NEVER " in *" $a "*) continue ;; esac
+  M3_WANT=$((M3_WANT + 1))
+  if [ ! -f "$CH/agents/$a" ]; then M3_ABSENT="$M3_ABSENT $a"; continue; fi
   M3_N=$((M3_N + 1))
   grep -qF 'mcp__forgetful__execute_forgetful_tool' "$CH/agents/$a" \
     || M3_MISSING="$M3_MISSING $a"
 done < <(agents_with_memory)
-yn "$([ "$M3_N" -ge 11 ] && echo 0 || echo 1)" "$M3_N memory-declaring agents installed (every one that is installable)"
+yn "$([ "$M3_WANT" -gt 0 ] && [ -z "$M3_ABSENT" ] && echo 0 || echo 1)" \
+   "$M3_N of $M3_WANT installable memory-declaring agents installed (absent:${M3_ABSENT:- none})"
 yn "$([ -z "$M3_MISSING" ] && echo 0 || echo 1)" "every one of them carries the tools (missing:${M3_MISSING:- none})"
 notinlog m3 "take the blank out instead" "the old delete-by-default prompt is gone"
 # Only the tools: line. A `<memory-read-tools>` in a BODY is prose that is meant to
@@ -1267,6 +1285,7 @@ if grep -qE 'current +command:fix-ticket' "$LOGS/u4l.out"; then
 nokeys u4u; run_in "$SANDBOX/u4/repo" update u4u
 inlog u4u "is still installed, but this clone no longer ships command:fix-ticket" \
   "the update TODO names the orphaned file"
+notinlog u4u "Retired units still on disk" "an orphan that is not a retired unit prints no retired-units block"
 fi
 
 # ---------------------------------------------------------------- U5
@@ -1339,6 +1358,119 @@ yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update completes (rc=$RC)"
 # Without it this run's own write_manifest resets the stamp to 0, which arms a false
 # stop later that cannot be cleared. This is the assertion that fails on its own.
 stamp_is; chk $? "the update KEEPS the stamp instead of resetting it"
+fi
+
+# ---------------------------------------------------------------- U8
+# Catches: an update that leaves retired units on disk without telling the user
+# what they are, that nothing was deleted, and where the removal steps live - and
+# a block that keeps naming files the user has already deleted.
+if want U8; then
+banner "U8 · an update over the retired encode units names them and deletes nothing"
+fresh_env u8; with_servers; R="$SANDBOX/u8/repo"; clone_repo "$R"
+U8_RELS=( commands/encode-codebase.md agents/encoder.md agents/encode-recon.md
+          agents/encode-rechecker.md agents/encode-corrector.md skills/memory-tag-lint )
+U8_UIDS=( command:encode-codebase agent:encoder agent:encode-recon
+          agent:encode-rechecker agent:encode-corrector skill:memory-tag-lint )
+# Frontmatter only: no placeholder token and no tools: line, so the stubs add no
+# prompt and the key list below stays T5's.
+for n in encoder encode-recon encode-rechecker encode-corrector; do
+  printf -- '---\nname: %s\ndescription: retired stub\n---\n' "$n" > "$R/templates/agents/$n.md"
+done
+printf -- '---\ndescription: retired stub\n---\n' > "$R/templates/commands/encode-codebase.md"
+mkdir -p "$R/templates/skills/memory-tag-lint"
+printf -- '---\nname: memory-tag-lint\ndescription: retired stub\n---\n' \
+  > "$R/templates/skills/memory-tag-lint/SKILL.md"
+keys u8 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
+run_in "$R" install u8
+u8_missing=0
+for rel in "${U8_RELS[@]}"; do [ -e "$CH/$rel" ] || u8_missing=1; done
+yn "$u8_missing" "all six retired stubs are installed"
+for rel in "${U8_RELS[@]}"; do rm -rf "${R:?}/templates/$rel"; done
+
+# The installer prints paths through cygpath -m when it has one; match that form.
+u8_shown() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
+# The per-file orphan to-dos name every path too, so block assertions read only
+# from the block's heading to the end of the run.
+u8_block() { sed -n '/Retired units still on disk/,$p' "$LOGS/$1.out" > "$LOGS/$1.block"; }
+inblock()    { if grep -qF -- "$2" "$LOGS/$1.block"; then pass "$3"; else fail "$3"; fi; }
+notinblock() { if grep -qF -- "$2" "$LOGS/$1.block"; then fail "$3"; else pass "$3"; fi; }
+
+nokeys u8u; run_in "$R" update u8u; u8_block u8u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "u8u: the update completes (rc=$RC)"
+u8_missing=0
+for rel in "${U8_RELS[@]}"; do [ -e "$CH/$rel" ] || u8_missing=1; done
+yn "$u8_missing" "u8u: all six retired files are still on disk"
+for uid in "${U8_UIDS[@]}"; do
+  inlog u8u "is still installed, but this clone no longer ships $uid " \
+    "u8u: the per-file orphan to-do names $uid"
+done
+yn "$([ "$(grep -cF 'Retired units still on disk' "$LOGS/u8u.out")" = "1" ] && echo 0 || echo 1)" \
+  "u8u: the retired-units heading appears exactly once"
+inblock u8u "Nothing was deleted" "u8u: the block says nothing was deleted"
+for rel in "${U8_RELS[@]}"; do
+  inblock u8u "$(u8_shown "$CH/$rel")" "u8u: the block lists $rel"
+done
+inblock u8u "$(u8_shown "$CH/skills/memory-tag-lint") (folder)" "u8u: the skill is marked as a folder"
+inblock u8u "## Memory encoding" "u8u: the block names the CLAUDE.md section to delete"
+inblock u8u "docs/shared/03-setup.md#retired-units" "u8u: the block points at the removal steps"
+
+rm -f "$CH/agents/encoder.md"; rm -rf "$CH/skills/memory-tag-lint"
+nokeys u8p; run_in "$R" update u8p; u8_block u8p
+for rel in commands/encode-codebase.md agents/encode-recon.md agents/encode-rechecker.md agents/encode-corrector.md; do
+  inblock u8p "$(u8_shown "$CH/$rel")" "u8p: the block still lists $rel"
+done
+notinblock u8p "$(u8_shown "$CH/agents/encoder.md")" "u8p: the block no longer lists the deleted agents/encoder.md"
+notinblock u8p "$(u8_shown "$CH/skills/memory-tag-lint")" "u8p: the block no longer lists the deleted skill folder"
+
+rm -f "$CH/commands/encode-codebase.md" "$CH/agents/encode-recon.md" \
+      "$CH/agents/encode-rechecker.md" "$CH/agents/encode-corrector.md"
+nokeys u8z; run_in "$R" update u8z
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "u8z: the update completes (rc=$RC)"
+notinlog u8z "Retired units still on disk" "u8z: with none on disk the block is not printed"
+fi
+
+# ---------------------------------------------------------------- U9
+# Catches: a unit this clone no longer ships, whose file the user already deleted,
+# kept in the manifest and reported as "still installed" on every run after.
+if want U9; then
+banner "U9 · an orphan whose file is gone stops being tracked"
+fresh_env u9; with_servers; R9="$SANDBOX/u9/repo"; clone_repo "$R9"
+keys u9 "${FULL[@]}"; run_in "$R9" install u9
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+yn "$([ -f "$CH/commands/fix-ticket.md" ] && echo 0 || echo 1)" "fix-ticket.md is installed to orphan and keep"
+yn "$([ -f "$CH/commands/resume-ticket.md" ] && echo 0 || echo 1)" "resume-ticket.md is installed to orphan and delete"
+# New names that do not begin with the old ones, so no assertion keyed on an old uid
+# can match the renamed unit.
+mv "$R9/templates/commands/fix-ticket.md" "$R9/templates/commands/u9-renamed-fix.md"
+mv "$R9/templates/commands/resume-ticket.md" "$R9/templates/commands/u9-renamed-resume.md"
+rm -f "$CH/commands/resume-ticket.md"
+u9_recorded() {
+  "$PY" - "$CH/.playbook-install.json" "$1" <<'PYU9'
+import json, sys
+sys.exit(0 if sys.argv[2] in json.load(open(sys.argv[1], encoding="utf-8"))["units"] else 1)
+PYU9
+}
+nokeys u9u; run_in "$R9" update u9u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "u9u: the update exits 0 (rc=$RC)"
+inlog u9u "no longer tracked (" "u9u: the summary has a no-longer-tracked class"
+inlog u9u "command:resume-ticket — its file is gone" "u9u: the summary names command:resume-ticket as gone"
+notinlog u9u "is still installed, but this clone no longer ships command:resume-ticket" \
+  "u9u: no still-installed to-do for the deleted file"
+if u9_recorded command:resume-ticket; then
+  fail "u9u: the manifest no longer records command:resume-ticket"
+else pass "u9u: the manifest no longer records command:resume-ticket"; fi
+yn "$([ -f "$CH/commands/fix-ticket.md" ] && echo 0 || echo 1)" "u9u: fix-ticket.md is still on disk"
+u9_recorded command:fix-ticket; chk $? "u9u: the manifest still records command:fix-ticket"
+inlog u9u "is still installed, but this clone no longer ships command:fix-ticket" \
+  "u9u: the orphan still on disk keeps its to-do"
+nokeys u9l; run_in "$R9" list u9l
+# Keyed on the uid as U4 does: the legend prints both state words on every run.
+if grep -qE '(missing|orphaned) +command:resume-ticket' "$LOGS/u9l.out"; then
+  fail "u9l: list shows no row for command:resume-ticket"
+else pass "u9l: list shows no row for command:resume-ticket"; fi
+nokeys u9v; run_in "$R9" update u9v
+notinlog u9v "command:resume-ticket" "u9v: the next update does not mention command:resume-ticket"
+notinlog u9v "no longer tracked (" "u9v: the next update has no no-longer-tracked class"
 fi
 
 # ---------------------------------------------------------------- S1
@@ -1770,17 +1902,17 @@ fi
 if want T5; then
 banner "T5 · an update repairs a memory grant lost from an UNCHANGED agent"
 fresh_env t5; with_servers; clone_repo "$SANDBOX/t5/repo"
-T5TPL="$SANDBOX/t5/repo/templates/agents/encoder.md"
-T5AGENT="$CH/agents/encoder.md"
-# The `e` preset, as M3 uses it: @encoder is not in the recommended selection, and
-# it is one of the three agents this actually happened to.
+T5TPL="$SANDBOX/t5/repo/templates/agents/tester.md"
+T5AGENT="$CH/agents/tester.md"
+# The `e` preset is what installs @tester; its template declares both memory
+# tokens, so there is a memory grant in the installed file to lose.
 keys t5 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
 run_in "$SANDBOX/t5/repo" install t5
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
-yn "$([ -f "$T5AGENT" ] && echo 0 || echo 1)" "@encoder is installed"
+yn "$([ -f "$T5AGENT" ] && echo 0 || echo 1)" "@tester is installed"
 # The healthy file, kept byte for byte. The repair must restore the lost fill and
 # change NOTHING ELSE, so the repaired file has to come back identical to this.
-cp "$T5AGENT" "$SANDBOX/t5/encoder.healthy"
+cp "$T5AGENT" "$SANDBOX/t5/tester.healthy"
 # The damage: the memory tool names deleted from the installed tools: line, which
 # is exactly what the pre-#105 run left behind. Only that line, and only within it,
 # so the file's line endings and everything else survive untouched.
@@ -1789,7 +1921,7 @@ import io, re, sys
 p = sys.argv[1]
 t = io.open(p, encoding="utf-8", newline="").read()
 m = re.search(r"(?m)^tools:.*$", t)
-assert m, "no tools: line in the installed @encoder"
+assert m, "no tools: line in the installed @tester"
 old = m.group(0).rstrip("\r")
 names = [x.strip() for x in old.split(":", 1)[1].split(",") if x.strip()]
 mem = [x for x in names if x.startswith("mcp__forgetful__")]
@@ -1797,7 +1929,7 @@ assert mem, "the installed tools: line carries no memory tools to strip"
 new = "tools: " + ", ".join(x for x in names if x not in mem)
 io.open(p, "w", encoding="utf-8", newline="").write(t.replace(old, new, 1))
 PYT5D
-chk $? "stripped the memory tools out of the installed @encoder"
+chk $? "stripped the memory tools out of the installed @tester"
 # Control. A blanking step that silently no-ops is a fourth wrong-green.
 yn "$(grep -qE '^tools:.*mcp__forgetful__' "$T5AGENT" && echo 1 || echo 0)" \
    "the damaged tools: line really has lost the memory tools"
@@ -1811,8 +1943,8 @@ h = json.loads(subprocess.check_output(
 m = json.load(open(manifest_path, encoding="utf-8"))
 units = m["units"]
 uids = [u for u, r in units.items()
-        if (r.get("dest") or "").replace("\\", "/").endswith("/agents/encoder.md")]
-assert len(uids) == 1, "expected exactly one recorded unit for @encoder: %r" % uids
+        if (r.get("dest") or "").replace("\\", "/").endswith("/agents/tester.md")]
+assert len(uids) == 1, "expected exactly one recorded unit for @tester: %r" % uids
 assert units[uids[0]]["hash"] != h, "the damage did not change the file's hash"
 units[uids[0]]["hash"] = h
 json.dump(m, open(manifest_path, "w", encoding="utf-8"), indent=2)
@@ -1821,8 +1953,8 @@ PYT5H
 chk $? "recorded the damaged file's own hash (so it plans \`current\`, not \`skip-edited\`)"
 # A2 — the guard on wrong-green 1. If the template had moved, source_hash would
 # differ, the unit would plan `upgrade`, and the ordinary path would repair it.
-yn "$(cmp -s "$REPO/templates/agents/encoder.md" "$T5TPL" && echo 0 || echo 1)" \
-   "the clone's @encoder template never moved (so the unit really is \`current\`)"
+yn "$(cmp -s "$REPO/templates/agents/tester.md" "$T5TPL" && echo 0 || echo 1)" \
+   "the clone's @tester template never moved (so the unit really is \`current\`)"
 nokeys t5u; run_in "$SANDBOX/t5/repo" update t5u
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update completes (rc=$RC)"
 T5TOOLS="$(sed -n '/^tools:/p' "$T5AGENT" 2>/dev/null)"
@@ -1831,15 +1963,15 @@ printf '    (%s)\n' "$T5TOOLS"
 # only, so this greps for the tool name itself.
 case "$T5TOOLS" in
   *mcp__forgetful__execute_forgetful_tool*)
-    pass "A1 the update puts the lost memory grant back into @encoder" ;;
+    pass "A1 the update puts the lost memory grant back into @tester" ;;
   *)
-    fail "A1 the update puts the lost memory grant back into @encoder ($T5TOOLS)" ;;
+    fail "A1 the update puts the lost memory grant back into @tester ($T5TOOLS)" ;;
 esac
 # A3 — only ADDS. The repair re-copies from the template and replays the whole
 # answer set, so this is where a replayed delete would show up.
 case "$T5TOOLS" in
-  *mcp__serena__find_symbol*) pass "A3 the repaired @encoder kept its non-memory tools" ;;
-  *) fail "A3 the repaired @encoder kept its non-memory tools ($T5TOOLS)" ;;
+  *mcp__serena__find_symbol*) pass "A3 the repaired @tester kept its non-memory tools" ;;
+  *) fail "A3 the repaired @tester kept its non-memory tools ($T5TOOLS)" ;;
 esac
 case "$(sed -n '/^tools:/p' "$CH/agents/context-gatherer.md" 2>/dev/null)" in
   *mcp__forgetful__execute_forgetful_tool*)
@@ -1849,7 +1981,7 @@ case "$(sed -n '/^tools:/p' "$CH/agents/context-gatherer.md" 2>/dev/null)" in
 esac
 # The re-copy is a whole-file rewrite, so "it only added the grant back" has to be
 # proved on the whole file, not on the tools: line.
-yn "$(cmp -s "$SANDBOX/t5/encoder.healthy" "$T5AGENT" && echo 0 || echo 1)" \
+yn "$(cmp -s "$SANDBOX/t5/tester.healthy" "$T5AGENT" && echo 0 || echo 1)" \
    "the repair restored the lost fill and changed nothing else in the file"
 # A4
 notinlog t5u "some agents are installed without a capability" "check 1b is green on the update"
@@ -1882,12 +2014,12 @@ fi
 if want T6; then
 banner "T6 · the confirm preview and the plan that runs agree about a damaged agent"
 fresh_env t6p; with_servers; clone_repo "$SANDBOX/t6p/repo"
-T6TPL="$SANDBOX/t6p/repo/templates/agents/encoder.md"
-T6AGENT="$CH/agents/encoder.md"
+T6TPL="$SANDBOX/t6p/repo/templates/agents/tester.md"
+T6AGENT="$CH/agents/tester.md"
 keys t6p '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
 run_in "$SANDBOX/t6p/repo" install t6p
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
-yn "$([ -f "$T6AGENT" ] && echo 0 || echo 1)" "@encoder is installed"
+yn "$([ -f "$T6AGENT" ] && echo 0 || echo 1)" "@tester is installed"
 # The damage, exactly as T5 inflicts it: the memory tool names deleted from the
 # installed tools: line and nothing else, which is what the pre-#105 run left.
 "$PY" - "$T6AGENT" <<'PYT6D'
@@ -1895,7 +2027,7 @@ import io, re, sys
 p = sys.argv[1]
 t = io.open(p, encoding="utf-8", newline="").read()
 m = re.search(r"(?m)^tools:.*$", t)
-assert m, "no tools: line in the installed @encoder"
+assert m, "no tools: line in the installed @tester"
 old = m.group(0).rstrip("\r")
 names = [x.strip() for x in old.split(":", 1)[1].split(",") if x.strip()]
 mem = [x for x in names if x.startswith("mcp__forgetful__")]
@@ -1903,7 +2035,7 @@ assert mem, "the installed tools: line carries no memory tools to strip"
 new = "tools: " + ", ".join(x for x in names if x not in mem)
 io.open(p, "w", encoding="utf-8", newline="").write(t.replace(old, new, 1))
 PYT6D
-chk $? "stripped the memory tools out of the installed @encoder"
+chk $? "stripped the memory tools out of the installed @tester"
 yn "$(grep -qE '^tools:.*mcp__forgetful__' "$T6AGENT" && echo 1 || echo 0)" \
    "the damaged tools: line really has lost the memory tools"
 "$PY" - "$SANDBOX/t6p/repo" "$CH/.playbook-install.json" "$T6AGENT" <<'PYT6H'
@@ -1914,15 +2046,15 @@ h = json.loads(subprocess.check_output(
 m = json.load(open(manifest_path, encoding="utf-8"))
 units = m["units"]
 uids = [u for u, r in units.items()
-        if (r.get("dest") or "").replace("\\", "/").endswith("/agents/encoder.md")]
-assert len(uids) == 1, "expected exactly one recorded unit for @encoder: %r" % uids
+        if (r.get("dest") or "").replace("\\", "/").endswith("/agents/tester.md")]
+assert len(uids) == 1, "expected exactly one recorded unit for @tester: %r" % uids
 assert units[uids[0]]["hash"] != h, "the damage did not change the file's hash"
 units[uids[0]]["hash"] = h
 json.dump(m, open(manifest_path, "w", encoding="utf-8"), indent=2)
 PYT6H
 chk $? "recorded the damaged file's own hash (so it plans \`current\`, not \`skip-edited\`)"
-yn "$(cmp -s "$REPO/templates/agents/encoder.md" "$T6TPL" && echo 0 || echo 1)" \
-   "the clone's @encoder template never moved (so the unit really is \`current\`)"
+yn "$(cmp -s "$REPO/templates/agents/tester.md" "$T6TPL" && echo 0 || echo 1)" \
+   "the clone's @tester template never moved (so the unit really is \`current\`)"
 # The remedy #127 tells these users to run: a plain interactive re-install, and the
 # consent screen is answered `y` so the preview can be held against what happened.
 keys t6p2 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
@@ -1953,12 +2085,12 @@ for line in io.open(sys.argv[1], encoding="utf-8", errors="replace"):
     if head:
         cur = head[0]
         continue
-    if cur is not None and s.replace("\\", "/").endswith("/agents/encoder.md"):
+    if cur is not None and s.replace("\\", "/").endswith("/agents/tester.md"):
         hits.append(cur)
 sys.stdout.write("    (previewed as: %s)\n" % (", ".join(hits) or "<not listed at all>"))
 sys.exit(0 if hits == ["upgrade"] else 1)
 PYT6P
-chk $? "the confirm preview classifies the damaged @encoder as \`upgrade\`"
+chk $? "the confirm preview classifies the damaged @tester as \`upgrade\`"
 # The control. This half is green either way: install_stage_body always had the
 # answers, so the run rewrites the file whatever the screen said. Holding the two
 # together is what makes the screen's claim falsifiable.
@@ -1993,12 +2125,12 @@ fi
 if want T7; then
 banner "T7 · \`list\` calls a damaged agent outdated, and counts it in the update total"
 fresh_env t7; with_servers; clone_repo "$SANDBOX/t7/repo"
-T7TPL="$SANDBOX/t7/repo/templates/agents/encoder.md"
-T7AGENT="$CH/agents/encoder.md"
+T7TPL="$SANDBOX/t7/repo/templates/agents/tester.md"
+T7AGENT="$CH/agents/tester.md"
 keys t7 '' '' 'e' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''
 run_in "$SANDBOX/t7/repo" install t7
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
-yn "$([ -f "$T7AGENT" ] && echo 0 || echo 1)" "@encoder is installed"
+yn "$([ -f "$T7AGENT" ] && echo 0 || echo 1)" "@tester is installed"
 # The damage, exactly as T5 and T6 inflict it: the memory tool names deleted from
 # the installed tools: line and nothing else, which is what the pre-#105 run left.
 "$PY" - "$T7AGENT" <<'PYT7D'
@@ -2006,7 +2138,7 @@ import io, re, sys
 p = sys.argv[1]
 t = io.open(p, encoding="utf-8", newline="").read()
 m = re.search(r"(?m)^tools:.*$", t)
-assert m, "no tools: line in the installed @encoder"
+assert m, "no tools: line in the installed @tester"
 old = m.group(0).rstrip("\r")
 names = [x.strip() for x in old.split(":", 1)[1].split(",") if x.strip()]
 mem = [x for x in names if x.startswith("mcp__forgetful__")]
@@ -2014,7 +2146,7 @@ assert mem, "the installed tools: line carries no memory tools to strip"
 new = "tools: " + ", ".join(x for x in names if x not in mem)
 io.open(p, "w", encoding="utf-8", newline="").write(t.replace(old, new, 1))
 PYT7D
-chk $? "stripped the memory tools out of the installed @encoder"
+chk $? "stripped the memory tools out of the installed @tester"
 yn "$(grep -qE '^tools:.*mcp__forgetful__' "$T7AGENT" && echo 1 || echo 0)" \
    "the damaged tools: line really has lost the memory tools"
 # Record the damaged file's OWN hash, so it lists `current` and not `edited`, and
@@ -2028,8 +2160,8 @@ h = json.loads(subprocess.check_output(
 m = json.load(open(manifest_path, encoding="utf-8"))
 units = m["units"]
 uids = [u for u, r in units.items()
-        if (r.get("dest") or "").replace("\\", "/").endswith("/agents/encoder.md")]
-assert len(uids) == 1, "expected exactly one recorded unit for @encoder: %r" % uids
+        if (r.get("dest") or "").replace("\\", "/").endswith("/agents/tester.md")]
+assert len(uids) == 1, "expected exactly one recorded unit for @tester: %r" % uids
 assert units[uids[0]]["hash"] != h, "the damage did not change the file's hash"
 units[uids[0]]["hash"] = h
 json.dump(m, open(manifest_path, "w", encoding="utf-8"), indent=2)
@@ -2040,8 +2172,8 @@ T7UID="$(cat "$SANDBOX/t7/uid.txt" 2>/dev/null)"
 yn "$([ -n "$T7UID" ] && echo 0 || echo 1)" "recovered the damaged unit id from the manifest ($T7UID)"
 # The guard on wrong-green 1. If the template had moved, source_hash would differ
 # and plan_state would say `outdated` for the ordinary reason, proving nothing.
-yn "$(cmp -s "$REPO/templates/agents/encoder.md" "$T7TPL" && echo 0 || echo 1)" \
-   "the clone's @encoder template never moved (so the unit really is version-current)"
+yn "$(cmp -s "$REPO/templates/agents/tester.md" "$T7TPL" && echo 0 || echo 1)" \
+   "the clone's @tester template never moved (so the unit really is version-current)"
 nokeys t7l; run_in "$SANDBOX/t7/repo" list t7l
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
 # A1 — the row. grep -E with the uid anchored to end of line, as U4 does: the
@@ -2363,6 +2495,312 @@ yn "$(grep -qE 'tracker:[a-z-]+ — present but not installed' "$LOGS/sw2.out" &
 fi
 
 # ══════════════════════════════════════════════════════════════════════════
+# SW3-SW5 · a tracker switch from an adopted, an edited or a damaged record
+# ══════════════════════════════════════════════════════════════════════════
+
+# sw_markers OUT - line 1 is found only in jira.md, line 2 only in local-markdown.md.
+# Read from the templates, never written here.
+sw_markers() {
+  "$PY" - "$REPO/templates/trackers/jira.md" "$REPO/templates/trackers/local-markdown.md" \
+         "$1" <<'PYSWM'
+import io, sys
+def body(p):
+    return [l.strip() for l in io.open(p, encoding="utf-8").read().splitlines()]
+j, l = body(sys.argv[1]), body(sys.argv[2])
+def only(a, b):
+    for s in a:
+        if len(s) >= 20 and "<" not in s and ">" not in s and s not in b:
+            return s
+    raise SystemExit("no line found only in one adapter")
+io.open(sys.argv[3], "w", encoding="utf-8", newline="\n").write(only(j, l) + "\n" + only(l, j) + "\n")
+PYSWM
+}
+
+# sw_state - "<tracker records>|<config.tracker.adapter>". Records are sorted and
+# comma-joined, each suffixed "+adopted" when it carries "adopted": true, or with the
+# raw value when the key holds anything else.
+sw_state() {
+  "$PY" - "$CH/.playbook-install.json" <<'PYSWS'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+u = m.get("units") or {}
+def tag(k):
+    if "adopted" not in u[k]:
+        return k
+    return k + ("+adopted" if u[k]["adopted"] is True else "+adopted=%r" % (u[k]["adopted"],))
+trk = ",".join(tag(k) for k in sorted(u) if k.startswith("tracker:"))
+ad = ((m.get("config") or {}).get("tracker") or {}).get("adapter")
+sys.stdout.buffer.write(("%s|%s" % (trk, ad)).encode("utf-8"))
+PYSWS
+}
+
+# ---------------------------------------------------------------- SW3
+# Catches: the adopted flag dropped when a switch replaces an adopted tracker, so a
+# later remove deletes a tracker.md this script did not write.
+if want SW3; then
+banner "SW3 · an adopted tracker stays adopted when you switch it"
+fresh_env sw3; with_servers
+sw_markers "$SANDBOX/sw3/markers.txt"; chk $? "found a marker line unique to each adapter"
+SW3J="$(sed -n 1p "$SANDBOX/sw3/markers.txt" 2>/dev/null)"
+cp "$REPO/templates/trackers/local-markdown.md" "$CH/tracker.md"
+#       banner discover menu:5 tracker:4(local-markdown) back i · serena x2 · models x2
+#       memory x2 · pause x2 · adopt y · adopt pause · y · <workspace> · tracker pause
+keys sw3 '' '' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'y' '' 'y' "$SANDBOX/ws" ''
+run install sw3
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+SW3S="$(sw_state)"
+yn "$([ "${SW3S%%|*}" = "tracker:local-markdown+adopted" ] && echo 0 || echo 1)" \
+   "setup: the manifest records tracker:local-markdown as adopted ($SW3S)"
+#       banner discover seeded-pause menu:5 tracker:3(jira) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · jira fields x3 · tracker pause
+keys sw3j '' '' '' '5' '3' '' 'i' '' '' '' '' '' '' '' '' 'y' '' '' '' ''
+run install sw3j
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the switch exits 0 (rc=$RC)"
+yn "$(grep -qF -- "$SW3J" "$CH/tracker.md" 2>/dev/null && echo 0 || echo 1)" \
+   "tracker.md now carries the jira adapter"
+SW3S="$(sw_state)"; SW3T="${SW3S%%|*}"
+yn "$([ "${SW3T//+adopted/}" = "tracker:jira" ] && echo 0 || echo 1)" \
+   "the manifest records tracker:jira and no other tracker ($SW3S)"
+yn "$([ "$SW3T" = "tracker:jira+adopted" ] && echo 0 || echo 1)" \
+   "tracker:jira inherits adopted: true from the record it replaced ($SW3S)"
+notinlog sw3j "repaired the install record" "a healthy switch prints no manifest repair"
+fi
+
+# ---------------------------------------------------------------- SW4
+# Catches: a switch onto an edited tracker.md recording the new adapter in the
+# manifest config while the file on disk is still the old adapter.
+if want SW4; then
+banner "SW4 · a switch onto an edited tracker.md keeps the old adapter recorded"
+fresh_env sw4; with_servers
+sw_markers "$SANDBOX/sw4/markers.txt"; chk $? "found a marker line unique to each adapter"
+SW4L="$(sed -n 2p "$SANDBOX/sw4/markers.txt" 2>/dev/null)"
+keys sw4 "${FULL[@]}"; run install sw4
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+printf '\nSW4-EDITED-BY-HAND-AFTER-INSTALL\n' >> "$CH/tracker.md"
+SW4H="$("$PY" -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/tracker.md")"
+#       banner discover seeded-pause menu:5 tracker:3(jira) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · jira fields x3 · tracker pause
+keys sw4j '' '' '' '5' '3' '' 'i' '' '' '' '' '' '' '' '' 'y' '' '' '' ''
+run install sw4j
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the switch exits 0 (rc=$RC)"
+SW4S="$(sw_state)"
+yn "$([ "${SW4S#*|}" = "local-markdown" ] && echo 0 || echo 1)" \
+   "config.tracker.adapter still says local-markdown ($SW4S)"
+inlog sw4j "so it was left alone and jira is not set up" "the run warns that the switch to jira did not happen"
+inlog sw4j "and re-run ./install.sh to pick jira again" "the to-do says how to finish the switch"
+SW4N="$("$PY" -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/tracker.md")"
+yn "$([ "$SW4H" = "$SW4N" ] && echo 0 || echo 1)" "tracker.md is byte-identical to the user's edited file"
+yn "$(grep -qF 'SW4-EDITED-BY-HAND-AFTER-INSTALL' "$CH/tracker.md" && grep -qF -- "$SW4L" "$CH/tracker.md" && echo 0 || echo 1)" \
+   "tracker.md still carries the user's line and the local-markdown adapter"
+yn "$([ "${SW4S%%|*}" = "tracker:local-markdown" ] && echo 0 || echo 1)" \
+   "the manifest still records only tracker:local-markdown ($SW4S)"
+inlog sw4j "tracker:jira — not set up: tracker.md was edited since install" \
+      "the summary lists tracker:jira as left alone and not set up"
+notinlog sw4j "tracker:jira — you edited it since install; diff against" \
+         "the summary offers no diff against jira.md, which was never installed"
+notinlog sw4j "trackers/jira.md — then either keep yours, or copy the new one over it by hand" \
+         "no to-do offers jira.md to copy over the local-markdown tracker.md"
+SW4F="$(grep -F 'Fill in <' "$LOGS/sw4j.out" | grep -F 'tracker.md' | grep -oE '<[A-Za-z-]+>' | sort -u | tr '\n' ' ')"
+SW4X=""
+for t in $SW4F; do grep -qF -- "$t" "$CH/tracker.md" || SW4X="$SW4X $t"; done
+yn "$([ -n "$SW4F" ] && [ -z "$SW4X" ] && echo 0 || echo 1)" \
+   "the fill-in to-do names only blanks in the tracker.md on disk (${SW4F:-none}; not on disk:${SW4X:- none})"
+fi
+
+# ---------------------------------------------------------------- SW5
+# Catches: a manifest with two tracker records, one falsely adopted, carried forward
+# by update, so remove keeps a tracker.md this script wrote.
+if want SW5; then
+banner "SW5 · update repairs a manifest with two trackers, one adopted"
+fresh_env sw5; with_servers
+sw_markers "$SANDBOX/sw5/markers.txt"; chk $? "found a marker line unique to each adapter"
+SW5L="$(sed -n 2p "$SANDBOX/sw5/markers.txt" 2>/dev/null)"
+keys sw5 "${FULL[@]}"; run install sw5
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+"$PY" - "$REPO/install-lib.py" "$REPO/templates" "$CH" "$CH/.playbook-install.json" <<'PYSW5'
+import importlib.util, json, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("pblib", sys.argv[1])
+pblib = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(pblib)
+src = pblib.discover(sys.argv[2], sys.argv[3])["tracker:jira"]["source_hash"]
+m = json.load(open(sys.argv[4], encoding="utf-8"))
+lm = m["units"]["tracker:local-markdown"]
+m["units"]["tracker:jira"] = {"kind": lm["kind"], "dest": lm["dest"], "hash": lm["hash"],
+                              "source_hash": src, "adopted": True}
+m.setdefault("config", {}).setdefault("tracker", {})["adapter"] = "jira"
+with open(sys.argv[4], "w", encoding="utf-8") as fh:
+    json.dump(m, fh, indent=2, sort_keys=True)
+    fh.write("\n")
+PYSW5
+chk $? "planted an adopted tracker:jira record over local-markdown's tracker.md"
+SW5S="$(sw_state)"
+yn "$([ "$SW5S" = "tracker:jira+adopted,tracker:local-markdown|jira" ] && echo 0 || echo 1)" \
+   "setup: two tracker records, exactly one adopted ($SW5S)"
+nokeys sw5u; run update sw5u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update exits 0 (rc=$RC)"
+inlog sw5u "repaired the install record: dropped tracker:jira" "the update names the repair"
+SW5S="$(sw_state)"
+yn "$([ "${SW5S%%|*}" = "tracker:local-markdown" ] && echo 0 || echo 1)" \
+   "the manifest records only tracker:local-markdown, not adopted ($SW5S)"
+yn "$([ "${SW5S#*|}" = "local-markdown" ] && echo 0 || echo 1)" \
+   "config.tracker.adapter says local-markdown ($SW5S)"
+yn "$(grep -qF -- "$SW5L" "$CH/tracker.md" 2>/dev/null && echo 0 || echo 1)" \
+   "tracker.md still carries the local-markdown adapter"
+keys sw5r '' 'y'; run remove sw5r
+yn "$([ ! -e "$CH/tracker.md" ] && echo 0 || echo 1)" "remove deletes the tracker.md this script wrote"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# SW6-SW7 · a tracker.md left alone without a tracker switch
+# ══════════════════════════════════════════════════════════════════════════
+
+# ---------------------------------------------------------------- SW6
+# Catches: a re-run with the SAME tracker after a hand edit to tracker.md being
+# treated as a failed switch, telling the user to delete their own file.
+if want SW6; then
+banner "SW6 · a same-tracker re-run after editing tracker.md is not a switch"
+fresh_env sw6; with_servers
+keys sw6 "${FULL[@]}"; run install sw6
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+printf '\nSW6-EDITED-BY-HAND-AFTER-INSTALL\n' >> "$CH/tracker.md"
+SW6H="$("$PY" -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/tracker.md")"
+#       banner discover seeded-pause i · serena x2 · models x2 · memory x2 · pause x2
+#       y · tracker pause (<workspace> is already filled, so it is not asked)
+keys sw6r '' '' '' 'i' '' '' '' '' '' '' '' '' 'y' ''
+run install sw6r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the re-run exits 0 (rc=$RC)"
+inlog sw6r "Setting up your tracker" "the re-run reached the tracker stage"
+notinlog sw6r "so it was left alone and local-markdown is not set up" \
+         "no warning that local-markdown is not set up"
+notinlog sw6r "Finish switching to" "no to-do to delete tracker.md and switch"
+SW6S="$(sw_state)"
+yn "$([ "$SW6S" = "tracker:local-markdown|local-markdown" ] && echo 0 || echo 1)" \
+   "the manifest and config.tracker.adapter still say local-markdown ($SW6S)"
+SW6N="$("$PY" -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/tracker.md")"
+yn "$([ "$SW6H" = "$SW6N" ] && echo 0 || echo 1)" "tracker.md is byte-identical to the user's edited file"
+fi
+
+# ---------------------------------------------------------------- SW7
+# Catches: a hand-copied tracker.md whose adoption was declined being filled in
+# anyway, and its adapter recorded with no tracker unit in the manifest.
+if want SW7; then
+banner "SW7 · a hand-copied tracker.md left alone is not filled or recorded"
+fresh_env sw7; with_servers
+cp "$REPO/templates/trackers/local-markdown.md" "$CH/tracker.md"
+SW7H="$("$PY" -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/tracker.md")"
+#       banner discover menu:5 tracker:4(local-markdown) back i · serena x2 · models x2
+#       memory x2 · pause x2 · adopt n · adopt pause · y · <workspace> · tracker pause
+keys sw7 '' '' '5' '4' '' 'i' '' '' '' '' '' '' '' '' 'n' '' 'y' "$SANDBOX/ws" ''
+run install sw7
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+inlog sw7 "Files already here that this script did not install" "the adopt screen offered tracker.md"
+inlog sw7 "Left alone. They stay yours" "adoption was declined"
+inlog sw7 "LEFT ALONE — already here, and this installer did not put them there" \
+      "the confirm screen lists tracker.md as left alone"
+SW7N="$("$PY" -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" "$CH/tracker.md")"
+yn "$([ "$SW7H" = "$SW7N" ] && echo 0 || echo 1)" "tracker.md is byte-identical to the hand-copied file"
+SW7S="$(sw_state)"
+yn "$([ "$SW7S" = "|None" ] && echo 0 || echo 1)" \
+   "the manifest records no tracker and no config.tracker.adapter ($SW7S)"
+inlog sw7 "this installer did not put it there, so it was left alone and local-markdown is not set up" \
+      "the run warns that local-markdown is not set up"
+inlog sw7 "say yes when it offers to adopt" "the to-do says how to set the tracker up"
+fi
+
+# ---------------------------------------------------------------- SW8
+# Catches: the tracker tool grants following the adapter picked in the menu when
+# tracker.md is left alone, so agents get github's shell while the file on disk is
+# local-markdown, or while no tracker is set up at all. Also jira's "register a
+# tracker MCP" to-do surviving into the final list for a jira that is not set up.
+if want SW8; then
+banner "SW8 · a tracker that is not set up does not decide the tracker grants"
+# read=…;shell=… from the recorded answers, then @ticket-analyzer's tools: line.
+sw8_grants() {
+  "$PY" - "$CH/.playbook-install.json" "$CH/agents/ticket-analyzer.md" <<'PYSW8'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+ph = (m.get("config") or {}).get("placeholders") or {}
+out = []
+for name, tok in (("read", "<tracker-read-tools>"), ("shell", "<tracker-shell-tools>")):
+    if tok in (ph.get("values") or {}):
+        out.append("%s=%s" % (name, ph["values"][tok]))
+    else:
+        out.append("%s=%s" % (name, "deleted" if tok in (ph.get("delete") or []) else "unset"))
+tools = [l.rstrip("\r\n") for l in open(sys.argv[2], encoding="utf-8") if l.startswith("tools:")]
+out.append("ta=" + (tools[0] if tools else "none"))
+sys.stdout.buffer.write(";".join(out).encode("utf-8"))
+PYSW8
+}
+fresh_env sw8; with_servers
+keys sw8 "${FULL[@]}"; run install sw8
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the first install exits 0 (rc=$RC)"
+SW8G="$(sw8_grants)"
+yn "$(case "$SW8G" in "read=deleted;shell=deleted;ta=tools:"*) echo 0;; *) echo 1;; esac)" \
+   "setup: local-markdown recorded no tracker grants ($SW8G)"
+printf '\nSW8-EDITED-BY-HAND-AFTER-INSTALL\n' >> "$CH/tracker.md"
+#       banner discover seeded-pause menu:5 tracker:1(github) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · tracker pause
+keys sw8g '' '' '' '5' '1' '' 'i' '' '' '' '' '' '' '' '' 'y' ''
+run install sw8g
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the switch exits 0 (rc=$RC)"
+inlog sw8g "so it was left alone and github is not set up" "the switch to github was skipped"
+SW8N="$(sw8_grants)"
+yn "$([ "$SW8N" = "$SW8G" ] && echo 0 || echo 1)" \
+   "the recorded tracker grants and @ticket-analyzer's tools are unchanged ($SW8N)"
+notinlog sw8g "some agents are installed without a capability" \
+         "the grant check does not call github's shell lost for a tracker that is not set up"
+#       the same edited tracker.md, now jira picked: an MCP-route adapter, no tracker MCP
+#       banner discover seeded-pause menu:5 tracker:3(jira) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · tracker pause
+keys sw8j '' '' '' '5' '3' '' 'i' '' '' '' '' '' '' '' '' 'y' '' '' '' ''
+run install sw8j
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the switch to jira exits 0 (rc=$RC)"
+inlog sw8j "so it was left alone and jira is not set up" "the switch to jira was skipped"
+inlog sw8j "No tracker MCP server is registered" "setup: jira's route was checked for a tracker MCP"
+notinlog sw8j "No tracker MCP was found, so <tracker-read-tools> was removed from" \
+         "no to-do asks for a tracker MCP for a skipped switch to jira"
+#       a hand-copied local-markdown tracker.md, github picked, adoption declined
+fresh_env sw8f; with_servers
+cp "$REPO/templates/trackers/local-markdown.md" "$CH/tracker.md"
+#       banner discover menu:5 tracker:1(github) back i · serena x2 · models x2
+#       memory x2 · pause x2 · adopt n · adopt pause · y · tracker pause
+keys sw8f '' '' '5' '1' '' 'i' '' '' '' '' '' '' '' '' 'n' '' 'y' ''
+run install sw8f
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the declined install exits 0 (rc=$RC)"
+inlog sw8f "so it was left alone and github is not set up" "the declined tracker is not set up"
+SW8F="$(sw8_grants)"
+yn "$(case "$SW8F" in "read=deleted;shell=deleted;ta=tools:"*) echo 0;; *) echo 1;; esac)" \
+   "no tracker grants are recorded for a tracker that is not set up ($SW8F)"
+yn "$(case "${SW8F#*;ta=}" in *Bash*) echo 1;; *) echo 0;; esac)" \
+   "@ticket-analyzer gets no shell for a github tracker that is not set up"
+notinlog sw8f "some agents are installed without a capability" \
+         "the grant check calls nothing lost when no tracker is set up"
+#       a hand-copied local-markdown tracker.md, jira picked, adoption declined
+fresh_env sw8k; with_servers
+cp "$REPO/templates/trackers/local-markdown.md" "$CH/tracker.md"
+#       banner discover menu:5 tracker:3(jira) back i · serena x2 · models x2
+#       memory x2 · pause x2 · adopt n · adopt pause · y · tracker pause
+keys sw8k '' '' '5' '3' '' 'i' '' '' '' '' '' '' '' '' 'n' '' 'y' '' '' '' ''
+run install sw8k
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the declined jira install exits 0 (rc=$RC)"
+inlog sw8k "so it was left alone and jira is not set up" "the declined jira tracker is not set up"
+inlog sw8k "No tracker MCP server is registered" "setup: the declined jira's route was checked for a tracker MCP"
+notinlog sw8k "No tracker MCP was found, so <tracker-read-tools> was removed from" \
+         "no to-do asks for a tracker MCP for a declined jira"
+#       a fresh jira install with no tracker MCP: the to-do stays
+fresh_env sw8n; with_servers
+#       banner discover menu:5 tracker:3(jira) back i · serena x2 · models x2
+#       memory x2 · pause x2 · y · jira fields x3 · tracker pause
+keys sw8n '' '' '5' '3' '' 'i' '' '' '' '' '' '' '' '' 'y' '' '' '' ''
+run install sw8n
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the jira install exits 0 (rc=$RC)"
+notinlog sw8n "is not set up" "setup: the jira install set the tracker up"
+inlog sw8n "No tracker MCP was found, so <tracker-read-tools> was removed from" \
+      "a jira install with no tracker MCP keeps the to-do to register one"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
 # ST1-ST4 · a filled, rewritten or swapped file that only drifted is not "edited"
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -2464,6 +2902,8 @@ ST3K=( "${FULL[@]}" ); ST3K[15]="$ST3M"
 keys st3 "${ST3K[@]}"; run install st3
 yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
 inlog st3 "→ $ST3M" "the tracker stage filled a field with the marker answer"
+yn "$([ "$(tr -cd '\r' < "$CH/tracker.md" | wc -c | tr -d ' ')" = "0" ] && echo 0 || echo 1)" \
+   "the filled tracker.md has no CR bytes"
 "$PY" - "$CH/.playbook-install.json" "$CH/tracker.md" "$ST3M" "$SANDBOX/st3/uid.txt" <<'PYST3'
 import hashlib, io, json, sys
 m = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -2502,6 +2942,8 @@ ST4D="$CH/skills/memory-schema"
 yn "$(grep -qF 'mcp__claude_ai_forgetful__' "$ST4D/SKILL.md" 2>/dev/null && echo 0 || echo 1)" \
    "SKILL.md carries the connector prefix"
 yn "$([ ! -e "$ST4D/forgetful.SKILL.md" ] && echo 0 || echo 1)" "the Forgetful variant was swapped in"
+yn "$([ "$(tr -cd '\r' < "$ST4D/SKILL.md" | wc -c | tr -d ' ')" = "0" ] && echo 0 || echo 1)" \
+   "the prefix-rewritten SKILL.md has no CR bytes"
 "$PY" - "$CH/.playbook-install.json" <<'PYST4A'
 import json, sys
 m = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -2581,9 +3023,56 @@ yn "$(grep -qF 'Traceback' "$LOGS/st5l.err" && echo 1 || echo 0)" "list prints n
 yn "$(grep -qE 'edited +skill:memory-schema$' "$LOGS/st5l.out" && echo 0 || echo 1)" "list reports skill:memory-schema as edited"
 fi
 
+# ---------------------------------------------------------------- ST6
+# Catches: a recorded tracker answer read back from the manifest carrying a CR into
+# tracker.md, when update re-applies it to a refreshed template and when a re-run
+# takes it as the Enter default. Only Windows python adds the CR.
+if want ST6; then
+banner "ST6 · a recorded tracker answer is re-applied to a refreshed tracker.md exactly"
+fresh_env st6; with_servers
+ST6R="$SANDBOX/st6/repo"; ST6T="$ST6R/templates/trackers/local-markdown.md"
+# Not a path: MSYS would rewrite a /c/... argv for python and the compare would miss.
+ST6M="st6-workspace-marker"
+# tracker.md must equal the clone's template, LF, with <workspace> as the answer.
+st6_exact() {
+  "$PY" - "$ST6T" "$CH/tracker.md" "$ST6M" <<'PYST6'
+import sys
+exp = open(sys.argv[1], "rb").read().replace(b"\r\n", b"\n").replace(b"<workspace>", sys.argv[3].encode("utf-8"))
+got = open(sys.argv[2], "rb").read()
+sys.stdout.buffer.write(("    (tracker.md: %d bytes, %d CR; expected %d bytes)\n"
+                         % (len(got), got.count(b"\r"), len(exp))).encode("utf-8"))
+sys.exit(0 if got == exp else 1)
+PYST6
+}
+clone_repo "$ST6R" && echo "    (st6 clone made)"
+chk $? "made a clone to install from"
+ST6K=( "${FULL[@]}" ); ST6K[15]="$ST6M"
+keys st6 "${ST6K[@]}"; run_in "$ST6R" install st6
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the install exits 0 (rc=$RC)"
+st6_exact; chk $? "setup: tracker.md carries the answer exactly"
+printf '\nST6-TEMPLATE-MOVED-ONCE\n' >> "$ST6T"
+chk $? "moved the clone's local-markdown template"
+nokeys st6u; run_in "$ST6R" update st6u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the update exits 0 (rc=$RC)"
+inlog st6u "re-applied 1 recorded tracker value" "update re-applied the recorded answer"
+yn "$(grep -qF 'ST6-TEMPLATE-MOVED-ONCE' "$CH/tracker.md" && echo 0 || echo 1)" "update refreshed tracker.md from the moved template"
+st6_exact; chk $? "after update, tracker.md is the template with the recorded answer, byte for byte"
+printf '\nST6-TEMPLATE-MOVED-TWICE\n' >> "$ST6T"
+chk $? "moved the clone's local-markdown template again"
+#       banner discover seeded-pause i · serena x2 · models x2 · memory x2 · pause x2
+#       y · <workspace> (Enter keeps the recorded answer) · tracker pause
+keys st6r '' '' '' 'i' '' '' '' '' '' '' '' '' 'y' '' ''
+run_in "$ST6R" install st6r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the re-run exits 0 (rc=$RC)"
+inlog st6r "[Enter keeps $ST6M]" "the re-run offered the recorded answer"
+yn "$(grep -qF 'ST6-TEMPLATE-MOVED-TWICE' "$CH/tracker.md" && echo 0 || echo 1)" "the re-run refreshed tracker.md from the moved template"
+st6_exact; chk $? "after Enter kept the recorded answer, tracker.md is the template with it, byte for byte"
+fi
+
 # ---------------------------------------------------------------- LF1
 # Catches: the placeholder fill and the Serena rewrite writing CRLF on Windows. Linux
-# writes LF either way, so this can only go red on Windows.
+# writes LF either way, so this can only go red on Windows. So can the CR-byte checks
+# in ST3 (tracker answers) and ST4 (memory-schema prefix rewrite).
 if want LF1; then
 banner "LF1 · the placeholder fill and the Serena rewrite write LF"
 LF1D="$SCRATCH/lf1"

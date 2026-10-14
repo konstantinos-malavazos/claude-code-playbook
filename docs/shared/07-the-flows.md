@@ -25,7 +25,7 @@ re-driving the same ten steps by hand.
   downstream consumers, schema collisions).
 - **One commit per branch per repo.** Amend-as-you-go; the reviewer asserts it.
 - **Every flow ends by saying what the human does next.** A stop condition says what the
-  agent must not do; a report says what landed. Neither is a next step. Twenty-four terminal
+  agent must not do; a report says what landed. Neither is a next step. Twenty-three terminal
   points end in one four-field block — what landed and where, what is the user's, the literal
   next command with its argument filled in, and whether it runs in this session or a fresh
   one — defined once in
@@ -110,7 +110,7 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 | **`/end-of-day`** | **daily memory nomination**: harvest the day's durable conclusions, dedupe vs memory, approve each item individually | deliberate memory — nothing enters the knowledge base un-reviewed. [10](10-memory-hygiene.md) |
 | **`/garden-memory`** | **periodic memory hygiene**: golden-query retrieval eval + duplicate/stale/orphan sweep with per-item approval | catches retrieval regressions; stops the memory decaying into a junk drawer. [10](10-memory-hygiene.md) |
 | **`/confirm-deployment`** | **release gate** (not ticket-scoped): review a tag-to-tag delta across repos before a production deploy — code review + deploy-risk scan (migrations, queues, config/secrets) → GO/NO-GO | a last read-only safety net before prod |
-| **`next-steps`** | the four-field block **every flow prints last**: what landed and where, what is yours because only you can do it, the literal next command with its **argument filled in**, and whether it runs in this session or a fresh one | **not a flow you type** — one definition that all twenty-four terminal points invoke, the same argument as `dispatch-weight` below. A stage that finishes and says nothing leaves you holding it, and nothing in the output says so. [`templates/skills/next-steps/`](../../templates/skills/next-steps/SKILL.md) |
+| **`next-steps`** | the four-field block **every flow prints last**: what landed and where, what is yours because only you can do it, the literal next command with its **argument filled in**, and whether it runs in this session or a fresh one | **not a flow you type** — one definition that all twenty-three terminal points invoke, the same argument as `dispatch-weight` below. A stage that finishes and says nothing leaves you holding it, and nothing in the output says so. [`templates/skills/next-steps/`](../../templates/skills/next-steps/SKILL.md) |
 
 You don't need all of these. Start with `/start-ticket`. Add the others as the pain they
 solve shows up.

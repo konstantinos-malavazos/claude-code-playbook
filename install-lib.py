@@ -1414,7 +1414,7 @@ def exclusive_siblings(units, uid, recorded):
 def plan_install(units, manifest, selected, spec=None):
     """Decide, per selected unit, what an install run may actually do to it.
 
-    Six actions, and only two of them write:
+    Seven actions, and only two of them write:
       * install        — nothing there yet
       * upgrade        — there, and still byte-identical to what we last wrote,
                          or equal to a version this clone shipped, or written by a
@@ -1423,7 +1423,10 @@ def plan_install(units, manifest, selected, spec=None):
       * skip-edited    — there, changed since we wrote it, and matches nothing
                          this clone ever shipped. Left alone. Reported.
       * skip-foreign   — there, and no record of us putting it there. Left alone.
-      * orphan         — recorded, but this clone no longer ships it. Reported only.
+      * orphan         — recorded, this clone no longer ships it, and still on disk.
+                         Reported only.
+      * untrack        — recorded, no longer shipped, and gone from disk. Its record
+                         is dropped.
 
     'skip-edited' is decision 8 and half of decision 7 in one line: an upgrade that
     clobbers an edited file is the same bug as a bad uninstall.
@@ -1439,11 +1442,6 @@ def plan_install(units, manifest, selected, spec=None):
         unit = units.get(uid)
         rec = recorded.get(uid)
         if not unit:
-            # Recorded once, and this clone no longer ships a template for it: a
-            # rename or a removal. `continue` dropped it from the plan entirely,
-            # so nothing reported it and write_manifest carried the dead record
-            # forward on every run, forever. Report it; deleting the installed
-            # file without asking is out of scope.
             if rec is not None:
                 # "-" and not "": install.sh reads these rows with `read -r` under
                 # IFS=$'\t', and TAB is IFS WHITESPACE, so a run of tabs collapses
@@ -1451,7 +1449,8 @@ def plan_install(units, manifest, selected, spec=None):
                 # as an empty field — it vanishes, and every column after it shifts
                 # left, which silently emptied the destination path this row exists
                 # to report. Never emit an empty column into a TSV read this way.
-                rows.append(("orphan", uid, rec.get("kind", "?"), "-",
+                gone = not rec.get("dest") or hash_path(rec["dest"]) is None
+                rows.append(("untrack" if gone else "orphan", uid, rec.get("kind", "?"), "-",
                              rec.get("dest", "")))
             continue
         dest = unit["dest"]
