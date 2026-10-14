@@ -81,7 +81,8 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
    sets its tier for that run — cheap on `light`, strong on `heavy`. A model the repo's
    `CLAUDE.md` names for a layer is a floor the weight never goes below — see
    [Model escalation](#model-escalation-cheap-by-default-escalated-by-weight). Pin exact
-   model *ids* so an alias does not silently downgrade you.
+   model *ids* so a run is reproducible: an alias moves to a new model with no diff, and on
+   some providers it points at an older one.
 3. **Handoffs are files.** Inspect them under `…/handoffs/<TICKET>/` while it runs. They
    vanish at a later session end, once nothing has written to them for a day.
 
@@ -110,7 +111,6 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 | **`/garden-memory`** | **periodic memory hygiene**: golden-query retrieval eval + duplicate/stale/orphan sweep with per-item approval | catches retrieval regressions; stops the memory decaying into a junk drawer. [10](10-memory-hygiene.md) |
 | **`/confirm-deployment`** | **release gate** (not ticket-scoped): review a tag-to-tag delta across repos before a production deploy — code review + deploy-risk scan (migrations, queues, config/secrets) → GO/NO-GO | a last read-only safety net before prod |
 | **`next-steps`** | the four-field block **every flow prints last**: what landed and where, what is yours because only you can do it, the literal next command with its **argument filled in**, and whether it runs in this session or a fresh one | **not a flow you type** — one definition that all twenty-four terminal points invoke, the same argument as `dispatch-weight` below. A stage that finishes and says nothing leaves you holding it, and nothing in the output says so. [`templates/skills/next-steps/`](../../templates/skills/next-steps/SKILL.md) |
-| ad-hoc: **investigation** | read-only forensic agent: writes parametrised queries, proves root cause from returned data only, no prod writes | drift/discrepancy analysis without risk |
 
 You don't need all of these. Start with `/start-ticket`. Add the others as the pain they
 solve shows up.
@@ -261,10 +261,12 @@ at all.
 
 ### e. Pin exact model ids — and know where you cannot
 
-> **Footgun: a bare tier alias is not a model id.** An alias resolves to whatever the org
-> default for that tier currently is, which is usually **a generation behind what you meant**,
-> and it moves under you with no diff and no notice. The failure is silent in both
-> directions: you never see the downgrade, and the bill never explains itself. The same rule
+> **Footgun: a bare tier alias is not a model id.** On the Anthropic API an alias resolves to
+> the newest model of its tier. On other providers (Bedrock, Vertex and the like) it can
+> resolve to an older one ([model config](https://code.claude.com/docs/en/model-config)).
+> Either way it moves under you with no diff and no notice. Pin the exact id in the
+> frontmatter so a run is reproducible. The failure is silent: you never see the change,
+> and the bill never explains itself. The same rule
 > is stated for the frontmatter in
 > [`templates/agents/README.md`](../../templates/agents/README.md).
 >
@@ -334,6 +336,10 @@ background work owns checking on it — at each multiple of its stated expectati
 every dispatch site that fires background work names the duty rather than re-arguing it.
 That includes the `research` dispatches in `/start-massive`, `/resume-massive`,
 `/feeling-lucky`, `/pitch` and the `charting`/`grilling` skills — six sites, one owner.
+Only the main session runs work in the background: a subagent waits in the foreground,
+splits what will not fit under the tool's maximum, or saves its work to its handoff and
+hands the run back with the exact command for the main session to run — the
+[long-running-work rule](../../templates/claude-md/global.CLAUDE.md#long-running-work).
 Being prose is a disclosed property of this guardrail, not an oversight: the assertions for
 it prove the rule is written at every site, never that an agent actually looked.
 

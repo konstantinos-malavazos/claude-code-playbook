@@ -20,7 +20,7 @@ any language with an LSP is covered: TypeScript, Python, Go, Rust, C#, Java, …
 
 The typical result is **several times fewer tokens for a better answer**. It also kills
 the guess-the-name round trip. Serena tells you the symbol is *actually* called
-`KnownCompaniesRtbc`, not `KnownCompanies`.
+`KnownRegionsV2`, not `KnownRegions`.
 
 ---
 

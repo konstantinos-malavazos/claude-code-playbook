@@ -112,6 +112,14 @@ GitHub equivalent is:
 settings key reference, and an unrecognised key here is ignored **silently**. A line that
 does nothing looks exactly like one that works. Set your theme with `/config` instead.
 
+### `cleanupPeriodDays`
+
+Claude Code deletes session transcripts older than `cleanupPeriodDays`, which defaults
+to 30 days. The snippet keeps them for 90. Anything that reads past sessions needs them
+still on disk: the token ledger in [team 01](../../docs/team/01-metrics.md) walks them,
+and a look back at how memory was used covers more than a month. A transcript the
+cleanup has removed is gone.
+
 ### `env`
 
 Environment variables available to MCP config (`${VAR}`) and to hooks. **Never inline
