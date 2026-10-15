@@ -15,7 +15,7 @@ description: >-
 > Prior art: Matt Pocock's `to-tickets` skill (MIT), upstream-renamed from `to-issues`. This
 > is an adaptation, not a copy. Two differences: the slices are internal work-units rather
 > than issues published to a tracker — one `<TICKET-ID>` stays one ticket, and these files
-> are only how the work beneath it is parallelised; and the interactive granularity
+> are only how the work beneath it is split up; and the interactive granularity
 > interview is replaced by a board you approve or edit.
 
 ## When this runs
@@ -52,8 +52,8 @@ no consumer has no observable result to demonstrate.
    unit**. Each is verifiable on its own seam, and unit-scoped commits keep the blast radius
    readable. Any schema change they all share becomes a **wave-1 slice** that every
    per-unit slice is blocked by.
-4. **Order inside a slice still follows the chain.** Parallelism is across slices, never
-   inside one.
+4. **Order inside a slice still follows the chain.** Slices run one at a time; inside one,
+   the layers follow the chain.
 5. **Dependencies form a DAG.** No cycles. Two slices that would form one are really one
    slice — merge them.
 6. **Lanes.** Cross every slice against the deferrals the grilling gate recorded. Each is
@@ -90,8 +90,8 @@ board. Rename them here and each agent silently reverts to flagging a stub as a 
 5. Render `<workspace>/.claude/handoffs/<TICKET-ID>/slice-board.md`, including a **Parked**
    section if any slice is parked. Omit that section when none is.
 6. **STOP and present the board.** On approval the orchestrator dispatches the READY and
-   DEFERRED REGION slices into their worktrees. On an edit, re-slice and re-render. Dispatch
-   nothing yourself.
+   DEFERRED REGION slices one at a time, in board order. On an edit, re-slice and
+   re-render. Dispatch nothing yourself.
 
 ## Slice work-unit — write to `handoffs/<TICKET-ID>/slices/slice-<N>.md`
 
@@ -134,8 +134,8 @@ READY | DEFERRED REGION (<region> — pending <the open question>, owner <who>)
 ````
 # <TICKET-ID> — slice board           (approve to dispatch · edit to re-slice)
 
-## Waves (a column runs in parallel)
-| Wave 1 (parallel)                  | Wave 2 (after wave 1)          |
+## Waves (run one at a time: wave 1 first, then by slice number)
+| Wave 1                             | Wave 2 (after wave 1)          |
 |------------------------------------|--------------------------------|
 | #1 <title>  <layer1>→<layer2>      | #4 <title>  blocked by #1, #2  |
 | #2 <title>  <layer1>               |                                |

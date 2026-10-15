@@ -3,7 +3,7 @@
 Most tickets (~95%) run the sequential chain and produce one commit per repo. Some tickets
 are genuinely large: one change rolled out across many independent units, or several
 loosely-coupled features under one id. Split those into **independent vertical slices** and
-build the slices in **parallel**.
+build the slices **one at a time**, each on its own branch.
 
 This is a *fork inside* `/start-ticket`, not a separate command. The planner proposes it
 by setting **slice-count > 1**. You confirm it.
@@ -29,16 +29,16 @@ different problems.
    /to-tickets     split into independent vertical slices; render a SLICE BOARD
         │          (dependency waves + a DAG) → YOU approve or edit
         │
-   parallel slices     each slice = a thin COMPLETE path through the layers it needs
-   (git worktrees)     (layer-1 → layer-2 → …), built by @slice-* agents in ISOLATED
-        │              git worktrees so they don't collide — each dispatched on its
-        │              own weight, per slice
+   sequential slices   each slice = a thin COMPLETE path through the layers it needs
+   (main checkout)     (layer-1 → layer-2 → …), built by @slice-* agents one slice at a
+        │              time, each on its own branch <TICKET-ID>_<slug>-slice-<N>, cut
+        │              from the previous slice's — each dispatched on its own weight
         │
 @aligner          cross-slice drift gate (read-only): do the slices agree on shared
         │          names/types/contracts/signatures? comments only — and it weighs
         │          any drift fix it sends back
-@integrator       for each repo, bring every slice's commits onto the single final
-        │          branch in dependency order, then collapse to ONE commit per repo
+@integrator       for each repo, fast-forward the single final branch to the last
+        │          slice branch, then collapse to ONE commit per repo
 @integration-tester   tests the COMBINED behaviour no single slice proves alone;
         │              folds its tests into each repo's one commit
         │
@@ -65,33 +65,38 @@ installed by the normal setup, because none of them runs on the sequential path.
 A **vertical** slice is a thin end-to-end path (a little schema + a little service + a
 little client) that is **independently verifiable**. A **horizontal** split (all schema,
 then all service) forces a barrier between phases, and nothing can be tested until the
-end. Vertical slices can be built and validated in parallel, and integrated incrementally.
+end. Vertical slices can be built and validated independently, and integrated incrementally.
 
 ---
 
-## Why git worktrees
+## Why one at a time
 
-Parallel agents editing the same working copy collide.
+The slices run one after another, in the main checkout. Each slice still gets its own
+context, its own review and the alignment gate. Only the parallelism is gone.
 
-Two agents writing the same file at once **race**. The second write silently clobbers the
-first, and neither agent sees an error. Shared git state makes it worse: one index, one
-`HEAD`, one set of staged changes. A `git add` or `git checkout` from one agent can shift
-what another agent is looking at mid-edit. The fix is **structural isolation**, not better
-prompting. No instruction telling an agent "don't touch files another agent owns" prevents
-a race the filesystem itself allows.
+Slices do not use git worktrees: Serena treats a worktree as a separate, unindexed project, and one Serena server has one active project, so parallel slices would race on it.
 
-A **worktree** gives each slice its own checkout of the same repo on its own branch, so
-slices run truly in parallel.
-The `@integrator` tears the worktrees down after collapsing to one commit per repo.
+How a run goes:
 
-Claude Code enforces this isolation. It is not just convention, and it has been hardened
-recently. Subagents could redirect git into the shared checkout via `git -C`, `--git-dir`,
-or `GIT_DIR`/`GIT_WORK_TREE`. v2.1.216 fixed that, and v2.1.203 and v2.1.210 fixed related
-escapes. Treat v2.1.216 as the version floor for relying on worktree isolation, because it
-hasn't always held.
+1. **Order.** Slices run in the slice board's order: wave 1 first, then by slice number.
+   The board's waves follow its dependency graph, so a slice never runs before a slice it
+   depends on.
+2. **One branch per slice.** For each slice, and each repo it touches, the orchestrator
+   checks out `<TICKET-ID>_<slug>-slice-<N>`. It cuts that branch from the repo's previous
+   slice branch, or from the final branch `<TICKET-ID>_<slug>` for the first slice in that
+   repo. It checks that `git status` is clean, then dispatches the slice's specialists in
+   chain order. They commit on that branch. Each specialist checks that the expected branch
+   is checked out before its first write, and stops if it is not.
+3. **Strictly in turn.** The next slice starts only after the previous slice's last
+   specialist has returned.
+4. **The aligner reads the tip.** The last slice branch holds every slice, so Serena reads
+   it as it is. `git diff` tells the aligner which slice made which change.
+5. **The integrator collapses the chain.** Per repo, it fast-forwards the final branch to the
+   last slice branch, collapses that to one commit, and deletes the slice branches.
 
-Worktrees are the right tool *only* when agents mutate files in parallel. They cost setup
-time and disk, so the single-slice path never uses them.
+**Fixes.** A drift fix from `@aligner` commits on the chain tip in that repo. A fix after the
+integration tests goes on a fresh slice branch cut from the final branch, and then back
+through `@aligner` and `@integrator`. Later slices are never rebased.
 
 ---
 

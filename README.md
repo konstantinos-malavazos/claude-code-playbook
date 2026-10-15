@@ -132,7 +132,7 @@ claude-code-playbook/
 │   │   ├── 06-claude-md-layers.md  The CLAUDE.md layers — and how repo count picks them
 │   │   ├── 07-the-flows.md         Pillar 3 — the pipeline concept + the flow catalogue
 │   │   ├── 08-ticket-pipeline.md   /start-ticket, step by step (generic)
-│   │   ├── 09-decompose-path.md    Parallel slices for large tickets (git worktrees)
+│   │   ├── 09-decompose-path.md    Slices for large tickets, built one at a time
 │   │   ├── 10-memory-hygiene.md    Deliberate memory: /end-of-day + /garden-memory
 │   │   ├── 11-adapting-to-your-stack.md  Mapping the abstract layer-chain to YOUR layers
 │   │   └── 12-when-not-to-use.md   Where the pattern loses — for both paths

@@ -361,15 +361,15 @@ what installing `/test-ticket` means; copying the two agent files alone installs
 `slice-*` specialists whichever path you take; copy the other three only if you use this one
 ([docs/shared/09](../../docs/shared/09-decompose-path.md)). On the sequential chain none of
 the four run, because the orchestrator dispatches them only when the planner set
-`slice-count > 1`. In order: the `slice-*` specialists build in parallel worktrees, `aligner`
-gates for drift, `integrator` collapses each repo to one commit, `integration-tester` covers
-what no single slice proves.
+`slice-count > 1`. In order: the `slice-*` specialists build one at a time, each on its own
+branch, `aligner` gates for drift, `integrator` collapses each repo to one commit,
+`integration-tester` covers what no single slice proves.
 
 **Two of the four are load-bearing on each other, and the coupling is deliberate.** `aligner`
 writes a verdict of exactly `ALIGNED` or `DRIFT FOUND`; `integrator` refuses to run on
 anything else — **including on a missing file**, because a gate that never ran and a gate that
 passed must not resolve the same way. Change that one word in either file and you have
-silently disabled the only check standing between parallel worktrees and a squashed commit.
+silently disabled the only check standing between the slice branches and a squashed commit.
 
 `slice-layer-specialist` is the slice-mode sibling of `layer-specialist`, and
 `/adapt-to-stack` **generates it too** — one per layer, into the repo's own `.claude/agents/`,

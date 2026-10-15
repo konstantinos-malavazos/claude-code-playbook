@@ -9,6 +9,7 @@
 #   A13    every Serena-declaring agent can activate its project and says what to do
 #          on "No active project"
 #   A14    every agent that names a skill grants Skill; the TaskStop-only agents do not
+#   A15    no slice template mentions a worktree
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -988,6 +989,49 @@ else
   fail "A14.3 floor fixture does not grant Skill"
 fi
 
+fi
+
+# ---------------------------------------------------------------- A15
+# Slices run one at a time in the main checkout. A slice template that mentions a worktree
+# sends an agent to a checkout Serena cannot index. The probe is `worktree`, not
+# `git worktree`: a mention spelled `git -C <repo> worktree` would slip past the longer literal.
+if want A15; then
+banner "A15 · no slice template mentions a worktree"
+
+a15_mentions() { grep -qi worktree "$1"; }
+
+A15_FILES="
+$AGENTS/slice-layer-specialist.md
+$AGENTS/aligner.md
+$AGENTS/integrator.md
+$AGENTS/integration-tester.md
+$COMMANDS/start-ticket.md
+$TEMPLATES/skills/to-tickets/SKILL.md"
+
+mkdir -p "$SCRATCH/a15"
+printf 'git -C repo Worktree add\n' > "$SCRATCH/a15/hit.md"
+printf 'one checkout, one branch\n' > "$SCRATCH/a15/clean.md"
+if a15_mentions "$SCRATCH/a15/hit.md"; then
+  pass "A15.0 the probe flags a worktree mention"
+else
+  fail "A15.0 the probe missed a worktree mention — the probe is broken, not the tree"
+fi
+if ! a15_mentions "$SCRATCH/a15/clean.md"; then
+  pass "A15.0 the probe leaves a clean file alone"
+else
+  fail "A15.0 the probe flagged a file with no worktree in it"
+fi
+
+for f in $A15_FILES; do
+  rel="${f#"$REPO"/}"
+  if [ ! -f "$f" ]; then
+    fail "A15 $rel does not exist — a missing file must not pass as no mention"
+  elif a15_mentions "$f"; then
+    fail "A15 $rel mentions a worktree — slices run in the main checkout, which Serena indexes"
+  else
+    pass "A15 $rel does not mention a worktree"
+  fi
+done
 fi
 
 # ---------------------------------------------------------------- A12
