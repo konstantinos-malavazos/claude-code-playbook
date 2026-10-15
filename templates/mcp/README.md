@@ -74,6 +74,12 @@ registrations means two tool namespaces, which means confusion.
 |---|---|
 | this `.mcp.json` entry (key `serena`) | `mcp__serena__find_symbol` |
 | the plugin install | `mcp__plugin_serena_serena__find_symbol` |
+| route C, one server per repo | `mcp__serena-<key>__find_symbol` |
+
+Route C needs no entry here. Its servers are not in any `.mcp.json`: the installer writes
+each one into the agents that use it, as an inline `mcpServers:` list in the agent's
+frontmatter (`- serena-<key>: {type: http, url: http://127.0.0.1:<port>/mcp}`). See
+[`docs/shared/04-serena.md`](../../docs/shared/04-serena.md#route-c--one-server-per-repo).
 
 A prefix that doesn't resolve fails **silently**: the agent gets no code tools and falls
 back to reading whole files. Verify with `/mcp`.

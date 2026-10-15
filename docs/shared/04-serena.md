@@ -13,14 +13,14 @@ any language with an LSP is covered: TypeScript, Python, Go, Rust, C#, Java, …
 
 | Question | Without Serena | With Serena |
 |---|---|---|
-| "Where is `processPayment` and what does it do?" | read 3–5 candidate files (~10k+ tokens), guess the name, maybe read the wrong file first | `find_symbol(include_body=true)` → the exact body + `file:line` (~a few hundred tokens) |
+| "Where is `loadSettings` and what does it do?" | read 3–5 candidate files (~10k+ tokens), guess the name, maybe read the wrong file first | `find_symbol(include_body=true)` → the exact body + `file:line` (~a few hundred tokens) |
 | "What's the shape of this 400-line file?" | read all 400 lines | `get_symbols_overview` → every class/method by name (~a few hundred tokens) |
 | "Who calls this function?" | grep the string, sift false positives | `find_referencing_symbols` → the real call sites, semantically |
 | Editing | hunt for the line range by eye | exact `start_line`/`end_line` for a surgical edit |
 
 The typical result is **several times fewer tokens for a better answer**. It also kills
 the guess-the-name round trip. Serena tells you the symbol is *actually* called
-`KnownRegionsV2`, not `KnownRegions`.
+`SettingsSchemaV2`, not `SettingsSchema`.
 
 ---
 
@@ -92,12 +92,62 @@ Serena is **project-scoped** (`<workspace>/.mcp.json`) because it indexes a work
 copy. Every agent that touches code — the gatherer, the planner, the specialists, the
 reviewers — names Serena's tools outright in its frontmatter and preloads the mandatory
 protocol, the `code-access` skill. The specialists' *edits* go through it too. Forgetful recalls *what/why*
-and often *which symbols matter*, so the loop is: memory says "look at `ToBetFeesModel`" →
+and often *which symbols matter*, so the loop is: memory says "look at `ReportBuilder`" →
 Serena jumps straight to it → surgical edit. No file spelunking.
 
 Config snippet: [`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet)
 — paste it as-is. The plugin-vs-entry choice and the tool-prefix trap are in
 [`../../templates/mcp/README.md`](../../templates/mcp/README.md).
+
+## Route C — one server per repo
+
+Routes A and B run **one** Serena server for everything. With many or large repos that one
+server gets slow: its cache grows, a cold start can time out, and every agent waits in the
+same queue. Route C gives each repo its own server, started only when you need it. It is
+optional. Most people never need it.
+
+**Setting it up — the installer does the work:**
+
+1. Set up Route A or B first ([03-setup.md](03-setup.md#step-2--stand-up-serena-eyes)), then
+   run the installer and answer **C** at the Serena question.
+2. The installer looks for git repos in the folder your playbook clone sits in, gives each
+   a key and a pair of ports, and shows you the list. It saves the list to
+   `~/.claude/serena-repos.json` and wires every Serena agent to those servers.
+3. Your repos live somewhere else? Run the installer with that folder named, for example
+   `SERENA_REPOS_DIR=/c/code bash install.sh`.
+4. Cloned a new repo later? Run `bash install.sh serena-wire` (PowerShell:
+   `powershell -ExecutionPolicy Bypass -File .\install.ps1 serena-wire`). New repos are added to the end of the list; nothing already
+   in it changes.
+5. Something in the list is wrong? Fix that line in `~/.claude/serena-repos.json`, or delete
+   the file, then run `bash install.sh serena-wire` again.
+
+**Using it:**
+
+- Start the servers for the repos you are about to work in:
+  `bash ~/.claude/serena/serena-up.sh <key> [<key> …]`. Add `--edit` when an agent will
+  change code (PowerShell:
+  `powershell -ExecutionPolicy Bypass -File ~/.claude/serena/serena-up.ps1`, same arguments). The keys are
+  the names in `serena-repos.json`. The first start of a repo can take a few minutes while
+  Serena indexes it.
+- `serena-up` waits until each server answers a real code question. If it prints
+  **`symbols not verified`**, the server is running but no source file in that repo gave
+  back any symbols — normal for a repo of docs only; for a code repo, check that its
+  language is one Serena supports.
+- Stop them when you are done: `bash ~/.claude/serena/serena-down.sh`. When a new session
+  starts, Claude is told about any still running from before and passes it on to you.
+- An agent whose server is not running stops and names the exact `serena-up` command.
+
+What changes for the agents: each one gets its own `mcp__serena-<key>__…` tools per repo,
+there is no `activate_project`, and the main session reads code through `@serena-lookup`
+instead of calling Serena itself. Agents a repo generates for itself (under
+`<repo>/.claude/agents/`) are wired with `bash install.sh serena-wire <repo>/.claude/agents`;
+Claude Code loads their servers only after you trust that folder. Trust it once by opening
+Claude Code there in a normal window: a headless `claude -p` run never asks, so its agents
+start without their servers and halt. `update` keeps the wiring
+it recorded, and `remove` leaves your repo list and the server state alone. You can turn the
+Serena plugin off once route C works; route C does not use it.
+
+The connect-time prompt below applies to route C servers too, and is still a manual step.
 
 ## Gotchas
 

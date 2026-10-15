@@ -262,9 +262,16 @@ chk $? "python3 -m py_compile the memory-lint scripts"
 chk $? "python3 -I templates/skills/memory-lint/tests.py (log: $LOGS/memory-lint-tests.out)"
 yn "$([ ! -e "$REPO/templates/skills/memory-lint/__pycache__" ] && echo 0 || echo 1)" \
    "the memory-lint skill directory holds no __pycache__ (it installs as a whole directory)"
+( cd "$REPO/templates/serena" && "$PY" -m py_compile serena_route.py && rm -rf __pycache__ ) >/dev/null 2>&1
+chk $? "python3 -m py_compile the route C kit"
+( cd "$REPO/tests" && "$PY" -m py_compile fake_serena.py && rm -rf __pycache__ ) >/dev/null 2>&1
+chk $? "python3 -m py_compile tests/fake_serena.py"
+yn "$([ ! -e "$REPO/templates/serena/__pycache__" ] && echo 0 || echo 1)" \
+   "the route C kit directory holds no __pycache__ (it installs as a whole directory)"
 if command -v shellcheck >/dev/null 2>&1; then
   ( cd "$REPO" && shellcheck install.sh ) ; chk $? "shellcheck install.sh"
   ( cd "$REPO" && shellcheck -x templates/hooks/*.sh ) ; chk $? "shellcheck the hooks"
+  ( cd "$REPO" && shellcheck -x templates/serena/*.sh ) ; chk $? "shellcheck the route C kit's wrappers"
   ( cd "$REPO" && shellcheck -x tests/test-installer.sh ) ; chk $? "shellcheck this suite"
   ( cd "$REPO" && shellcheck -x tests/test-wiring.sh ) ; chk $? "shellcheck the wiring scrub"
   ( cd "$REPO" && shellcheck -x tests/test-docs.sh ) ; chk $? "shellcheck the docs scrub"
@@ -3624,6 +3631,1017 @@ inlog fx3f "this run did not write it, so its blanks were not checked" \
       "check 3 says it left the hand-written tracker.md alone"
 yn "$(grep -qF -- '--repo <repo>' "$CH/tracker.md" 2>/dev/null && echo 0 || echo 1)" \
    "the hand-written tracker.md still says <repo>"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# RC8 · the route C kit (templates/serena/), run against tests/fake_serena.py
+# ══════════════════════════════════════════════════════════════════════════
+
+# ---------------------------------------------------------------- RC8
+# Catches: a repo map with a placeholder path, a missing path, a bad key or a port+10
+# clash accepted (a); a context file whose excluded_tools is not all_tools minus its
+# profile, or an edit profile that drifts from the agents' Serena tools (b); a second
+# serena-up starting a second server, or --edit not on port+10 (c); a server listing
+# a tool outside its profile left running (d); serena-down trusting the PID instead of
+# a process listing (e); a .ps1 wrapper with no BOM, or one that cannot start and stop
+# a server under PowerShell 5.1 and 7 (f); warm-up skipping the source file or asking
+# about an empty one (g); a repo with no source file failing instead of saying so (h).
+# Every server here is the fake, on ports found free at run time, and every one is
+# stopped at the end, pass or fail.
+if want RC8; then
+banner "RC8 · the route C kit starts, checks, reuses and stops per-repo servers"
+fresh_env rc8
+rc8_w() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
+RC8K="$REPO/templates/serena"
+RC8KW="$(rc8_w "$RC8K")"
+RC8HW="$(rc8_w "$CH")"
+RC8R="$SANDBOX/rc8/repos"
+RC8LOG="$SANDBOX/rc8/fake.log"
+RC8D="$SANDBOX/rc8/decoy"
+RC8M="rc8mark$$x$RANDOM"
+mkdir -p "$RC8R/alpha/src" "$RC8R/alpha/pkg" "$RC8R/beta" "$RC8R/gamma" \
+  && printf 'def a():\n    return 1\n' > "$RC8R/alpha/src/a.py" \
+  && : > "$RC8R/alpha/pkg/__init__.py" \
+  && printf '# beta\n' > "$RC8R/beta/README.md" \
+  && printf 'def g():\n    return 1\n' > "$RC8R/gamma/g.py" \
+  && : > "$RC8LOG"
+chk $? "setup: repos alpha (src/a.py, empty pkg/__init__.py), beta (README.md only), gamma"
+RC8P="$("$PY" -c '
+import socket, sys
+def free(p):
+    s = socket.socket()
+    try:
+        s.bind(("127.0.0.1", p))
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
+for b in range(19121, 19921, 20):
+    if all(free(b + d) for d in (0, 1, 2, 10, 11, 12)):
+        sys.stdout.write(str(b))
+        break
+')"
+yn "$([ -n "$RC8P" ] && echo 0 || echo 1)" "setup: alpha, beta, gamma get the free ports ${RC8P:-NONE}+0/1/2, edit +10"
+"$PY" - "$RC8HW/serena-repos.json" "$(rc8_w "$RC8R")" "${RC8P:-0}" "$(rc8_w "$REPO/tests/fake_serena.py")" "$RC8M" <<'PYRC8'
+import json, os, sys
+out, root, port, fake, mark = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5]
+cmd = [sys.executable, fake, "--marker", mark]
+def write(path, repos):
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump({"repos": repos, "serena_cmd": cmd}, f, indent=2)
+good = {k: {"path": root + "/" + k, "port": port + i} for i, k in enumerate(("alpha", "beta", "gamma"))}
+write(out, good)
+d = os.path.dirname(out)
+write(os.path.join(d, "bad-placeholder.json"), dict(good, alpha={"path": "<absolute path to the repo>", "port": port}))
+write(os.path.join(d, "bad-missing.json"), dict(good, alpha={"path": root + "/no-such-repo", "port": port}))
+write(os.path.join(d, "bad-clash.json"), {"alpha": good["alpha"], "beta": {"path": root + "/beta", "port": port + 10}})
+write(os.path.join(d, "bad-key.json"), {"Bad_Key": good["alpha"]})
+PYRC8
+chk $? "setup: the repo map, and four broken copies of it"
+
+# rc8_py LOG args... - serena_route.py itself, the way the installer runs validate.
+rc8_py() {
+  local log="$1"; shift
+  # shellcheck disable=SC2086
+  $TIMEOUT "$PY" "$RC8KW/serena_route.py" "$@" > "$LOGS/$log.out" 2> "$LOGS/$log.err" < /dev/null
+  RC=$?
+}
+# rc8_sh LOG up|down args... - through the bash wrapper, the way a user runs it.
+rc8_sh() {
+  local log="$1" verb="$2"; shift 2
+  # shellcheck disable=SC2086
+  FAKE_SERENA_LOG="$(rc8_w "$RC8LOG")" $TIMEOUT bash "$RC8K/serena-$verb.sh" --home "$RC8HW" "$@" \
+    > "$LOGS/$log.out" 2> "$LOGS/$log.err" < /dev/null
+  RC=$?
+}
+# rc8_ps EXE LOG WRAPPER args... - through a .ps1 wrapper under one PowerShell.
+rc8_ps() {
+  local exe="$1" log="$2" w="$3" pol=()
+  shift 3
+  command -v cygpath >/dev/null 2>&1 && pol=(-ExecutionPolicy Bypass)
+  # shellcheck disable=SC2086
+  PATH="$RC8D:$PATH" FAKE_SERENA_LOG="$(rc8_w "$RC8LOG")" $TIMEOUT "$exe" -NoProfile ${pol[@]+"${pol[@]}"} \
+    -File "$(rc8_w "$RC8K/$w")" --home "$RC8HW" "$@" > "$LOGS/$log.out" 2> "$LOGS/$log.err" < /dev/null
+  RC=$?
+}
+# rc8_said EXE LOG - after a failed wrapper check: what the run printed, and the pythons
+# that PowerShell finds on the same PATH, so a CI log carries its own diagnosis.
+rc8_said() {
+  local f
+  for f in "$LOGS/$2.out" "$LOGS/$2.err"; do
+    printf '          %s, last lines:\n' "${f##*/}"
+    tail -n 5 "$f" 2>/dev/null | sed 's/^/            /'
+  done
+  printf '          python candidates %s finds:\n' "$1"
+  # shellcheck disable=SC2016  # PowerShell source: $_ is PowerShell's
+  PATH="$RC8D:$PATH" $TIMEOUT "$1" -NoProfile -NonInteractive -Command \
+    'Get-Command python3, python -CommandType Application -All -ErrorAction SilentlyContinue | ForEach-Object { $_.Source }' \
+    < /dev/null 2>&1 | sed 's/^/            /'
+}
+# rc8_procs PORT - how many processes carry this run's marker and --port PORT. The
+# suite's own listing, so it does not share a bug with the kit's.
+# shellcheck disable=SC2016  # PowerShell source: $_ is PowerShell's
+RC8PS='
+import base64, os, re, subprocess, sys
+mark, port = sys.argv[1], sys.argv[2]
+if os.name == "nt":
+    ps = "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-CimInstance Win32_Process | ForEach-Object { [string]$_.CommandLine }"
+    argv = ["powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand",
+            base64.b64encode(ps.encode("utf-16-le")).decode("ascii")]
+else:
+    argv = ["ps", "-eo", "args="]
+out = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
+pat = re.compile(r"--port\s+" + port + r"(\s|$)")
+sys.stdout.write(str(sum(1 for l in out.splitlines() if mark in l and pat.search(l))))
+'
+rc8_procs() { "$PY" -c "$RC8PS" "$RC8M" "$1"; }
+rc8_pid() { "$PY" -c 'import json, sys; sys.stdout.write(str(json.load(open(sys.argv[1]))["pid"]))' "$1" 2>/dev/null; }
+
+# --- a: validate
+rc8_py rc8a-ok validate --map "$RC8HW/serena-repos.json"
+yn "$([ "$RC" = 0 ] && echo 0 || echo 1)" "RC8a the filled-in map validates (rc=$RC)"
+rc8_py rc8a-ex validate --map "$RC8KW/serena-repos.example.json"
+yn "$([ "$RC" = 1 ] && bothgrep rc8a-ex "placeholder" && echo 0 || echo 1)" \
+   "RC8a the shipped example map is refused, and the refusal says placeholder (rc=$RC)"
+rc8_py rc8a-lt validate --map "$RC8HW/bad-placeholder.json"
+yn "$([ "$RC" = 1 ] && bothgrep rc8a-lt "repo 'alpha'" && bothgrep rc8a-lt "placeholder" && echo 0 || echo 1)" \
+   "RC8a a path holding '<' is refused, naming the repo (rc=$RC)"
+rc8_py rc8a-miss validate --map "$RC8HW/bad-missing.json"
+yn "$([ "$RC" = 1 ] && bothgrep rc8a-miss "repo 'alpha'" && bothgrep rc8a-miss "not a folder" && echo 0 || echo 1)" \
+   "RC8a a path that is not a folder is refused, naming the repo (rc=$RC)"
+rc8_py rc8a-clash validate --map "$RC8HW/bad-clash.json"
+yn "$([ "$RC" = 1 ] && bothgrep rc8a-clash "port $((RC8P + 10))" && bothgrep rc8a-clash "'beta'" && echo 0 || echo 1)" \
+   "RC8a beta on alpha's edit port $((RC8P + 10)) is refused, naming port and repo (rc=$RC)"
+rc8_py rc8a-key validate --map "$RC8HW/bad-key.json"
+yn "$([ "$RC" = 1 ] && bothgrep rc8a-key "Bad_Key" && echo 0 || echo 1)" \
+   "RC8a a repo key with capitals and an underscore is refused (rc=$RC)"
+
+# --- b: profiles
+"$PY" - "$RC8KW" "$(rc8_w "$REPO/templates/agents")" > "$LOGS/rc8b.out" 2>&1 <<'PYRC8B'
+import glob, json, os, re, sys
+kit, agents = sys.argv[1], sys.argv[2]
+prof = json.load(open(os.path.join(kit, "profiles.json"), encoding="utf-8"))
+every, read, edit = prof["all_tools"], prof["read"], prof["edit"]
+bad = []
+def context(name):
+    out, inside, single = [], False, False
+    for line in open(os.path.join(kit, name + ".context.yml"), encoding="utf-8").read().splitlines():
+        if line.strip() == "single_project: true":
+            single = True
+        if line.startswith("excluded_tools:"):
+            inside = True
+            continue
+        if inside:
+            if line.startswith("  - "):
+                out.append(line[4:].strip())
+            elif line.strip():
+                inside = False
+    return out, single
+for name, tools in (("read", read), ("edit", edit)):
+    ex, single = context(name)
+    expect = set(every) - set(tools)
+    if set(ex) != expect or len(ex) != len(set(ex)):
+        bad.append("%s.context.yml excluded_tools is not all_tools minus %s: extra %s, missing %s, %d listed"
+                   % (name, name, sorted(set(ex) - expect), sorted(expect - set(ex)), len(ex)))
+    if not single:
+        bad.append("%s.context.yml does not say single_project: true" % name)
+    if "activate_project" in tools:
+        bad.append("the %s profile holds activate_project" % name)
+    if set(tools) - set(every):
+        bad.append("the %s profile holds tools outside all_tools: %s" % (name, sorted(set(tools) - set(every))))
+if set(read) - set(edit):
+    bad.append("read holds tools edit does not: %s" % sorted(set(read) - set(edit)))
+used = set()
+for p in sorted(glob.glob(os.path.join(agents, "*.md"))):
+    for line in open(p, encoding="utf-8"):
+        if line.startswith("tools:"):
+            used |= set(re.findall(r"mcp__serena__([a-z_]+)", line))
+used.discard("activate_project")
+if used != set(edit):
+    bad.append("edit is not the agents' Serena tools: agents only %s, edit only %s"
+               % (sorted(used - set(edit)), sorted(set(edit) - used)))
+if len(every) < 30 or len(read) < 8 or len(used) < 10:
+    bad.append("a set is implausibly small: all_tools %d, read %d, agents' Serena tools %d" % (len(every), len(read), len(used)))
+print("all_tools %d, read %d, edit %d, agents' Serena tools %d" % (len(every), len(read), len(edit), len(used)))
+for b in bad:
+    print("BAD " + b)
+sys.exit(1 if bad else 0)
+PYRC8B
+chk $? "RC8b each context file excludes all_tools minus its profile, and edit is every Serena tool an agent declares (log: $LOGS/rc8b.out)"
+
+# --- g, h: one serena-up for two repos, in parallel
+rc8_sh rc8gh up alpha beta --timeout 60
+RC8GH=$RC
+yn "$([ "$RC8GH" = 0 ] && echo 0 || echo 1)" "RC8g serena-up alpha beta exits 0 (rc=$RC8GH)"
+yn "$(bothgrep rc8gh "warm-up ok: alpha src/a.py" && ! bothgrep rc8gh "symbols not verified: alpha" && echo 0 || echo 1)" \
+   "RC8g alpha's warm-up names src/a.py, and says nothing of symbols not verified"
+yn "$(grep -qF "$RC8P call get_symbols_overview {\"relative_path\": \"src/a.py\"}" "$RC8LOG" \
+      && ! grep -qF '__init__.py' "$RC8LOG" && echo 0 || echo 1)" \
+   "RC8g the server was asked for the symbols of src/a.py, and never of the empty pkg/__init__.py"
+yn "$(grep -qF "$((RC8P + 1)) call list_dir" "$RC8LOG" && bothgrep rc8gh "symbols not verified: beta" && echo 0 || echo 1)" \
+   "RC8h beta, with no source file, is checked with list_dir and reported as symbols not verified"
+yn "$([ -f "$CH/serena-state/alpha-read.json" ] && [ -f "$CH/serena-state/beta-read.json" ] && echo 0 || echo 1)" \
+   "RC8g serena-up wrote a state file for alpha and for beta under serena-state/"
+
+# --- c: reuse, and --edit
+RC8PID="$(rc8_pid "$RC8HW/serena-state/alpha-read.json")"
+rc8_sh rc8c up alpha --timeout 60
+yn "$([ "$RC" = 0 ] && bothgrep rc8c "already running: alpha" && echo 0 || echo 1)" \
+   "RC8c a second serena-up alpha exits 0 and says alpha is already running (rc=$RC)"
+RC8N="$(grep -cF "$RC8P serve read.context.yml" "$RC8LOG")"
+RC8PID2="$(rc8_pid "$RC8HW/serena-state/alpha-read.json")"
+yn "$([ "$RC8N" = 1 ] && [ -n "$RC8PID" ] && [ "$RC8PID" = "$RC8PID2" ] && echo 0 || echo 1)" \
+   "RC8c alpha's read server was started once, and its pid kept (starts=$RC8N, pid $RC8PID then $RC8PID2)"
+rc8_sh rc8ce up alpha --edit --timeout 60
+yn "$([ "$RC" = 0 ] && grep -qF "$((RC8P + 10)) serve edit.context.yml" "$RC8LOG" \
+      && [ -f "$CH/serena-state/alpha-edit.json" ] && echo 0 || echo 1)" \
+   "RC8c serena-up alpha --edit starts the edit profile on port $((RC8P + 10)) (rc=$RC)"
+
+# --- d: a server that lists more than its profile
+FAKE_SERENA_EXTRA_TOOLS=execute_shell_command rc8_sh rc8d up gamma --timeout 60
+yn "$([ "$RC" != 0 ] && bothgrep rc8d "execute_shell_command" && echo 0 || echo 1)" \
+   "RC8d gamma, listing execute_shell_command, is refused and the tool is named (rc=$RC)"
+RC8DN="$(rc8_procs $((RC8P + 2)))"
+yn "$(grep -qF "$((RC8P + 2)) serve " "$RC8LOG" && [ "$RC8DN" = 0 ] \
+      && [ ! -e "$CH/serena-state/gamma-read.json" ] && echo 0 || echo 1)" \
+   "RC8d the refused server was started and then stopped: ${RC8DN:-?} processes left, no state file"
+
+# --- s: status, which the leftover-notice hook prints at session start
+rc8_py rc8s-live status --notice --home "$RC8HW"
+yn "$([ "$RC" = 0 ] && bothgrep rc8s-live "running: alpha (read, port $RC8P" && bothgrep rc8s-live "serena-down.sh" && echo 0 || echo 1)" \
+   "RC8s status --notice lists alpha's running read server and the serena-down command (rc=$RC)"
+
+# --- e: down
+# An orphan: beta's recorded process is gone and the server it started still runs, so
+# no tree kill from the recorded pid can reach it. Only the process listing finds it.
+RC8BPID="$(rc8_pid "$RC8HW/serena-state/beta-read.json")"
+case "$RC8BPID" in
+  ''|*[!0-9]*|0) RC8OR=none ;;
+  *) "$PY" -c 'import os, signal, sys, time
+os.kill(int(sys.argv[1]), signal.SIGTERM)
+time.sleep(1)' "$RC8BPID"
+     RC8OR="$(rc8_procs $((RC8P + 1)))" ;;
+esac
+yn "$([ "$RC8OR" = 1 ] && echo 0 || echo 1)" \
+   "setup: beta's recorded process ${RC8BPID:-?} killed alone, its server left running ($RC8OR process)"
+RC8B4="$(rc8_procs "$RC8P")"
+rc8_sh rc8e down
+RC8E=$RC
+RC8AF=$(( $(rc8_procs "$RC8P") + $(rc8_procs $((RC8P + 1))) + $(rc8_procs $((RC8P + 10))) ))
+yn "$([ "$RC8E" = 0 ] && [ "${RC8B4:-0}" -ge 2 ] && [ "$RC8AF" = 0 ] && echo 0 || echo 1)" \
+   "RC8e serena-down exits 0 and no fake server is left in the process list, beta's orphan included (rc=$RC8E; alpha had ${RC8B4:-?} processes, $RC8AF left in all)"
+yn "$([ "$RC8E" = 0 ] && ! ls "$CH/serena-state"/*.json >/dev/null 2>&1 && echo 0 || echo 1)" \
+   "RC8e serena-down removed every state file"
+rc8_py rc8s-none status --notice --home "$RC8HW"
+yn "$([ "$RC" = 0 ] && [ "$(bytes rc8s-none)" = 0 ] && echo 0 || echo 1)" \
+   "RC8s with nothing recorded, status --notice prints nothing (rc=$RC, $(bytes rc8s-none) bytes)"
+printf '{"key": "beta", "profile": "edit", "port": %s, "pid": 999999}\n' "$((RC8P + 11))" \
+  > "$CH/serena-state/beta-edit.json"
+rc8_py rc8s-stale status --notice --home "$RC8HW"
+yn "$([ "$RC" = 0 ] && bothgrep rc8s-stale "stale:   beta (edit, port $((RC8P + 11)))" && bothgrep rc8s-stale "serena-down.sh" && echo 0 || echo 1)" \
+   "RC8s a state file whose process is gone is reported stale, with the serena-down command (rc=$RC)"
+rc8_sh rc8s-down down
+yn "$([ "$RC" = 0 ] && [ ! -e "$CH/serena-state/beta-edit.json" ] && echo 0 || echo 1)" \
+   "RC8s serena-down clears the stale state file (rc=$RC)"
+
+# --- f: the PowerShell wrappers
+"$PY" - "$RC8KW" <<'PYRC8F'
+import os, sys
+for w in ("serena-up.ps1", "serena-down.ps1"):
+    if open(os.path.join(sys.argv[1], w), "rb").read(3) != b"\xef\xbb\xbf":
+        sys.exit(1)
+PYRC8F
+chk $? "RC8f both .ps1 wrappers start with a UTF-8 BOM"
+# Every wrapper run has this folder first on PATH. On Windows, PowerShell hands a
+# python3.vbs to the shell rather than running it, and never waits for it - like the
+# extensionless python3 script on CI's PATH, which brings up the Open-with handler. The
+# probe must skip it; if it runs it, wscript leaves python3.vbs.ran.
+mkdir -p "$RC8D" \
+  && printf 'CreateObject("Scripting.FileSystemObject").CreateTextFile(WScript.ScriptFullName & ".ran", True).Close\r\n' \
+       > "$RC8D/python3.vbs"
+chk $? "setup: a python3.vbs decoy first on the wrappers' PATH"
+if command -v cygpath >/dev/null 2>&1; then RC8PSH="powershell.exe pwsh.exe"; else RC8PSH="pwsh"; fi
+RC8RAN=0
+for RC8X in $RC8PSH; do
+  command -v "$RC8X" >/dev/null 2>&1 || continue
+  RC8RAN=1
+  rm -f "$RC8D/python3.vbs.ran"
+  rc8_ps "$RC8X" "rc8f-up-$RC8X" serena-up.ps1 beta --edit --timeout 60
+  RC8V="$([ "$RC" = 0 ] && grep -qF "$((RC8P + 11)) serve edit.context.yml" "$RC8LOG" && echo 0 || echo 1)"
+  yn "$RC8V" "RC8f $RC8X: serena-up.ps1 beta --edit starts beta's edit server (rc=$RC)"
+  [ "$RC8V" = 0 ] || rc8_said "$RC8X" "rc8f-up-$RC8X"
+  rc8_ps "$RC8X" "rc8f-down-$RC8X" serena-down.ps1 beta
+  RC8FN="$(rc8_procs $((RC8P + 11)))"
+  RC8V="$([ "$RC" = 0 ] && [ "$RC8FN" = 0 ] && echo 0 || echo 1)"
+  yn "$RC8V" "RC8f $RC8X: serena-down.ps1 beta stops it ($RC8FN left, rc=$RC)"
+  [ "$RC8V" = 0 ] || rc8_said "$RC8X" "rc8f-down-$RC8X"
+  rc8_ps "$RC8X" "rc8f-bad-$RC8X" serena-up.ps1 no-such-repo
+  RC8V="$([ "$RC" != 0 ] && bothgrep "rc8f-bad-$RC8X" "no-such-repo" && echo 0 || echo 1)"
+  yn "$RC8V" "RC8f $RC8X: serena-up.ps1 refuses a key the map does not hold, naming it (rc=$RC)"
+  [ "$RC8V" = 0 ] || rc8_said "$RC8X" "rc8f-bad-$RC8X"
+  yn "$([ ! -e "$RC8D/python3.vbs.ran" ] && echo 0 || echo 1)" \
+     "RC8f $RC8X: the wrappers' python probe never ran the python3.vbs decoy ahead of python on PATH"
+done
+[ "$RC8RAN" = 1 ] || printf '    SKIP  RC8f wrapper runs — no PowerShell on this machine, so NOT run\n'
+
+rc8_sh rc8z down
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+# RC1-RC7, RC9 · route C in the installer: detection, the repo map, agent wiring
+# ══════════════════════════════════════════════════════════════════════════
+# Every install that can reach route C runs from a clone INSIDE a fixture folder, with
+# SERENA_REPOS_DIR pointed at that folder. Discovery's default folder is the clone's
+# parent, so a case that lost the variable would still scan the fixture and never this
+# machine's real repos.
+
+# A fresh install that answers C at the Serena step: FULL with C as the route.
+CFULL=( '' '' '5' '4' '' 'i' 'C' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" '' )
+# A seeded re-run (the SW6 shape): banner discover seeded-pause i · serena C, pause ·
+# models x2 · memory x2 · pause x2 · y · tracker pause
+CRERUN=( '' '' '' 'i' 'C' '' '' '' '' '' '' '' 'y' '' )
+
+# rc_env NAME [REPO...] — fresh_env with both pillars, plus a fixture folder holding a
+# clone of the installer (with a .git, so discovery must skip it by path) and one git
+# repo per REPO argument.
+rc_env() {
+  local name="$1" r
+  shift
+  fresh_env "$name"
+  with_servers
+  RCDIR="$SANDBOX/$name/repos"
+  mkdir -p "$RCDIR" && clone_repo "$RCDIR/playbook" && mkdir -p "$RCDIR/playbook/.git" || return 1
+  for r in "$@"; do mkdir -p "$RCDIR/$r/.git" || return 1; done
+}
+
+# run_c MODE LOG — run_in from the fixture's clone, with discovery pointed at the fixture.
+run_c() {
+  local mode="$1" log="$2"
+  [ -f "$LOGS/$log.in" ] || : > "$LOGS/$log.in"
+  ( cd "$RCDIR/playbook" && HOME="$HOME_DIR" CLAUDE_HOME="$CH" PLAYBOOK_SCRIPTED_INPUT=1 \
+    SERENA_REPOS_DIR="$RCDIR" bash ./install.sh "$mode" ) \
+    < "$LOGS/$log.in" > "$LOGS/$log.out" 2> "$LOGS/$log.err"
+  RC=$?
+  return 0
+}
+
+# run_c_raw LOG MODE [ARG...] — run_c with stdin closed, no scripted-input flag, and the
+# run_raw timeout, for the modes that must work with nobody at the keyboard.
+run_c_raw() {
+  local log="$1"
+  shift
+  # shellcheck disable=SC2086
+  ( cd "$RCDIR/playbook" && HOME="$HOME_DIR" CLAUDE_HOME="$CH" SERENA_REPOS_DIR="$RCDIR" \
+    $TIMEOUT bash ./install.sh "$@" ) \
+    < /dev/null > "$LOGS/$log.out" 2> "$LOGS/$log.err"
+  RC=$?
+  return 0
+}
+
+# verdicts — feed "PASS|name" / "FAIL|name" lines from a python check into pass/fail.
+# Read through process substitution, never a pipe: a pipe's right side is a subshell
+# and the counts would never make it back out.
+verdicts() {
+  local v n
+  while IFS='|' read -r v n; do
+    if [ "$v" = PASS ]; then pass "$n"; else fail "$n"; fi
+  done
+}
+
+# rc_recorded UID — does the manifest in $CH record UID as an installed unit? Its
+# "known" inventory names every unit the clone ships, so a plain grep cannot tell.
+rc_recorded() {
+  "$PY" -c 'import json,sys;sys.exit(0 if sys.argv[2] in (json.load(open(sys.argv[1])).get("units") or {}) else 1)' \
+    "$CH/.playbook-install.json" "$1" 2>/dev/null
+}
+
+# rc_w PATH — the C:/... form a Windows python prints, or PATH unchanged elsewhere.
+rc_w() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
+
+# rc_free_port — the lowest p from 9121 where p and p+10 both bind on 127.0.0.1: the
+# port discovery hands the first repo it finds.
+rc_free_port() {
+  "$PY" - <<'PY'
+import socket, sys
+def free(p):
+    s = socket.socket()
+    try:
+        s.bind(("127.0.0.1", p))
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
+for p in range(9121, 9621):
+    if free(p) and free(p + 10):
+        sys.stdout.buffer.write(b"%d" % p)
+        break
+PY
+}
+
+# rc_wire_fixture DIR — every agent template copied into DIR/agents, repo folders alpha,
+# beta and gamma, maps naming them (alpha 9301, beta 9302, gamma 9303), and paths.json.
+rc_wire_fixture() {
+  local d="$1"
+  rm -rf "$d" && mkdir -p "$d/agents" "$d/alpha" "$d/beta" "$d/gamma" \
+    && cp "$REPO"/templates/agents/*.md "$d/agents/" && rm -f "$d/agents/README.md" \
+    && "$PY" - "$d" <<'PY'
+import json, os, sys
+d = sys.argv[1]
+ports = {"alpha": 9301, "beta": 9302, "gamma": 9303}
+def write(name, keys):
+    repos = {k: {"path": os.path.join(d, k).replace("\\", "/"), "port": ports[k]} for k in keys}
+    with open(os.path.join(d, name), "w", encoding="utf-8", newline="\n") as f:
+        json.dump({"repos": repos}, f, indent=2)
+write("map-ab.json", ["alpha", "beta"])
+write("map-abg.json", ["alpha", "beta", "gamma"])
+write("map-bg.json", ["beta", "gamma"])
+json.dump([os.path.join(d, "agents")], open(os.path.join(d, "paths.json"), "w"))
+PY
+}
+
+# rc_wire DIR MAP — install-lib.py serena-wire over DIR's agents with one of its maps.
+rc_wire() {
+  "$PY" "$REPO/install-lib.py" serena-wire "$1/paths.json" "$1/$2" \
+    "$REPO/templates/serena/profiles.json" > "$1/wire-$2.out" 2>&1
+}
+
+# ---------------------------------------------------------------- RC1
+# Catches: route C never suggested on a machine that has a repo map, and the third
+# argument changing what an A or B machine is told.
+if want RC1; then
+banner "RC1 · serena-detect says C only when the repo map exists"
+fresh_env rc1; with_serena
+RC1L="$REPO/install-lib.py"
+"$PY" "$RC1L" serena-detect "$HOME_DIR" "$SANDBOX/rc1" > "$SANDBOX/rc1/b2.json" \
+  && "$PY" "$RC1L" serena-detect "$HOME_DIR" "$SANDBOX/rc1" "$CH" > "$SANDBOX/rc1/b3.json"
+chk $? "setup: detect without a map, with and without the claude-home argument"
+yn "$(cmp -s "$SANDBOX/rc1/b2.json" "$SANDBOX/rc1/b3.json" && echo 0 || echo 1)" \
+   "RC1 control: without a map the claude-home argument changes nothing"
+printf '{"repos": {}}\n' > "$CH/serena-repos.json" \
+  && "$PY" "$RC1L" serena-detect "$HOME_DIR" "$SANDBOX/rc1" "$CH" > "$SANDBOX/rc1/c.json" \
+  && mkdir -p "$HOME_DIR/.claude/plugins/cache/serena" \
+  && "$PY" "$RC1L" serena-detect "$HOME_DIR" "$SANDBOX/rc1" "$CH" > "$SANDBOX/rc1/ca.json" \
+  && rm -f "$CH/serena-repos.json" \
+  && "$PY" "$RC1L" serena-detect "$HOME_DIR" "$SANDBOX/rc1" "$CH" > "$SANDBOX/rc1/a.json"
+chk $? "setup: detect with a map, with a map and the plugin, with the plugin alone"
+verdicts < <("$PY" - "$SANDBOX/rc1" "$(rc_w "$CH")" <<'PY'
+import json, os, sys
+d, ch = sys.argv[1], sys.argv[2]
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("PASS" if ok else "FAIL", name)).encode("utf-8"))
+def get(n):
+    try:
+        return json.load(open(os.path.join(d, n), encoding="utf-8"))
+    except Exception:
+        return {}
+say(get("b3.json").get("route") == "B", "RC1 control: a registered server with no map is route B")
+c = get("c.json")
+say(c.get("route") == "C", "RC1 a repo map in the claude home makes the route C (got %r)" % c.get("route"))
+say(any("serena-repos.json" in (e.get("where") or "").replace("\\", "/")
+        for e in c.get("evidence") or []), "RC1 the evidence names the repo map")
+say(get("ca.json").get("route") == "C", "RC1 the map wins over plugin files (got %r)" % get("ca.json").get("route"))
+say(get("a.json").get("route") == "A", "RC1 control: plugin files and no map is still route A")
+PY
+)
+fi
+
+# ---------------------------------------------------------------- RC2
+# Catches: a wired agent keeping a tool its profile does not have, holding the wrong
+# port for its role, keeping activate_project, an mcpServers block in a shape Claude
+# Code does not read, a body still naming mcp__serena__, and a CRLF write.
+if want RC2; then
+banner "RC2 · serena-wire gives each Serena agent per-repo servers, tools and disallowedTools"
+fresh_env rc2
+RC2D="$SANDBOX/rc2/w"
+rc_wire_fixture "$RC2D"
+chk $? "setup: every agent template, and a two-repo map"
+rc_wire "$RC2D" map-ab.json
+chk $? "install-lib.py serena-wire exits 0 (see $RC2D/wire-map-ab.json.out)"
+verdicts < <("$PY" - "$REPO" "$RC2D" <<'PY'
+import importlib.util, json, os, re, sys
+sys.dont_write_bytecode = True
+repo, d = sys.argv[1], sys.argv[2]
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("PASS" if ok else "FAIL", name)).encode("utf-8"))
+prof = json.load(open(os.path.join(repo, "templates", "serena", "profiles.json"), encoding="utf-8"))
+edit_only = set(prof["edit"]) - set(prof["read"])
+keys, ports = ["alpha", "beta"], {"alpha": 9301, "beta": 9302}
+bad = {k: [] for k in ("cr", "tools", "others", "disallowed", "servers", "body", "fm", "untouched")}
+n = 0
+tdir = os.path.join(repo, "templates", "agents")
+for fn in sorted(os.listdir(tdir)):
+    if not fn.endswith(".md") or fn == "README.md":
+        continue
+    raw_tpl = open(os.path.join(tdir, fn), "rb").read()
+    raw = open(os.path.join(d, "agents", fn), "rb").read()
+    tpl = raw_tpl.decode("utf-8").replace("\r\n", "\n")
+    tfm, tbody = tpl.split("\n---\n", 1)
+    tline = re.search(r"^tools:(.*)$", tfm, re.M)
+    entries = [t.strip() for t in tline.group(1).split(",") if t.strip()] if tline else []
+    verbs = [t[len("mcp__serena__"):] for t in entries if t.startswith("mcp__serena__")]
+    if not verbs:
+        if raw != raw_tpl:
+            bad["untouched"].append(fn)
+        continue
+    n += 1
+    if b"\r" in raw:
+        bad["cr"].append(fn)
+    text = raw.decode("utf-8").replace("\r\n", "\n")
+    fm, body = text.split("\n---\n", 1)
+    base = [v for v in verbs if v != "activate_project"]
+    role = "edit" if set(base) & edit_only else "read"
+    line = re.search(r"^tools:(.*)$", fm, re.M)
+    got = [t.strip() for t in line.group(1).split(",") if t.strip()] if line else []
+    if [t for t in got if t.startswith("mcp__serena")] != ["mcp__serena-%s__%s" % (k, v) for k in keys for v in base]:
+        bad["tools"].append(fn)
+    wired = "\nmcpServers:\n" in fm + "\n"
+    if not wired or [t for t in got if not t.startswith("mcp__serena")] != [t for t in entries if not t.startswith("mcp__serena")]:
+        bad["others"].append(fn)
+    dis = re.search(r"^disallowedTools:(.*)$", fm, re.M)
+    want_dis = {"mcp__serena-%s__%s" % (k, t) for k in keys for t in prof["all_tools"] if t not in base}
+    got_dis = [t.strip() for t in dis.group(1).split(",") if t.strip()] if dis else []
+    if set(got_dis) != want_dis or len(got_dis) != len(want_dis):
+        bad["disallowed"].append(fn)
+    block = ["mcpServers:"]
+    for k in keys:
+        block += ["  - serena-%s:" % k, "      type: http",
+                  "      url: http://127.0.0.1:%d/mcp" % (ports[k] + (10 if role == "edit" else 0))]
+    if "\n" + "\n".join(block) + "\n" not in fm + "\n":
+        bad["servers"].append("%s(%s)" % (fn, role))
+    if "mcp__serena__" in text or ("mcp__serena__" in tbody and "mcp__serena-<key>__" not in body):
+        bad["body"].append(fn)
+    owned = re.compile(r"^(tools|disallowedTools|mcpServers):|^\s+(- serena-|type: http|url: http)")
+    if not wired or [l for l in tfm.split("\n") if not owned.match(l)] != [l for l in fm.split("\n") if not owned.match(l)]:
+        bad["fm"].append(fn)
+say(n > 0, "RC2 the fixture holds Serena agents at all (%d)" % n)
+say(not bad["cr"], "RC2 every wired agent is written LF, 0 CR %s" % bad["cr"])
+say(not bad["tools"], "RC2 tools: holds mcp__serena-<key>__<verb> for each repo x the verbs it had, minus activate_project %s" % bad["tools"])
+say(not bad["others"], "RC2 tools: keeps every non-Serena tool, in order %s" % bad["others"])
+say(not bad["disallowed"], "RC2 disallowedTools is each repo x every other Serena tool %s" % bad["disallowed"])
+say(not bad["servers"], "RC2 mcpServers lists one http serena-<key> per repo, on the edit port for an edit agent %s" % bad["servers"])
+say(not bad["body"], "RC2 no body names mcp__serena__; it says mcp__serena-<key>__ instead %s" % bad["body"])
+say(not bad["fm"], "RC2 every other frontmatter line is unchanged %s" % bad["fm"])
+say(not bad["untouched"], "RC2 control: an agent with no Serena tools is not touched %s" % bad["untouched"])
+def load(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+try:
+    lib = load(os.path.join(repo, "install-lib.py"), "install_lib")
+    kit = load(os.path.join(repo, "templates", "serena", "serena_route.py"), "serena_route")
+    same = getattr(lib, "SERENA_EDIT_OFFSET", None) == kit.EDIT_OFFSET
+except Exception:
+    same = False
+say(same, "RC2 install-lib.py's edit-port offset is the kit's EDIT_OFFSET")
+PY
+)
+fi
+
+# ---------------------------------------------------------------- RC3
+# Catches: a re-run that duplicates entries or drifts, and a repo removed from the map
+# that stays wired.
+if want RC3; then
+banner "RC3 · serena-wire is idempotent, and follows the map when a repo is added or removed"
+fresh_env rc3
+RC3D="$SANDBOX/rc3/w"
+rc_wire_fixture "$RC3D" && mkdir -p "$SANDBOX/rc3/once" "$SANDBOX/rc3/gone"
+chk $? "setup: every agent template, and maps with two, three and a different two repos"
+rc_wire "$RC3D" map-ab.json && cp "$RC3D"/agents/*.md "$SANDBOX/rc3/once/" && rc_wire "$RC3D" map-ab.json
+chk $? "wired twice with the same map"
+yn "$(diff -r -q "$SANDBOX/rc3/once" "$RC3D/agents" >/dev/null 2>&1 && echo 0 || echo 1)" \
+   "RC3 a second run with the same map changes no byte"
+rc_wire "$RC3D" map-abg.json
+chk $? "wired again with gamma added"
+verdicts < <("$PY" - "$RC3D/agents" <<'PY'
+import os, re, sys
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("PASS" if ok else "FAIL", name)).encode("utf-8"))
+bad_keys, dupes, servers, n = [], [], [], 0
+for fn in sorted(os.listdir(sys.argv[1])):
+    text = open(os.path.join(sys.argv[1], fn), encoding="utf-8").read()
+    fm = text.split("\n---\n", 1)[0]
+    line = re.search(r"^tools:(.*)$", fm, re.M)
+    tools = [t.strip() for t in line.group(1).split(",") if t.strip()] if line else []
+    serena = [t for t in tools if t.startswith("mcp__serena")]
+    if not serena:
+        continue
+    n += 1
+    if {mm.group(1) for mm in (re.match(r"mcp__serena-([a-z0-9-]+)__", t) for t in serena) if mm} != {"alpha", "beta", "gamma"}:
+        bad_keys.append(fn)
+    dis = re.search(r"^disallowedTools:(.*)$", fm, re.M)
+    dl = [t.strip() for t in dis.group(1).split(",") if t.strip()] if dis else []
+    if len(set(tools)) != len(tools) or len(set(dl)) != len(dl):
+        dupes.append(fn)
+    if len(re.findall(r"^  - serena-", fm, re.M)) != 3 or fm.count("mcpServers:") != 1:
+        servers.append(fn)
+say(n > 0, "RC3 the three-repo run wired Serena agents at all (%d)" % n)
+say(not bad_keys, "RC3 every Serena agent now holds tools for alpha, beta and gamma %s" % bad_keys)
+say(not dupes, "RC3 no tool appears twice in tools: or disallowedTools %s" % dupes)
+say(not servers, "RC3 one mcpServers key with exactly three servers %s" % servers)
+PY
+)
+rc_wire "$RC3D" map-bg.json && cp "$RC3D"/agents/*.md "$SANDBOX/rc3/gone/" && rc_wire "$RC3D" map-bg.json
+chk $? "wired twice with alpha removed"
+yn "$(! grep -lF 'serena-alpha' "$RC3D"/agents/*.md >/dev/null 2>&1 \
+       && grep -lF 'serena-beta' "$RC3D"/agents/*.md >/dev/null 2>&1 && echo 0 || echo 1)" \
+   "RC3 alpha removed from the map leaves no serena-alpha in any agent, and beta still wired"
+yn "$(diff -r -q "$SANDBOX/rc3/gone" "$RC3D/agents" >/dev/null 2>&1 && echo 0 || echo 1)" \
+   "RC3 a second run after the removal changes no byte"
+fi
+
+# ---------------------------------------------------------------- RC4
+# Catches: every wired agent reading "edited" once its wiring no longer matches the
+# hash on record — update would then never refresh it and remove never delete it — and
+# a serena-wire run that needs a keyboard.
+if want RC4; then
+banner "RC4 · serena-wire adds a repo with nobody at the keyboard, and rewired agents stay current"
+rc_env rc4 alpha beta
+chk $? "setup: a fixture folder with git repos alpha and beta, and a clone of the installer"
+keys rc4 "${CFULL[@]}"; run_c install rc4
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the route C install exits 0 (rc=$RC)"
+mkdir -p "$RCDIR/gamma/.git" && run_c_raw rc4w serena-wire
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RC4 serena-wire exits 0 with stdin closed (rc=$RC)"
+yn "$([ "$(bytes rc4w)" -lt 20000 ] && echo 0 || echo 1)" "RC4 serena-wire's output is bounded ($(bytes rc4w) bytes)"
+verdicts < <("$PY" - "$CH" <<'PY'
+import json, os, re, sys
+ch = sys.argv[1]
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("PASS" if ok else "FAIL", name)).encode("utf-8"))
+try:
+    m = json.load(open(os.path.join(ch, ".playbook-install.json"), encoding="utf-8"))
+    repos = json.load(open(os.path.join(ch, "serena-repos.json"), encoding="utf-8"))["repos"]
+except Exception as e:
+    say(False, "RC4 read the manifest and the map (%s)" % e)
+    sys.exit(0)
+cfg = m.get("config") or {}
+say(list(repos) == ["alpha", "beta", "gamma"], "RC4 the map gained gamma after alpha and beta (%s)" % list(repos))
+say(cfg.get("serena_route") == "C", "RC4 the manifest records route C")
+wired = [r.get("key") for r in (cfg.get("serena_wiring") or {}).get("repos") or []]
+say(wired == ["alpha", "beta", "gamma"], "RC4 the recorded wiring names alpha, beta, gamma (%s)" % wired)
+agents = [(u, r["dest"]) for u, r in m.get("units", {}).items() if u.startswith("agent:")]
+serena = [u for u, p in agents if re.search(r"^tools:.*mcp__serena-", open(p, encoding="utf-8").read(), re.M)]
+gamma = [u for u, p in agents if "mcp__serena-gamma__" in open(p, encoding="utf-8").read()]
+say(bool(serena) and sorted(serena) == sorted(gamma), "RC4 every wired agent now holds gamma's tools (%d of %d)" % (len(gamma), len(serena)))
+with open(os.path.join(os.path.dirname(ch), "wired.txt"), "wb") as f:
+    f.write("".join(u + "\n" for u in sorted(serena)).encode("utf-8"))
+PY
+)
+nokeys rc4l; run_c list rc4l
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "list exits 0 (rc=$RC)"
+RC4N=0; RC4BAD=""
+while IFS= read -r RC4U; do
+  [ -n "$RC4U" ] || continue
+  RC4N=$((RC4N + 1))
+  grep -qE "current +$RC4U\$" "$LOGS/rc4l.out" || RC4BAD="$RC4BAD $RC4U"
+done < "$SANDBOX/rc4/wired.txt"
+yn "$([ "$RC4N" -gt 0 ] && [ -z "$RC4BAD" ] && echo 0 || echo 1)" \
+   "RC4 list calls all $RC4N rewired agents current${RC4BAD:+ — not:$RC4BAD}"
+yn "$(grep -qE 'edited +agent:' "$LOGS/rc4l.out" && echo 1 || echo 0)" "RC4 list calls no agent edited"
+mkdir -p "$SANDBOX/rc4/before" && cp "$CH"/agents/*.md "$SANDBOX/rc4/before/"
+nokeys rc4u; run_c update rc4u
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RC4 update exits 0 (rc=$RC)"
+yn "$(diff -r -q "$SANDBOX/rc4/before" "$CH/agents" >/dev/null 2>&1 && echo 0 || echo 1)" \
+   "RC4 update rewires from the record and leaves every agent byte-identical"
+yn "$("$PY" -c 'import json,sys;c=json.load(open(sys.argv[1])).get("config") or {};sys.exit(0 if c.get("serena_route")=="C" and [r["key"] for r in c["serena_wiring"]["repos"]]==["alpha","beta","gamma"] else 1)' "$CH/.playbook-install.json" 2>/dev/null && echo 0 || echo 1)" \
+   "RC4 update keeps route C and the recorded wiring in the manifest"
+fi
+
+# ---------------------------------------------------------------- RC5
+# Catches: remove keeping wired agents as "edited", leaving the kit behind, or deleting
+# the user's own repo map and server state.
+if want RC5; then
+banner "RC5 · remove takes out the kit and the wired agents, and keeps the map and the state"
+rc_env rc5 alpha
+chk $? "setup: a fixture folder with git repo alpha, and a clone of the installer"
+keys rc5 "${CFULL[@]}"; run_c install rc5
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the route C install exits 0 (rc=$RC)"
+mkdir -p "$CH/serena-state" && printf '{}\n' > "$CH/serena-state/alpha-read.json" \
+  && "$PY" - "$CH/.playbook-install.json" "$SANDBOX/rc5/agents.txt" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+wired = [r["dest"] for u, r in sorted(m["units"].items())
+         if u.startswith("agent:") and "mcp__serena-" in open(r["dest"], encoding="utf-8").read()]
+with open(sys.argv[2], "wb") as f:
+    f.write("".join(d.replace("\\", "/") + "\n" for d in wired).encode("utf-8"))
+sys.exit(0 if wired and "support:serena-kit" in m["units"] else 1)
+PY
+chk $? "setup: a state file, and the list of wired agents the manifest records beside the kit"
+keys rc5r '' 'y'; run_c remove rc5r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "remove exits 0 (rc=$RC)"
+yn "$([ ! -e "$CH/serena" ] && echo 0 || echo 1)" "RC5 the route C kit is removed"
+RC5LEFT=0
+while IFS= read -r RC5A; do
+  RC5A="${RC5A%$'\r'}"
+  [ -n "$RC5A" ] && [ -e "$RC5A" ] && RC5LEFT=$((RC5LEFT + 1))
+done < "$SANDBOX/rc5/agents.txt"
+yn "$([ -s "$SANDBOX/rc5/agents.txt" ] && [ "$RC5LEFT" = 0 ] && echo 0 || echo 1)" \
+   "RC5 every wired agent is removed, none kept as edited ($RC5LEFT left)"
+yn "$([ -f "$CH/serena-repos.json" ] && echo 0 || echo 1)" "RC5 the repo map is kept"
+yn "$([ -f "$CH/serena-state/alpha-read.json" ] && echo 0 || echo 1)" "RC5 the server state is kept"
+inboth rc5r "serena-repos.json" "RC5 remove says it kept the repo map"
+fi
+
+# ---------------------------------------------------------------- RC6
+# Catches: route A or B installing the route C kit or its SessionStart notice — the
+# recommended preset ticks every hook and everything ticks every unit — and route C
+# not installing them. Also a re-install that switches route (C to A, C to B, A to B)
+# leaving unedited agents on the old route's tool names or route C servers, and one
+# that overwrites an agent the user edited.
+if want RC6; then
+banner "RC6 · only route C installs the route C units"
+"$PY" "$REPO/install-lib.py" discover "$REPO/templates" "$SANDBOX/rc6-units" > "$SANDBOX/rc6-units.json"
+chk $? "discovered the units"
+RC6IDS="$("$PY" - "$SANDBOX/rc6-units.json" <<'PY'
+import json, sys
+u = json.load(open(sys.argv[1], encoding="utf-8"))
+sys.stdout.buffer.write(" ".join(sorted(k for k, v in u.items() if v.get("route_c_only"))).encode())
+PY
+)"
+yn "$([ -n "$RC6IDS" ] && echo 0 || echo 1)" "RC6 discovery tags route C units at all (${RC6IDS:-none})"
+case " $RC6IDS " in *" support:serena-kit "*) RC6K=0 ;; *) RC6K=1 ;; esac
+yn "$RC6K" "RC6 the kit is a route C unit"
+case " $RC6IDS " in *" hook:serena-leftover-notice "*) RC6K=0 ;; *) RC6K=1 ;; esac
+yn "$RC6K" "RC6 the leftover-notice hook is a route C unit"
+yn "$("$PY" -c 'import json,sys;u=json.load(open(sys.argv[1]));sys.exit(0 if "support:hook-lib" in u.get("support:serena-kit",{}).get("needs",[]) else 1)' "$SANDBOX/rc6-units.json" && echo 0 || echo 1)" \
+   "RC6 the kit pulls in the hook library its .sh wrappers source"
+# rc6_check LOG ROUTE — what the manifest, settings.json and the disk say for one route.
+rc6_check() {
+  local log="$1" route="$2" id rec=0
+  yn "$([ -f "$CH/.playbook-install.json" ] && echo 0 || echo 1)" "RC6 $log: the install wrote its manifest"
+  for id in $RC6IDS; do
+    rc_recorded "$id" && rec=$((rec + 1))
+  done
+  if [ "$route" = C ]; then
+    yn "$([ -n "$RC6IDS" ] && [ "$rec" = "$(echo "$RC6IDS" | wc -w | tr -d ' ')" ] && echo 0 || echo 1)" \
+       "RC6 $log: route C records every route C unit ($rec)"
+    yn "$([ -f "$CH/serena/serena_route.py" ] && echo 0 || echo 1)" "RC6 $log: the kit is on disk"
+    yn "$(grep -qF '"SessionStart"' "$CH/settings.json" 2>/dev/null && echo 0 || echo 1)" \
+       "RC6 $log: settings.json wires SessionStart"
+  else
+    yn "$([ "$rec" = 0 ] && echo 0 || echo 1)" "RC6 $log: route $route records no route C unit ($rec)"
+    yn "$([ ! -e "$CH/serena" ] && [ ! -e "$CH/serena-repos.json" ] && echo 0 || echo 1)" \
+       "RC6 $log: no kit and no repo map on disk"
+    yn "$(grep -qF '"SessionStart"' "$CH/settings.json" 2>/dev/null && echo 1 || echo 0)" \
+       "RC6 $log: settings.json has no SessionStart"
+  fi
+}
+# rc6_route_scan ROUTE SKIP LABEL — "PASS|…"/"FAIL|…" lines for verdicts, over every
+# .md the manifest records except the route C kit and the file SKIP. ROUTE C only
+# counts the files that carry route C wiring: the control that the scan reads them.
+rc6_route_scan() {
+  "$PY" - "$CH/.playbook-install.json" "$1" "$2" "$3" <<'PY'
+import json, os, re, sys
+manifest, route, skip, label = sys.argv[1:5]
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("PASS" if ok else "FAIL", name)).encode("utf-8"))
+def norm(p):
+    return os.path.normcase(os.path.normpath(p))
+m = json.load(open(manifest, encoding="utf-8"))
+files = []
+for uid, rec in sorted((m.get("units") or {}).items()):
+    d = rec.get("dest") or ""
+    if rec.get("kind") == "serena-kit" or not d:
+        continue
+    if os.path.isdir(d):
+        files += [os.path.join(r, f) for r, _, fs in os.walk(d) for f in fs]
+    elif os.path.isfile(d):
+        files.append(d)
+files = [f for f in files if f.endswith(".md") and (not skip or norm(f) != norm(skip))]
+texts = {f: open(f, encoding="utf-8").read() for f in files}
+def holding(test):
+    return [os.path.basename(f) for f, t in sorted(texts.items()) if test(t)]
+wired = holding(lambda t: re.search(r"mcp__serena-[a-z0-9]", t) or re.search(r"^mcpServers:", t, re.M))
+plugin = holding(lambda t: "mcp__plugin_serena_serena__" in t)
+plain = holding(lambda t: "mcp__serena__" in t)
+cfg = m.get("config") or {}
+if route == "C":
+    say(wired, "RC6 %s: control, the scan finds route C wiring in %d recorded file(s)" % (label, len(wired)))
+    sys.exit(0)
+say(not wired, "RC6 %s: no unedited file carries route C wiring (%s)" % (label, ", ".join(wired[:5]) or "none"))
+if route == "A":
+    say(plugin and not plain, "RC6 %s: every Serena file names the plugin tools (%d do; mcp__serena__ in: %s)"
+        % (label, len(plugin), ", ".join(plain[:5]) or "none"))
+else:
+    say(plain and not plugin, "RC6 %s: every Serena file names mcp__serena__ (%d do; the plugin form in: %s)"
+        % (label, len(plain), ", ".join(plugin[:5]) or "none"))
+say("serena_route" not in cfg and "serena_wiring" not in cfg, "RC6 %s: the manifest records no route C wiring" % label)
+PY
+}
+# rc6_edit_agent NEEDLE LOG — append a line to the first recorded agent holding NEEDLE,
+# keep a copy at $SANDBOX/LOG-edited.md, and print the agent's path.
+rc6_edit_agent() {
+  "$PY" - "$CH/.playbook-install.json" "$1" "$SANDBOX/$2-edited.md" <<'PY'
+import json, shutil, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+for uid, rec in sorted(m["units"].items()):
+    if uid.startswith("agent:") and sys.argv[2] in open(rec["dest"], encoding="utf-8").read():
+        with open(rec["dest"], "ab") as f:
+            f.write(b"\nmy own note\n")
+        shutil.copyfile(rec["dest"], sys.argv[3])
+        sys.stdout.buffer.write(rec["dest"].replace("\\", "/").encode("utf-8"))
+        break
+PY
+}
+rc_env rc6a alpha
+keys rc6a '' '' '5' '4' '' 'i' 'A' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''; run_c install rc6a
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the route A recommended install exits 0 (rc=$RC)"
+rc6_check "A recommended" A
+verdicts < <(rc6_route_scan A "" "A recommended")
+RC6ED="$(rc6_edit_agent mcp__plugin_serena_serena__ rc6ab)"
+yn "$([ -n "$RC6ED" ] && echo 0 || echo 1)" "setup: an agent naming the plugin tools is edited by hand (${RC6ED:-none})"
+RC6SW=( "${CRERUN[@]}" ); RC6SW[4]=B
+keys rc6ab "${RC6SW[@]}"; run_c install rc6ab
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the A -> B re-install exits 0 (rc=$RC)"
+verdicts < <(rc6_route_scan B "$RC6ED" "A -> B")
+yn "$([ -n "$RC6ED" ] && cmp -s "$RC6ED" "$SANDBOX/rc6ab-edited.md" && echo 0 || echo 1)" \
+   "RC6 A -> B: the agent edited by hand keeps the edit"
+rc_env rc6e alpha
+keys rc6e '' '' 'e' '5' '4' '' 'i' 'A' '' '' '' '' '' '' '' 'y' "$SANDBOX/ws" ''; run_c install rc6e
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the route A everything install exits 0 (rc=$RC)"
+rc6_check "A everything" A
+rc_env rc6c alpha
+keys rc6c "${CFULL[@]}"; run_c install rc6c
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the route C install exits 0 (rc=$RC)"
+rc6_check "C recommended" C
+verdicts < <(rc6_route_scan C "" "C recommended")
+RC6ED="$(rc6_edit_agent mcp__serena- rc6ca)"
+yn "$([ -n "$RC6ED" ] && echo 0 || echo 1)" "setup: an agent wired for route C is edited by hand (${RC6ED:-none})"
+RC6SW=( "${CRERUN[@]}" ); RC6SW[4]=A
+keys rc6ca "${RC6SW[@]}"; run_c install rc6ca
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the C -> A re-install exits 0 (rc=$RC)"
+verdicts < <(rc6_route_scan A "$RC6ED" "C -> A")
+yn "$([ -n "$RC6ED" ] && cmp -s "$RC6ED" "$SANDBOX/rc6ca-edited.md" && echo 0 || echo 1)" \
+   "RC6 C -> A: the agent edited by hand keeps the edit"
+rc_env rc6cb alpha
+keys rc6cb "${CFULL[@]}"; run_c install rc6cb
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the route C install exits 0 (rc=$RC)"
+RC6SW=( "${CRERUN[@]}" ); RC6SW[4]=B
+keys rc6cb2 "${RC6SW[@]}"; run_c install rc6cb2
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "the C -> B re-install exits 0 (rc=$RC)"
+verdicts < <(rc6_route_scan B "" "C -> B")
+fi
+
+# ---------------------------------------------------------------- RC7
+# Catches: a broken repo map being used or overwritten — a placeholder path, a folder
+# that is not there, or two repos on one port — when the run should stop first.
+if want RC7; then
+banner "RC7 · an invalid repo map stops the run before anything is written"
+rc_env rc7 alpha
+chk $? "setup: a fixture folder with git repo alpha, and a clone of the installer"
+RC7A="$(rc_w "$RCDIR/alpha")"
+for RC7V in placeholder missing clash; do
+  rm -rf "$CH" && mkdir -p "$CH"
+  case "$RC7V" in
+    placeholder) RC7J="{\"repos\": {\"alpha\": {\"path\": \"<absolute path to the repo>\", \"port\": 9121}}}"
+                 RC7T="is still the placeholder" ;;
+    missing)     RC7J="{\"repos\": {\"alpha\": {\"path\": \"$RC7A/no-such-folder\", \"port\": 9121}}}"
+                 RC7T="is not a folder on this machine" ;;
+    clash)       RC7J="{\"repos\": {\"alpha\": {\"path\": \"$RC7A\", \"port\": 9121}, \"beta\": {\"path\": \"$RC7A\", \"port\": 9131}}}"
+                 RC7T="both use port 9131" ;;
+  esac
+  printf '%s\n' "$RC7J" > "$CH/serena-repos.json"
+  cp "$CH/serena-repos.json" "$SANDBOX/rc7/map-before.json"
+  keys "rc7-$RC7V" "${CFULL[@]}"; run_c install "rc7-$RC7V"
+  yn "$([ "$RC" != "0" ] && echo 0 || echo 1)" "RC7 $RC7V: the install stops (rc=$RC)"
+  inboth "rc7-$RC7V" "$RC7T" "RC7 $RC7V: it prints the validator's line ($RC7T)"
+  yn "$([ "$(n_files)" = 1 ] && cmp -s "$CH/serena-repos.json" "$SANDBOX/rc7/map-before.json" && echo 0 || echo 1)" \
+     "RC7 $RC7V: nothing is written — the map alone is in the claude home, unchanged ($(n_files) files)"
+done
+run_c_raw rc7w serena-wire
+yn "$([ "$RC" != "0" ] && bothgrep rc7w "both use port 9131" && echo 0 || echo 1)" \
+   "RC7 serena-wire with stdin closed stops on the clashing map, printing the validator's line (rc=$RC)"
+yn "$([ "$(n_files)" = 1 ] && cmp -s "$CH/serena-repos.json" "$SANDBOX/rc7/map-before.json" && echo 0 || echo 1)" \
+   "RC7 serena-wire writes nothing ($(n_files) files)"
+yn "$([ "$(bytes rc7w)" -lt 20000 ] && echo 0 || echo 1)" "RC7 serena-wire's output is bounded ($(bytes rc7w) bytes)"
+fi
+
+# ---------------------------------------------------------------- RC9
+# Catches: discovery listing a folder that is not a git repo, the playbook clone itself,
+# a key the kit refuses, two repos on one key or port, a port another program holds,
+# a CRLF map; a run with no repos that crashes or half-installs route C; and an
+# existing map that is rewritten instead of appended to.
+if want RC9; then
+banner "RC9 · the repo map is filled in from the git repos next to the clone"
+
+# RC9a — discovery on a fresh machine.
+rc_env rc9a My_Repo plain
+rm -rf "$RCDIR/plain/.git" && mkdir -p "$RCDIR/my-repo" && printf 'gitdir: ../elsewhere\n' > "$RCDIR/my-repo/.git"
+chk $? "RC9a setup: My_Repo (.git folder), my-repo (.git file), plain (no .git), and the clone"
+RC9H="$(rc_free_port)"
+"$PY" - "${RC9H:-0}" "$SANDBOX/rc9a/held" <<'PY' &
+import os, socket, sys, time
+s = socket.socket()
+s.bind(("127.0.0.1", int(sys.argv[1])))
+s.listen(1)
+open(sys.argv[2], "w").close()
+end = time.time() + 300
+while time.time() < end and not os.path.exists(sys.argv[2] + ".stop"):
+    time.sleep(0.2)
+PY
+RC9HPID=$!
+for _i in $(seq 1 50); do [ -f "$SANDBOX/rc9a/held" ] && break; sleep 0.2; done
+yn "$([ -n "$RC9H" ] && [ -f "$SANDBOX/rc9a/held" ] && echo 0 || echo 1)" \
+   "RC9a setup: port ${RC9H:-NONE}, the one discovery would pick first, is held open"
+keys rc9a "${CFULL[@]}"; run_c install rc9a
+touch "$SANDBOX/rc9a/held.stop"; wait "$RC9HPID" 2>/dev/null
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RC9a the route C install exits 0 (rc=$RC)"
+inboth rc9a "my-repo-2" "RC9a the output names the second repo's key"
+inboth rc9a "$(rc_w "$RCDIR/My_Repo")" "RC9a the output names the first repo's folder"
+"$PY" "$REPO/templates/serena/serena_route.py" validate --map "$CH/serena-repos.json" > "$SANDBOX/rc9a/validate.out" 2>&1
+yn "$?" "RC9a the written map passes the kit's own validator ($(tr -d '\r' < "$SANDBOX/rc9a/validate.out" | head -1))"
+yn "$([ -f "$CH/serena-repos.json" ] && [ "$(tr -cd '\r' < "$CH/serena-repos.json" | wc -c)" = 0 ] && echo 0 || echo 1)" \
+   "RC9a the map is written LF, 0 CR"
+verdicts < <("$PY" - "$CH" "$RCDIR" "${RC9H:-0}" <<'PY'
+import json, os, re, sys
+ch, fix, held = sys.argv[1], sys.argv[2], int(sys.argv[3])
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("PASS" if ok else "FAIL", name)).encode("utf-8"))
+def norm(p):
+    return os.path.normcase(os.path.realpath(p))
+try:
+    repos = json.load(open(os.path.join(ch, "serena-repos.json"), encoding="utf-8"))["repos"]
+    m = json.load(open(os.path.join(ch, ".playbook-install.json"), encoding="utf-8"))
+except Exception as e:
+    say(False, "RC9a read the map and the manifest (%s)" % e)
+    sys.exit(0)
+say(list(repos) == ["my-repo", "my-repo-2"], "RC9a the map lists exactly the two git repos, the clash as -2 (%s)" % list(repos))
+say(all(re.match(r"^[a-z0-9][a-z0-9-]*$", k) for k in repos), "RC9a every key is one the kit accepts")
+paths = {k: norm(r.get("path", "")) for k, r in repos.items()}
+say(paths.get("my-repo") == norm(os.path.join(fix, "My_Repo")) and paths.get("my-repo-2") == norm(os.path.join(fix, "my-repo")),
+    "RC9a each key points at its own folder")
+ports = [p for r in repos.values() for p in (r.get("port"), (r.get("port") or 0) + 10)]
+say(len(set(ports)) == len(ports), "RC9a every port and port + 10 is unique (%s)" % ports)
+say(held not in ports, "RC9a the held port %d is skipped (%s)" % (held, ports))
+say(all("/" in r.get("path", "") and "\\" not in r.get("path", "") for r in repos.values()), "RC9a paths are stored with forward slashes")
+say((m.get("config") or {}).get("serena_route") == "C", "RC9a the manifest records route C")
+PY
+)
+
+# RC9b — no repos next to the clone.
+rc_env rc9b
+chk $? "RC9b setup: a fixture folder holding only the clone"
+keys rc9b "${CFULL[@]}"; run_c install rc9b
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RC9b the install still exits 0 (rc=$RC)"
+inboth rc9b "$(rc_w "$RCDIR")" "RC9b the message names the folder it searched"
+inboth rc9b "nothing is set up for route C" "RC9b it says route C was not set up"
+yn "$([ ! -e "$CH/serena-repos.json" ] && [ ! -e "$CH/serena" ] && echo 0 || echo 1)" "RC9b no map and no kit are written"
+yn "$(! grep -qF '"serena_route"' "$CH/.playbook-install.json" 2>/dev/null \
+       && [ -f "$CH/.playbook-install.json" ] && ! rc_recorded support:serena-kit \
+       && ! rc_recorded hook:serena-leftover-notice && echo 0 || echo 1)" \
+   "RC9b the manifest records no route C and no route C unit"
+run_c_raw rc9bw serena-wire
+yn "$([ "$RC" != "0" ] && bothgrep rc9bw "$(rc_w "$RCDIR")" && echo 0 || echo 1)" \
+   "RC9b serena-wire with stdin closed stops with nothing to wire, naming the folder it searched (rc=$RC)"
+yn "$([ ! -e "$CH/serena-repos.json" ] && echo 0 || echo 1)" "RC9b serena-wire writes no map"
+yn "$([ "$(bytes rc9bw)" -lt 20000 ] && echo 0 || echo 1)" "RC9b serena-wire's output is bounded ($(bytes rc9bw) bytes)"
+
+# RC9c — a map that already exists.
+rc_env rc9c alpha
+RC9P="$(rc_free_port)"
+mkdir -p "$CH" && printf '{\n   "repos": {\n      "alpha": {"path": "%s", "port": %s}\n   },\n   "note": "kept as written"\n}\n' \
+  "$(rc_w "$RCDIR/alpha")" "${RC9P:-9121}" > "$CH/serena-repos.json" && cp "$CH/serena-repos.json" "$SANDBOX/rc9c/map-0.json"
+chk $? "RC9c setup: a hand-formatted map naming alpha on port ${RC9P:-NONE}"
+keys rc9c "${CFULL[@]}"; run_c install rc9c
+yn "$([ "$RC" = "0" ] && rc_recorded support:serena-kit && echo 0 || echo 1)" \
+   "RC9c the install over an existing map exits 0 and installs route C (rc=$RC)"
+yn "$(cmp -s "$CH/serena-repos.json" "$SANDBOX/rc9c/map-0.json" && echo 0 || echo 1)" \
+   "RC9c with no new repo the map is byte-identical"
+mkdir -p "$RCDIR/gamma/.git"
+keys rc9c2 "${CRERUN[@]}"; run_c install rc9c2
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RC9c the re-run with gamma added exits 0 (rc=$RC)"
+inboth rc9c2 "gamma" "RC9c the re-run names the repo it added"
+cp "$CH/serena-repos.json" "$SANDBOX/rc9c/map-1.json" 2>/dev/null
+verdicts < <("$PY" - "$SANDBOX/rc9c/map-0.json" "$SANDBOX/rc9c/map-1.json" "$CH" <<'PY'
+import json, os, sys
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("PASS" if ok else "FAIL", name)).encode("utf-8"))
+old = open(sys.argv[1], encoding="utf-8").read()
+try:
+    new = open(sys.argv[2], encoding="utf-8").read()
+    o, n = json.loads(old), json.loads(new)
+    m = json.load(open(os.path.join(sys.argv[3], ".playbook-install.json"), encoding="utf-8"))
+except Exception as e:
+    say(False, "RC9c read the maps and the manifest (%s)" % e)
+    sys.exit(0)
+k = 0
+while k < min(len(old), len(new)) and old[k] == new[k]:
+    k += 1
+say(len(new) > len(old) and new.endswith(old[k:]), "RC9c the old map survives whole around one appended stretch")
+say(list(n["repos"]) == ["alpha", "gamma"], "RC9c gamma is appended after alpha (%s)" % list(n["repos"]))
+say(n["repos"]["alpha"] == o["repos"]["alpha"] and n.get("note") == o.get("note"), "RC9c alpha's entry and the user's own key are unchanged")
+p0, g = o["repos"]["alpha"]["port"], (n["repos"].get("gamma") or {}).get("port", 0)
+say(bool(g) and {g, g + 10}.isdisjoint({p0, p0 + 10}), "RC9c gamma's ports %d/%d avoid alpha's %d/%d" % (g, g + 10, p0, p0 + 10))
+wired = [r.get("key") for r in ((m.get("config") or {}).get("serena_wiring") or {}).get("repos") or []]
+say(wired == ["alpha", "gamma"], "RC9c the recorded wiring follows the map (%s)" % wired)
+PY
+)
+run_c_raw rc9cw serena-wire
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "RC9c serena-wire with nothing new exits 0 (rc=$RC)"
+yn "$(cmp -s "$CH/serena-repos.json" "$SANDBOX/rc9c/map-1.json" && echo 0 || echo 1)" \
+   "RC9c serena-wire with nothing new leaves the map byte-identical"
 fi
 
 close_section

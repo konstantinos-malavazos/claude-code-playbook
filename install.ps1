@@ -6,7 +6,7 @@
     This is a preflight-and-delegate wrapper around install.sh. It is deliberately
     NOT a PowerShell port of the installer.
 
-    The reason is the hooks. All eight guardrail hooks are bash scripts, and every one
+    The reason is the hooks. All nine guardrail hooks are bash scripts, and every one
     of them parses its JSON payload with python. A PowerShell installer could copy
     them into place and wire them into settings.json, and they would still be unable
     to run: a hook that cannot execute exits non-zero, and the blocking hooks fail
@@ -18,7 +18,8 @@
     with hooks that cannot run.
 
 .PARAMETER Mode
-    install (default), update, remove, or list. Passed straight through to install.sh.
+    install (default), update, remove, list, or serena-wire. Passed straight through to
+    install.sh, with any folders given after serena-wire.
 
 .EXAMPLE
     Windows PowerShell is set to Restricted out of the box, which blocks every .ps1
@@ -50,8 +51,11 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('install', 'update', 'remove', 'list')]
-    [string]$Mode = 'install'
+    [ValidateSet('install', 'update', 'remove', 'list', 'serena-wire')]
+    [string]$Mode = 'install',
+    # serena-wire takes folders of agent files after the mode; passed on to install.sh.
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Rest = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -278,7 +282,7 @@ if ($useWsl) {
 $pythonFound = $python.Output
 
 if ($python.Code -ne 0 -or -not $pythonFound) {
-    Write-Fail 'No python 3.7+ inside bash. install-lib.py needs it, and so do all eight hooks.' @(
+    Write-Fail 'No python 3.7+ inside bash. install-lib.py needs it, and so do all nine hooks.' @(
         'A python that works in PowerShell is not enough — the hooks run inside bash.',
         '',
         'Git Bash:  install python from https://www.python.org/downloads/ and tick',
@@ -318,6 +322,11 @@ if ($env:CLAUDE_HOME) {
 # of the exit code we mean to hand back. (5.1 only; see Invoke-Probe above.)
 $ErrorActionPreference = 'Continue'
 
+# Each extra argument travels bash-quoted, with forward slashes, so a folder with a
+# space or an apostrophe in it arrives as one argument.
+$restArgs = ''
+foreach ($a in $Rest) { $restArgs += ' ' + (ConvertTo-BashQuoted ($a -replace '\\', '/')) }
+
 if ($useWsl) {
     # Translate the Windows path so the Linux side can find the clone.
     $translated = Invoke-Probe 'wsl.exe' @('-e', 'wslpath', '-a', ($here -replace '\\', '/'))
@@ -328,9 +337,9 @@ if ($useWsl) {
             '  cd /mnt/c/path/to/claude-code-playbook && ./install.sh'
         )
     }
-    & wsl.exe -e bash -lc "cd $(ConvertTo-BashQuoted ($wslPath.Trim())) && ${envPrefix}./install.sh $Mode"
+    & wsl.exe -e bash -lc "cd $(ConvertTo-BashQuoted ($wslPath.Trim())) && ${envPrefix}./install.sh $Mode$restArgs"
 } else {
-    & $bash -lc "cd $(ConvertTo-BashQuoted ($here -replace '\\', '/')) && ${envPrefix}./install.sh $Mode"
+    & $bash -lc "cd $(ConvertTo-BashQuoted ($here -replace '\\', '/')) && ${envPrefix}./install.sh $Mode$restArgs"
 }
 
 exit $LASTEXITCODE

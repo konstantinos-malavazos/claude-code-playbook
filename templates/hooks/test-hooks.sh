@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regression suite for all eight hooks.
+# Regression suite for all nine hooks.
 #
 # A guardrail that stops guarding keeps reporting success, so these cannot be verified by
 # reading them. Run this after editing any hook, and after a Claude Code release that
@@ -1871,6 +1871,179 @@ else
     run_raw $ML_HOOK "WindowsApps only: create, passes lint" "$ML_GOOD" 0
     HOOK_PATH="$PATH"
 fi
+
+echo "serena-leftover-notice.sh — a SessionStart notice: it names what is left, and exits 0 on every path"
+# Laid out as installed: hooks/, hooks/_lib/, serena/ and serena-state/ under one .claude,
+# because the hook finds the kit and the state beside its own folder. The kit is the real
+# templates/serena/, so the stale and unreadable lines are the kit's own words.
+NT="$SCRATCH/notice"
+NT_HOOK=serena-leftover-notice.sh
+NT_PAYLOAD='{"hook_event_name":"SessionStart","source":"startup"}'
+# An exited process, so its pid is not running. Bytes, so no CR rides along on Windows.
+NT_DEAD="$("$PY" -c 'import os, sys; sys.stdout.buffer.write(str(os.getpid()).encode())')"
+NT_MANY=40
+nt_tree() { # <dir> <lib|nolib|cutlib> <kit|nokit|badkit> — a .claude with no serena-state yet
+    mkdir -p "$1/hooks" || return 1
+    # Not fatal: with the hook missing, every case below fails by its own name.
+    cp "./$NT_HOOK" "$1/hooks/" 2>/dev/null
+    case "$2" in
+        lib)    mkdir -p "$1/hooks/_lib" && cp ./_lib/common.sh "$1/hooks/_lib/" || return 1 ;;
+        cutlib) mkdir -p "$1/hooks/_lib" && sed '$d' ./_lib/common.sh > "$1/hooks/_lib/common.sh" || return 1 ;;
+    esac
+    case "$3" in
+        kit)    cp -R ../serena "$1/serena" || return 1 ;;
+        badkit) mkdir -p "$1/serena" \
+                && printf 'import sys\nsys.stdout.write("PARTIAL\\n")\nsys.exit(1)\n' > "$1/serena/serena_route.py" || return 1 ;;
+    esac
+}
+nt_stale() { # <dir> <key> — a state file whose pid is not running
+    mkdir -p "$1/serena-state/logs" \
+    && printf '{"key": "%s", "profile": "read", "port": 9121, "pid": %s, "path": "x", "log": "x", "started": "x"}\n' \
+              "$2" "$NT_DEAD" > "$1/serena-state/$2-read.json"
+}
+run_notice() { # <label> <.claude dir> <stdout> <stderr> [<stdout must not hold>] — "-" = empty, "" = anything, else must hold
+    local out err got=0 why=""
+    out=$(printf '%s' "$NT_PAYLOAD" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$2/hooks/$NT_HOOK" 2>"$NT/stderr") || got=$?
+    err="$(cat "$NT/stderr" 2>/dev/null)"
+    ran=$((ran + 1))
+    settings_suffix
+    [ "$got" = 0 ] || why="exit=$got want=0"
+    case "$3" in
+        -)  [ -z "$out" ] || why="${why:+$why; }printed to stdout" ;;
+        "") ;;
+        *)  [ "${out#*"$3"}" != "$out" ] || why="${why:+$why; }stdout does not hold: $3" ;;
+    esac
+    case "$4" in
+        -)  [ -z "$err" ] || why="${why:+$why; }printed to stderr" ;;
+        "") ;;
+        *)  [ "${err#*"$4"}" != "$err" ] || why="${why:+$why; }stderr does not hold: $4" ;;
+    esac
+    if [ -n "${5-}" ] && [ "${out#*"$5"}" != "$out" ]; then why="${why:+$why; }stdout holds: $5"; fi
+    if [ -z "$why" ]; then
+        printf '  ok   %s [%s]%s\n' "$NT_HOOK" "$1" "$SUF"
+    else
+        printf '  FAIL %s [%s] %s%s\n' "$NT_HOOK" "$1" "$why" "$SUF"
+        printf '       stdout was: %s\n       stderr was: %s\n' "$out" "$err"
+        fail=$((fail + 1))
+    fi
+}
+nt_setup() {
+    mkdir -p "$NT" \
+    && nt_tree "$NT/none/.claude" lib kit \
+    && nt_tree "$NT/logs-only/.claude" lib kit && mkdir -p "$NT/logs-only/.claude/serena-state/logs" \
+    && nt_tree "$NT/stale/.claude" lib kit && nt_stale "$NT/stale/.claude" alpha \
+    && nt_tree "$NT/unreadable/.claude" lib kit && nt_stale "$NT/unreadable/.claude" alpha \
+    && printf '{"key":' > "$NT/unreadable/.claude/serena-state/beta-edit.json" \
+    && nt_tree "$NT/o'brien/.claude" lib kit && nt_stale "$NT/o'brien/.claude" alpha \
+    && nt_tree "$NT/nokit/.claude" lib nokit && nt_stale "$NT/nokit/.claude" alpha \
+    && nt_tree "$NT/badkit/.claude" lib badkit && nt_stale "$NT/badkit/.claude" alpha \
+    && nt_tree "$NT/nolib/.claude" nolib kit && nt_stale "$NT/nolib/.claude" alpha \
+    && nt_tree "$NT/cutlib/.claude" cutlib kit && nt_stale "$NT/cutlib/.claude" alpha \
+    && "$BASH_BIN" -n "$NT/cutlib/.claude/hooks/_lib/common.sh" \
+    && nt_tree "$NT/many/.claude" lib kit \
+    && for i in $(seq -w 1 "$NT_MANY"); do nt_stale "$NT/many/.claude" "k$i" || return 1; done \
+    && [ -n "$NT_DEAD" ] \
+    && "$PY" -B -c 'import sys; sys.path.insert(0, "../serena"); import serena_route as r; sys.exit(1 if r.pid_alive(sys.argv[1]) else 0)' "$NT_DEAD"
+}
+# The last check is the kit's own liveness test, never os.kill(pid, 0): on Windows that
+# terminates the process when the pid has been reused. A live NT_DEAD would make every
+# "stale" case below about a running server.
+if nt_setup; then
+    # Silent when nothing is recorded; the stale case is the control that it can speak.
+    run_notice "no serena-state folder: silent"           "$NT/none/.claude"      - -
+    run_notice "serena-state holds only logs/: silent"    "$NT/logs-only/.claude" - -
+    # No --home in the printed command: the hook passed the same home the kit defaults to.
+    run_notice "a stale state file is named"              "$NT/stale/.claude"     "stale:   alpha (read, port 9121)" - "--home"
+    run_notice "the stop command is printed"              "$NT/stale/.claude"     'Stop them with: bash "' -
+    run_notice "the stop command names the kit's down"    "$NT/stale/.claude"     'serena/serena-down.sh"' -
+    run_notice "a malformed state file is named"          "$NT/unreadable/.claude" "unreadable state file:" -
+    run_notice "a malformed state file beside a good one" "$NT/unreadable/.claude" "stale:   alpha" -
+    # MSYS stops translating a /c/... argument that holds an apostrophe.
+    run_notice "a home folder with an apostrophe"         "$NT/o'brien/.claude"   "stale:   alpha (read, port 9121)" - "--home"
+    run_notice "kit missing: silent on stdout, says so"   "$NT/nokit/.claude"     - "serena_route.py"
+    # The broken kit prints PARTIAL and fails; nothing it printed reaches the session.
+    run_notice "kit fails: nothing it printed is shown"   "$NT/badkit/.claude"    - ""
+    run_notice "library missing: exits 0, says so"        "$NT/nolib/.claude"     - "shared hook library"
+    run_notice "library cut short: exits 0, says so"      "$NT/cutlib/.claude"    - "shared hook library"
+
+    # A bounded notice: one line per state file plus the header and the stop line.
+    out=$(printf '%s' "$NT_PAYLOAD" | HOME="$HOOK_HOME" PATH="$HOOK_PATH" "$BASH_BIN" "$NT/many/.claude/hooks/$NT_HOOK" 2>/dev/null)
+    got=$?
+    ran=$((ran + 1))
+    settings_suffix
+    n_lines=$(printf '%s\n' "$out" | grep -c .)
+    n_stale=$(printf '%s\n' "$out" | grep -c '^  stale:   k')
+    if [ "$got" = 0 ] && [ "$n_stale" = "$NT_MANY" ] && [ "$n_lines" = "$((NT_MANY + 2))" ] \
+       && [ "${#out}" -le "$((NT_MANY * 200))" ]; then
+        printf '  ok   %s [%s state files: %s lines, %s bytes]%s\n' "$NT_HOOK" "$NT_MANY" "$n_lines" "${#out}" "$SUF"
+    else
+        printf '  FAIL %s [%s state files] exit=%s, %s stale lines of %s, %s lines, %s bytes — want %s, %s, at most %s bytes%s\n' \
+            "$NT_HOOK" "$NT_MANY" "$got" "$n_stale" "$NT_MANY" "$n_lines" "${#out}" \
+            "$NT_MANY" "$((NT_MANY + 2))" "$((NT_MANY * 200))" "$SUF"
+        fail=$((fail + 1))
+    fi
+
+    if [ -z "${NOPY_PATH:-}" ] || PATH="$NOPY_PATH" command -v python >/dev/null 2>&1 \
+       || PATH="$NOPY_PATH" command -v python3 >/dev/null 2>&1; then
+        printf '  FAIL [setup] no python-free PATH for %s — its no-python cases did not run\n' "$NT_HOOK"
+        fail=$((fail + 1))
+    else
+        HOOK_PATH="$NOPY_PATH"
+        run_notice "no python: exits 0, says so"          "$NT/stale/.claude"     - "no python3 or python on PATH"
+        HOOK_PATH="$PATH"
+
+        # Which interpreter ran is invisible in the exit code, so each stub leaves a marker.
+        NT_STUB="$NT/pystub"
+        NT_MARK="$NT/python-ran"
+        mkdir -p "$NT_STUB"
+        printf '#!/bin/sh\n: > "%s"\nexit 1\n' "$NT_MARK" > "$NT_STUB/python3"
+        cp "$NT_STUB/python3" "$NT_STUB/python"
+        chmod +x "$NT_STUB/python3" "$NT_STUB/python"
+        HOOK_PATH="$NT_STUB:$NOPY_PATH"
+        rm -f "$NT_MARK"
+        run_notice "nothing recorded: python is not started" "$NT/none/.claude"   - -
+        ran=$((ran + 1))
+        if [ -e "$NT_MARK" ]; then
+            printf '  FAIL %s [nothing recorded] a python was started%s\n' "$NT_HOOK" "$SUF"
+            fail=$((fail + 1))
+        else
+            printf '  ok   %s [nothing recorded] no python was started%s\n' "$NT_HOOK" "$SUF"
+        fi
+        # Control: the same stubs ARE reached when there is something to report.
+        rm -f "$NT_MARK"
+        run_notice "a python that fails: exits 0, says so" "$NT/stale/.claude"   - "not a working python"
+        ran=$((ran + 1))
+        if [ -e "$NT_MARK" ]; then
+            printf '  ok   %s [state recorded] the stub python was started (control)%s\n' "$NT_HOOK" "$SUF"
+        else
+            printf '  FAIL %s [state recorded] the stub python was never started — the case above proves nothing%s\n' "$NT_HOOK" "$SUF"
+            fail=$((fail + 1))
+        fi
+        HOOK_PATH="$PATH"
+    fi
+else
+    printf '  FAIL [setup] the %s trees were not built — its cases did not run\n' "$NT_HOOK"
+    fail=$((fail + 1))
+fi
+
+echo "serena-leftover-notice.sh — wired to SessionStart, matcher startup, and nowhere else"
+for nt_snip in ./settings-hooks.snippet.json ../mcp/settings.json.snippet; do
+    ran=$((ran + 1))
+    if "$PY" - "$nt_snip" <<'PY'
+import json, sys
+hooks = json.load(open(sys.argv[1], encoding="utf-8"))["hooks"]
+want = "~/.claude/hooks/serena-leftover-notice.sh"
+at = [(ev, b.get("matcher")) for ev, blocks in hooks.items() for b in blocks
+      for h in b.get("hooks", []) if h.get("command") == want]
+sys.exit(0 if at == [("SessionStart", "startup")] else 1)
+PY
+    then
+        printf '  ok   %s [%s] SessionStart, matcher startup, once\n' "$NT_HOOK" "${nt_snip#./}"
+    else
+        printf '  FAIL %s [%s] not wired exactly once under SessionStart with matcher "startup"\n' "$NT_HOOK" "${nt_snip#./}"
+        fail=$((fail + 1))
+    fi
+done
 
 echo ""
 if [ "$fail" -eq 0 ]; then

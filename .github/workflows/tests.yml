@@ -8,9 +8,9 @@
 # Desktop's utility VM accepted as a WSL distribution, and an apostrophe in a path
 # breaking both halves of the install. None of them were reachable from ubuntu-latest.
 #
-# So there are two jobs. The Linux one is the fast, authoritative run of the four
-# bash suites. The Windows one runs those same four under Git Bash — where the paths
-# and the python are Windows ones — and adds the install.ps1 suite, twice: once under
+# So there are two platforms. The Linux job is the fast, authoritative run of the four
+# bash suites. The Windows jobs run those same four under Git Bash — where the paths
+# and the python are Windows ones — and add the install.ps1 suite, twice: once under
 # Windows PowerShell 5.1 and once under PowerShell 7. Three of the four bugs above
 # were invisible under 7 and only appeared under 5.1, which is what `powershell.exe`
 # and a right-click "Run with PowerShell" still give you.
@@ -100,9 +100,41 @@ jobs:
   # install.ps1 hands off to, so the three bash suites here are running against
   # Windows paths, a Windows python and msys path translation. That is where the
   # apostrophe bug lived: it needed a Windows python to be handed a /c/... path.
+  #
+  # Run end to end on one runner, Windows takes longer than any one job should, so it
+  # is split into jobs that run side by side: `hooks`, `suites` (wiring, docs and both
+  # install.ps1 runs), and one job per installer chunk in README.md "Running the
+  # installer suite". The plan job reads those chunks, and refuses a list that leaves a
+  # section out, names one twice, or splits a group the README says must share a chunk.
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      chunks: ${{ steps.chunks.outputs.chunks }}
+      sections: ${{ steps.chunks.outputs.sections }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer chunks (tests/ci-chunks.py)
+        id: chunks
+        shell: bash
+        run: |
+          python3 tests/ci-chunks.py > "$RUNNER_TEMP/chunks"
+          cat "$RUNNER_TEMP/chunks"
+          cat "$RUNNER_TEMP/chunks" >> "$GITHUB_OUTPUT"
+
   windows:
+    needs: plan
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: ${{ fromJSON(needs.plan.outputs.chunks) }}
+        include:
+          - chunk: hooks
+          - chunk: suites
 
     steps:
       - uses: actions/checkout@v4
@@ -145,25 +177,39 @@ jobs:
       # runner.temp is a Windows path and a bash suite would read its backslashes
       # as escapes, so it is converted here rather than interpolated as-is.
       - name: Wiring scrub (tests/test-wiring.sh)
+        if: matrix.chunk == 'suites'
         shell: bash
         run: PLAYBOOK_TEST_DIR="$(cygpath -u "$RUNNER_TEMP")/playbook-wiring" bash tests/test-wiring.sh
 
       - name: Docs scrub (tests/test-docs.sh)
+        if: matrix.chunk == 'suites'
         shell: bash
         run: bash tests/test-docs.sh
 
       - name: Hook patterns (templates/hooks/test-hooks.sh)
+        if: matrix.chunk == 'hooks'
         shell: bash
         run: bash templates/hooks/test-hooks.sh
 
-      - name: Installer suite (tests/test-installer.sh)
+      # The section ids reach the shell through env, never through ${{ }} in the
+      # script, and are split on purpose. With no ids the suite would run every
+      # section, so an empty list is refused rather than passed through.
+      - name: Installer suite (tests/test-installer.sh, ${{ matrix.chunk }})
+        if: startsWith(matrix.chunk, 'installer-')
         shell: bash
-        run: PLAYBOOK_TEST_DIR="$(cygpath -u "$RUNNER_TEMP")/playbook-install" bash tests/test-installer.sh
+        env:
+          CHUNK: ${{ matrix.chunk }}
+          SECTIONS: ${{ fromJSON(needs.plan.outputs.sections)[matrix.chunk] }}
+        run: |
+          [ -n "$SECTIONS" ] || { echo "no installer sections for $CHUNK" >&2; exit 1; }
+          # shellcheck disable=SC2086
+          PLAYBOOK_TEST_DIR="$(cygpath -u "$RUNNER_TEMP")/playbook-install" bash tests/test-installer.sh $SECTIONS
 
       # The host is named explicitly rather than left to `shell:`, because WHICH
       # PowerShell ran is the entire point of running this twice. The suite tests
       # whichever host starts it, so these two steps are the same file, twice.
       - name: install.ps1 suite (Windows PowerShell 5.1)
+        if: matrix.chunk == 'suites'
         shell: pwsh
         env:
           PLAYBOOK_TEST_DIR: ${{ runner.temp }}/playbook-ps1-51
@@ -172,6 +218,7 @@ jobs:
           exit $LASTEXITCODE
 
       - name: install.ps1 suite (PowerShell 7)
+        if: matrix.chunk == 'suites'
         shell: pwsh
         env:
           PLAYBOOK_TEST_DIR: ${{ runner.temp }}/playbook-ps1-7
@@ -183,7 +230,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-logs-windows
+          name: test-logs-windows-${{ matrix.chunk }}
           path: ${{ runner.temp }}/playbook-*
           if-no-files-found: ignore
           retention-days: 7
