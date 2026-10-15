@@ -105,7 +105,7 @@ demanding the answer forces a check.
 
 **The claim is advisory, not a mutex.** No tracker here can give you a lock. GitHub
 silently no-ops an assignee write when the caller lacks push access *and still returns
-success*. A local claim in one worktree is invisible from another. Claim, then **read the
+success*. A local claim in one checkout is invisible from another. Claim, then **read the
 claim back**. Treat a lost race as a nuisance to resolve out of band, not a
 correctness bug.
 

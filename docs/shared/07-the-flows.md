@@ -57,7 +57,7 @@ Turns a ticket id into a reviewed, single-commit branch.
         │
         └── slice-count > 1 (large ticket): see 09-decompose-path.md
               /to-spec → /to-tickets (slice board → human approves)
-              → parallel slices in git worktrees → @aligner → @integrator
+              → slices one at a time, each on its own branch → @aligner → @integrator
               → @integration-tester
         │
 @repo-reviewer        in-repo: diff, acceptance criteria, tests, commit convention
@@ -99,7 +99,7 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 | **`/cut-backlog`** *(solo)* | closed map + scaffolded repo → an ordered **backlog** of work units, approved on a board before anything is created, then the same **dependency picture** over the tickets that now exist | the last stage of the solo path, and where it stops. Units are cut from the **smallest version**, not from the map's decisions — one unit = one thing the app can now do. [solo 05](../solo/05-cutting.md) |
 | **`/prototype`** | a design question nobody can settle on paper → **throwaway code built to be reacted to and then deleted**: one interactive harness for *does this logic hold up*, or several radically different takes on one screen for *what should this look like* | some decisions only get answered by looking at them run. It is the skill behind charting's `prototype` ticket type — and the reaction is the output, so an agent that builds three variants and picks one has answered nothing. [`templates/skills/prototype/`](../../templates/skills/prototype/SKILL.md) |
 | **`/adapt-to-stack`** | a repo's `CLAUDE.md` → **one layer specialist, its slice-mode variant and one standards skill per layer**, in that repo's own `.claude/`, created and never overwritten, ending in one report | the chain is written down once and everything downstream is generated from it — copying it by hand is transcription, and transcription drifts. **Not a stage**: it runs wherever the layer files first get made real, and again every time the chain grows. [11](11-adapting-to-your-stack.md) |
-| **decompose path** | large ticket → independent **parallel slices** in git worktrees → one commit per repo | when a ticket is too big for one sequential pass. [09](09-decompose-path.md) |
+| **decompose path** | large ticket → independent slices, built **one at a time** → one commit per repo | when a ticket is too big for one sequential pass. [09](09-decompose-path.md) |
 | **`/start-massive`** *(team)* | a **foggy** ticket on an existing codebase → a local map of small tickets, then stops | `/charting` pointed at a mature multi-repo workspace instead of a greenfield repo. Use when you sit down to plan and cannot. [team 03](../team/03-massive-tickets.md) |
 | **`/resume-massive`** *(team)* | walks that map — one ticket per session: claim, dispatch by type, gist, close, regenerate. Owns the three endings and the closing review sequence | a map runs for weeks; every session has to start from the map rather than from memory. [team 03](../team/03-massive-tickets.md) |
 | **`/build-chart-ticket`** *(team)* | one `make:<layer>` ticket off a map → gatherer delta → planner → the single layer specialist the label names → review, but only once that repo has no other makes left | the map already decomposed the work, so this deliberately has **no** track allocation and no slice fork. [team 03](../team/03-massive-tickets.md) |
@@ -207,7 +207,7 @@ may only raise its floor.
 | # | Dispatch site | Has the plan? | Weighed by |
 |---|---|---|---|
 | 1 | the initial track dispatch, in chain order | **yes** | `@planner`, in the plan |
-| 2 | each parallel slice on the decompose path ([09](09-decompose-path.md)) | yes, per slice | `@planner`, per slice |
+| 2 | each slice on the decompose path ([09](09-decompose-path.md)) | yes, per slice | `@planner`, per slice |
 | 3 | the **review-fix re-pass** after `REQUEST CHANGES` | no | `@repo-reviewer`, in the verdict |
 | 4 | the **drift fix** after the alignment gate | no | `@aligner`, with its drift report |
 | 5 | the QA bounce-back (`/fix-ticket`) | no | `@fixer-planner`, in the fix plan |
@@ -285,7 +285,7 @@ buy the one thing the override cannot: an **exact** id on the escalated path. Ta
 override anyway.
 
 **The model is a dispatch parameter, not part of an agent's identity.** Fork an agent when
-its **behaviour** differs — a different worktree, a different handoff path, different commit
+its **behaviour** differs — a different branch, a different handoff path, different commit
 rules. That is why `slice-layer-specialist` exists next to `layer-specialist`
 ([09](09-decompose-path.md)): slice mode changes where the agent works and what it commits,
 not how clever it is. Never fork one because only its capability tier differs.

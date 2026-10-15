@@ -52,9 +52,14 @@ handoff. There are four dispatch sites below (steps 5 and 6); a weight read once
      **dispatch site 2**: any drift fix `@aligner` routes back goes on the weight `@aligner`
      classified, not on the slice's original one.
    - `slice-count > 1` → run `/to-spec` then `/to-tickets`, get the user's approval of the
-     slice board, dispatch the slices in parallel worktrees — **dispatch site 3**, each
-     slice on its own weight from the plan — then @aligner → @integrator →
-     @integration-tester (see docs/shared/09). @aligner's drift fixes are site 2 above.
+     slice board, then run the slices **one at a time, in the main checkout, in board order**
+     (wave 1 first, then by slice number). Per slice, per repo it touches: check out
+     `<TICKET-ID>_<slug>-slice-<N>`, cut from that repo's previous slice branch (or from the
+     final branch for the first), confirm `git status` is clean, then dispatch its specialists
+     in chain order — **dispatch site 3**, each slice on its own weight from the plan. Start
+     the next slice only after the previous one's last specialist returns. Then @aligner →
+     @integrator → @integration-tester (see docs/shared/09). @aligner's drift fixes are site 2
+     above, and land on the chain tip.
 6. **@repo-reviewer** → **@release-reviewer** → consolidate into the FINAL verdict.
    - `REQUEST CHANGES` → back to the responsible specialist (amend, don't add commits);
      re-review. **Dispatch site 4, and the one most setups miss:** dispatch on the **re-pass

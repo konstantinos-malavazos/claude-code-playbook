@@ -180,6 +180,6 @@ looked like it worked. Cheapest adapter for this verb, and the one that hid the 
 
 ## Single-session by declaration
 
-This adapter is for **one session at a time.** A claim written in one worktree is invisible
+This adapter is for **one session at a time.** A claim written in one checkout is invisible
 from another — there is no shared surface to publish it on — so the advisory claim is not
 merely weak here. It is unobservable. If you want parallel sessions, use a hosted tracker.

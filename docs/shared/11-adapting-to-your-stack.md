@@ -135,7 +135,7 @@ labour this flow exists to kill.
 
 ### 3. One slice-mode variant per layer — generated
 
-The [decompose path](09-decompose-path.md) builds several vertical slices in parallel, and
+The [decompose path](09-decompose-path.md) builds several vertical slices one at a time, and
 it dispatches a slice-mode variant of each specialist rather than the specialist itself. The
 flow copies
 [`../../templates/agents/slice-layer-specialist.md`](../../templates/agents/slice-layer-specialist.md)

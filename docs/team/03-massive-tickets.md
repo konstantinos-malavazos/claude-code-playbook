@@ -118,7 +118,7 @@ in the repo's `CLAUDE.md` — the same source
 `schema → service → consumer` chain gives you `make:schema` dispatching
 `@schema-specialist`, and so on. Add a layer to the chain and you get its ticket type for free.
 
-**There is no track-allocation step, no slice fork, no worktrees, no aligner or integrator.**
+**There is no track-allocation step, no slice fork, no aligner or integrator.**
 Charting already decomposed this effort; slicing a chart child again is slicing twice. This is
 the one place the massive flow is *simpler* than `/start-ticket`, not more complex.
 

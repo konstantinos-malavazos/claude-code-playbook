@@ -113,8 +113,12 @@ also judge the fix.
 - Identify which slice owns it, from the criterion-to-slice map.
 - Hand back to the orchestrator with: the failing test, the behaviour, the responsible slice,
   and the suspected repo and symbol.
-- The orchestrator re-dispatches that slice's `@slice-<layer>-specialist` in a re-created
-  worktree → `@aligner` → `@integrator` re-runs → you re-run. Repeat until green.
+- The orchestrator cuts a fresh `<TICKET-ID>_<slug>-slice-<N>` from the final branch, in the
+  main checkout, and re-dispatches that slice's `@slice-<layer>-specialist` on it →
+  `@aligner` → `@integrator` re-runs → you re-run. Repeat until green.
+- Your test files stay uncommitted in the checkout through every re-fix. Say so in the
+  hand-back: the slice specialist must not stage them, and the dirty tree they cause is
+  expected. They go into the commit only at step 4.
 
 ### 4. Fold the tests into the single commit
 
