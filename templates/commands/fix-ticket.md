@@ -21,8 +21,10 @@ stays one ticket / one commit per repo / one metrics row.
    **your** model, the strong one; `heavy` → the tier `<strong-model-id>` belongs to, for
    that run only. Both go through the id-to-tier mapping in the `dispatch-weight` skill.
    Never below the tier that track last ran at, and never below the specialist's pinned
-   `model:` — where that pin is already higher, set nothing. Write a **failing test that
-   reproduces the bug first** (`tdd` skill), then make it pass.
+   `model:` — where that pin is already higher, set nothing. Every dispatch, re-dispatch
+   included, carries the `## Dispatch paragraph` of the `code-access` skill, pasted with its
+   `<live tools>` slot filled. Write a **failing test that reproduces the bug first** (`tdd`
+   skill), then make it pass.
 4. **Amend, don't add** — the fix amends the existing branch commit (amend-as-you-go).
    No `fix: address QA` follow-up commits.
 5. **Review** — @repo-reviewer → @release-reviewer, same as /start-ticket.

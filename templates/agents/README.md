@@ -291,10 +291,23 @@ directory name. Same placeholder, opposite consequence:
 
 ## Serena is mandatory, not preferred
 
-Every agent that touches code carries a **Code access protocol (MANDATORY)** block stating
-the reading, writing, verifying and escape rules for that agent's own job. **Do not strip
-it when you copy the file**, and do not treat `Read`/`Grep`/`Glob` in a `tools:` list as
-permission to read code with them. The doctrine those blocks encode:
+The shared protocol — the reading rules, the three escapes, the tool-list check with its
+HALTED block, the "No active project" retry and the dispatch paragraph — lives once, in the
+`code-access` skill. Every agent that declares Serena tools preloads it with
+`skills: [code-access]` in its frontmatter, and names `` `code-access` `` once in its body,
+which is how the installer knows to install the skill beside the agent. Each agent's own
+**Code access protocol** section keeps only what is specific to its job: its halt check tool,
+its halt destination, and any extra write or evidence rule. **Do not strip the `skills:` line
+or that pointer when you copy a file**, and do not treat `Read`/`Grep`/`Glob` in a `tools:`
+list as permission to read code with them.
+
+**A preloaded skill needs no `Skill` grant, and must not set `disable-model-invocation`.**
+Observed on Claude Code 2.1.300: a skill listed in an agent's `skills:` is loaded into that
+agent even when its `tools:` line has no `Skill`. A skill whose frontmatter sets
+`disable-model-invocation: true` is **not** loaded, and nothing warns you — the agent runs
+without it. So never add that flag to `code-access`.
+
+The doctrine the protocol encodes:
 [`../../docs/shared/04-serena.md`](../../docs/shared/04-serena.md).
 
 ### Tool-name prefix
@@ -333,6 +346,7 @@ carries `mcp__serena__activate_project` for this.
 | `fixer-planner.md` | QA bounce-back → root cause + fix plan; stops rather than guessing a cause | ✓ | ✓ |
 | `test-planner.md` | criteria → an approved staging test plan; owns the produce-recipe loop (plans and banks, never runs) | ✓ | ✓ |
 | `tester.md` | runs the approved plan — calls the produce driver, reconciles, verdicts, confirms or corrects the recipe | ✓ | ✓ |
+| `serena-lookup.md` | answers ONE code question through Serena — where is X, who calls Y — in 1-3 sentences and at most 15 `file:line` sites; an optional offload for long lookups (read-only) | ✓ | ✓ |
 | `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |
 | `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | | ✓ |
 | `decision-steward.md` | one grilling question on an unattended walk → an answer **plus a basis** (**gathers no evidence**) | ✓ | |

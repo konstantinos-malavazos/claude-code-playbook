@@ -103,6 +103,12 @@ From `templates/agents/layer-specialist.md`, one file per layer, into the repo's
 | every `<…>` placeholder on the **`tools:`** line — today that is `<memory-read-tools>` | see *The tool placeholders* below |
 | `model` | see below |
 
+**Leave two lines exactly as the template has them:** `skills: [code-access]` in the
+frontmatter, and the `Serena calls:` line the specialist writes at the end of its handoff.
+The first preloads the `code-access` skill — the code access protocol, halt rule included —
+and the installer ships that skill beside this one for it. Strip it and the specialist runs
+with no protocol at all.
+
 **The template's description opens with a line about where the file comes from and how many
 of it there are. Replace it with the layer this file is for.** That opener is provenance,
 addressed to whoever is holding the template. And a description is what the harness reads
@@ -198,6 +204,7 @@ the specialist step 2 just wrote for the same layer.
 | the **next layer's slice variant** it hands on to | the layer after this one in the chain |
 | every `<…>` placeholder on the **`tools:`** line — today that is `<memory-read-tools>` | the same rule as step 2, and the same value: this variant carries the same `tools:` line as its base |
 | `model` | the same rule as step 2, on the same layer |
+| `skills: [code-access]` | keep it as it stands — the variant preloads `code-access` itself, the same as its base |
 
 **There is almost nothing to fill in, and that is the point.** This file is an override
 shell: it Reads its base specialist and inherits everything it does not override. Anything
@@ -301,9 +308,9 @@ does not work is the *dispatch*, in this session, which is the one failure a rep
 every row says **created** would otherwise hide.
 
 **The values sit on two axes.** *Created* and *skipped* are what **you did** and are
-exclusive; *disagrees*, *still a scaffold* and *stale model comment* are what **you found**,
-are orthogonal to both, and can appear together on one row. A standards skill generated one
-minute ago is *created* **and** *still a scaffold*, every time.
+exclusive; *disagrees*, *still a scaffold*, *stale model comment*, *missing Skill grant* and
+*no code-access preload* are what **you found**, are orthogonal to both, and can appear together on one row. A
+standards skill generated one minute ago is *created* **and** *still a scaffold*, every time.
 
 | Row | What it means |
 |---|---|
@@ -312,6 +319,8 @@ minute ago is *created* **and** *still a scaffold*, every time.
 | **disagrees with `CLAUDE.md`** | the file names a path, command or layer the chain no longer says |
 | **still a scaffold** | the file still carries the template's `<PLACEHOLDER>` angle brackets |
 | **stale model comment** | the file's `# model:` comment **asserts** that the omission means the specialist inherits the session's model |
+| **missing Skill grant** | an agent file whose `tools:` line has no `Skill`, so it cannot load the standards skill its body tells it to load |
+| **no code-access preload** | an agent file whose frontmatter has no `skills: [code-access]` line — it still carries its own older copy of the code access protocol and writes no `Serena calls:` line |
 
 **"Still a scaffold" costs no state.** No timestamps, no ledger, no marker file. You detect
 it by reading the file for angle brackets. The convention that makes a template fillable is
@@ -336,6 +345,23 @@ it covers a *disagrees* row.
 Detect it the way the step-2 stop-rule says: the phrase alone is not the finding. The
 current template names session inheritance in order to **deny** it, so a line carrying the
 phrase *and* a negation is healthy. Only an assertion is stale.
+
+**`missing Skill grant` is scoped the same way, and it is not cosmetic.** A file you generated
+this run took its `tools:` line from the current template, which grants `Skill`, so the value
+can only land on a **skipped** agent row — a specialist or slice variant from an older copy
+of this skill. Unlike *stale model comment*, this is a gap in what the agent can do, not
+wording that drifted: without `Skill` it cannot load its standards skill. Match `Skill` as a
+whole comma-separated token on the `tools:` line, not as a substring. Report it with the
+evidence "its `tools:` line has no `Skill`", and **do not edit the file** — the human adds
+the grant by hand.
+
+**`no code-access preload` lands on skipped agent rows too**, for the same reason: every
+template this skill generates from carries `skills: [code-access]`. Such a specialist still
+works under its older inline protocol, but it does not pick up a change to `code-access`,
+and it writes no `Serena calls:` line, so the reviewer raises a `[MINOR]` on every run it
+makes. Report it with the evidence "no `skills: [code-access]` in its frontmatter", and
+**do not edit the file**. The remedy is the human's: move the file aside, re-run this skill
+so it generates a fresh one, and carry over anything they had changed by hand.
 
 **Every row carries evidence** — the bracket count, the path that disagrees, the layer it
 belongs to. A row with nothing beside it is an opinion.

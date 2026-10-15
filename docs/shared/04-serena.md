@@ -79,8 +79,10 @@ docs and config. They just aren't a code path.
 
 Where this is encoded: the **Serena is MANDATORY** section of
 [`../../templates/claude-md/global.CLAUDE.md`](../../templates/claude-md/global.CLAUDE.md), and
-a *Code access protocol (MANDATORY)* block in every code-touching agent under
-[`../../templates/agents/`](../../templates/agents/README.md).
+the [`code-access`](../../templates/skills/code-access/SKILL.md) skill, which every agent that
+declares Serena tools preloads through its `skills:` frontmatter. Each agent under
+[`../../templates/agents/`](../../templates/agents/README.md) keeps only its job-specific part:
+which tool it checks for, and where it halts.
 
 ---
 
@@ -88,13 +90,53 @@ a *Code access protocol (MANDATORY)* block in every code-touching agent under
 
 Serena is **project-scoped** (`<workspace>/.mcp.json`) because it indexes a working
 copy. Every agent that touches code — the gatherer, the planner, the specialists, the
-reviewers — names Serena's tools outright in its frontmatter and carries the mandatory
-protocol block. The specialists' *edits* go through it too. Forgetful recalls *what/why*
+reviewers — names Serena's tools outright in its frontmatter and preloads the mandatory
+protocol, the `code-access` skill. The specialists' *edits* go through it too. Forgetful recalls *what/why*
 and often *which symbols matter*, so the loop is: memory says "look at `ToBetFeesModel`" →
 Serena jumps straight to it → surgical edit. No file spelunking.
 
 Config snippet: [`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet)
 — paste it as-is. The plugin-vs-entry choice and the tool-prefix trap are in
 [`../../templates/mcp/README.md`](../../templates/mcp/README.md).
+
+## Gotchas
+
+- **A type-qualified lookup comes back empty → retry with the bare member name.** Generic
+  type parameters change a symbol's name path, so `Type/Member` can miss where `Member`
+  alone finds it.
+- **An empty result is not proof of absence.** It is a finding to report, with what you
+  searched for. Never read it as "nothing calls this".
+- **Restore or build dependencies before indexing.** A language server that cannot resolve
+  a package reports its references as missing, and the gap looks like dead code.
+- **Some language servers ignore `ignored_paths` when they discover projects**, so an
+  excluded folder can still be indexed. It varies by version, so record the Serena version
+  you saw it on: `uvx --from git+https://github.com/oraios/serena serena --version`, or the
+  plugin's version.
+- **Serena's line numbers are 0-based** — `body_location`, and the `>N:` lines in
+  reference snippets. Add one before you quote a `file:line`.
+- **An agent's `skills:` preload — what the `code-access` skill rides on — needs no `Skill`
+  grant, but a skill that sets `disable-model-invocation: true` is not preloaded at all**,
+  and nothing warns you. Observed on Claude Code `2.1.300`.
+
+## Optional: replace the connect-time prompt
+
+When Serena connects, it sends a short prompt that tells the agent to call
+`initial_instructions` before any coding task. The playbook's agents already carry their
+protocol in the `code-access` skill, so that call only spends context. You can override the
+prompt — a manual, optional step:
+
+1. `serena prompts create-override system_prompt.yml` creates your own copy of the file
+   that holds `connection_prompt`. `serena prompts list-overrides` shows where it went.
+2. In that copy, replace the `connection_prompt` text with something like:
+
+   ```
+   You have Serena's semantic code tools. Use them to read and change code: find a symbol
+   before you read a file, and check its references before you change a signature.
+   ```
+
+Run `serena` the same way you installed it (`uvx --from git+https://github.com/oraios/serena
+serena …` when it is not on your PATH). The installer does **not** write into `~/.serena`,
+so this step is yours.
+
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

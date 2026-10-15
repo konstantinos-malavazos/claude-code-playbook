@@ -3,13 +3,16 @@
 # call sites — and all failing OPEN when a call site drifts:
 #
 #   A1-A9  the per-dispatch model weight (issue #92)
-#   A10    the Serena halt block every navigating agent needs (issue #109)
+#   A10    every navigating agent preloads the code-access skill, which holds the halt block
 #   A11    the two model-id tokens are lowercase and reach a live install (issue #135)
 #   A12    the flow guardrails are stated where the dispatcher reads them (issue #148)
-#   A13    every Serena-declaring agent can activate its project and says what to do
-#          on "No active project"
-#   A14    every agent that names a skill grants Skill; the TaskStop-only agents do not
+#   A13    every Serena-declaring agent can activate its project, and code-access says
+#          what to do on "No active project"
+#   A14    every agent that names a skill it does not preload grants Skill; the
+#          TaskStop-only agents do not
 #   A15    no slice template mentions a worktree
+#   A16    implementation dispatch carries the code-access paragraph, and every editing
+#          agent's handoff reports its Serena calls
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -105,6 +108,15 @@ frontmatter() { awk '/^---$/{n++; next} n==1' "$1"; }
 
 # fm_field FILE FIELD — one frontmatter field's value, empty if absent
 fm_field() { frontmatter "$1" | sed -n "s/^$2:[[:space:]]*//p" | head -1; }
+
+# fm_skills FILE — the skills an agent preloads, one per line, from the inline-list
+# form `skills: [a, b]`. A block list reads as empty, so it fails the checks that
+# want a name rather than passing them. CRs are stripped first: on Linux awk does
+# not, and `---\r` is not a frontmatter fence.
+fm_skills() {
+  tr -d '\r' < "$1" | awk '/^---$/{n++; next} n==1' | sed -n 's/^skills:[[:space:]]*//p' | head -1 \
+    | tr -d "[]\"'" | tr ',' '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'
+}
 
 # fenced FILE — the contents of every fenced code block. An agent's output-format
 # template is written as one, which is what "somewhere to put the answer" means:
@@ -786,27 +798,42 @@ fi
 # The halt block is the only defence that survives a renamed `mcp__` prefix. An
 # agent whose Serena names do not resolve is not told so: they are stripped at
 # launch with no error, and it runs on Read and Grep and produces an answer of
-# exactly the normal SHAPE. templates/agents/README.md records @repo-reviewer
-# doing that before the halt blocks existed, and issue #109 found that
-# @fixer-planner had never been given one.
+# exactly the normal SHAPE. The halt block lives in one skill, code-access, and
+# every Serena agent preloads it through its `skills:` frontmatter.
+#
+# The preload and the install edge are separate wirings. `skills:` loads the skill
+# at launch; the backticked `code-access` in the body is what gives
+# `install-lib.py discover` its agent -> skill edge. Without the edge, an agent
+# installed on its own ships with no protocol at all, halt rule included. The two
+# generation templates are not units; their edge runs through skill:adapt-to-stack.
+#
+# A skill whose frontmatter sets disable-model-invocation is not preloaded, and
+# nothing reports it: the protocol would vanish from every Serena agent at once.
 #
 # Derived, not listed: the set is every agent whose `tools:` names a Serena
 # navigation verb, so the next Serena-using agent is covered the day it lands.
 # Probed by VERB rather than by the `mcp__serena__` prefix, for the same reason
 # EDIT_VERBS is — an install that rewrites the prefix must not blind the check.
 #
-# Catches: a Serena-declaring agent with no halt instruction.
+# Catches: a Serena agent that does not preload code-access, a code-access skill
+# with no halt block, a lost install edge, an inline protocol copy left in an agent
+# to drift, and the flag that switches the preload off.
+CODE_ACCESS="$TEMPLATES/skills/code-access/SKILL.md"
+
 serena_agents() {
   local stem
   stems "$AGENTS" | while read -r stem; do
-    fm_field "$AGENTS/$stem.md" tools | grep -qF 'find_symbol' && printf '%s
-' "$stem"
+    fm_field "$AGENTS/$stem.md" tools | grep -qF 'find_symbol' && printf '%s\n' "$stem"
   done
 }
 SERENA_AGENTS="$(serena_agents)"
 
+# a10_inline FILE — does this file carry its own copy of the protocol? The
+# "No active project" paragraph is the part every copy had.
+a10_inline() { grep -qF 'No active project' "$1"; }
+
 if want A10; then
-banner "A10 · every Serena-declaring agent carries a halt block"
+banner "A10 · every Serena-declaring agent preloads the code-access skill"
 # Same positive control as A1: a probe that matches nothing would pass this
 # section by finding no agents to fail.
 if [ -n "$SERENA_AGENTS" ]; then
@@ -814,20 +841,112 @@ if [ -n "$SERENA_AGENTS" ]; then
 else
   fail "the Serena-verb probe matched NOTHING — the probe is broken, not the tree"
 fi
+
+# A10.a — the preload
 for stem in $SERENA_AGENTS; do
-  if grep -qF 'HALTED' "$AGENTS/$stem.md"; then
-    pass "$stem halts when Serena is missing"
+  if fm_skills "$AGENTS/$stem.md" | grep -qx 'code-access'; then
+    pass "A10.a $stem preloads code-access"
   else
-    fail "$stem declares Serena verbs and never says HALTED — strip the prefix and it greps instead"
+    fail "A10.a $stem declares Serena verbs but its skills: does not list code-access — no halt rule reaches it"
   fi
 done
+
+# A10.b — the halt block, in the one place it lives
+if [ ! -f "$CODE_ACCESS" ]; then
+  fail "A10.b templates/skills/code-access/SKILL.md does not exist — no Serena agent has a halt rule"
+elif grep -qF 'HALTED' "$CODE_ACCESS"; then
+  pass "A10.b the code-access skill carries a HALTED block"
+else
+  fail "A10.b the code-access skill never says HALTED — strip the prefix and every Serena agent greps instead"
+fi
+
+# A10.c / A10.d — the install edges
+if [ -n "$PY" ]; then
+  mkdir -p "$SCRATCH"
+  ( cd "$REPO" && "$PY" install-lib.py discover templates "$SCRATCH/fakehome-a10" ) \
+    > "$SCRATCH/discover-a10.json" 2> "$SCRATCH/discover-a10.err"
+  chk $? "A10 install-lib.py discover runs (errors in $SCRATCH/discover-a10.err)"
+
+  # python reports what it found; the verdicts stay in the harness, as in A8.
+  A10_EDGES="$(printf '%s\n' "$SERENA_AGENTS" | "$PY" -c '
+import json, sys
+units = json.load(open(sys.argv[1]))
+out = []
+for stem in sys.stdin.read().split():
+    uid = "agent:" + stem
+    if uid in units:
+        out.append("EDGE %s %s" % (stem, "yes" if "skill:code-access" in units[uid]["needs"] else "no"))
+adapt = units.get("skill:adapt-to-stack")
+if adapt is None:
+    out.append("ADAPT absent")
+else:
+    out.append("ADAPT " + ("yes" if "skill:code-access" in adapt["needs"] else "no"))
+sys.stdout.buffer.write(("\n".join(out) + "\n").encode("utf-8"))
+' "$SCRATCH/discover-a10.json" 2>>"$SCRATCH/discover-a10.err")"
+
+  n=0
+  while read -r tag stem verdict; do
+    case "$tag" in
+      EDGE)
+        n=$((n+1))
+        if [ "$verdict" = "yes" ]; then
+          pass "A10.c installing $stem alone pulls in skill:code-access"
+        else
+          fail "A10.c $stem does not need skill:code-access — installed alone it ships with no protocol, halt rule included"
+        fi
+        ;;
+      ADAPT)
+        case "$stem" in
+          yes) pass "A10.d skill:adapt-to-stack needs skill:code-access, so generated specialists get it" ;;
+          absent) fail "A10.d skill:adapt-to-stack is not a discovered unit — the generated specialists' edge is gone" ;;
+          *) fail "A10.d skill:adapt-to-stack does not need skill:code-access — a generated specialist installs without its protocol" ;;
+        esac
+        ;;
+    esac
+  done <<< "$A10_EDGES"
+  if [ "$n" -gt 0 ]; then
+    pass "A10.c Serena agents checked as installable units: $n"
+  else
+    fail "A10.c discover returned no Serena agent as a unit — A10.c checked nothing"
+  fi
+else
+  printf '    SKIP  python — no working python3 or python, so A10.c and A10.d NOT run\n'
+fi
+
+# A10.e — no agent keeps its own copy of the protocol
+mkdir -p "$SCRATCH/a10"
+printf 'Serena answers "No active project": activate it and retry\r\n' > "$SCRATCH/a10/inline.md"
+printf 'preload code-access and follow it\r\n' > "$SCRATCH/a10/clean.md"
+if a10_inline "$SCRATCH/a10/inline.md" && ! a10_inline "$SCRATCH/a10/clean.md"; then
+  pass "A10.e the inline-copy probe flags a copy and leaves a clean file alone"
+else
+  fail "A10.e the inline-copy probe is broken, not the tree"
+fi
+A10_INLINE=""
+for stem in $(stems "$AGENTS"); do
+  a10_inline "$AGENTS/$stem.md" && A10_INLINE="$A10_INLINE $stem"
+done
+if [ -z "$A10_INLINE" ]; then
+  pass "A10.e no agent other than README.md carries an inline copy of the protocol"
+else
+  fail "A10.e inline protocol copies left in:$A10_INLINE — each one drifts from code-access"
+fi
+
+# A10.f — nothing switches the preload off
+if [ ! -f "$CODE_ACCESS" ]; then
+  fail "A10.f templates/skills/code-access/SKILL.md does not exist — a missing skill must not pass as an unflagged one"
+elif frontmatter "$CODE_ACCESS" | tr -d '\r' | grep -q '^disable-model-invocation:'; then
+  fail "A10.f the code-access skill sets disable-model-invocation — that blocks the skills: preload on every Serena agent, silently"
+else
+  pass "A10.f the code-access skill leaves disable-model-invocation unset, so the preload loads it"
+fi
 fi
 
 # ---------------------------------------------------------------- A13
-# An agent that declares Serena verbs but cannot call activate_project, or never
-# says what to do when Serena answers "No active project", halts on a state it
-# could have recovered from. Probed by verb, not by the mcp__serena__ prefix,
-# for the same reason as A10.
+# An agent that declares Serena verbs but cannot call activate_project, or is never
+# told what to do when Serena answers "No active project", halts on a state it
+# could have recovered from. The instruction lives in the code-access skill. Probed
+# by verb, not by the mcp__serena__ prefix, for the same reason as A10.
 if want A13; then
 banner "A13 · every Serena-declaring agent can activate its project"
 if [ -n "$SERENA_AGENTS" ]; then
@@ -841,19 +960,23 @@ for stem in $SERENA_AGENTS; do
   else
     fail "A13.1 $stem declares Serena verbs but not activate_project — \"No active project\" halts an agent that could have recovered"
   fi
-  if grep -qF 'No active project' "$AGENTS/$stem.md"; then
-    pass "A13.2 $stem says what to do on \"No active project\""
-  else
-    fail "A13.2 $stem never says what to do on \"No active project\" — it halts instead of activating and retrying"
-  fi
 done
+if [ ! -f "$CODE_ACCESS" ]; then
+  fail "A13.2 templates/skills/code-access/SKILL.md does not exist — no Serena agent is told what to do on \"No active project\""
+elif grep -qF 'No active project' "$CODE_ACCESS" && grep -qF 'activate_project' "$CODE_ACCESS"; then
+  pass "A13.2 the code-access skill says what to do on \"No active project\": activate_project, then retry"
+else
+  fail "A13.2 the code-access skill does not name both \"No active project\" and activate_project — every Serena agent halts instead of activating and retrying"
+fi
 fi
 
 # ---------------------------------------------------------------- A14
 # An agent whose body names a skill but whose tools: line does not grant Skill
-# cannot load it, and silently falls through to its fallback.
+# cannot load it, and silently falls through to its fallback. A skill the agent
+# lists in its own `skills:` frontmatter is preloaded at launch and needs no grant;
+# any other skill it names still does.
 if want A14; then
-banner "A14 · every agent that names a skill grants Skill"
+banner "A14 · every agent that names a skill it does not preload grants Skill"
 
 a14_tools() {
   tr -d '\r' < "$1" | awk '/^---$/{n++; next} n==1' | sed -n 's/^tools:[[:space:]]*//p' | head -1
@@ -863,12 +986,20 @@ grants_skill() {
   a14_tools "$1" | tr ',' '\n' | tr -d ' \t\r' | grep -qx 'Skill'
 }
 
+# names_skill FILE [PRELOADED] — does FILE name a skill? PRELOADED, a newline list,
+# takes those skills' own names out of the match; the standards arms always apply.
 names_skill() {
   local skills
   skills="$(skill_dirs | paste -sd '|' -)"
+  if [ -n "${2-}" ]; then
+    skills="$(skill_dirs | grep -vxF -e "$2" | paste -sd '|' -)"
+  fi
   # shellcheck disable=SC2016
   tr -d '\r' < "$1" | grep -qE '`('"$skills"')`|\b('"$skills"') skill\b|standards skill|`[^`]+-standards`'
 }
+
+# a14_needs_grant FILE — does this agent name a skill that only a Skill grant can load?
+a14_needs_grant() { names_skill "$1" "$(fm_skills "$1")"; }
 
 # These agents run tools: TaskStop with maxTurns: 1 as an evidence floor, and Skill reads content, so they must never grant it.
 A14_FLOOR="decision-steward pitch-judge"
@@ -889,12 +1020,12 @@ else
   fail "A14.0 the skill probe matched NOTHING — the probe is broken, not the tree"
 fi
 
-# A14.1 — skill-naming agents grant Skill
+# A14.1 — agents naming a skill they do not preload grant Skill
 for stem in $(stems "$AGENTS"); do
   case " $A14_FLOOR " in
     *" $stem "*) continue ;;
   esac
-  if names_skill "$AGENTS/$stem.md"; then
+  if a14_needs_grant "$AGENTS/$stem.md"; then
     if grants_skill "$AGENTS/$stem.md"; then
       pass "A14.1 $stem names a skill and grants Skill"
     else
@@ -989,6 +1120,30 @@ else
   fail "A14.3 floor fixture does not grant Skill"
 fi
 
+# shellcheck disable=SC2016
+printf -- '---\r\ntools: Read, Bash\r\nskills: [dispatch-weight]\r\n---\r\nload `dispatch-weight` first\r\n' > "$SCRATCH/a14/preload.md"
+if ! a14_needs_grant "$SCRATCH/a14/preload.md"; then
+  pass "A14.3 preload fixture (names only the skill it preloads, no Skill grant) is not flagged"
+else
+  fail "A14.3 preload fixture was flagged — a skills: preload needs no Skill grant"
+fi
+
+# shellcheck disable=SC2016
+printf -- '---\r\ntools: Read, Bash\r\n---\r\nload `dispatch-weight` first\r\n' > "$SCRATCH/a14/nopreload.md"
+if a14_needs_grant "$SCRATCH/a14/nopreload.md"; then
+  pass "A14.3 nopreload fixture (same body, no skills:) is flagged"
+else
+  fail "A14.3 nopreload fixture was not flagged — the exemption reaches skills the agent does not preload"
+fi
+
+# shellcheck disable=SC2016
+printf -- '---\r\ntools: Read, Bash\r\nskills: [dispatch-weight]\r\n---\r\nload `dispatch-weight`, then follow the tdd skill\r\n' > "$SCRATCH/a14/mixed.md"
+if a14_needs_grant "$SCRATCH/a14/mixed.md"; then
+  pass "A14.3 mixed fixture (preloads one skill, names another) is flagged"
+else
+  fail "A14.3 mixed fixture was not flagged — preloading one skill exempted a different one"
+fi
+
 fi
 
 # ---------------------------------------------------------------- A15
@@ -1032,6 +1187,74 @@ for f in $A15_FILES; do
     pass "A15 $rel does not mention a worktree"
   fi
 done
+fi
+
+# ---------------------------------------------------------------- A16
+# The planner's file list says where a change goes, not who depends on it. An
+# implementation agent dispatched without the code-access dispatch paragraph edits
+# the files it was handed and never asks Serena who calls them, and the result has
+# the normal SHAPE. So every weighing command references code-access, the skill
+# holds the paragraph, and every editing agent's handoff reports its Serena calls,
+# which @repo-reviewer checks, so a run that never touched Serena shows as a zero.
+#
+# A slice variant hands off in the shape its base requires, so it passes on its
+# base's line.
+#
+# Catches: a dispatch with no Serena paragraph, the paragraph leaving the skill,
+# and an editor whose handoff cannot show a run that skipped Serena.
+if want A16; then
+banner "A16 · implementation dispatch carries the Serena paragraph"
+
+A16_WEIGHS=""
+for stem in $(stems "$COMMANDS"); do
+  [ "$(command_class "$stem")" = "weighs" ] && A16_WEIGHS="$A16_WEIGHS $stem"
+done
+if [ -n "$A16_WEIGHS" ]; then
+  pass "A16.1 weighing commands found:$A16_WEIGHS"
+else
+  fail "A16.1 no command classifies as weighs — command_class is broken, not the tree"
+fi
+for stem in $A16_WEIGHS; do
+  if grep -qF 'code-access' "$COMMANDS/$stem.md"; then
+    pass "A16.1 /$stem references code-access"
+  else
+    fail "A16.1 /$stem dispatches implementation agents but never references code-access — the dispatch carries no Serena paragraph"
+  fi
+done
+
+if [ ! -f "$CODE_ACCESS" ]; then
+  fail "A16.2 templates/skills/code-access/SKILL.md does not exist — there is no dispatch paragraph to paste"
+elif tr -d '\r' < "$CODE_ACCESS" | grep -q '^## Dispatch paragraph'; then
+  pass "A16.2 the code-access skill holds a ## Dispatch paragraph section"
+else
+  fail "A16.2 the code-access skill has no ## Dispatch paragraph section — the commands reference a paragraph that is not there"
+fi
+
+if [ -n "$EDITORS" ]; then
+  pass "A16.3 editing agents found: $(setlike "$EDITORS")"
+else
+  fail "A16.3 no editing agents found — A1's probe is broken, not the tree"
+fi
+for stem in $EDITORS; do
+  base="${stem#slice-}"
+  if grep -qF 'Serena calls:' "$AGENTS/$stem.md"; then
+    pass "A16.3 $stem's handoff reports its Serena calls"
+  elif [ "$base" != "$stem" ] && [ ! -f "$AGENTS/$base.md" ]; then
+    fail "A16.3 $stem hands off in the shape of $base, which does not exist"
+  elif [ "$base" != "$stem" ] && grep -qF 'Serena calls:' "$AGENTS/$base.md"; then
+    pass "A16.3 $stem reports its Serena calls through $base's handoff shape"
+  else
+    fail "A16.3 $stem's handoff has no Serena calls: line — a run that never touched Serena reads like one that did"
+  fi
+done
+
+if [ ! -f "$AGENTS/repo-reviewer.md" ]; then
+  fail "A16.4 templates/agents/repo-reviewer.md does not exist"
+elif grep -qF 'Serena calls:' "$AGENTS/repo-reviewer.md"; then
+  pass "A16.4 repo-reviewer checks the editors' Serena calls: line"
+else
+  fail "A16.4 repo-reviewer never checks a Serena calls: line — a missing or unexplained zero goes unreported"
+fi
 fi
 
 # ---------------------------------------------------------------- A12
@@ -1555,6 +1778,8 @@ terminal_class() {
     commit-conventions|diagnose|dispatch-weight|memory-schema)                      printf 'not-terminal' ;;
     # run inside a hook and inside another flow, never a flow of its own
     memory-lint)                                                                    printf 'not-terminal' ;;
+    # preloaded into agents through skills:, never run as a flow
+    code-access)                                                                    printf 'not-terminal' ;;
     tdd|to-spec|wait-what|next-steps|engineering-standards|review-guidelines)       printf 'not-terminal' ;;
     *)                                                                              printf 'UNCLASSIFIED' ;;
   esac

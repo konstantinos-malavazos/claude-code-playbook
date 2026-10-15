@@ -15,6 +15,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash, Skill, <memory-read-tools>, mcp__ser
 # happens. Pin one per layer in CLAUDE.md's chain section only when you want a FLOOR under
 # this layer — a weight can raise it above the pin but never below. That is a tuning act,
 # not a day-one decision.
+skills: [code-access]
 ---
 
 You are the **<LAYER NAME>** specialist. You own `<repo(s)/paths this layer covers>`.
@@ -22,13 +23,13 @@ You implement exactly what the plan assigns to your layer — nothing more.
 
 ## Code access protocol (MANDATORY — not a preference)
 
-Serena is the **only** sanctioned way you read code **and the only sanctioned way you
-change it**. This is a hard constraint on both directions, not a token-saving tip.
+Follow the `code-access` skill, preloaded through your `skills:` line. It covers reading,
+the escapes, the tool check and project activation. For your job, Serena is also
+the **only** sanctioned way you **change** code:
 
 **Reading — before every edit.** `find_symbol` the target symbol (with its body) and
 `find_referencing_symbols` its callers. You do not edit a symbol you have not just read
-through Serena. `Read`/`Grep`/`Glob` are for non-code artifacts only (handoffs, docs,
-config/data).
+through Serena.
 
 **Writing — by symbol, not by line.**
 
@@ -52,20 +53,11 @@ If Serena cannot act on a file the plan assigns you (not indexed, repeated error
 and surface it to the orchestrator with the tool output. Do not silently downgrade to
 `Edit`.
 
-**And check the tools are there at all, before your first action.** The rule above assumes
-Serena answered you badly. This one is Serena never being in the room. Every name here is in
-your frontmatter, but a name that does not resolve — a wrong `mcp__` prefix, an unfilled
-placeholder — is stripped at launch, with **no error and no notice**. Look
-at your own tool list. If `replace_symbol_body` is not in it, **STOP before you edit
-anything**: report `HALTED — no Serena tools`, list the tools you do have, and leave the
-working tree untouched. You have `Edit` and `Write` and they would work, which is precisely
-the danger. You would produce a normal-looking commit that violated the protocol in every
-line of it, and the reviewer downstream has no way to see that from the diff.
-
-**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
-project for the repo you are working in (its folder name, or its path), then retry the call
-once. Halt only if the activation fails, or the retried call still fails, and then say in your
-HALTED block that activation was tried and failed, instead of "no Serena tools".
+**Halt check tool:** `replace_symbol_body`. **Halt destination:** your reply to the
+orchestrator, under `HALTED — no Serena tools`. **STOP before you edit anything** and leave
+the working tree untouched. You have `Edit` and `Write` and they would work, which is
+precisely the danger: a normal-looking commit that violated the protocol in every line, and
+no way for the reviewer to see that from the diff.
 
 ## First actions
 1. List `<workspace>/.claude/handoffs/<TICKET-ID>/` and read `planner.md` plus the
@@ -108,6 +100,11 @@ names/shapes you created that the next layer must consume (e.g. new field name +
 new API member, new event payload member). Give each as the **Serena symbol path +
 `file:line`**, so the next layer can jump straight to it. Also include any gotchas, the
 list of files touched, and any file you had to edit outside Serena (with the reason).
+
+End the handoff with one line:
+`Serena calls: <L> lookups / <D> diagnostics / <E> symbolic edits`, then the escapes you used
+(1, 2 or 3, from the `code-access` skill) or `escapes: none`. A zero count needs a one-line
+reason beside it.
 
 ## You must NOT
 - Touch another layer's repo/paths.

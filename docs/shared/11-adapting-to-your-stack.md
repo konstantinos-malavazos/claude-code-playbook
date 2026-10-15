@@ -194,8 +194,10 @@ The honest cost is drift the flow will never fix. So it ends with a report. Like
 | **disagrees with `CLAUDE.md`** | the file names a path, command or layer the chain no longer says. Yours to reconcile |
 | **still a scaffold** | the file is still carrying the template's `<PLACEHOLDER>` angle brackets |
 | **stale model comment** | a specialist generated before the weight rules landed, whose `# model:` comment **asserts** that the omission means it inherits the session's model. Prose drift only — the tier is set by the dispatching flow, which is installed globally — so reporting it is the whole remedy |
+| **missing Skill grant** | a specialist generated before agents were granted `Skill`, whose `tools:` line still lacks it — so it cannot load its standards skill. A real gap, not prose drift. The flow never overwrites the file; you add `Skill` to its `tools:` line by hand |
+| **no code-access preload** | a specialist generated before the code access protocol moved into the `code-access` skill: no `skills: [code-access]` line, its own older copy of the protocol, and no `Serena calls:` line — so the reviewer flags every run it makes. The flow never overwrites the file; you move it aside and re-run the flow, then carry over your own edits |
 
-*Created* and *skipped* are what the flow **did** and are exclusive. The other three are what
+*Created* and *skipped* are what the flow **did** and are exclusive. The other five are what
 it **found**, and can appear together on one row.
 
 **Still a scaffold** costs no state at all — no timestamps, no ledger. **The convention that
@@ -245,6 +247,10 @@ The first item is yours. The rest are read off the flow's report.
 - [ ] Nothing came back as **stale model comment** — or if it did, I know it is prose drift
       in a specialist generated before the weight rules landed, and that the behaviour is
       already correct.
+- [ ] Nothing came back as **missing Skill grant** — or if it did, I added `Skill` to that
+      file's `tools:` line by hand.
+- [ ] Nothing came back as **no code-access preload** — or if it did, I moved that file
+      aside, re-ran the flow, and carried my own edits over.
 - [ ] `/start-ticket` dispatches the specialists in order.
 
 ---

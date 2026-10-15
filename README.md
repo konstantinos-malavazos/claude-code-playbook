@@ -399,8 +399,8 @@ placeholders, wires the hooks, and then proves the wiring by re-reading `setting
 Five things worth knowing before you run it:
 
 - **It stops if Serena is not set up**, before writing anything, and prints the steps.
-  12 of the 16 agents halt and produce nothing without Serena, so a no-Serena install
-  would be a success message over a setup that refuses to work.
+  Every agent that declares Serena tools halts and produces nothing without Serena, so a
+  no-Serena install would be a success message over a setup that refuses to work.
 - **`update` also stops if a recorded answer no longer means what it meant.** It replays
   what you answered at first install without asking again — correct only as long as those
   answers still hold. A recorded delete of `<memory-read-tools>` or `<memory-write-tools>`,

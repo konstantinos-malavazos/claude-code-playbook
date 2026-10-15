@@ -790,11 +790,11 @@ SERENA_PREFIX=""
 
 # serena_gate — Serena is MANDATORY, so no evidence means no install.
 #
-# 12 of the 16 agents declare Serena tools and every one of them carries a
-# "## HALTED — no Serena tools" block telling it to produce nothing; the global
+# Every agent that declares Serena tools preloads the code-access skill, which
+# tells it to halt and produce nothing when those tools are missing; the global
 # CLAUDE.md says there is no Serena opt-out. So a no-Serena machine does not get
-# degraded agents, it gets twelve agents that refuse to run. An installer that
-# reports success over that is the silent failure this whole issue is about.
+# degraded agents, it gets agents that refuse to run. An installer that reports
+# success over that is the silent failure this gate exists to stop.
 #
 # CRITICAL: this prints and then EXITS. It must not route through stage(), screen()
 # or install_finish() on the way out — all three call _clear, which would wipe the
@@ -814,7 +814,7 @@ serena_gate() {
   printf '  %sNothing has been installed and nothing has been changed.%s\n\n' "$BOLD" "$RESET"
   say "Serena is a separate tool that lets Claude find and edit code by symbol"
   say "name instead of re-reading whole files. This playbook does not merely"
-  say "prefer it — 12 of its 16 agents refuse to run at all without it."
+  say "prefer it — every agent that reads code refuses to run without it."
   printf '\n'
   say "Installing now would leave you with something that reports success and"
   say "then does nothing, so the installer stops here instead."
@@ -2731,8 +2731,9 @@ retired_units_block() {
 
   heading "Retired units still on disk"
   say "The encode-codebase command, @encoder, @encode-recon, @encode-rechecker,"
-  say "@encode-corrector and the memory-tag-lint skill are retired: Serena reads"
-  say "code structure live, and memory keeps only what the code cannot tell you."
+  say "@encode-corrector and the memory-tag-lint skill (replaced by memory-lint)"
+  say "are retired: Serena reads code structure live, and memory keeps only what"
+  say "the code cannot tell you."
   say "Nothing was deleted. These are still installed:"
   for rel in "${present[@]}"; do
     shown="$CLAUDE_HOME/$rel"
