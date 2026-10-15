@@ -4,8 +4,10 @@ description: >-
   Runs AFTER ticket-analyzer, scoped to the topic terms it surfaced. Offloads the heavy
   memory sweep + Serena blast-radius exploration into its OWN throwaway context so the
   planner stays lean. Does first-pass coupling / stale-wiring detection. Writes a
-  distilled brief to <workspace>/.claude/handoffs/<TICKET-ID>/context-gatherer.md. Also
-  serves targeted follow-up requests, and runs resume-delta mode for /resume-ticket.
+  distilled brief to <workspace>/.claude/handoffs/<TICKET-ID>/context-gatherer.md. On a
+  multi-repo ticket runs STITCH mode instead: joins the per-repo @repo-gatherer briefs into
+  that same file. Also serves targeted follow-up requests, resume-delta mode for
+  /resume-ticket, and test mode for /test-ticket (writes context-gatherer-test.md).
   NEVER modifies code or memory.
 tools: Read, Grep, Glob, Write, <memory-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
@@ -57,6 +59,35 @@ Follow the `code-access` skill, preloaded through your `skills:` line. For your 
 ## Resume-delta mode (when invoked by /resume-ticket)
 Reuse the baseline brief; explore ONLY what new answers scope or what code was flagged
 as changed. Never re-run the full sweep.
+
+## Stitch mode (multi-repo tickets)
+The session dispatched one `@repo-gatherer` per repo first. You join their briefs; you do
+not re-sweep the repos.
+
+1. Read `ticket-analyzer.md` and every `repo-gatherers/*.md` — nothing else from the repos.
+2. **Join** each producer-side edge to the consumer-side edges of the same kind with the
+   **same literal identifier**, across repos. Grade every join:
+   - `code↔code` — both ends read in code. The only grade that counts as fact.
+   - `code↔memory` — one end from code, the other only from a memory.
+   - `memory-only` — neither end read in code.
+3. **Re-verify the load-bearing joins** — those the ticket's change sits on — with at most
+   **10 Serena calls** in total. Every join you did not re-verify, and every grade below
+   `code↔code`, is marked `[UNVERIFIED]` in the brief.
+4. List what did not join: `## Unmatched edges` (an edge with no other end in any brief)
+   and `## Missing repo coverage` (a `## Likely repos` row with no brief, a HALTED brief, or
+   an edge pointing at a repo nobody gathered). The session runs **one** more gatherer round
+   for the missing repos and dispatches you again; whatever is still missing after that stays
+   in the brief as `[UNVERIFIED]` for the planner to raise.
+5. Carry up the union of the briefs' `## Stale memories`, in the format below.
+6. Write `context-gatherer.md` in the output format below, adding `## Joined edges` (kind,
+   identifier, producer repo, consumer repo, grade), `## Unmatched edges` and
+   `## Missing repo coverage`. The planner reads only this file.
+
+## Test mode (when invoked by /test-ticket)
+Same sweep as the steps above, aimed at what the test plan needs: the produce path, the
+verify store, and the seams the repo `CLAUDE.md` declares. Write
+`context-gatherer-test.md`, **never** `context-gatherer.md` — a `/start-ticket` brief may
+already be in the folder, and the two runs must not overwrite each other.
 
 ## You must NOT
 - Edit any code file.

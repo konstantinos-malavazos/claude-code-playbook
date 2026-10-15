@@ -27,7 +27,8 @@ stays one ticket / one commit per repo / one metrics row.
    skill), then make it pass.
 4. **Amend, don't add** — the fix amends the existing branch commit (amend-as-you-go).
    No `fix: address QA` follow-up commits.
-5. **Review** — @repo-reviewer → @release-reviewer, same as /start-ticket.
+5. **Review** — one @repo-reviewer per touched repo in parallel, then @release-reviewer as
+   the judge, both dispatched by you, as /start-ticket step 6.
 6. **Land** — update the ticket's `feature` memory with the root cause + fix (an update,
    not a second feature memory). A new trap found in code outside the diff is a new `gotcha`
    memory, linked to it. Push the branch where allowlisted; the user merges.

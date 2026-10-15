@@ -12,12 +12,12 @@ your layer specialists for the implementer steps, and your git host for "MR/PR".
 | Step | Agent | Scope (tools) | Output |
 |---|---|---|---|
 | 1 | `ticket-analyzer` | tracker read only | `ticket-analyzer.md` — structured brief |
-| 2 | `context-gatherer` | memory + Serena, read only | `context-gatherer.md` — distilled brief + blast-radius flags |
+| 2 | `context-gatherer` — or, on 2+ repos, one `repo-gatherer` per repo then `context-gatherer` in stitch mode | memory + Serena, read only | `context-gatherer.md` — distilled (or stitched) brief + blast-radius flags |
 | 3 | `planner` | Serena read + branch creation; **no memory writes** | `planner.md` — plan, track allocation, final commit message, branch |
 | 3b | grilling gate | (human) | answers or **deferred** open questions |
 | 4 | layer specialists (in chain order) | **Serena edit** + build/test in their repo | code + `<layer>.md` handoff |
-| 5 | `repo-reviewer` | Serena read, run tests; **comments only**, delta-scoped | `repo-reviewer.md` — provisional verdict + MR description + re-pass weights |
-| 6 | `release-reviewer` | cross-repo Serena read; **comments only** | appended findings → final verdict |
+| 5 | `repo-reviewer`, one per touched repo | Serena read, run tests; **comments only**, delta-scoped | `repo-reviewers/<repo>.md` — per-repo verdict + MR description + proposed re-pass weights |
+| 6 | `release-reviewer`, the judge | cross-repo Serena read; **comments only** | `repo-reviewer.md` — FINAL verdict + re-pass weights |
 | 7 | orchestrator + human | — | up to five `gotcha` memories + one linked `feature` memory; agent pushes the branch where allowlisted, human opens the MR/PR |
 
 Handoffs live in `<workspace>/.claude/handoffs/<TICKET>/` as scratch space. They stay
@@ -43,6 +43,17 @@ to the topic/component. Use Serena (`find_symbol`, `find_referencing_symbols`) t
 blast radius (who consumes the thing you're about to change), semantically, not by grep.
 First-pass detection of coupling and stale wiring. Distil it all into
 `context-gatherer.md`. The planner reads only this, not the raw sweep.
+
+**On a multi-repo ticket the session fans out instead.** `@ticket-analyzer`'s
+`## Likely repos` decides it: one row keeps the single sweep above; two or more get one
+`@repo-gatherer` per repo, dispatched in one message. Each sweeps only its repo and lists
+every boundary crossing as an **outbound edge** — kind, the literal identifier the code uses,
+which side, evidence, confidence. Then `@context-gatherer` runs in **stitch mode**: it joins
+producers to consumers by identifier, grades each join (`code↔code` is the only fact;
+`code↔memory` and `memory-only` are not), re-verifies the load-bearing joins with at most 10
+Serena calls, and writes the same `context-gatherer.md`. A repo the stitch reports missing
+gets **one** more gatherer round; whatever is still missing stays `[UNVERIFIED]` and the
+planner raises it at grilling.
 
 ## Step 3 — Plan (`@planner`)
 
@@ -91,12 +102,15 @@ callers with `find_referencing_symbols`, change it with `replace_symbol_body` /
 code are reserved for languages Serena doesn't index. If Serena can't act on an assigned
 file, the specialist **stops and surfaces it** rather than downgrading.
 
-## Step 5 — Review (`@repo-reviewer`)
+## Step 5 — Review (`@repo-reviewer`, one per repo)
 
-Re-fetch the ticket, walk the diff **in the home repo**, validate against acceptance
-criteria, run the tests, check the commit convention (including one-commit-per-branch),
-draft a **provisional** verdict + MR/PR description, then dispatch `@release-reviewer`.
-Comments only — never edits code.
+The session dispatches one `@repo-reviewer` per repo the branch touched, all in one message;
+a single-repo ticket gets one. Each re-fetches the ticket, walks **its repo's** diff,
+validates against acceptance criteria, runs the tests, checks the commit convention
+(including one-commit-per-branch), and writes `repo-reviewers/<repo>.md`: a per-repo
+verdict — `APPROVE`, `REQUEST CHANGES` or `BLOCKED` — plus that repo's MR/PR description.
+Every finding is tagged `[<repo>/<track>]`. Comments only — never edits code, and never
+dispatches another agent.
 
 **The diff is scoped to the delta, at a depth the ticket already set.** Review covers what
 changed since the reviewer's own last verdict — on a first pass that's the whole branch
@@ -110,14 +124,24 @@ back, rather than reading the diff and inferring. The rule lives once, in
 **A `REQUEST CHANGES` verdict carries the re-pass weight.** The reviewer has just read the
 diff and written the findings, so it is the agent holding the evidence for how heavy the fix
 is. For each specialist it sends work back to, it runs the `dispatch-weight` skill over
-**what the findings actually ask for** and states the result. This is dispatch site 3, the
-one a plan-only weight misses.
+**what the findings actually ask for** and proposes the result. This feeds dispatch site 4,
+the review re-pass, the one a plan-only weight misses.
 
-## Step 6 — Release review (`@release-reviewer`)
+## Step 6 — The judge (`@release-reviewer`)
 
-Cross-repo blast radius: contract/payload coupling, downstream consumers, schema
-collisions, anything the in-repo view can't see. Appends findings. The first reviewer
-consolidates them into the **final verdict**.
+The session dispatches it once every per-repo verdict is in. Cross-repo blast radius:
+contract/payload coupling, downstream consumers, schema collisions, anything a single-repo
+view can't see. It owns the cross-repo acceptance criteria and data↔app contracts, takes the
+union of the deferred-decision gates, and **reconciles**: any `BLOCKED` → `BLOCKED`, else any
+`REQUEST CHANGES` → `REQUEST CHANGES`, else `APPROVE`. It writes the consolidated
+`repo-reviewer.md` — the **final verdict**, each finding tagged, and one re-pass weight line
+per specialist: the heavier of the reviewers' proposals and its own. On `BLOCKED` the session
+stops and tells you.
+
+A consumer tied to the producer only by a string — a topic name, a payload field, a config
+key — has no symbol link to follow, so the judge clears it only on a contract test the diff
+updated, or on a `search_for_pattern` sweep for that string across every indexed repo, listed
+with its hits. Anything else is `UNVERIFIED`.
 
 ## Step 7 — Land
 

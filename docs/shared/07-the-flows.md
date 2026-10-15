@@ -20,9 +20,11 @@ re-driving the same ten steps by hand.
 - **Handoffs are files, not chat.** Agents pass context through
   `<workspace>/.claude/handoffs/<TICKET>/<agent>.md`, which are **scratch space: they stay until you delete them, and they are never a durable
   store**. In-flight noise never pollutes durable memory.
-- **Two-tier review.** `@repo-reviewer` works in-repo (diff, acceptance criteria, tests).
-  `@release-reviewer` checks cross-repo blast radius (contract/payload coupling,
-  downstream consumers, schema collisions).
+- **Two-tier review, fanned out by the session.** One `@repo-reviewer` per touched repo, in
+  parallel, works in-repo (diff, acceptance criteria, tests). Then `@release-reviewer`, the
+  judge, checks cross-repo blast radius (contract/payload coupling, downstream consumers,
+  schema collisions) and reconciles the verdicts. No agent dispatches another; the session
+  does all of it, and gathering fans out the same way.
 - **One commit per branch per repo.** Amend-as-you-go; the reviewer asserts it.
 - **Every flow ends by saying what the human does next.** A stop condition says what the
   agent must not do; a report says what landed. Neither is a next step. Twenty-three terminal
@@ -44,8 +46,12 @@ Turns a ticket id into a reviewed, single-commit branch.
 ```
 @ticket-analyzer      tracker → structured brief (no code/memory lookups)
         │
-@context-gatherer     heavy memory + Serena sweep in a THROWAWAY context;
-        │             writes a distilled brief; read-only
+   {how many repos?}
+        ├── one:  @context-gatherer   heavy memory + Serena sweep in a THROWAWAY
+        │                             context; writes a distilled brief; read-only
+        └── 2+:   @repo-gatherer × N  one per repo, in parallel → outbound edges
+                  → @context-gatherer (stitch mode) joins them into ONE brief
+        │
 @planner              consumes briefs → design + track allocation + branch;
         │             flags "decompose?" for very large tickets
    grilling gate      ask the human ONLY what the code/brief can't answer
@@ -60,11 +66,12 @@ Turns a ticket id into a reviewed, single-commit branch.
               → slices one at a time, each on its own branch → @aligner → @integrator
               → @integration-tester
         │
-@repo-reviewer        in-repo: diff, acceptance criteria, tests, commit convention
+@repo-reviewer × N    one per touched repo, in parallel: diff, acceptance
+        │             criteria, tests, commit convention → per-repo verdict
+@release-reviewer     the judge: cross-repo blast radius, reconciles the verdicts
         │
-@release-reviewer     cross-repo blast radius
-        │
-   verdict ── REQUEST CHANGES ──► back to the specialists
+   verdict ── BLOCKED ──► stop, tell the human
+        ├──── REQUEST CHANGES ──► back to the specialists
         └──── APPROVE ──► harvest ≤5 gotcha memories + ONE linked feature memory
                           ──► YOU push & open the MR/PR
 ```
@@ -207,14 +214,17 @@ may only raise its floor.
 | # | Dispatch site | Has the plan? | Weighed by |
 |---|---|---|---|
 | 1 | the initial track dispatch, in chain order | **yes** | `@planner`, in the plan |
-| 2 | each slice on the decompose path ([09](09-decompose-path.md)) | yes, per slice | `@planner`, per slice |
-| 3 | the **review-fix re-pass** after `REQUEST CHANGES` | no | `@repo-reviewer`, in the verdict |
-| 4 | the **drift fix** after the alignment gate | no | `@aligner`, with its drift report |
+| 2 | the **drift fix** after the alignment gate | no | `@aligner`, with its drift report |
+| 3 | each slice on the decompose path ([09](09-decompose-path.md)) | yes, per slice | `@planner`, per slice |
+| 4 | the **review-fix re-pass** after `REQUEST CHANGES` | no | `@release-reviewer` as judge, in the verdict, from the per-repo `@repo-reviewer` proposals |
 | 5 | the QA bounce-back (`/fix-ticket`) | no | `@fixer-planner`, in the fix plan |
 | 6 | a secondary command that dispatches a specialist directly (`/build-chart-ticket`) | its own | its own planner step |
 
-**A `weight` field on the plan covers site 1 and silently misses the rest.** Site 3 is the
-most expensive one to miss: it is where a track that has *just failed review* gets handed
+The numbering is `/start-ticket`'s; every other copy follows it.
+
+**A `weight` field on the plan covers site 1, the initial dispatch, and silently misses the
+rest.** Site 4, the
+review re-pass, is the most expensive one to miss: it is where a track that has *just failed review* gets handed
 back to the same model that failed it, on the reasoning that the ticket was classified light
 an hour ago.
 

@@ -14,7 +14,8 @@ them; handoffs are never a durable store. Rehydrate from what is left. Don't red
    context, summarise where things stand, and STOP — hand control back to the user. **Handing control back is not a next step**, so
    end with the `next-steps` block: the branch, its sha and what is already done; the decision
    or the piece of work that is theirs; and the concrete re-entry point — the next layer in
-   the chain, or review and land where the code is finished. This session, since it is
+   the chain, or review (per-repo reviewers, then the judge, as `/start-ticket` step 6) and
+   land where the code is finished. This session, since it is
    already rehydrated.
 3. **Deferred decisions pending?** Ask the user whether the open questions now have
    answers (from a tracker comment / a spec page / typed here / still open). Collect what

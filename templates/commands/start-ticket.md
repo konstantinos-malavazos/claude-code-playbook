@@ -33,14 +33,30 @@ holding the evidence does, and you read its answer and route:
   does the dispatch of `@integration-tester` itself.
 
 Record the dispatched model, the weight, the reason and the pass number in that track's
-handoff. There are four dispatch sites below (steps 5 and 6); a weight read once from
-`planner.md` and reused covers one of them.
+handoff. There are six dispatch sites, and this list is their numbering everywhere else:
+
+- site 1 — **initial** dispatch of a track, on the weight in `planner.md` (step 5).
+- site 2 — **drift** fix `@aligner` routes back (step 5).
+- site 3 — each **slice**'s specialists on the decompose path (step 5).
+- site 4 — the review **re-pass** on `REQUEST CHANGES` (step 6).
+- site 5 — the QA **bounce-back** `/fix-ticket` dispatches.
+- site 6 — the **secondary** command `/build-chart-ticket` dispatches.
+
+A weight read once from `planner.md` and reused covers only site 1, the initial dispatch.
 
 ## Sequence
 1. **@ticket-analyzer** — tracker → `ticket-analyzer.md`.
-2. **@context-gatherer** — heavy memory + Serena sweep → `context-gatherer.md`. If its
-   `## Stale memories` section is not `none`, relay its warning line to the user verbatim
-   and carry on; a stale memory does not stop the flow.
+2. **Gather** — fork on the rows of `ticket-analyzer.md`'s `## Likely repos`:
+   - **one row** → **@context-gatherer** — heavy memory + Serena sweep →
+     `context-gatherer.md`.
+   - **two or more** → one **@repo-gatherer** per row, **all in one message**, each →
+     `repo-gatherers/<key>.md`. Then **@context-gatherer** in **stitch mode** →
+     `context-gatherer.md`. If it lists `## Missing repo coverage`, run **one** more
+     `@repo-gatherer` round for those repos and stitch again. Never a third round: what is
+     still missing stays `[UNVERIFIED]` in the brief, and the planner raises it.
+
+   Either way, if the brief's `## Stale memories` section is not `none`, relay its warning
+   line to the user verbatim and carry on; a stale memory does not stop the flow.
 3. **@planner** — design + track allocation + slice-count + final commit message; creates
    the branch → `planner.md`.
 4. **Grilling gate** — load the `grilling` skill; present ONLY the planner's open
@@ -49,8 +65,8 @@ handoff. There are four dispatch sites below (steps 5 and 6); a weight read once
    `<workspace>/.claude/handoffs/$ARGUMENTS/open-questions.md`.
 5. **Decompose fork:**
    - `slice-count == 1` → dispatch the **layer specialists in chain order** (per the
-     layer chain in the repo's CLAUDE.md). **Dispatch site 1** — apply the dispatch rule
-     above, reading each track's weight from `planner.md`. After each, confirm its
+     layer chain in the repo's CLAUDE.md). **Dispatch site 1**, the initial dispatch — apply
+     the dispatch rule above, reading each track's weight from `planner.md`. After each, confirm its
      build/tests are green and its handoff
      is written. If ≥2 layers touched, run the **alignment** check before review, and
      **dispatch site 2**: any drift fix `@aligner` routes back goes on the weight `@aligner`
@@ -64,13 +80,21 @@ handoff. There are four dispatch sites below (steps 5 and 6); a weight read once
      the next slice only after the previous one's last specialist returns. Then @aligner →
      @integrator → @integration-tester (see docs/shared/09). @aligner's drift fixes are site 2
      above, and land on the chain tip.
-6. **@repo-reviewer** → **@release-reviewer** → consolidate into the FINAL verdict.
+6. **Review** — you dispatch every reviewer; no agent dispatches another.
+   1. One **@repo-reviewer** per repo the branch touched, **all in one message**, each →
+      `repo-reviewers/<repo>.md`: that repo's verdict, its MR/PR description, and a proposed
+      re-pass weight per track. A single-repo ticket is the same path with one reviewer.
+   2. Then **@release-reviewer** in ticket mode, the cross-repo **judge** → the consolidated
+      `repo-reviewer.md`: the FINAL verdict, every finding tagged `[<repo>/<track>]`, and one
+      re-pass weight line per specialist.
+   - `BLOCKED` → a reviewer halted, or a deferred decision for that repo is still open.
+     **Stop and tell the user** which repo and why. Do not re-dispatch.
    - `REQUEST CHANGES` → back to the responsible specialist (amend, don't add commits);
      re-review. **Dispatch site 4, and the one most setups miss:** dispatch on the **re-pass
-     weight in the verdict**, which @repo-reviewer classified over its own findings. Not the
-     first pass's weight, and not a blanket one-tier bump — a one-line rename and a broken
-     contract with three untouched callers both come back as `REQUEST CHANGES`. The ratchet
-     applies: never below the tier that track last ran at.
+     weight in the judge's verdict** — the heavier of the per-repo proposals and its own
+     findings. Not the first pass's weight, and not a blanket one-tier bump — a one-line
+     rename and a broken contract with three untouched callers both come back as
+     `REQUEST CHANGES`. The ratchet applies: never below the tier that track last ran at.
    - `APPROVE` → continue.
 7. **Land** — harvest the ticket into memory from the handoff text only; never re-read code
    for it.
@@ -90,7 +114,8 @@ handoff. There are four dispatch sites below (steps 5 and 6); a weight read once
 8. **Say what they do now** — end with the `next-steps` block. On APPROVE: the branch, its
    single sha and the memory ids — the feature memory, and each gotcha with its id, plus
    any gotchas "not written". A gotcha the user vetoes is marked obsolete. Then the MR/PR
-   description @repo-reviewer drafted, which is theirs to paste; then `/test-ticket $ARGUMENTS` where the ticket needs proving against a
+   description for each repo, from the consolidated `repo-reviewer.md`, which is theirs to
+   paste; then `/test-ticket $ARGUMENTS` where the ticket needs proving against a
    real environment, otherwise the next ticket — in a **fresh** session, because a ticket is
    sized to one context. **Where the allowlist did not permit the push**, say plainly that
    the branch is local and unpushed, and give them the one line to add to

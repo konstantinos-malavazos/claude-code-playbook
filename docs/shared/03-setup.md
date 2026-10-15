@@ -255,8 +255,8 @@ them is wired in.
 ## Step 8 — Add the flows, one at a time
 
 Copy `templates/commands/start-ticket.md` → `~/.claude/commands/`, plus the agents it
-references (`ticket-analyzer`, `context-gatherer`, `planner`, `repo-reviewer`,
-`release-reviewer`). **The layer specialists are not among them.** They are facts about one
+references (`ticket-analyzer`, `context-gatherer`, `repo-gatherer` for multi-repo tickets,
+`planner`, `repo-reviewer`, `release-reviewer`). **The layer specialists are not among them.** They are facts about one
 codebase. They live in that repo's own `.claude/agents/` and are generated from its
 `CLAUDE.md` ([11-adapting-to-your-stack.md](11-adapting-to-your-stack.md)), not copied here
 by hand. Run it on a small real ticket. Once that is smooth, add

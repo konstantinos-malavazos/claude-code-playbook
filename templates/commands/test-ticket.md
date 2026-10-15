@@ -8,7 +8,8 @@ reconciling the resulting row/state. Also **learn the produce recipe** so future
 of the same scenario reuse it.
 
 ## Sequence
-1. **@ticket-analyzer** (+ **@context-gatherer** in test mode) — build an
+1. **@ticket-analyzer** (+ **@context-gatherer** in test mode, which writes
+   `context-gatherer-test.md`) — build an
    **acceptance-criteria checklist** and identify each domain event the ACs need
    produced. If the gatherer's `## Stale memories` section is not `none`, relay its warning
    line to the user verbatim and carry on; a stale memory does not stop the flow.

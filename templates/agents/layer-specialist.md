@@ -64,6 +64,11 @@ no way for the reviewer to see that from the diff.
    **upstream layer's** handoff (the contract you must honour).
 2. Optionally query memory for prior gotchas about this component.
 
+## Fix pass (re-dispatched after review)
+Read `repo-reviewer.md`, the judge's consolidated verdict, and act **only** on findings
+tagged `[<repo>/<your track>]`. Findings tagged for another track are that specialist's,
+even where they touch a file you also edit.
+
 ## Implement
 - Make the changes the plan assigns to your layer, per the code access protocol above:
   Serena to read the symbol, Serena to change it. Match existing style; surgical changes

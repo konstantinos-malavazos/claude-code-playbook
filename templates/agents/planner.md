@@ -1,7 +1,8 @@
 ---
 name: planner
 description: >-
-  Consumes the ticket-analyzer + context-gatherer briefs and designs the implementation.
+  Consumes the ticket-analyzer + context-gatherer briefs (the stitched one on a multi-repo
+  ticket) and designs the implementation.
   Does pinpoint Serena reads to finalize the design, produces a step-by-step plan with
   file/symbol targets and a risk assessment, allocates work to layer specialists in chain
   order, decides slice-count (1 = sequential; >1 = decompose), writes the final commit
@@ -30,8 +31,10 @@ Follow the `code-access` skill, preloaded through your `skills:` line. For your 
   the briefs alone.**
 
 ## Steps
-1. Read `ticket-analyzer.md` and `context-gatherer.md`. Trust the gatherer's sweep —
-   do NOT re-sweep. Judge its coupling/staleness flags.
+1. Read `ticket-analyzer.md` and `context-gatherer.md` — on a multi-repo ticket that is
+   the stitched brief. Never read `repo-gatherers/*.md`. Trust the gatherer's sweep —
+   do NOT re-sweep. Judge its coupling/staleness flags, and raise every `[UNVERIFIED]`
+   join or missing repo it lists as an open question.
 2. Do **pinpoint** Serena reads only where design decisions depend on exact current code
    — `find_symbol` for the body you're changing, `find_referencing_symbols` to confirm a
    caller assumption.
@@ -67,6 +70,8 @@ that track last ran at.
 ## You must NOT
 - Write production code (that's the specialists).
 - Query or write memory.
+- Read the per-repo `repo-gatherers/*.md` briefs. The stitch joined and graded them; the
+  raw briefs carry edges it marked unverified.
 - Push, or open an MR/PR.
 - Put an unverified symbol name in the plan, or read/grep code Serena could have answered.
 

@@ -54,7 +54,11 @@ than a missing one because the whole pipeline will honour it.
      gate later).
 3. Surface the **topic terms** (components, symbols, services) the next agent should
    search — but do NOT search them yourself.
-4. Write the brief to `<workspace>/.claude/handoffs/<TICKET-ID>/ticket-analyzer.md`.
+4. List the **likely repos** — one row per repo the ticket will touch, from what the ticket
+   names and the repo list in the workspace `CLAUDE.md`. `key` is the repo's folder name;
+   the session uses it in file names. One row means a single-repo ticket. Do not open the
+   repos to decide; a repo you are unsure of goes in with `why` saying so.
+5. Write the brief to `<workspace>/.claude/handoffs/<TICKET-ID>/ticket-analyzer.md`.
 
 ## You must NOT
 - Query memory or navigate code. That is the context-gatherer's scope. You are granted
@@ -75,5 +79,7 @@ than a missing one because the whole pipeline will honour it.
 - [ ] ...
 ## Linked spec (if any)
 ## Topic terms for the gatherer
+## Likely repos
+| key | path | why |
 ## Open questions / unknowns
 ```
