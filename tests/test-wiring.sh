@@ -13,6 +13,8 @@
 #   A15    no slice template mentions a worktree
 #   A16    implementation dispatch carries the code-access paragraph, and every editing
 #          agent's handoff reports its Serena calls
+#   A17    every "dispatch site N" mention agrees with start-ticket.md's numbering
+#   A18    no agent template holds Agent in its tools: line
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -21,8 +23,8 @@
 # Deterministic and offline: no network, no model, no install. It reads the
 # templates and the docs and asserts both wirings are still wired.
 #
-# WHY THIS EXISTS. The weight landed across six dispatch sites, one shared skill
-# and four weighing agents, and was verified by hand. None of that survives the
+# WHY THIS EXISTS. The weight is wired across six dispatch sites, one shared skill
+# and five weighing agents. None of that survives the
 # next change: the wiring fails OPEN. A new editing agent nobody wired, or a
 # command that restates the criteria instead of loading the skill, produces the
 # same SHAPE of result as a correct one — just slower and more expensive. There
@@ -298,10 +300,10 @@ fi
 # Catches: an agent told to classify with nowhere to write it, so the
 # orchestrator reads nothing and silently defaults — the cheap direction, whose
 # failures are invisible in the output.
-WEIGHERS="planner repo-reviewer aligner fixer-planner"
+WEIGHERS="planner repo-reviewer release-reviewer aligner fixer-planner"
 
 if want A3; then
-banner "A3 · the four weighers load the skill and carry a weight line"
+banner "A3 · the five weighers load the skill and carry a weight line"
 for stem in $WEIGHERS; do
   f="$AGENTS/$stem.md"
   if [ ! -f "$f" ]; then fail "@$stem is missing from templates/agents/"; continue; fi
@@ -459,7 +461,7 @@ else
   # table is the doc's claim; templates/agents is the fact.
   HANDLES="$(printf '%s\n' "$ROWS" | grep -oE '@[a-z-]+' | sed 's/^@//' | sort -u)"
   if [ "$(setlike "$HANDLES")" = "$(setlike "$WEIGHERS")" ]; then
-    pass "the table's weighers are exactly A3's four: $(setlike "$HANDLES")"
+    pass "the table's weighers are exactly A3's: $(setlike "$HANDLES")"
   else
     fail "table weighers [$(setlike "$HANDLES")] != A3's [$(setlike "$WEIGHERS")]"
   fi
@@ -1254,6 +1256,193 @@ elif grep -qF 'Serena calls:' "$AGENTS/repo-reviewer.md"; then
   pass "A16.4 repo-reviewer checks the editors' Serena calls: line"
 else
   fail "A16.4 repo-reviewer never checks a Serena calls: line — a missing or unexplained zero goes unreported"
+fi
+fi
+
+# ---------------------------------------------------------------- A17
+# start-ticket.md numbers the dispatch sites and every other "site N" in the repo borrows
+# that number. A copy that drifts still reads fine and sends the reader to another site,
+# so each mention must sit within two lines of the word that names its site.
+# A17_KW is the tripwire, like A1's EXPECTED_EDITORS: word N names site N, and renaming
+# a site means changing the word here.
+#
+# Catches: a doc that says "site 3" about the re-pass while the pipeline says 4.
+A17_KW="initial drift slice re-pass bounce-back secondary"
+
+# a17_kw N — the word that names dispatch site N
+a17_kw() { printf '%s\n' "$A17_KW" | awk -v n="$1" '{print $n}'; }
+
+# a17_scan FILE — one "LINE N ok|bad" per "site N" mention (N in 1-6, any case, not the
+# tail of a longer word). ok = site N's word is on the mention's line or within 2 lines
+# either side. CRs are stripped first: on Linux awk does not.
+a17_scan() {
+  tr -d '\r' < "$1" | awk -v kws="$A17_KW" '
+    BEGIN { split(kws, kw, " ") }
+    { line[NR] = " " tolower($0) " " }
+    END {
+      for (i = 1; i <= NR; i++) {
+        s = line[i]
+        while (match(s, /[^a-z]site [1-6][^0-9]/)) {
+          n = substr(s, RSTART + RLENGTH - 2, 1)
+          v = "bad"
+          for (j = i - 2; j <= i + 2; j++)
+            if (j >= 1 && j <= NR && index(line[j], kw[n])) v = "ok"
+          print i, n, v
+          s = substr(s, RSTART + RLENGTH - 1)
+        }
+      }
+    }'
+}
+
+if want A17; then
+banner "A17 · dispatch-site numbers agree with start-ticket.md"
+
+START_TICKET="$COMMANDS/start-ticket.md"
+
+# A17.0 — the source names all six sites, so the scan below is comparing against
+# something.
+if [ ! -f "$START_TICKET" ]; then
+  fail "A17.0 templates/commands/start-ticket.md is missing"
+else
+  a17_seen="$(a17_scan "$START_TICKET" | awk '{print $2}' | sort -u | tr '\n' ' ')"
+  for n in 1 2 3 4 5 6; do
+    case " $a17_seen" in
+      *" $n "*) pass "A17.0 start-ticket.md names dispatch site $n ($(a17_kw "$n"))" ;;
+      *) fail "A17.0 start-ticket.md never names dispatch site $n ($(a17_kw "$n")) — the source of the numbering has no site $n" ;;
+    esac
+  done
+
+  # A17.1 — inside the source, every number sits beside its own word.
+  a17_bad=0
+  while read -r ln n verdict; do
+    [ "$verdict" = "bad" ] || continue
+    a17_bad=1
+    fail "A17.1 start-ticket.md:$ln says site $n with no '$(a17_kw "$n")' within 2 lines"
+  done <<EOF
+$(a17_scan "$START_TICKET")
+EOF
+  [ "$a17_bad" = "0" ] && pass "A17.1 every site N in start-ticket.md sits beside its own word"
+fi
+
+# A17.2 — the site table in 07-the-flows.md: row N is site N.
+A17_ROWS="$(awk '/^\| # \| Dispatch site \|/{f=1; next} f && !/^\|/{exit} f && /^\|[- |]*\|$/{next} f' "$FLOWS" 2>/dev/null | tr -d '\r')"
+if [ ! -f "$FLOWS" ]; then
+  fail "A17.2 docs/shared/07-the-flows.md is missing"
+elif [ -z "$A17_ROWS" ]; then
+  fail "A17.2 found no site table in 07-the-flows.md — its header row changed, or the probe is broken"
+else
+  while IFS= read -r row; do
+    [ -n "$row" ] || continue
+    num="$(printf '%s\n' "$row" | awk -F'|' '{gsub(/[[:space:]]/, "", $2); print $2}')"
+    cell="$(printf '%s\n' "$row" | awk -F'|' '{print tolower($3)}')"
+    case "$num" in
+      [1-6]) ;;
+      *) fail "A17.2 07 table has a row numbered '$num' — rows are numbered 1-6"; continue ;;
+    esac
+    kw="$(a17_kw "$num")"
+    case "$cell" in
+      *"$kw"*) pass "A17.2 07 table row $num is the $kw site" ;;
+      *) fail "A17.2 07 table row $num is not the $kw site — start-ticket.md numbers it $num" ;;
+    esac
+  done <<EOF
+$A17_ROWS
+EOF
+fi
+
+# A17.3 — every other mention under templates/, docs/ and examples/. Files are read off
+# disk with find, never git grep, which cannot see an untracked file.
+a17_files=0; a17_mentions=0; a17_off=0
+while IFS= read -r f; do
+  [ "$f" = "$START_TICKET" ] && continue
+  a17_files=$((a17_files+1))
+  rel="${f#"$REPO"/}"
+  while read -r ln n verdict; do
+    [ -n "$ln" ] || continue
+    a17_mentions=$((a17_mentions+1))
+    [ "$verdict" = "bad" ] || continue
+    a17_off=1
+    fail "A17.3 $rel:$ln says site $n with no '$(a17_kw "$n")' within 2 lines"
+  done <<EOF2
+$(a17_scan "$f")
+EOF2
+done <<EOF
+$(find "$TEMPLATES" "$REPO/docs" "$REPO/examples" -name '*.md' -type f | sort)
+EOF
+if [ "$a17_files" -gt 0 ]; then
+  pass "A17.3 scanned $a17_files other markdown files ($a17_mentions site mentions)"
+else
+  fail "A17.3 the find returned no markdown — the probe is broken, not the tree"
+fi
+[ "$a17_off" = "0" ] && pass "A17.3 every other site N mention sits beside its own word"
+
+# A17.4 — the scanner itself, in both directions, on fixtures with known answers.
+a17_fx="$SCRATCH/a17"
+mkdir -p "$a17_fx"
+printf 'Dispatch site 3 is the one a plan-only weight misses.\nIt reads the re-pass weight.\n' > "$a17_fx/bad.md"
+printf 'Dispatch site 4 is the one a plan-only weight misses.\nIt reads the re-pass weight.\n' > "$a17_fx/good.md"
+printf 'site 4\nx\nre-pass\n' > "$a17_fx/edge2.md"
+printf 'site 4\nx\ny\nre-pass\n' > "$a17_fx/edge3.md"
+printf 'a website 3 and the opposite 4 and site 10\n' > "$a17_fx/words.md"
+printf 'site 1 and site 2 here\ninitial dispatch\n' > "$a17_fx/two.md"
+
+a17_expect() {
+  local got
+  got="$(a17_scan "$a17_fx/$2")"
+  if [ "$got" = "$3" ]; then pass "A17.4 $1"
+  else fail "A17.4 $1 — the scan gave [$got], expected [$3]"; fi
+}
+a17_expect "site 3 beside re-pass is flagged" bad.md "1 3 bad"
+a17_expect "site 4 beside re-pass is accepted" good.md "1 4 ok"
+a17_expect "the word two lines away is accepted" edge2.md "1 4 ok"
+a17_expect "the word three lines away is flagged" edge3.md "1 4 bad"
+a17_expect "website 3, opposite 4 and site 10 are not mentions" words.md ""
+a17_expect "two mentions on one line are judged separately" two.md "1 1 ok
+1 2 bad"
+fi
+
+# ---------------------------------------------------------------- A18
+# Only the session dispatches agents. A template whose tools: line holds Agent can launch
+# another agent, and the nesting leaves no trace in the output. Agent(<name>) is the
+# restricted form of the same grant.
+#
+# Catches: a reviewer or gatherer that fans out on its own again.
+a18_tools() {
+  tr -d '\r' < "$1" | awk '/^---$/{n++; next} n==1' | sed -n 's/^tools:[[:space:]]*//p' | head -1
+}
+
+# a18_grants_agent TOOLS — does a tools: value hold Agent as a whole token?
+a18_grants_agent() {
+  printf '%s\n' "$1" | tr ',' '\n' | tr -d ' \t\r' | grep -qE '^Agent(\(.*\))?$'
+}
+
+if want A18; then
+banner "A18 · no agent template holds Agent in its tools: line"
+
+# A18.0 — the token probe, in both directions.
+if a18_grants_agent "Read, Agent, Skill"; then pass "A18.0 the probe flags a bare Agent"
+else fail "A18.0 the probe missed a bare Agent — the probe is broken, not the tree"; fi
+if a18_grants_agent "Read, Agent(worker)"; then pass "A18.0 the probe flags Agent(<name>)"
+else fail "A18.0 the probe missed Agent(<name>) — the probe is broken, not the tree"; fi
+if ! a18_grants_agent "Read, Agents, SubAgent, mcp__x__Agent"; then
+  pass "A18.0 the probe leaves lookalike tokens alone"
+else
+  fail "A18.0 the probe flagged a lookalike token"
+fi
+
+a18_read=0
+for stem in $(stems "$AGENTS"); do
+  tools="$(a18_tools "$AGENTS/$stem.md")"
+  [ -n "$tools" ] && a18_read=$((a18_read+1))
+  if a18_grants_agent "$tools"; then
+    fail "A18 @$stem holds Agent in its tools: line — only the session dispatches agents"
+  else
+    pass "A18 @$stem does not hold Agent"
+  fi
+done
+if [ "$a18_read" -gt 0 ]; then
+  pass "A18.0 read a tools: line from $a18_read agent templates"
+else
+  fail "A18.0 read no tools: line from any agent — the frontmatter reader is broken, not the tree"
 fi
 fi
 

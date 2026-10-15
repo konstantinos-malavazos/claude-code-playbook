@@ -156,9 +156,10 @@ directory name. Same placeholder, opposite consequence:
   **Then ask the second question: does anything check it?** A judgement a later stage
   re-examines can afford `high`; one that closes a gate with nothing behind it stays `xhigh`.
   That is why the `/start-ticket` spine — `context-gatherer`, `planner`, `repo-reviewer`,
-  `release-reviewer` — runs `high` rather than `xhigh`: the gatherer's brief is re-verified by
-  the planner, the plan meets a human at the grilling gate, and each verdict is consolidated
-  by the orchestrator before a human opens the PR. `xhigh` is kept for the agents whose answer
+  `release-reviewer` — runs `high` rather than `xhigh`: the planner trusts the gatherer's
+  sweep but makes pinpoint Serena reads wherever a design decision depends on exact current
+  code, the plan meets a human at the grilling gate, and the per-repo verdicts are reconciled
+  by the judge before a human opens the PR. `xhigh` is kept for the agents whose answer
   is the last word — `map-reviewer` closing a map, `pitch-judge` killing an idea,
   `decision-steward` answering unattended, and `aligner`, `fixer-planner` and `test-planner`,
   none of which has a reviewer of its own.
@@ -176,8 +177,9 @@ directory name. Same placeholder, opposite consequence:
   where an agent works and not how hard its layer has to think.
 - **An agent that dispatches another agent needs `Agent` in its `tools` list.** Nesting is
   on by default (three layers below the main conversation), but an explicit allowlist still
-  wins: leave `Agent` out and the dispatch simply cannot happen. `repo-reviewer` is the one
-  agent here that dispatches another.
+  wins: leave `Agent` out and the dispatch simply cannot happen. No agent shipped here
+  dispatches another: the session fans out — one gatherer or reviewer per repo, in one
+  message — and runs the stitch or the judge after them.
 - **Read/write handoffs, not chat.** Every pipeline agent's first action is to list and
   read the relevant prior handoff files under
   `<workspace>/.claude/handoffs/<TICKET-ID>/`. Its last action is to write its own.
@@ -334,15 +336,16 @@ carries `mcp__serena__activate_project` for this.
 | File | Role | solo | team |
 |---|---|---|---|
 | `ticket-analyzer.md` | tracker → structured brief (read-only) | ✓ | ✓ |
-| `context-gatherer.md` | heavy memory + Serena sweep in a throwaway context | ✓ | ✓ |
+| `context-gatherer.md` | heavy memory + Serena sweep in a throwaway context; on a multi-repo ticket, stitch mode joins the per-repo briefs | ✓ | ✓ |
+| `repo-gatherer.md` | **multi-repo tickets only** — one repo's sweep plus its `## Outbound edges`, one per repo in parallel (read-only) | | ✓ |
 | `planner.md` | design + track allocation + branch (no memory writes, no code) | ✓ | ✓ |
 | `layer-specialist.md` | **generated once per layer of your chain** by `/adapt-to-stack`, into that repo's own `.claude/agents/` — the implementer (Serena-only edits) | ✓ | ✓ |
 | `slice-layer-specialist.md` | **decompose path only** — the slice-mode variant of the above, **generated once per layer** by the same flow; overrides five things and inherits the rest | ✓ | ✓ |
 | `aligner.md` | **decompose path only** — cross-slice drift gate before any merge; ALIGNED or DRIFT FOUND (comments only) | ✓ | ✓ |
 | `integrator.md` | **decompose path only** — collapses each repo's slice branches to one commit; stops on a real conflict | ✓ | ✓ |
 | `integration-tester.md` | **decompose path only** — tests the combined behaviour no single slice proves; routes defects, never patches | ✓ | ✓ |
-| `repo-reviewer.md` | first-level in-repo review (comments only) | ✓ | ✓ |
-| `release-reviewer.md` | cross-repo blast-radius review (comments only) | ✓ | ✓ |
+| `repo-reviewer.md` | per-repo review, one per touched repo in parallel (comments only) | ✓ | ✓ |
+| `release-reviewer.md` | cross-repo judge: blast radius, reconciled FINAL verdict (comments only) | ✓ | ✓ |
 | `fixer-planner.md` | QA bounce-back → root cause + fix plan; stops rather than guessing a cause | ✓ | ✓ |
 | `test-planner.md` | criteria → an approved staging test plan; owns the produce-recipe loop (plans and banks, never runs) | ✓ | ✓ |
 | `tester.md` | runs the approved plan — calls the produce driver, reconciles, verdicts, confirms or corrects the recipe | ✓ | ✓ |

@@ -71,13 +71,16 @@ You answer UTC. It is cheap to reverse: one default in one function, so no defer
   binding all agree. ✅
 
 ### 5–6. Review
-- `@repo-reviewer`: all ACs met, tests pass, branch is 1 commit, convention OK. Drafts the
-  PR description. Provisional: APPROVE. Re-pass weights: none — that section is filled
-  only on `REQUEST CHANGES`. Had a missed `formatFeedTime` caller sent the backend back,
-  the verdict would carry `backend specialist — weight: heavy — <criterion>`, and the fix
-  would be dispatched on that weight, never below the tier the backend last ran at.
-- `@release-reviewer`: checks consumers of `formatFeedTime` across repos. The change is
-  backward-compatible (tz optional). No downstream break. Appends: APPROVE.
+- `@repo-reviewer` (one repo, so one reviewer): all ACs met, tests pass, branch is 1 commit,
+  convention OK. Drafts the PR description. Per-repo verdict: APPROVE. Proposed re-pass
+  weights: none — that section is filled only on `REQUEST CHANGES`. Had a missed
+  `formatFeedTime` caller sent the backend back, it would propose
+  `backend specialist — weight: heavy — <criterion>`.
+- `@release-reviewer`, the judge, dispatched by the session next: checks consumers of
+  `formatFeedTime` across repos. The change is backward-compatible (tz optional). No
+  downstream break. Reconciles the one per-repo verdict and writes the final one to
+  `repo-reviewer.md`. A re-pass would be dispatched on the heavier of the proposal and its
+  own weight, never below the tier the backend last ran at.
 - Final verdict: APPROVE.
 
 ### 7. Land

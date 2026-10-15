@@ -144,10 +144,11 @@ Ask the tracker: **is any *other* `make:` ticket for this repo still open or blo
 
 - **Yes** → skip review. More is coming, and reviewing half a repo produces a verdict that
   goes stale in a day.
-- **No** → this ticket finished the repo. Invoke `@repo-reviewer <TICKET-ID>`, which
-  dispatches `@release-reviewer` itself. Then **copy its verdict into the chart's
-  `reviews/<repo>.md` in this same session**, because handoffs are never a durable store, and
-  keep the MR/PR description it drafted.
+- **No** → this ticket finished the repo. Dispatch `@repo-reviewer <TICKET-ID>` for this
+  repo, then dispatch `@release-reviewer` in ticket mode as the judge, as `/start-ticket`
+  step 6 does — no agent dispatches another. Then **copy the judge's consolidated
+  `repo-reviewer.md` into the chart's `reviews/<repo>.md` in this same session**, because
+  handoffs are never a durable store, and keep the MR/PR description it carries.
 
 Ask this live, every time. Never store a "repo is ready for review" flag. It rots exactly
 like a `Blocked by:` line does.
