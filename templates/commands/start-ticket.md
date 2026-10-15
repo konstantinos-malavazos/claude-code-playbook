@@ -34,12 +34,15 @@ handoff. There are four dispatch sites below (steps 5 and 6); a weight read once
 
 ## Sequence
 1. **@ticket-analyzer** — tracker → `ticket-analyzer.md`.
-2. **@context-gatherer** — heavy memory + Serena sweep → `context-gatherer.md`.
+2. **@context-gatherer** — heavy memory + Serena sweep → `context-gatherer.md`. If its
+   `## Stale memories` section is not `none`, relay its warning line to the user verbatim
+   and carry on; a stale memory does not stop the flow.
 3. **@planner** — design + track allocation + slice-count + final commit message; creates
    the branch → `planner.md`.
 4. **Grilling gate** — load the `grilling` skill; present ONLY the planner's open
    questions to the user. Collect answers or managed deferrals. If answers change the
-   design, send @planner back to RE-PLAN. Record deferrals to durable ticket state.
+   design, send @planner back to RE-PLAN. Record deferrals in
+   `<workspace>/.claude/handoffs/$ARGUMENTS/open-questions.md`.
 5. **Decompose fork:**
    - `slice-count == 1` → dispatch the **layer specialists in chain order** (per the
      layer chain in the repo's CLAUDE.md). **Dispatch site 1** — apply the dispatch rule
@@ -60,12 +63,25 @@ handoff. There are four dispatch sites below (steps 5 and 6); a weight read once
      contract with three untouched callers both come back as `REQUEST CHANGES`. The ratchet
      applies: never below the tier that track last ran at.
    - `APPROVE` → continue.
-7. **Land** — consolidate the ticket's handoffs into ONE durable memory (root cause /
-   design / blast radius / recipes; tagged by functionality). Then tell the user the
-   branch is ready. **Push it** where the allowlist permits; **they** open the MR/PR.
+7. **Land** — harvest the ticket into memory from the handoff text only; never re-read code
+   for it.
+   1. **Visited code** = the files cited in the handoffs, minus the ticket's own diff.
+   2. From what the handoffs say about that code, keep only traps, non-obvious whys,
+      negative results, cross-repo contracts and per-config divergences. Zero gotchas is
+      normal.
+   3. Write at most five `gotcha` memories: importance 8, `source_files` = the visited
+      file, owner = that file's repo. If more than five qualify, write the five whose
+      visited file the most handoffs cite; the rest go in the hand-back as "not written".
+   4. Then write one `feature` memory (root cause / design / blast radius): `source_files`
+      = the diff, importance 6, one owner project.
+   5. Link the feature memory to each gotcha.
+
+   Then tell the user the branch is ready. **Push it** where the allowlist permits;
+   **they** open the MR/PR.
 8. **Say what they do now** — end with the `next-steps` block. On APPROVE: the branch, its
-   single sha and the memory id; the MR/PR description @repo-reviewer drafted, which is
-   theirs to paste; then `/test-ticket $ARGUMENTS` where the ticket needs proving against a
+   single sha and the memory ids — the feature memory, and each gotcha with its id, plus
+   any gotchas "not written". A gotcha the user vetoes is marked obsolete. Then the MR/PR
+   description @repo-reviewer drafted, which is theirs to paste; then `/test-ticket $ARGUMENTS` where the ticket needs proving against a
    real environment, otherwise the next ticket — in a **fresh** session, because a ticket is
    sized to one context. **Where the allowlist did not permit the push**, say plainly that
    the branch is local and unpushed, and give them the one line to add to
@@ -78,4 +94,5 @@ handoff. There are four dispatch sites below (steps 5 and 6); a weight read once
   makes a change the trunk's problem, and it stays yours. **Commit no AI-infra files**: `.claude/` (except `agents/` and `skills/`, which
   are product files generated from this repo's `CLAUDE.md`), MCP state, memory files.
 - Keep the branch at exactly one commit per repo.
-- Handoff files are ephemeral; only the consolidated memory is durable.
+- Handoff files are ephemeral; only the Land memories (the gotchas and the feature memory)
+  are durable. No in-flight state goes to memory.

@@ -155,9 +155,10 @@ If the team graduates to a shared Forgetful instance (see
 2. **Write access is gated.** Only the template maintainer (or a small trusted
    set) can write to shared memory. Everyone reads. Write nominations go
    through the maintainer.
-3. **Golden queries are shared and version-controlled.** The `/garden-memory`
-   eval uses the same queries for everyone, so retrieval quality is a team
-   metric, not an individual one.
+3. **The lint vocabulary is shared and version-controlled.** Every write is
+   checked against the same `memory-lint` types and tags, and the
+   `/garden-memory` staleness report is now the health signal: a team metric,
+   not an individual one.
 
 ---
 
@@ -170,7 +171,7 @@ If the team graduates to a shared Forgetful instance (see
 | Sync | Version-controlled template repo, PR-only changes, pinned versions in workspace CLAUDE.md |
 | New agent review | Tool scope, handoff schema, overlap check, integration test |
 | Version mismatch | Version-stamped handoff files, consumer warns on mismatch |
-| Shared memory | No-PII hook, gated writes, shared golden queries |
+| Shared memory | No-PII hook, gated writes, shared lint vocabulary |
 
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

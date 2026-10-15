@@ -47,25 +47,14 @@ LOGS="$SCRATCH/logs"
 # would build the sandbox wrong and every later failure would point at the installer
 # instead of at the interpreter — correct by luck, and the diagnostic lies (#146).
 #
-# THE CANDIDATE LIST IS BYTE-IDENTICAL to the one in templates/hooks/_lib/common.sh,
-# and it has to be: a suite that picked its interpreter by a different rule from the
-# code it tests is testing something else. Why a WindowsApps python3 goes to the END of
-# the list and is never dropped is written out in that file — a guardrail that bricks
-# the machine is not the safer failure, so this is a preference, not a ban.
-PY_LIST=()
-PY_LAST=()
-# ONE command substitution, not one per candidate. A fork costs ~30ms on Windows, so
-# asking twice cost measurably more than the whole ordering decision it feeds. The
-# `true` keeps the list non-fatal when neither name resolves; the empty-line guard is
-# what a missing candidate looks like here.
-while IFS= read -r _p; do
-    [ -n "$_p" ] || continue
-    case "${_p,,}" in
-        */windowsapps/*) PY_LAST+=("$_p") ;;
-        *)               PY_LIST+=("$_p") ;;
-    esac
-done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
-PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
+# The candidates are the hooks' own, so the suite picks its interpreter by the same rule
+# as the code it tests.
+HOOK_LIB_LOADED=
+# shellcheck source-path=SCRIPTDIR source=../templates/hooks/_lib/common.sh
+if ! . "$REPO/templates/hooks/_lib/common.sh" || [ "${HOOK_LIB_LOADED-}" != 1 ]; then
+    echo "FAIL: $REPO/templates/hooks/_lib/common.sh is missing or did not load — no interpreter list to run with." >&2
+    exit 1
+fi
 
 # Probed once, here, rather than letting the first real use decide. A driver that
 # cannot read the files install.sh writes has no tests to run at all, and finding that
@@ -267,12 +256,18 @@ banner "13 · static checks"
 ( cd "$REPO" && bash -n install.sh ) ; chk $? "bash -n install.sh"
 ( cd "$REPO" && "$PY" -m py_compile install-lib.py && rm -rf __pycache__ ) >/dev/null 2>&1
 chk $? "python3 -m py_compile install-lib.py"
+( cd "$REPO/templates/skills/memory-lint" && "$PY" -m py_compile lint.py garden_check.py tests.py && rm -rf __pycache__ ) >/dev/null 2>&1
+chk $? "python3 -m py_compile the memory-lint scripts"
+( cd "$REPO" && "$PY" -I templates/skills/memory-lint/tests.py ) > "$LOGS/memory-lint-tests.out" 2>&1
+chk $? "python3 -I templates/skills/memory-lint/tests.py (log: $LOGS/memory-lint-tests.out)"
+yn "$([ ! -e "$REPO/templates/skills/memory-lint/__pycache__" ] && echo 0 || echo 1)" \
+   "the memory-lint skill directory holds no __pycache__ (it installs as a whole directory)"
 if command -v shellcheck >/dev/null 2>&1; then
   ( cd "$REPO" && shellcheck install.sh ) ; chk $? "shellcheck install.sh"
-  ( cd "$REPO" && shellcheck templates/hooks/*.sh ) ; chk $? "shellcheck the hooks"
-  ( cd "$REPO" && shellcheck tests/test-installer.sh ) ; chk $? "shellcheck this suite"
-  ( cd "$REPO" && shellcheck tests/test-wiring.sh ) ; chk $? "shellcheck the wiring scrub"
-  ( cd "$REPO" && shellcheck tests/test-docs.sh ) ; chk $? "shellcheck the docs scrub"
+  ( cd "$REPO" && shellcheck -x templates/hooks/*.sh ) ; chk $? "shellcheck the hooks"
+  ( cd "$REPO" && shellcheck -x tests/test-installer.sh ) ; chk $? "shellcheck this suite"
+  ( cd "$REPO" && shellcheck -x tests/test-wiring.sh ) ; chk $? "shellcheck the wiring scrub"
+  ( cd "$REPO" && shellcheck -x tests/test-docs.sh ) ; chk $? "shellcheck the docs scrub"
 else
   printf '    SKIP  shellcheck — NOT INSTALLED on this machine, so NOT run\n'
 fi
@@ -3187,6 +3182,7 @@ yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "HO1 install exits 0 (rc=$RC)"
 yn "$([ -f "$CH/hooks/handoffs-only.sh" ] && echo 0 || echo 1)" "HO1 install wrote hooks/handoffs-only.sh"
 inlog ho1 "wired    block-dangerous-git" "HO1 control: the wiring readback ran"
 notinlog ho1 "UNWIRED  handoffs-only" "HO1 the wiring readback does not call handoffs-only UNWIRED"
+inlog ho1 "agent    handoffs-only — wired in agent frontmatter" "HO1 the readback names the agent-scoped hook"
 yn "$([ -f "$CH/settings.json" ] && ! grep -qF "handoffs-only" "$CH/settings.json" && echo 0 || echo 1)" \
    "HO1 settings.json never names handoffs-only"
 inlog ho1 "merged hook wiring" "HO1 control: a full install merges the hook wiring"
@@ -3239,6 +3235,125 @@ short = [a for a in ("agent:aligner", "agent:repo-reviewer", "agent:release-revi
 assert not short, "installed alone, these leave handoffs-only or its library out: %s" % short
 PY
 chk $? "HO1 aligner, repo-reviewer and release-reviewer each pull hook:handoffs-only and support:hook-lib"
+
+# The readback's error paths: an unreadable settings.json or snippet must not call the
+# agent-scoped hook UNWIRED, which tells the user to put it into settings.json.
+mkdir -p "$SANDBOX/ho1" && printf '{not json' > "$SANDBOX/ho1/bad.json"
+HO1C=0
+while IFS='|' read -r HO1V HO1N; do
+  [ -n "$HO1N" ] || continue
+  HO1C=$((HO1C + 1))
+  if [ "$HO1V" = ok ]; then pass "HO1 $HO1N"; else fail "HO1 $HO1N"; fi
+done < <("$PY" - "$REPO/install-lib.py" "$SANDBOX/ho1/bad.json" "$REPO/templates/hooks/settings-hooks.snippet.json" <<'PY'
+import importlib.util, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("install_lib", sys.argv[1])
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+bad, snippet = sys.argv[2], sys.argv[3]
+hooks = ["block-dangerous-git", "handoffs-only"]
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("ok" if ok else "no", name)).encode("utf-8"))
+d = mod.verify_wiring(bad, snippet, hooks)
+say(d.get("error") and d["agent_scoped"] == ["handoffs-only"] and d["unwired"] == ["block-dangerous-git"],
+    "settings.json unreadable: handoffs-only is agent-scoped, the rest unwired")
+d = mod.verify_wiring(snippet, bad, hooks)
+say(d.get("error") and "handoffs-only" not in d["unwired"],
+    "snippet unreadable: handoffs-only is not called unwired")
+PY
+)
+yn "$([ "$HO1C" = 2 ] && echo 0 || echo 1)" "HO1 the error-path check printed both verdicts (got $HO1C)"
+fi
+
+# ---------------------------------------------------------------- ML1
+# Catches: memory-lint installed without lint.py beside it (the hook then refuses every
+# memory write), wired under the registered tool name alone when Forgetful is reached as a
+# connector (the hook never fires), or its python installed with CR bytes.
+if want ML1; then
+banner "ML1 · memory-lint installs with its skill, as LF, and is wired for the connector name too"
+fresh_env ml1; with_serena; with_memory_connector
+keys ml1 "${FULL[@]}"; run install ml1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "ML1 install exits 0 (rc=$RC)"
+yn "$([ -f "$CH/hooks/memory-lint.sh" ] && echo 0 || echo 1)" "ML1 install wrote hooks/memory-lint.sh"
+yn "$([ -f "$CH/skills/memory-lint/lint.py" ] && echo 0 || echo 1)" "ML1 install wrote skills/memory-lint/lint.py"
+for ML1F in lint.py garden_check.py; do
+  yn "$([ -f "$CH/skills/memory-lint/$ML1F" ] && [ "$(tr -cd '\r' < "$CH/skills/memory-lint/$ML1F" | wc -c | tr -d ' ')" = "0" ] && echo 0 || echo 1)" \
+     "ML1 skills/memory-lint/$ML1F is installed with no CR bytes"
+done
+"$PY" - "$CH/settings.json" <<'PY'
+import json, sys
+s = json.load(open(sys.argv[1], encoding="utf-8"))
+alts = set()
+for b in (s.get("hooks") or {}).get("PreToolUse") or []:
+    if any(h.get("command") == "~/.claude/hooks/memory-lint.sh" for h in b.get("hooks") or []):
+        alts |= {a.strip() for a in (b.get("matcher") or "").split("|")}
+print("    (memory-lint matcher alternatives: %s)" % sorted(alts))
+want = {"mcp__forgetful__execute_forgetful_tool", "mcp__claude_ai_forgetful__execute_forgetful_tool"}
+sys.exit(0 if want <= alts else 1)
+PY
+chk $? "ML1 the memory-lint matcher holds the registered and the connector tool name"
+inlog ml1 "wired    memory-lint" "ML1 the readback says memory-lint is wired"
+notinlog ml1 "MISWIRED memory-lint" "ML1 the readback does not call memory-lint MISWIRED"
+notinlog ml1 "UNWIRED  memory-lint" "ML1 the readback does not call memory-lint UNWIRED"
+"$PY" "$REPO/install-lib.py" discover "$REPO/templates" "$SANDBOX/ml1/discover-dest" > "$SANDBOX/ml1/units.json"
+"$PY" - "$SANDBOX/ml1/units.json" <<'PY'
+import json, sys
+needs = json.load(open(sys.argv[1], encoding="utf-8"))["hook:memory-lint"]["needs"]
+print("    (hook:memory-lint needs: %s)" % needs)
+sys.exit(0 if "skill:memory-lint" in needs else 1)
+PY
+chk $? "ML1 hook:memory-lint needs skill:memory-lint"
+# Registered Forgetful, and a memory server that is not Forgetful: the snippet's own
+# matcher, unchanged.
+for ML1P in mcp__forgetful__ ""; do
+  printf '{"server": "forgetful", "prefix": "%s"}\n' "$ML1P" > "$SANDBOX/ml1/memory.json"
+  "$PY" "$REPO/install-lib.py" hook-wiring "$REPO/templates/hooks/settings-hooks.snippet.json" \
+        "$SANDBOX/ml1/memory.json" memory-lint > "$SANDBOX/ml1/wiring.json"
+  "$PY" - "$SANDBOX/ml1/wiring.json" <<'PY'
+import json, sys
+blocks = json.load(open(sys.argv[1], encoding="utf-8"))["hooks"]["PreToolUse"]
+sys.exit(0 if [b["matcher"] for b in blocks] == ["mcp__forgetful__execute_forgetful_tool"] else 1)
+PY
+  chk $? "ML1 prefix '${ML1P}' wires the snippet matcher unchanged"
+done
+fi
+
+# ---------------------------------------------------------------- MJ1
+# Catches: our matcherless hook block merged INTO a user's own matcherless block. The
+# record then names a block that is not ours, so remove takes nothing back out.
+if want MJ1; then
+banner "MJ1 · a matcherless block of ours is added beside the user's, and remove takes it back"
+mkdir -p "$SANDBOX/mj1"
+MJ1C=0
+while IFS='|' read -r MJ1V MJ1N; do
+  [ -n "$MJ1N" ] || continue
+  MJ1C=$((MJ1C + 1))
+  if [ "$MJ1V" = ok ]; then pass "MJ1 $MJ1N"; else fail "MJ1 $MJ1N"; fi
+done < <("$PY" - "$REPO/install-lib.py" "$SANDBOX/mj1/settings.json" <<'PY'
+import copy, importlib.util, json, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("install_lib", sys.argv[1])
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+path = sys.argv[2]
+user = {"hooks": [{"type": "command", "command": "~/bin/my-stop.sh"}]}
+ours = {"hooks": [{"type": "command", "command": "~/.claude/hooks/ours.sh"}]}
+json.dump({"hooks": {"Stop": [copy.deepcopy(user)]}}, open(path, "w", encoding="utf-8"))
+add = {"hooks": {"Stop": [copy.deepcopy(ours)]}}
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("ok" if ok else "no", name)).encode("utf-8"))
+def stop():
+    return json.load(open(path, encoding="utf-8"))["hooks"]["Stop"]
+first = mod.merge_json(path, copy.deepcopy(add))
+say(len(stop()) == 2, "after the merge there are two Stop blocks")
+say(stop()[0] == user, "the user's Stop block is unchanged")
+second = mod.merge_json(path, copy.deepcopy(add))
+say(len(stop()) == 2 and not second["added"], "a second merge adds nothing and records nothing")
+mod.unmerge_json(path, {"added": first["added"]})
+say(stop() == [user], "remove takes our block out and leaves the user's intact")
+PY
+)
+yn "$([ "$MJ1C" = 4 ] && echo 0 || echo 1)" "MJ1 the check printed all 4 verdicts (got $MJ1C)"
 fi
 
 # ---------------------------------------------------------------- RT1

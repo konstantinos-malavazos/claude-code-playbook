@@ -92,7 +92,8 @@ path that changed under you gets reused unchanged and the first sign is a failin
      included, down to the call that emits each event, plus the verify target.
    - **Bank it PROVISIONAL** — load `memory-schema` first: call shape, caps and your server's
      own tagging rules are its business, not this file's. What is this flow's business, and so
-     stated here: tag by the **recipe key**, confidence ~0.6, `validated: pending`, and content
+     stated here: memory type `recipe` with the flow source in `source_files`, tag by the
+     **recipe key**, confidence ~0.6, `validated: pending`, and content
      in three parts — (a) the fingerprint verbatim, (b) the ordered produce steps, (c) the
      verify target and gotchas. `@tester` flips it to validated after a
      real run or corrects it; you never call a recipe validated before it has run.

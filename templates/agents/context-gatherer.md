@@ -63,6 +63,15 @@ HALTED block that activation was tried and failed, instead of "no Serena tools".
 2. **Memory sweep** — query the semantic memory for every related prior conclusion
    (root causes, prior decisions, blast-radius facts, reusable recipes). Capture the
    provenance.
+2a. **Stale-memory check** — for every memory the brief relies on:
+   - (a) each `source_files` path: `list_dir` its folder (or `find_file` its name) on the
+     working tree, then compare the listed name to the stored path string **case-exact**. A
+     file-mask match may ignore case on Windows, so a hit alone is not proof;
+   - (b) each backticked code symbol in its content: `find_symbol`.
+
+   A miss on either marks the memory stale. No Bash: these Serena calls are the whole check.
+   It covers the working tree, not main — say so in the brief. `/garden-memory` stays the
+   authoritative check against main.
 3. **Serena sweep** — map the blast radius with symbol navigation: `find_symbol` for the
    symbols the change will touch, `find_referencing_symbols` for who
    references/consumes them, `find_implementations` / `find_declaration` to pin the
@@ -87,9 +96,15 @@ as changed. Never re-run the full sweep.
 ```
 # <TICKET-ID> — context brief
 ## Prior memory (with provenance)
+## Stale memories (checked on the working tree, not main)
 ## Blast radius (symbols, references, downstream consumers — Serena tool + file:line per entry)
 ## Non-Serena reads (which escape clause, and why)
 ## Coupling / staleness flags
 ## Suggested design constraints
 ## Gaps the planner may need to fill
 ```
+
+`## Stale memories` is `none` when step 2a found nothing. Otherwise it opens with one line
+written for the user, which the orchestrator relays verbatim —
+`These memories may be stale: <id — title, …>. Run /garden-memory to review them.` — then
+one `[STALE: <why>]` entry per memory, naming the path or symbol that missed.

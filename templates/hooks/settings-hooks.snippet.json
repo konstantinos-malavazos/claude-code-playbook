@@ -15,6 +15,12 @@
         "hooks": [
           { "type": "command", "command": "~/.claude/hooks/block-mcp-writes.sh" }
         ]
+      },
+      {
+        "matcher": "mcp__forgetful__execute_forgetful_tool",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/memory-lint.sh" }
+        ]
       }
     ],
     "PostToolUse": [

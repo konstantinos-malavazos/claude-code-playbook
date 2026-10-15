@@ -354,6 +354,10 @@ def _link_dependencies(units, templates):
             unit["needs"] = sorted(set(unit["needs"]) | {"support:repo-allowlist"})
         if "_lib/" in text and "support:hook-lib" in units:
             unit["needs"] = sorted(set(unit["needs"]) | {"support:hook-lib"})
+        # A hook that runs a skill's script refuses its calls when that skill is absent.
+        for ref in set(re.findall(r"skills/([a-z][a-z0-9-]+)/", text)):
+            if ref in skills:
+                unit["needs"] = sorted(set(unit["needs"]) | {"skill:" + ref})
 
 
 def _unit_text(src):
@@ -1064,7 +1068,14 @@ def _find_matcher(lst, item):
         return None
     want = item.get("matcher")
     for cand in lst:
-        if isinstance(cand, dict) and cand.get("matcher") == want:
+        if not isinstance(cand, dict):
+            continue
+        # A block with no matcher identifies only as its whole self: merging ours into
+        # a user's matcherless block would record a path remove can never find.
+        if want is None:
+            if cand == item:
+                return cand
+        elif cand.get("matcher") == want:
             return cand
     return None
 
@@ -1180,13 +1191,20 @@ def unwire_hooks(target, names):
     return {"removed": removed, "target": target}
 
 
-def hook_wiring(snippet_path, installed_hooks):
+def hook_wiring(snippet_path, memory_json_path, installed_hooks):
     """Build the settings.json hook block, LIMITED to hooks actually being installed.
 
     Wiring the full snippet would reference hooks that are not on disk. Claude Code
     then runs a missing file on every matching tool call, and the blocking hooks fail
     closed — so an over-wired settings.json does not misfire quietly, it jams.
+
+    The snippet names Forgetful's tools by their registered prefix. Reached as a
+    connector, the same tools carry the prefix memory-detect recorded, so that form is
+    added beside the registered one: a matcher naming only the registered form never
+    fires. memory_json_path is required, and a missing or unreadable file is an error.
     """
+    with open(memory_json_path, encoding="utf-8") as fh:
+        prefix = json.load(fh).get("prefix") or ""
     snippet = load_json(snippet_path)
     wanted = {"~/.claude/hooks/%s.sh" % h for h in installed_hooks}
     result = {"hooks": {}}
@@ -1197,6 +1215,12 @@ def hook_wiring(snippet_path, installed_hooks):
             if keep:
                 nb = {k: v for k, v in block.items() if k != "hooks"}
                 nb["hooks"] = keep
+                matcher = nb.get("matcher")
+                if matcher and prefix and prefix != "mcp__forgetful__":
+                    alts = matcher.split("|")
+                    extra = [prefix + a[len("mcp__forgetful__"):] for a in alts
+                             if a.startswith("mcp__forgetful__")]
+                    nb["matcher"] = "|".join(alts + [e for e in extra if e not in alts])
                 keep_blocks.append(nb)
         if keep_blocks:
             result["hooks"][event] = keep_blocks
@@ -1246,27 +1270,31 @@ def verify_wiring(settings_path, snippet_path, installed_hooks):
     test-hooks.sh still proves nothing about any of this; it runs the scripts directly
     and never reads settings.json.
     """
-    empty = {"wired": [], "miswired": [], "unwired": sorted(installed_hooks)}
-    try:
-        data = load_json(settings_path)
-    except json.JSONDecodeError:
-        return dict(empty, error="settings.json is not valid JSON")
     try:
         snippet = load_json(snippet_path)
     except json.JSONDecodeError:
-        return dict(empty, error="the shipped hook snippet is not valid JSON")
+        # With no expectation to judge against, no hook can be called unwired: that
+        # would send the user to put an agent-scoped hook into settings.json.
+        return {"wired": [], "miswired": [], "unwired": [], "agent_scoped": [],
+                "error": "the shipped hook snippet is not valid JSON"}
+    want = _hook_placements(snippet)
+    # A hook the snippet never places is agent-scoped: its wiring lives in agent
+    # frontmatter, so settings.json is not where it is expected.
+    agent_scoped = sorted(n for n in installed_hooks if n not in want)
+    expected = sorted(n for n in installed_hooks if n in want)
+    try:
+        data = load_json(settings_path)
+    except json.JSONDecodeError:
+        return {"wired": [], "miswired": [], "unwired": expected, "agent_scoped": agent_scoped,
+                "error": "settings.json is not valid JSON"}
 
-    want, have = _hook_placements(snippet), _hook_placements(data)
+    have = _hook_placements(data)
 
     def shown(p):
         return "%s/%s" % (p[0], p[2] or "(no matcher)")
 
     wired, miswired, unwired = [], [], []
-    for name in sorted(installed_hooks):
-        # A hook the snippet never places is agent-scoped: its wiring lives in agent
-        # frontmatter, so settings.json is not where it is expected.
-        if name not in want:
-            continue
+    for name in expected:
         actual = have.get(name, [])
         if not actual:
             unwired.append(name)
@@ -1281,7 +1309,8 @@ def verify_wiring(settings_path, snippet_path, installed_hooks):
                              "found": sorted({shown(a) for a in actual})})
         else:
             wired.append(name)
-    return {"wired": wired, "miswired": miswired, "unwired": unwired}
+    return {"wired": wired, "miswired": miswired, "unwired": unwired,
+            "agent_scoped": agent_scoped}
 
 
 # ---------------------------------------------------------------------------
@@ -1820,7 +1849,7 @@ def main(argv):
     elif cmd == "unmerge-json":
         out(unmerge_json(a[0], json.loads(read(a[1]))))
     elif cmd == "hook-wiring":
-        out(hook_wiring(a[0], a[1:]))
+        out(hook_wiring(a[0], a[1], a[2:]))
     elif cmd == "unwire-hooks":
         out(unwire_hooks(a[0], a[1:]))
     elif cmd == "verify-wiring":

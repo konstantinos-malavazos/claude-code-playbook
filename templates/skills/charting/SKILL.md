@@ -391,7 +391,8 @@ was never a lock.
 ## When the map closes — one memory per map, not one per ticket
 
 **The unit of work is the whole map, not the ticket.** When the map closes, write the
-distilled conclusion of the effort.
+distilled conclusion of the effort. Every memory written here is type `ruling` (importance
+9, one owner project); the memory-lint hook blocks a write with no type tag.
 
 Aim for **one** memory. Split only when one cannot hold it: memories have a size limit, and
 a map spanning several repos has a different conclusion for each. Then write a **hub**

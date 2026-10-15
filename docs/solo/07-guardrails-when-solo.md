@@ -362,18 +362,19 @@ So you ask, in a normal session, when you want to know. The **feeling is allowed
 trigger, never the answer**. Feeling slow is what sends you to look. The number is what
 tells you whether you were right. §8 forbids skipping the second step, not the first.
 
-**The memory eval is the one worth keeping even here.** `/garden-memory`'s golden-query
-pass ([10-memory-hygiene.md](../shared/10-memory-hygiene.md)) survives solo for a reason
-none of the above have: **you cannot notice a memory that never came back.** A wrong
-answer you catch yourself, because you are the only reader. Silence you do not. You banked
-why library X went badly. Nothing retrieves it when you pick a library, and you quietly
-repeat a decision you already paid for. Being solo is no help against that at all.
+**The memory check is the one worth keeping even here.** The staleness report is now the
+health signal. `/garden-memory` ([10-memory-hygiene.md](../shared/10-memory-hygiene.md))
+survives solo for a reason none of the above have: **you cannot notice a memory that went
+stale.** A wrong answer you catch yourself, because you are the only reader. A memory that
+still reads right does not get caught. You banked why a module traps its callers. The
+module was renamed months ago, the memory still ranks first, and you act on a file that is
+gone. Being solo is no help against that at all.
 
 It does not start on day one. A new project starts with **two** memories: charting writes
-the first when its map closes, and the bootstrap confirms it and writes the second. You
-cannot write golden queries for two things you know by heart. Start when the memory index no longer
-fits on one screen. Below that you read the whole thing in ten seconds and you *are* the
-eval. How often to run it after that is memory hygiene's question, not this page's.
+the first when its map closes, and the bootstrap confirms it and writes the second. Two
+memories you know by heart need no report. Start when the memory index no longer fits on
+one screen. Below that you read the whole thing in ten seconds and you *are* the report.
+How often to run it after that is memory hygiene's question, not this page's.
 
 ---
 

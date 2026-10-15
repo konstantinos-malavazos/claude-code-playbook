@@ -81,9 +81,10 @@ You answer UTC. It is cheap to reverse: one default in one function, so no defer
 - Final verdict: APPROVE.
 
 ### 7. Land
-- The orchestrator consolidates one durable memory: *"Per-user timezone lives on `User.timezone`
-  (IANA, null=UTC); feed formatting stays centralized in `formatFeedTime(ts, tz)`; default
-  unknown-region = UTC (decided PROJ-482)."*
+- The orchestrator harvests the handoffs. Zero `gotcha` memories: the one trap, formatting
+  in components, is already in memory. Then one `feature` memory: *"Per-user timezone lives
+  on `User.timezone` (IANA, null=UTC); feed formatting stays centralized in
+  `formatFeedTime(ts, tz)`; default unknown-region = UTC (decided PROJ-482)."*
 - Handoff files stay on disk as scratch space until you delete them.
 - The agent pushes the branch, because this repo is allowlisted. **You** open the PR.
 
@@ -93,5 +94,5 @@ You answer UTC. It is cheap to reverse: one default in one function, so no defer
 - The memory hit in step 2 stopped a whole class of mistake (formatting in components)
   before design even started.
 - The planner never touched code or memory. The reviewers never touched code.
-- The branch is one commit. Besides the code, the only durable artifact is one memory, and
+- The branch is one commit. Besides the code, the only durable artifact is one `feature` memory, and
   it will answer the *next* timezone question in one query.

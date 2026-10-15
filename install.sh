@@ -446,7 +446,7 @@ preflight() {
       PY="$cand"; break
     fi
   done
-  [[ -n "$PY" ]] || die "python 3.7 or newer is required, and none was found. This installer needs it, and so do all seven guardrail hooks."
+  [[ -n "$PY" ]] || die "python 3.7 or newer is required, and none was found. This installer needs it, and so do all eight guardrail hooks."
 
   [[ -f "$LIB" ]]       || die "install-lib.py is not next to this script. Run ./install.sh from inside the folder you cloned."
   [[ -d "$TEMPLATES" ]] || die "the templates/ folder is not next to this script. Run ./install.sh from inside the folder you cloned."
@@ -1388,7 +1388,7 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
 
   if [[ -n "${hooks_selected// /}" ]]; then
     # shellcheck disable=SC2086
-    pb hook-wiring "$HOOK_SNIPPET" $hooks_selected > "$WORK/wiring-preview.json"
+    pb hook-wiring "$HOOK_SNIPPET" "$WORK/memory.json" $hooks_selected > "$WORK/wiring-preview.json"
   else
     printf '{"hooks":{}}\n' > "$WORK/wiring-preview.json"
   fi
@@ -1648,7 +1648,7 @@ PY
   if [[ -n "${hooks_installed// /}" ]]; then
     backup_file "$SETTINGS"
     # shellcheck disable=SC2086
-    pb hook-wiring "$HOOK_SNIPPET" $hooks_installed > "$WORK/wiring.json"
+    pb hook-wiring "$HOOK_SNIPPET" "$WORK/memory.json" $hooks_installed > "$WORK/wiring.json"
     pb merge-json "$SETTINGS" "$WORK/wiring.json" > "$WORK/merge.json"
     ok "merged hook wiring into $SETTINGS"
     # Decision 1: the same line the pre-install screen taught, repeated where the
@@ -2246,13 +2246,18 @@ PY
   hooks_installed=$(settings_hooks)
   if [[ -n "${hooks_installed// /}" ]]; then
     heading "2. Are the guardrails switched on? (read back from settings.json)"
+    # Every selected hook, agent-scoped ones included, so the readback can name those too.
+    local hooks_all
+    hooks_all=$(sed -n 's/^hook://p' "$SELECTED" | tr '\n' ' ')
     # shellcheck disable=SC2086
-    pb verify-wiring "$SETTINGS" "$HOOK_SNIPPET" $hooks_installed > "$WORK/wiring-check.json"
+    pb verify-wiring "$SETTINGS" "$HOOK_SNIPPET" $hooks_all > "$WORK/wiring-check.json"
     py - "$WORK/wiring-check.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 for h in d.get("wired", []):
     print("      wired    %s" % h)
+for h in d.get("agent_scoped", []):
+    print("      agent    %s — wired in agent frontmatter, not settings.json" % h)
 # MISWIRED is not a shade of UNWIRED. The hook IS in settings.json, so re-running the
 # installer will not fix it — the merge sees the command already present. It has been
 # moved to an event or a matcher where the tool calls it exists to judge never reach

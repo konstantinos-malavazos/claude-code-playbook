@@ -6,7 +6,7 @@ set -euo pipefail
 
 # python parses the payload, not jq — see block-dangerous-git.sh for why.
 #
-# THIS HOOK CANNOT FAIL CLOSED, and is not made to try. The five blocking hooks exit 2
+# THIS HOOK CANNOT FAIL CLOSED, and is not made to try. The six blocking hooks exit 2
 # when they cannot read their payload, because a guard that cannot see the command must
 # stop it. This one is PostToolUse: it runs AFTER the edit it would be objecting to, so
 # there is nothing left to stop and exit 2 would only report a failure on work already
@@ -16,7 +16,7 @@ set -euo pipefail
 _lib="${BASH_SOURCE[0]//\\//}"
 case "$_lib" in */*) _lib="${_lib%/*}/_lib/common.sh" ;; *) _lib="_lib/common.sh" ;; esac
 HOOK_LIB_LOADED=
-# shellcheck source=/dev/null
+# shellcheck source-path=SCRIPTDIR source=_lib/common.sh
 if ! . "$_lib" 2>/dev/null || [ "$HOOK_LIB_LOADED" != 1 ]; then
     echo "format-on-edit: the shared hook library is missing or broken at $_lib — skipping the format. Re-run the installer." >&2
     exit 0

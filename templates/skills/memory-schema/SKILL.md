@@ -36,9 +36,10 @@ with a schema error.
 - `<field>` — enum, one of `<...>`. Do NOT invent values.
 
 ## Tagging rules
+- The `memory-lint` skill enforces the tagging and content rules at write time.
 - Tag **by functionality** (topic / component / symbol), **never by ticket id**.
   (Put the ticket id in the content for provenance if you want it.)
-- Include your scope/project tag so `/garden-memory` can find untagged strays.
+- Include at least one repo/project tag; the `memory-lint` hook blocks a write without one.
 - Respect the tag cap (`<N>` tags max) and the locked vocabulary if you have one.
 
 ## Content rules

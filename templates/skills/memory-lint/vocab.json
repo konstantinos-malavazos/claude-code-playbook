@@ -1,0 +1,46 @@
+{
+  "types": {
+    "ruling":        {"importance": 9, "source_files": "optional"},
+    "contract":      {"importance": 8, "source_files": "required", "min_source_files": 2},
+    "gotcha":        {"importance": 8, "source_files": "required"},
+    "architecture":  {"importance": 8, "source_files": "required"},
+    "investigation": {"importance": 7, "source_files": "optional"},
+    "recipe":        {"importance": 7, "source_files": "required"},
+    "feature":       {"importance": 6, "source_files": "required"}
+  },
+  "importance_tolerance": 1,
+  "required_create_fields": ["title", "content", "context", "keywords", "tags", "importance", "project_ids"],
+  "max_tags": 10,
+  "max_keywords": 10,
+  "repo_tags": [],
+  "functional_tags": [],
+  "renames": {},
+  "retired": {},
+  "ticket_id_pattern": {"pattern": "^[a-z][a-z0-9]*-[0-9]+$", "ignore_case": true},
+  "content_fields": ["title", "content", "context"],
+  "content_reject": {
+    "line_refs": [
+      {"pattern": "\\b\\w[\\w./-]*\\.[A-Za-z][A-Za-z0-9]{0,7}:\\d+", "ignore_case": false},
+      {"pattern": "\\blines?\\s+\\d+", "ignore_case": true},
+      {"pattern": "#L\\d+|\\bL\\d{2,}\\b", "ignore_case": false}
+    ],
+    "branch_state": [
+      {"pattern": "\\bbranch\\s+\\S+\\s+(?:is|was|has\\s+been)\\s+(?:now\\s+)?(?:current|merged|checked\\s+out|active|deleted|pushed|rebased)\\b", "ignore_case": true},
+      {"pattern": "\\bis\\s+(?:the\\s+)?current\\s+branch\\b", "ignore_case": true}
+    ],
+    "flow_state": [
+      {"pattern": "\\bRESUME\\b", "ignore_case": false},
+      {"pattern": "\\bin[\\s-]progress\\b", "ignore_case": true},
+      {"pattern": "\\bwatermarks?\\b", "ignore_case": true}
+    ]
+  },
+  "content_warn": {
+    "hard_counts": [
+      {"pattern": "\\b\\d+\\s+[A-Za-z][A-Za-z-]+s\\b", "ignore_case": false}
+    ]
+  },
+  "garden": {
+    "duplicate_title_ratio": 0.85,
+    "code_symbol_pattern": "^[A-Za-z_][A-Za-z0-9_]*(?:(?:\\.|::)[A-Za-z_][A-Za-z0-9_]*)*(?:\\(\\))?$"
+  }
+}

@@ -41,7 +41,8 @@ CORRECT:
 mcp__forgetful__execute_forgetful_tool(
   tool_name="create_memory",
   arguments={"title": "...", "content": "...", "context": "...",
-             "keywords": [...], "tags": [...], "importance": 7}
+             "keywords": [...], "tags": ["gotcha", "<repo-tag>", ...], "importance": 8,
+             "project_ids": [<owner-id>], "source_files": ["path/in/repo.py"]}
 )
 ```
 
@@ -63,12 +64,22 @@ mcp__forgetful__execute_forgetful_tool(
 | `context` | 500 chars | where this came from / when it applies |
 | `keywords` | 10 items | list of strings |
 | `tags` | 10 items | list of strings |
-| `importance` | int 1–10 | an **int**, not a string. 3 = low · 5 = normal · 7 = high · 9 = critical |
+| `importance` | int 1–10 | an **int**, not a string. The memory's type sets it, ±1 (`memory-lint`'s `vocab.json`): ruling 9 · contract, gotcha, architecture 8 · investigation, recipe 7 · feature 6 |
 
 Over 2000 chars, split into 2–3 atomic linked memories rather than cutting the reasoning
 out. Each part stands alone and points at the others in `context` — *"Part 2 of 3 — see
 also '\<title> Part 1'"*. A trimmed memory is worse than two memories: the half that got
 cut is always the *why*.
+
+**Also checked by `memory-lint`** — the server accepts a create without these; the lint
+does not:
+
+| Field | Rule |
+|---|---|
+| `project_ids` | exactly one id: the owning project |
+| `source_files` | list of repo-relative paths; required or optional per type |
+| `source_repo` | optional; a bare repo name |
+| type | exactly one tag in `tags` from the memory-lint types |
 
 ### `create_document`
 
@@ -158,15 +169,13 @@ between them, and bridge with a Memory linked to both (`link_entity_to_memory` +
 - **CodeArtifact** — reusable code that will actually be pasted somewhere. Not a
   description of code.
 
-## Tagging rules
+## Tagging and content rules
 
-- Tag **by functionality** — topic, component, symbol — **never by ticket id**. You will
-  search by topic later and never by ticket number. Put the ticket id in `content` if you
-  want the provenance.
-- Include your scope/project tag, so `/garden-memory` can find untagged strays.
-- Ten tags is the cap. Respect your locked vocabulary if you have one.
-
-## Content rules
+The `memory-lint` skill enforces these rules: its hook blocks a create or update that
+breaks one, and its `SKILL.md` lists them in full. In one line: one type tag, at least one
+repo/project tag, the rest by functionality, at most ten lowercase tags, never a ticket id
+(put it in `content` for provenance); content with no line references, branch state or
+flow-state words.
 
 - One atomic fact or conclusion per memory. State **what** and **why**.
 - Link related memories so one query returns the whole chain — root cause → fix → blast

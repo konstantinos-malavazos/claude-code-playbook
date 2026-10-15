@@ -36,20 +36,14 @@
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
 
-# The candidate list is the one in templates/hooks/_lib/common.sh: a WindowsApps
-# python3 goes last, never dropped (why: that file), then the first
-# candidate that runs `-c pass` wins. No working python leaves $PY empty, and each
-# python-backed section prints its own SKIP.
-PY_LIST=()
-PY_LAST=()
-while IFS= read -r _p; do
-    [ -n "$_p" ] || continue
-    case "${_p,,}" in
-        */windowsapps/*) PY_LAST+=("$_p") ;;
-        *)               PY_LIST+=("$_p") ;;
-    esac
-done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
-PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
+# The interpreter candidates are the hooks' own; the first that runs `-c pass` wins. No
+# working python leaves $PY empty, and each python-backed section prints its own SKIP.
+HOOK_LIB_LOADED=
+# shellcheck source-path=SCRIPTDIR source=../templates/hooks/_lib/common.sh
+if ! . "$REPO/templates/hooks/_lib/common.sh" || [ "${HOOK_LIB_LOADED-}" != 1 ]; then
+    echo "FAIL: $REPO/templates/hooks/_lib/common.sh is missing or did not load — no interpreter list to run with." >&2
+    exit 1
+fi
 
 PY=""
 for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
@@ -1515,6 +1509,8 @@ terminal_class() {
     pitch|prototype|research|to-questionnaire|to-tickets|wizard)                    printf 'terminal' ;;
     # always-loaded skills, the block's own definition, and a generation template
     commit-conventions|diagnose|dispatch-weight|memory-schema)                      printf 'not-terminal' ;;
+    # run inside a hook and inside another flow, never a flow of its own
+    memory-lint)                                                                    printf 'not-terminal' ;;
     tdd|to-spec|wait-what|next-steps|engineering-standards|review-guidelines)       printf 'not-terminal' ;;
     *)                                                                              printf 'UNCLASSIFIED' ;;
   esac

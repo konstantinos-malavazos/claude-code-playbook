@@ -18,7 +18,7 @@ your layer specialists for the implementer steps, and your git host for "MR/PR".
 | 4 | layer specialists (in chain order) | **Serena edit** + build/test in their repo | code + `<layer>.md` handoff |
 | 5 | `repo-reviewer` | Serena read, run tests; **comments only**, delta-scoped | `repo-reviewer.md` — provisional verdict + MR description + re-pass weights |
 | 6 | `release-reviewer` | cross-repo Serena read; **comments only** | appended findings → final verdict |
-| 7 | orchestrator + human | — | consolidated memory; agent pushes the branch where allowlisted, human opens the MR/PR |
+| 7 | orchestrator + human | — | up to five `gotcha` memories + one linked `feature` memory; agent pushes the branch where allowlisted, human opens the MR/PR |
 
 Handoffs live in `<workspace>/.claude/handoffs/<TICKET>/` as scratch space. They stay
 until you delete them, and they are never a durable store.
@@ -61,8 +61,8 @@ Before implementation, the planner surfaces only what the **code and briefs cann
 answer**, which means genuine product/spec decisions. For each, you either answer or
 **defer**. A deferral has to be managed rather than forgotten before the planner may
 proceed. [`templates/skills/grilling/`](../../templates/skills/grilling/SKILL.md) owns what
-that requires, including recording the open question in the durable ticket state. That is
-how `/resume-ticket` picks it up when the answer arrives.
+that requires, including recording the open question in `open-questions.md` in the
+ticket's handoff folder. That is how `/resume-ticket` picks it up when the answer arrives.
 
 ## Step 4 — Implement (layer specialists, in chain order)
 
@@ -126,8 +126,9 @@ consolidates them into the **final verdict**.
   a blanket one-tier bump. A one-line rename and a broken contract with three untouched
   callers both come back as `REQUEST CHANGES`, and they are not the same dispatch. The
   **ratchet** still applies: never below the tier that track last ran at.
-- **APPROVE** → consolidate the ticket's handoffs into **one durable memory** (root
-  cause / design / blast radius / recipes), then **the agent pushes the branch** where
+- **APPROVE** → harvest the ticket's handoff text into up to five `gotcha` memories (traps
+  in the code the ticket visited, outside its diff) and **one `feature` memory** (root
+  cause / design / blast radius) linked to each, then **the agent pushes the branch** where
   `~/.claude/repo-allowlist` permits it and the **human opens the MR/PR**. The agent never
   merges. Push moves a branch. Merge changes the trunk. Only the second one is the step
   this pipeline keeps for a person.

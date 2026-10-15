@@ -165,7 +165,9 @@ Report it. Do not install one to make the check pass.
 
 **Memory two contains no facts.** Do not restate the stack name, the chain, or the
 commands — all three are in `CLAUDE.md`, which is loaded every session, while a memory is
-retrieved by meaning. Write only the reasoning, which lives nowhere else.
+retrieved by meaning. Write only the reasoning, which lives nowhere else. Write it as type
+`ruling` (importance 9, one owner project); the memory-lint hook blocks a write with no type
+tag.
 
 Memory is outside the line. **Show both memories before writing them, and wait.**
 

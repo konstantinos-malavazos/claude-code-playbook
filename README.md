@@ -209,7 +209,7 @@ PLAYBOOK_TEST_DIR="$S/i4" bash tests/test-installer.sh T1 T2 T3 T4 T5 T6 T7
 PLAYBOOK_TEST_DIR="$S/i5" bash tests/test-installer.sh R1 R2 R3 L1 L2 L3 L4
 PLAYBOOK_TEST_DIR="$S/i6" bash tests/test-installer.sh SW1 SW2 ST1 ST2 ST3 ST4 ST5 ST6 LF1
 PLAYBOOK_TEST_DIR="$S/i7" bash tests/test-installer.sh SW3 SW4 SW5 SW6 SW7 SW8
-PLAYBOOK_TEST_DIR="$S/i8" bash tests/test-installer.sh HL1 HO1 RT1 FX1 FX2 FX3
+PLAYBOOK_TEST_DIR="$S/i8" bash tests/test-installer.sh HL1 HO1 ML1 MJ1 RT1 FX1 FX2 FX3
 ```
 
 Every chunk must end with `failed 0`. Add up the `passed` lines: they should match a full
@@ -324,7 +324,7 @@ so there is nothing to upgrade.
 
 ### Windows
 
-Windows needs one extra thing first, and it is not optional: **the seven guardrail hooks
+Windows needs one extra thing first, and it is not optional: **the eight guardrail hooks
 are bash scripts, and every one of them parses its input with Python.** A
 native-PowerShell install would place hooks that cannot execute — and a hook that cannot
 execute fails *closed*, jamming every command instead of guarding it. So Windows runs
@@ -497,7 +497,7 @@ Your memory store, handoffs, Serena's index and generated views fail it and neve
 > only) to parse their payload. Both names are collected and tried in a preferred order,
 > with a Microsoft Store app-execution alias moved to the end and never dropped — so the
 > real interpreter beside it wins, and a machine where the alias is all there is still
-> works. With nothing on `PATH` that is actually python, the five blocking hooks **exit `2`
+> works. With nothing on `PATH` that is actually python, the six blocking hooks **exit `2`
 > and block** rather than waving the call through, and say which interpreters they tried by
 > resolved path. A guard that cannot read the command stops it. Loud beats silent. But a
 > missing python does turn into blocked tool calls, so check it in the same shell Claude

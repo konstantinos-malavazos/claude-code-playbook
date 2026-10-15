@@ -5,12 +5,13 @@ description: Daily memory nomination — harvest the day's durable conclusions, 
 Harvest today's durable knowledge into memory. Do it deliberately, with a high bar.
 
 ## Sequence
-1. **Scan** today's session transcripts for durable conclusions:
-   - root causes,
-   - negative / staging findings ("X doesn't work because Y; here's what we ruled out"),
-   - cross-repo blast-radius facts,
-   - reusable recipes,
-   - settled decisions.
+1. **Scan** today's session transcripts for durable conclusions, each with its memory type:
+   - root causes and traps — `gotcha`,
+   - negative / staging findings ("X doesn't work because Y; here's what we ruled out") —
+     `investigation`,
+   - cross-repo blast-radius facts — `contract`,
+   - reusable recipes — `recipe`,
+   - settled decisions — `ruling`.
 2. **Filter out** anything that's NOT durable knowledge:
    - in-flight ticket state (handoff files already covered that),
    - anything already in code, git history, or a CLAUDE.md,

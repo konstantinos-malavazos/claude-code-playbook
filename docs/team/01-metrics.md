@@ -53,10 +53,11 @@ sub-agent transcripts too and sum them. Get this right or the ledger lies.
 
 ## Measure the memory too
 
-Retrieval quality is also a number. The `/garden-memory` golden-query eval
-([10-memory-hygiene.md](../shared/10-memory-hygiene.md)) scores whether the canonical questions
-still return the right answers, and it flags regressions against last month. A memory that
-silently degrades is worse than no memory, so track it like you track the pipeline.
+Memory health is also a number. The staleness report is now the health signal:
+`/garden-memory` ([10-memory-hygiene.md](../shared/10-memory-hygiene.md)) counts the
+memories whose files or code symbols are gone from main, that fail the current lint, or
+that duplicate another. A memory that silently degrades is worse than no memory, so track
+it like you track the pipeline.
 
 ---
 

@@ -10,9 +10,10 @@ of the same scenario reuse it.
 ## Sequence
 1. **@ticket-analyzer** (+ **@context-gatherer** in test mode) — build an
    **acceptance-criteria checklist** and identify each domain event the ACs need
-   produced.
+   produced. If the gatherer's `## Stale memories` section is not `none`, relay its warning
+   line to the user verbatim and carry on; a stale memory does not stop the flow.
 2. **@test-planner** — for each `(scenario × event)`:
-   - **Memory-first**: query for an existing `test-pattern` recipe.
+   - **Memory-first**: query for an existing recipe (memory type `recipe`).
      - **HIT** → re-pull the source (e.g. the acceptance-test flow) and **diff the stored
        fingerprint**. Unchanged → reuse. Changed → mark stale, re-derive, update.
      - **MISS** → trace the produce path once (which message / API call, in what order,

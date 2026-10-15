@@ -51,8 +51,9 @@ The single most important design decision:
 | **Durable knowledge** | a persistent memory store (Forgetful) | permanent, cross-session | "Root cause: the fee is sourced from the wrong upstream event." |
 
 In-flight chatter would pollute the semantic memory if written to it, so it goes to
-disk as scratch space. Only the distilled, durable conclusion is consolidated into **one**
-memory when the ticket is done. This keeps memory retrieval signal-dense.
+disk as scratch space. Only what reading the code would not tell you is written when the
+ticket is done: up to five `gotcha` memories and **one** linked `feature` memory. This
+keeps memory retrieval signal-dense.
 
 ---
 
@@ -157,9 +158,9 @@ feeling. But the units are yours, and the measuring is optional. Pick what would
 change what you *do*. A metric nobody acts on is overhead. A team costs each run
 against story points, where the scarce resource is budget and no single person can
 see the whole picture. Working alone both of those change, and so do the numbers.
-The memory is the one case with the same answer either way: a periodic golden-query
-eval, because a memory that is never retrieved fails silently. No amount of
-attention catches a thing that did not happen.
+The memory is the one case with the same answer either way: a periodic staleness
+report, because a memory that has gone stale fails silently. It still comes back,
+pointing at code that has moved. No amount of attention catches that at read time.
 
 The two instances: [docs/team/01-metrics.md](docs/team/01-metrics.md) (the ledger, story
 points, cost per ticket) and
