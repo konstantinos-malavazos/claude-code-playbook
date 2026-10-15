@@ -40,6 +40,8 @@ description: >-
 
 ## Compile/build correctness
 - The change must build and the relevant tests must pass before hand-off.
+- Resolve every member you call with `find_symbol`; never assume it exists or what it takes.
+- Run `get_diagnostics_for_file` on each changed file, before the build.
 
 ## Vendoring note
 If you have an authoritative in-house standard, vendor it here **verbatim** and pin it to

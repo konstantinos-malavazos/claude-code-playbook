@@ -26,6 +26,9 @@ description: >-
 - One behaviour per test; a clear name that states the expectation.
 - Don't test the framework, generated code, or impossible states.
 - Keep the arrange/act/assert structure obvious.
+- Find the public interface with `find_symbol` before you write the test against it, and run
+  `get_diagnostics_for_file` on the test file before you run it: a test that does not compile
+  is not a failing test.
 
 ## When NOT to force it
 Exploratory spikes and throwaway prototypes don't need TDD, but the moment code is

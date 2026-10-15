@@ -34,8 +34,8 @@ after step 4. Steps 5–8 are additive.
 > **It stops if Serena is not set up.** `install` and `update` both refuse, before
 > writing anything, when there is no Serena registration or plugin anywhere on the
 > machine, and print the steps below instead. That is step 2 being enforced rather than
-> warned about: 12 of the 16 agents declare Serena tools and every one of them halts
-> without them, so a no-Serena install is a success message over a setup that cannot run.
+> warned about: every agent that declares Serena tools halts without them, so a no-Serena
+> install is a success message over a setup that cannot run.
 >
 > **It also stops if a recorded answer no longer means what it meant.** `update` replays
 > what you answered at first install without asking again — correct only for as long as
@@ -133,6 +133,12 @@ The templates ship with **`mcp__serena__`**. On Route A, search-and-replace
    `safe_delete_symbol`). A read-only Serena can't satisfy the mandate.
 3. Serena is **per-project**. Each solution/repo is its own Serena project. Activate the
    right one (`activate_project`) before working in it.
+
+**Optional:** Serena's connect-time prompt tells every agent to call
+`initial_instructions`, which the playbook's agents do not need. You can replace it with
+`serena prompts create-override system_prompt.yml` — the steps and a replacement text are in
+[04-serena.md](04-serena.md#optional-replace-the-connect-time-prompt). The installer does
+not write into `~/.serena`, so this is a manual step.
 
 ## Step 3 — Stand up Forgetful (memory)
 
@@ -353,7 +359,7 @@ These no longer ship:
 
 - the `encode-codebase` command;
 - the `encoder`, `encode-recon`, `encode-rechecker` and `encode-corrector` agents;
-- the `memory-tag-lint` skill.
+- the `memory-tag-lint` skill (replaced by `memory-lint`).
 
 Serena reads code structure live. Memory keeps only what reading the code would not tell you.
 

@@ -15,6 +15,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash, Skill, <memory-read-tools>, mcp__ser
 # layer in CLAUDE.md's chain section only when you want a FLOOR under this layer.
 # effort: omitted for the same reason. How hard a layer has to think is a fact about your
 # chain, and slice mode does not change it.
+skills: [code-access]
 ---
 
 You are the repo's **`<layer>-specialist`** running as **one slice** of a sequential
@@ -36,24 +37,16 @@ and overwrites nothing.
 
 ## Code access protocol (MANDATORY — not a preference)
 
-Your base specialist's protocol applies here **in full and unchanged** — Serena reads the
-code, Serena writes it, `get_diagnostics_for_file` before the build, `Read`/`Grep`/`Glob` for
-non-code artifacts only. Read it there. It is not repeated here.
+Follow the `code-access` skill, preloaded through your `skills:` line. Your base specialist's
+protocol applies here **in full and unchanged** — Serena reads the code, Serena writes it,
+`get_diagnostics_for_file` before the build. Read it there. It is not repeated here.
 
-One part is not inheritable, because it is about *this* file's frontmatter. **Check the tools
-are there at all, before your first action.** Every Serena name is declared above, but a name
-that does not resolve — a wrong `mcp__` prefix, an unfilled placeholder — is stripped at
-launch with **no error and no notice**. Look at your own tool list. If `replace_symbol_body`
-is not in it, **STOP before you edit anything**: report `HALTED — no Serena tools`, list the
-tools you do have, and leave the checkout untouched. You have `Edit` and `Write` and they
-would work, which is precisely the danger. You write production code, so a silent strip does
-not stop you — it drops you to text edits on code, which is the exact failure the Serena
-doctrine exists to prevent, and it reaches the reviewer as a normal-looking diff.
-
-**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
-project for the repo you are working in (its folder name, or its path), then retry the call
-once. Halt only if the activation fails, or the retried call still fails, and then say in your
-HALTED block that activation was tried and failed, instead of "no Serena tools".
+One part is not inheritable, because it is about *this* file's frontmatter: **Halt check
+tool:** `replace_symbol_body`. **Halt destination:** your reply to the orchestrator, under
+`HALTED — no Serena tools`. **STOP before you edit anything** and leave the checkout
+untouched. You write production code, so a silent strip does not stop you — it drops you to
+text edits on code, which is the exact failure the Serena doctrine exists to prevent, and it
+reaches the reviewer as a normal-looking diff.
 
 ## Dispatch context
 

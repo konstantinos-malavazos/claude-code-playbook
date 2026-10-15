@@ -77,6 +77,7 @@ than the two above:
 | `commit-conventions` | about to commit / branch naming / MR-PR template | ✓ | ✓ |
 | `engineering-standards` | **one per layer, generated** — the review/coding standard for that language | ✓ | ✓ |
 | `adapt-to-stack` | a repo whose `CLAUDE.md` names a layer chain — generates one specialist, its slice-mode variant and one standards skill per layer into that repo's own `.claude/`, and never overwrites | ✓ | ✓ |
+| `code-access` | **preloaded, never typed** — every agent that declares Serena tools lists it in `skills:`. The one copy of the code access protocol: read rules, escapes, the tool check and HALTED block, the "No active project" retry, and the paragraph every implementation dispatch carries. **Must not set `disable-model-invocation`**, or the preload silently stops | ✓ | ✓ |
 | `dispatch-weight` | **before every implementation dispatch** — classifies THAT dispatch `light` or `heavy` so the orchestrator sets the model for one run — the cheap tier on `light`, the strong one on `heavy`, and never below the specialist's own pinned floor. One definition, six call sites | ✓ | ✓ |
 | `next-steps` | **at every flow's ending** — the four-field hand-back that says what landed, what is yours, the next command with its argument filled in, and whether it is this session or a fresh one. One definition, twenty-three call sites | ✓ | ✓ |
 | `review-guidelines` | loaded by the repo reviewer — your house review standard. **Ships as a stub you fill in**; until then the reviewer uses its own severity terms | ✓ | ✓ |

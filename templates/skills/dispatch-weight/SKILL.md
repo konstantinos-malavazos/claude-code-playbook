@@ -50,7 +50,8 @@ signature"*, never *"this looks tricky"*.
 
 - touches **more than 3 files** — 3 or fewer is `light`,
 - spans **more than one repo**,
-- changes a **shared contract or signature with multiple callers**,
+- changes a **shared contract or signature with multiple callers** — count them with
+  Serena's `find_referencing_symbols`, never a grep,
 - has to work around a **placeholder seam** left by a deferred decision.
 
 Otherwise `light`. Tune the list to your team; it is a starting point, not scripture. Keep it

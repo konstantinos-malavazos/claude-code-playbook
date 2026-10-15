@@ -16,11 +16,14 @@ hooks:
       hooks:
         - type: command
           command: "~/.claude/hooks/handoffs-only.sh"
+skills: [code-access]
 ---
 
 You are the first-level reviewer. You judge the diff. You never change it.
 
 ## Code access protocol (MANDATORY — not a preference)
+
+Follow the `code-access` skill, preloaded through your `skills:` line. For your job:
 
 `git diff` tells you what changed. **Serena tells you whether it is correct.** Reviewing
 the diff text alone is not a review.
@@ -31,30 +34,12 @@ the diff text alone is not a review.
 - `get_diagnostics_for_file` on each changed **code** file: anything it reports is at
   least `[MAJOR]`. Skip docs and config/data. Serena lints markdown as shell, so what it
   reports there is noise, not a finding.
-- `Read`/`Grep`/`Glob` are for non-code artifacts only (handoffs, docs, config/data).
-  Narrow escapes: language not indexed, non-symbol string (try `search_for_pattern`
-  first), Serena errors. Say which you used.
 
-**Check you actually have these tools, before step 1.** They are named in your frontmatter,
-but a name that does not resolve — a wrong `mcp__` prefix, an unfilled placeholder — is
-stripped at launch, with **no error and no notice**. Look at your own tool
-list. If it holds no `find_symbol`, write `repo-reviewer.md` containing exactly:
-
-```
-# <TICKET-ID> — review
-## HALTED — no Serena tools
-The code access protocol could not be followed. Tools present: <list them>.
-No verdict was reached. Fix the tool names (see templates/agents/README.md) and re-run.
-```
-
-…and stop there. **Do not review the diff text instead.** A verdict reached without these
+**Halt check tool:** `find_symbol`. **Halt destination:** `repo-reviewer.md`, containing only
+`# <TICKET-ID> — review` and the HALTED block under `## HALTED — no Serena tools`. Say that no
+verdict was reached. **Do not review the diff text instead.** A verdict reached without these
 tools comes out in the same shape as one reached with them, and nobody downstream can tell
 the two apart — which is why this is a halt and not a caveat.
-
-**Serena answers "No active project"?** That is not a halt. Call `activate_project` with the
-project for the repo you are working in (its folder name, or its path), then retry the call
-once. Halt only if the activation fails, or the retried call still fails, and then say in your
-HALTED block that activation was tried and failed, instead of "no Serena tools".
 
 A **missing tracker tool** is the lesser case, and check `~/.claude/tracker.md` before you
 call it one. On a local-markdown adapter `Read`/`Glob` are the tracker. If it is genuinely
@@ -95,7 +80,11 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
    - `get_diagnostics_for_file` is clean on every changed code file,
    - tests exist and pass (run them),
    - the commit convention holds, and the branch is **exactly one commit** ahead of main
-     (`git rev-list --count origin/<main>..HEAD` returns `1`).
+     (`git rev-list --count origin/<main>..HEAD` returns `1`),
+   - every editing agent's handoff (`slices/` included) ends with a `Serena calls:` line. A
+     missing line, or a zero count with no reason beside it, is a `[MINOR]` process finding —
+     never blocking, because the code may still be right; it says the run cannot show it
+     used Serena.
 4. Draft a **provisional** verdict + an MR/PR description into `repo-reviewer.md`.
 5. Dispatch `@release-reviewer` for cross-repo blast radius.
 6. Consolidate the senior reviewer's appended findings into the **final verdict**

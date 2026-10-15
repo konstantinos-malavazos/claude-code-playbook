@@ -27,6 +27,10 @@ holding the evidence does, and you read its answer and route:
 - **Ratchet:** never dispatch a track below the tier it last ran at.
 - **Floor:** never dispatch a specialist below its own pinned `model:`, whatever the weight
   says — where that pin is already higher, set nothing.
+- **Serena paragraph:** paste the `## Dispatch paragraph` of the `code-access` skill into the
+  prompt, with its `<live tools>` slot filled. Every dispatch carries it — the first one, a
+  review fix, a drift fix, an `@integration-tester` route-back, an alignment return — and so
+  does the dispatch of `@integration-tester` itself.
 
 Record the dispatched model, the weight, the reason and the pass number in that track's
 handoff. There are four dispatch sites below (steps 5 and 6); a weight read once from

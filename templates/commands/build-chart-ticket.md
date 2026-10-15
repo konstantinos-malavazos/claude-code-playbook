@@ -117,6 +117,10 @@ be one file or a contract with callers in three repos, and the label says nothin
 which. If the ticket is re-dispatched after a review sends it back, classify again and never
 drop below the tier it last ran at.
 
+**Paste the Serena paragraph into the prompt** — the `## Dispatch paragraph` of the
+`code-access` skill, with its `<live tools>` slot filled. The re-dispatch after a review
+carries it too.
+
 **The label already chose. There is no track-allocation step**, no slice fork,
 no aligner, no integrator. Charting decomposed this map already; slicing a chart child again
 is slicing twice.

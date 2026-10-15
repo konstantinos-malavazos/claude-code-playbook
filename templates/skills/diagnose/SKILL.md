@@ -29,5 +29,8 @@ Don't guess-and-patch. Prove the cause, then fix the cause.
 
 ## Discipline
 - Never assume. Prove from returned data / measurements.
+- Trace the code path through Serena where it is available: `find_symbol` to read a body,
+  `find_referencing_symbols` for who reaches it. A hypothesis about code you only grepped is
+  a guess.
 - Never patch code you don't understand the failure of.
 - If the evidence contradicts your first hypothesis, drop it. Don't defend it.

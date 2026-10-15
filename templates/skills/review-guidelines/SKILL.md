@@ -17,6 +17,8 @@ for one language or layer belong in that layer's generated standards skill, not 
 ## House rules
 
 - (Your rules. One line each: what a reviewer checks, and what counts as a miss.)
+- Resolve every member a change touches with `find_symbol`; never assume what it is.
+- Diagnostics on each changed file: `get_diagnostics_for_file`, clean before the verdict.
 
 ## Severity, as this team uses it
 
