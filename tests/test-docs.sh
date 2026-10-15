@@ -81,8 +81,8 @@ fi
 # Every section reads markdown, and the fenced-block rule is the one thing they all
 # have to agree on, so the readers live in one python module the sections import.
 #
-# The candidate list is the one in all seven hooks and test-hooks.sh: a WindowsApps
-# python3 goes last, never dropped (why: block-dangerous-git.sh), then the first
+# The candidate list is the one in templates/hooks/_lib/common.sh: a WindowsApps
+# python3 goes last, never dropped (why: that file), then the first
 # candidate that runs `-c pass` wins.
 PY_LIST=()
 PY_LAST=()
@@ -325,6 +325,7 @@ lib = R.read("install-lib.py")
 m = re.search(r"SKIP_HOOKS\s*=\s*\{([^}]*)\}", lib)
 skip = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
 skip_found = len(skip) if m else -1
+# One level deep on purpose: _lib/common.sh is the library every hook sources, not a hook.
 hook_files = [os.path.basename(f) for f in sorted(glob.glob(os.path.join(REPO, "templates/hooks/*.sh")))]
 HOOKS = len([f for f in hook_files if f not in skip])
 

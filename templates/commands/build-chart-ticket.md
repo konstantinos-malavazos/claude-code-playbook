@@ -141,7 +141,7 @@ Ask the tracker: **is any *other* `make:` ticket for this repo still open or blo
   goes stale in a day.
 - **No** → this ticket finished the repo. Invoke `@repo-reviewer <TICKET-ID>`, which
   dispatches `@release-reviewer` itself. Then **copy its verdict into the chart's
-  `reviews/<repo>.md` in this same session**, before session end clears the handoffs, and
+  `reviews/<repo>.md` in this same session**, because handoffs are never a durable store, and
   keep the MR/PR description it drafted.
 
 Ask this live, every time. Never store a "repo is ready for review" flag. It rots exactly

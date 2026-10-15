@@ -123,7 +123,7 @@ reads — write freely. A **public** personal repo counts as shared.
 ## Handoff protocol (ephemeral pipeline state)
 
 In-flight pipeline state lives in `<workspace>/.claude/handoffs/<TICKET-ID>/<agent>.md` —
-`.gitignore`d and cleared at a later session end, once untouched for a day. Durable knowledge goes to memory. Ephemeral
+`.gitignore`d scratch space. It stays until you delete it, and it is never a durable store. Durable knowledge goes to memory. Ephemeral
 state goes to handoff files. Never write in-flight chatter to memory.
 
 ## Long-running work

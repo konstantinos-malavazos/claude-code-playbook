@@ -2,9 +2,6 @@
   "model": "<your-model-id>",
   "effortLevel": "high",
   "cleanupPeriodDays": 90,
-  "env": {
-    "WORKSPACE_HANDOFFS_ROOT": "<workspace>/.claude/handoffs"
-  },
   "hooks": {
     "PreToolUse": [
       {
@@ -28,13 +25,6 @@
         "matcher": "Write|Edit|NotebookEdit",
         "hooks": [
           { "type": "command", "command": "~/.claude/hooks/format-on-edit.sh" }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          { "type": "command", "command": "~/.claude/hooks/cleanup-handoffs.sh" }
         ]
       }
     ]

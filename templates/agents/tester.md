@@ -126,7 +126,7 @@ nothing else. You never bank a new conclusion here.
 ## Step 5 — handoff OUT
 
 `Write` `test-report.md` to `<workspace>/.claude/test-runs/<TICKET-ID>/` — the **persistent**
-dir, NOT `handoffs/`, which is wiped at session end and would take a partial run with it. On
+dir, NOT `handoffs/`, which is scratch space the user may clear, taking a partial run with it. On
 a resume, `Edit` the existing report in place. Lead with `## Run status`.
 
 ## You must NOT

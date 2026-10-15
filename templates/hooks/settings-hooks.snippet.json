@@ -24,13 +24,6 @@
           { "type": "command", "command": "~/.claude/hooks/format-on-edit.sh" }
         ]
       }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          { "type": "command", "command": "~/.claude/hooks/cleanup-handoffs.sh" }
-        ]
-      }
     ]
   }
 }

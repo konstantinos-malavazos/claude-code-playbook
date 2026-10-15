@@ -36,8 +36,8 @@
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
 
-# The candidate list is the one in all seven hooks and test-hooks.sh: a WindowsApps
-# python3 goes last, never dropped (why: block-dangerous-git.sh), then the first
+# The candidate list is the one in templates/hooks/_lib/common.sh: a WindowsApps
+# python3 goes last, never dropped (why: that file), then the first
 # candidate that runs `-c pass` wins. No working python leaves $PY empty, and each
 # python-backed section prints its own SKIP.
 PY_LIST=()
@@ -1270,10 +1270,19 @@ if [ -n "$A12_SKIP" ]; then
 else
   fail "A12.8 · SKIP_HOOKS did not parse out of install-lib.py — the set below is being derived from nothing"
 fi
+# An agent-scoped hook (its header says so) belongs in agent frontmatter and in
+# NEITHER snippet: a snippet entry would fire it for every session, not just the
+# agents that carry it. It leaves this set and is judged on its own below.
+a12_agent_scoped() { sed -n '1,4p' "$1" | grep -q 'Agent-scoped:'; }
 A12_WIRED=""
+A12_AGENT=""
 for f in "$TEMPLATES"/hooks/*.sh; do
   b="$(basename "$f")"
   case " $A12_SKIP " in *" $b "*) continue ;; esac
+  if a12_agent_scoped "$f"; then
+    A12_AGENT="$A12_AGENT $b"
+    continue
+  fi
   A12_WIRED="$A12_WIRED $b"
 done
 A12_WIRED_N="$(printf '%s' "$A12_WIRED" | wc -w | tr -d ' ')"
@@ -1291,6 +1300,16 @@ for b in $A12_WIRED; do
       pass "A12.8 · $b is wired in $wrel"
     else
       fail "A12.8 · $b is in templates/hooks/ and appears nowhere in $wrel — it installs, it never runs, and nothing says so"
+    fi
+  done
+done
+for b in $A12_AGENT; do
+  for w in $A12_WIRINGS; do
+    wrel="${w#"$REPO"/}"
+    if grep -qF "$b" "$w"; then
+      fail "A12.8 · $b is agent-scoped and $wrel wires it — it would fire in every session, not only in the agents that carry it"
+    else
+      pass "A12.8 · $b is agent-scoped and absent from $wrel"
     fi
   done
 done
@@ -1346,6 +1365,30 @@ a12_declares() {
      s/^#[[:space:]]*\([A-Za-z]*\)[[:space:]]hook[.,[:space:]].*/\1\t/p' | head -1
 }
 
+# a12_agent_placements AGENT.md -> "event<TAB>matcher<TAB>hookfile" per command in
+# the frontmatter's `hooks:` block. Events are the capitalised keys under it; the
+# frontmatter ends at the second `---`, so a hook named in the body never counts.
+a12_agent_placements() {
+  awk '
+    { sub(/\r$/, "") }
+    NR == 1 { if ($0 !~ /^---[[:space:]]*$/) exit; next }
+    /^---[[:space:]]*$/ { exit }
+    /^[^[:space:]]/ { inhooks = ($0 ~ /^hooks:[[:space:]]*$/); ev = ""; matcher = ""; next }
+    !inhooks { next }
+    /^[[:space:]]+[A-Z][A-Za-z]*:[[:space:]]*$/ {
+      ev = $0; gsub(/[[:space:]:]/, "", ev); matcher = ""; next
+    }
+    match($0, /matcher:[[:space:]]*.*/) {
+      m = substr($0, RSTART, RLENGTH)
+      sub(/^matcher:[[:space:]]*/, "", m); sub(/[[:space:]]+$/, "", m); gsub(/["\047]/, "", m)
+      matcher = m
+    }
+    match($0, /hooks\/[A-Za-z0-9_-]+\.sh/) {
+      h = substr($0, RSTART, RLENGTH); sub(/^hooks\//, "", h)
+      printf "%s\t%s\t%s\n", ev, matcher, h
+    }' "$1"
+}
+
 A12_CHECKABLE=0
 A12_PROSE=""
 for b in $A12_WIRED; do
@@ -1396,6 +1439,42 @@ for b in $A12_WIRED; do
       fail "A12.8 · $b declares it guards [$want_alts] and $wrel wires it under $got_ev/$got_matcher — missing:$missing. It installs, it is listed as present, and it never sees the tool it exists to guard"
     fi
   done
+done
+for b in $A12_AGENT; do
+  decl="$(a12_declares "$TEMPLATES/hooks/$b")"
+  want_ev="${decl%%	*}"
+  want_alts="$(printf '%s' "${decl#*	}" | tr '/' ' ' | tr -s ' ')"
+  if [ -z "$want_ev" ] || [ -z "$want_alts" ]; then
+    fail "A12.8 · $b is agent-scoped and its header declares no event and matcher — nothing states what an agent must wire it under"
+    continue
+  fi
+  A12_CHECKABLE=$((A12_CHECKABLE+1))
+  carriers=""
+  for a in "$TEMPLATES"/agents/*.md; do
+    arel="${a#"$REPO"/}"
+    got="$(a12_agent_placements "$a" | awk -F'\t' -v h="$b" '$3 == h {print $1 "\t" $2; exit}')"
+    [ -n "$got" ] || continue
+    got_ev="${got%%	*}"
+    got_matcher="${got#*	}"
+    missing=""
+    for alt in $want_alts; do
+      case "|$got_matcher|" in
+        *"|$alt|"*) ;;
+        *) missing="$missing $alt" ;;
+      esac
+    done
+    if [ "$got_ev" != "$want_ev" ]; then
+      fail "A12.8 · $b asks for $want_ev and $arel wires it under ${got_ev:-(no event)} — it will fire on the wrong event, or never"
+    elif [ -n "$missing" ]; then
+      fail "A12.8 · $b declares it guards [$want_alts] and $arel wires it under $got_ev/$got_matcher — missing:$missing"
+    else
+      pass "A12.8 · $b is wired under $got_ev/$got_matcher in $arel's frontmatter, covering the matcher it declares"
+      carriers="$carriers $arel"
+    fi
+  done
+  if [ -z "$carriers" ]; then
+    fail "A12.8 · $b is agent-scoped and no templates/agents/*.md frontmatter wires it under the matcher it declares — it installs and never runs"
+  fi
 done
 # Positive control, and it is the one that matters most here: if the header
 # parser stops matching, every hook falls into the un-checkable bucket and this

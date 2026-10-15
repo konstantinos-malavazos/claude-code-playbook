@@ -209,6 +209,7 @@ PLAYBOOK_TEST_DIR="$S/i4" bash tests/test-installer.sh T1 T2 T3 T4 T5 T6 T7
 PLAYBOOK_TEST_DIR="$S/i5" bash tests/test-installer.sh R1 R2 R3 L1 L2 L3 L4
 PLAYBOOK_TEST_DIR="$S/i6" bash tests/test-installer.sh SW1 SW2 ST1 ST2 ST3 ST4 ST5 ST6 LF1
 PLAYBOOK_TEST_DIR="$S/i7" bash tests/test-installer.sh SW3 SW4 SW5 SW6 SW7 SW8
+PLAYBOOK_TEST_DIR="$S/i8" bash tests/test-installer.sh HL1 HO1 RT1 FX1 FX2 FX3
 ```
 
 Every chunk must end with `failed 0`. Add up the `passed` lines: they should match a full

@@ -7,14 +7,14 @@
 # one the agent can write, and a guardrail the model can switch off is a suggestion with
 # extra steps. PHILOSOPHY.md §5 is "enforced by the harness, not by trust".
 #
-# NOT LISTED MEANS NO TO BOTH. That is the whole design — a new repo is safe with no
+# NOT LISTED MEANS NO TO ALL THREE. That is the whole design — a new repo is safe with no
 # action from you, and a live project stays safe by omission rather than by being
 # remembered.
 #
 # ---------------------------------------------------------------------------------
-# FORMAT: three whitespace-separated fields.
+# FORMAT: three or four whitespace-separated fields.
 #
-#   <remote-fragment>            <push>   <own-claude-md>
+#   <remote-fragment>            <push>   <own-claude-md>   [<trunk-push>]
 #
 #   remote-fragment   matched as a SUBSTRING of `git config --get remote.origin.url`,
 #                     so one line covers the SSH and HTTPS forms of the same repo.
@@ -25,8 +25,9 @@
 #   push              may the agent run `git push` here?          yes | no
 #   own-claude-md     is this repo's CLAUDE.md its own — that is, would a fresh clone
 #                     on a new laptop need it?                    yes | no
+#   trunk-push        may that push land on main, master or develop?  yes | no
 #
-# Anything that is not exactly `yes` is no.
+# Anything that is not exactly `yes` is no; a missing 4th field is no.
 # ---------------------------------------------------------------------------------
 #
 # Three things this file cannot switch off, whatever it says:
@@ -46,3 +47,4 @@
 #
 # github.com/you/weekend-project    yes    yes
 # github.com/you/photo-organiser    yes    yes
+# github.com/you/thing              yes    yes    yes

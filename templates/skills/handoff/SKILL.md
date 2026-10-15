@@ -20,14 +20,10 @@ conversation. You are writing down **the part of it that would otherwise be lost
 Save it as a **file at the root** of `<workspace>/.claude/handoffs/` — **never inside a
 `<TICKET-ID>/` subdirectory.**
 
-This is mechanical, not stylistic. The `SessionEnd` hook
-([`../../hooks/cleanup-handoffs.sh`](../../hooks/cleanup-handoffs.sh)) removes every
-subdirectory of the handoffs root that nothing has written to for a day, and never touches
-the root itself or the files in it.
-
-**Directories go, root-level files stay.** A handoff written one level too deep is deleted
-by a session end a day later, and nothing warns you — the next session simply finds
-nothing. Check the path before you write, not after.
+A ticket folder belongs to that ticket's pipeline run, and a later run or a clean-up can
+move it aside. A session handoff is about the session, not one ticket, so it sits at the
+root where the next session looks first. Handoffs are scratch space that stays until you
+delete it, never a durable store.
 
 ## One file per subject
 

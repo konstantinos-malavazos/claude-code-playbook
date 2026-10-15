@@ -30,7 +30,7 @@ memory becomes a junk drawer and retrieval quality collapses.
 
 What *doesn't* go in:
 
-- in-flight ticket state (that's what handoff files were for — and they've evaporated),
+- in-flight ticket state (that's what handoff files are for — scratch space, never a durable store),
 - anything already recorded in code, git history, or a CLAUDE.md,
 - facts that only matter to today's conversation.
 

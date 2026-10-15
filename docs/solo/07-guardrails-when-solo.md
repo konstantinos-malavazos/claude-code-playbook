@@ -90,6 +90,12 @@ answers to one question is how you get a rule nobody can find the source of. You
 a repo, nothing pushes, and there is no way to tell whether the hook refused or a prompt
 did. The hook is the authority, and now it is the only one.
 
+**Pushing to the trunk is a separate answer.** A push to `main`, `master` or `develop` is
+blocked even on an allowlisted repo, unless that repo's line carries a fourth field,
+`trunk-push`, set to `yes`. On a solo repo nobody else pushes to, you may set it and let the
+agent push straight to main: `github.com/you/thing  yes  yes  yes`. Leave it out, and the
+agent pushes branches only.
+
 **What is still yours** is the merge. On the shared pipeline the agent pushes the branch and
 you open and merge the PR. The review half of this guardrail was already gone solo. But
 *merge* is the step that makes a change the trunk's problem rather than a branch's.
@@ -225,10 +231,12 @@ model can switch off is a suggestion with extra steps.
 
 One file. One entry per repo, keyed by **remote URL rather than folder path**. What push
 risks is *where the content goes*, and keying on a folder path is the same rule-about-paths
-mistake the section above just retired. Two answers per entry, **both defaulting to no**:
+mistake the section above just retired. Up to three answers per entry, **all defaulting to
+no**:
 
 1. **May the agent push here?**
 2. **Is this repo's `CLAUDE.md` its own?**
+3. **May that push land on `main`, `master` or `develop`?** (`trunk-push`, optional)
 
 ```
    ~/.claude/  ─── outside every repo, so the agent cannot write it ────────┐
@@ -361,8 +369,9 @@ answer you catch yourself, because you are the only reader. Silence you do not. 
 why library X went badly. Nothing retrieves it when you pick a library, and you quietly
 repeat a decision you already paid for. Being solo is no help against that at all.
 
-It does not start on day one. The bootstrap seeds **two** memories, and you cannot write
-golden queries for two things you know by heart. Start when the memory index no longer
+It does not start on day one. A new project starts with **two** memories: charting writes
+the first when its map closes, and the bootstrap confirms it and writes the second. You
+cannot write golden queries for two things you know by heart. Start when the memory index no longer
 fits on one screen. Below that you read the whole thing in ten seconds and you *are* the
 eval. How often to run it after that is memory hygiene's question, not this page's.
 

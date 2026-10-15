@@ -17,7 +17,7 @@ the three hard rules, which nothing overrides:
 - **Zero tracker writes.** The development ticket is read-only, always. The session ends with
   text for you to paste. Writing the chart is a **map write** and is not the same act.
 - **Chart state lives where the adapter says**, never in the handoffs directory — that
-  auto-deletes at session end and a map runs for weeks.
+  is scratch space you clear by hand, and a map runs for weeks.
 - **Never modify `/start-ticket`, `/resume-ticket`, `/fix-ticket`, `/test-ticket`** or any
   agent they use. This flow borrows those agents. It does not edit them.
 
@@ -56,8 +56,8 @@ the user has not confirmed.
 Invoke `@context-gatherer` scoped to the **destination**, not to a ticket.
 
 It writes to the handoffs directory, which is hardcoded in that agent and which you do not
-edit. **Copy the brief into the chart folder as `context.md` in this same session**, before
-session end clears the handoffs, and stamp the first line:
+edit. **Copy the brief into the chart folder as `context.md` in this same session**, because
+the handoffs are scratch space and never a durable store, and stamp the first line:
 
 ```markdown
 > **Swept:** <date>, at chart time, scoped to the destination.

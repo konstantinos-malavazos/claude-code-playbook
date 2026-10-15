@@ -211,18 +211,22 @@ important adaptation. See
 ## Step 7 — Add the guardrail hooks
 
 Copy the hooks you want from `templates/hooks/` into `~/.claude/hooks/` and wire them in
-`~/.claude/settings.json`. Start with:
+`~/.claude/settings.json`. **Copy the `_lib/` folder with them.** Every hook loads its shared
+code from `~/.claude/hooks/_lib/`, and a blocking hook that cannot find it blocks every
+call. Start with:
 
-- `block-dangerous-git.sh` — no reset --hard / force / --no-verify, and no push unless the
-  repo is allowlisted
+- `block-dangerous-git.sh` — no reset --hard / force / --no-verify, no push unless the
+  repo is allowlisted, and no push to `main`, `master` or `develop` unless its allowlist
+  line says `trunk-push` yes
 - `block-mcp-writes.sh` — read-only veto on the tracker + git-host MCP
 - `block-infra-staging.sh` — sorts `.claude/`: `agents/` and `skills/` through, `CLAUDE.md`
   if allowlisted, the rest blocked
 - `block-secret-staging.sh` — no `.env`, key files or credential-shaped names
 - `block-unexplained-long-hold.sh` — no `Bash` or `PowerShell` call asking for more than the default
   timeout unless its `description` says how long you expect it to take
-- `cleanup-handoffs.sh` — wipe ephemeral handoffs at session end, once nothing has written
-  to them for a day
+
+`handoffs-only.sh` is not wired here. It belongs to the three reviewer agents, which wire it
+in their own frontmatter. Copy it with the hooks; leave it out of `settings.json`.
 
 **Also create `~/.claude/repo-allowlist`, empty.** Copy the comments out of
 `templates/hooks/repo-allowlist.sample` and add nothing. Two of the hooks above read it.
