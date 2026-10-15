@@ -58,9 +58,8 @@ nothing" is not evidence of absence.
 
 ## Forgetful (semantic memory) — on by default
 
-On for every non-trivial conversation. I should not have to ask. If the message mentions
-code, a symbol, a ticket id, a service/component, an investigation, or anything beyond
-trivial chat → **first action is a memory query** for related prior context.
+I should not have to ask. When starting work on a ticket, a component, or an investigation
+→ **first action is a memory query** for related prior context.
 
 Opt-out (per turn, case-insensitive): `no forgetful` / `skip forgetful`. There is no
 Serena opt-out.
@@ -123,8 +122,11 @@ reads — write freely. A **public** personal repo counts as shared.
 ## Handoff protocol (ephemeral pipeline state)
 
 In-flight pipeline state lives in `<workspace>/.claude/handoffs/<TICKET-ID>/<agent>.md` —
-`.gitignore`d scratch space. It stays until you delete it, and it is never a durable store. Durable knowledge goes to memory. Ephemeral
-state goes to handoff files. Never write in-flight chatter to memory.
+`.gitignore`d scratch space. It stays until you delete it, and it is never a durable store.
+Durable knowledge goes to memory. Ephemeral state goes to handoff files.
+
+**No in-flight state in memory.** Memory gets only the approval writes (a ticket's gotchas
+and its feature memory) and the end-of-session writeback types below.
 
 ## Long-running work
 
@@ -138,8 +140,11 @@ hand-back.
 
 ## End-of-session writeback
 
-When a session uncovers a durable decision / root cause / gotcha not already in memory,
-write ONE atomic memory before ending (tagged by functionality, never by ticket id).
+When a session uncovers something durable not already in memory, write ONE atomic memory
+before ending (tagged by functionality, never by ticket id). Its type is `gotcha`,
+`ruling`, `investigation` or `contract` — never flow state. If a fact changed, write a new
+memory and mark the old one obsolete with `superseded_by`; a small correction is an update
+instead.
 While a skill with its own memory-write rule is running, that rule wins over this one.
 
 ## Communication style

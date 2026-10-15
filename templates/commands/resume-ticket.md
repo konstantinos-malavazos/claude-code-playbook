@@ -4,14 +4,14 @@ argument-hint: <TICKET-ID>
 ---
 
 Resume `$ARGUMENTS`. Its handoff files may still be there, or you may have deleted
-them; handoffs are never a durable store. Rehydrate from durable state. Don't redo finished work.
+them; handoffs are never a durable store. Rehydrate from what is left. Don't redo finished work.
 
 ## Sequence
-1. **Rehydrate** — read the ticket's durable memory (including any `deferred-decisions`
-   record) and the branch's current state (commits, TODOs). Re-fetch the ticket
-   (read-only).
-2. **Plain resume?** If nothing was deferred: load context, summarise where things stand,
-   and STOP — hand control back to the user. **Handing control back is not a next step**, so
+1. **Rehydrate** — read `<workspace>/.claude/handoffs/$ARGUMENTS/open-questions.md`: if it
+   exists, the ticket is mid-flight and its open questions are there. Read the branch's
+   current state (commits, TODOs). Re-fetch the ticket (read-only).
+2. **Plain resume?** If there is no `open-questions.md`, or nothing in it is open: load
+   context, summarise where things stand, and STOP — hand control back to the user. **Handing control back is not a next step**, so
    end with the `next-steps` block: the branch, its sha and what is already done; the decision
    or the piece of work that is theirs; and the concrete re-entry point — the next layer in
    the chain, or review and land where the code is finished. This session, since it is
@@ -21,7 +21,8 @@ them; handoffs are never a durable store. Rehydrate from durable state. Don't re
    you can, read-only. Partial answers are fine.
 4. **Delta mode** — re-enter the pipeline for only what changed:
    - **@context-gatherer** resume-delta (explore only what the new answers or changed code
-     scope — never a full re-sweep),
+     scope — never a full re-sweep); if its `## Stale memories` section is not `none`,
+     relay its warning line to the user verbatim and carry on,
    - **@planner** RE-PLAN (lift placeholders, promote parked slices, surface new
      questions),
    - a fresh **grilling** round for anything still open.

@@ -65,7 +65,7 @@ Turns a ticket id into a reviewed, single-commit branch.
 @release-reviewer     cross-repo blast radius
         │
    verdict ── REQUEST CHANGES ──► back to the specialists
-        └──── APPROVE ──► consolidate the ticket into ONE durable memory
+        └──── APPROVE ──► harvest ≤5 gotcha memories + ONE linked feature memory
                           ──► YOU push & open the MR/PR
 ```
 
@@ -105,10 +105,10 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 | **`/build-chart-ticket`** *(team)* | one `make:<layer>` ticket off a map → gatherer delta → planner → the single layer specialist the label names → review, but only once that repo has no other makes left | the map already decomposed the work, so this deliberately has **no** track allocation and no slice fork. [team 03](../team/03-massive-tickets.md) |
 | **`/fix-ticket`** | QA bounce-back → diagnose root cause → fix → **amend in place** | a returned ticket stays one ticket / one commit |
 | **`/test-ticket`** | E2E **integration test** against staging, or against **local** where there is no staging tier — produce the real event, reconcile the resulting row/state, **and bank/reuse a per-scenario test recipe in memory** | proves it works where it will actually run *and* learns how to produce each scenario's events once, then reuses it |
-| **`/resume-ticket`** | reopen an in-flight ticket across sessions; if it had **deferred decisions**, collect the now-available answers and re-enter in delta mode | tickets span days; open questions get answered later; state survives the handoff wipe via durable memory |
-| **`/close-ticket`** | finalize + consolidate into memory | clean end-of-ticket bookkeeping |
+| **`/resume-ticket`** | reopen an in-flight ticket across sessions; if it had **deferred decisions**, collect the now-available answers and re-enter in delta mode | tickets span days; open questions get answered later; they wait in `open-questions.md` in the ticket's handoff folder |
+| **`/close-ticket`** | finalize + update the ticket's `feature` memory | clean end-of-ticket bookkeeping |
 | **`/end-of-day`** | **daily memory nomination**: harvest the day's durable conclusions, dedupe vs memory, approve each item individually | deliberate memory — nothing enters the knowledge base un-reviewed. [10](10-memory-hygiene.md) |
-| **`/garden-memory`** | **periodic memory hygiene**: golden-query retrieval eval + duplicate/stale/orphan sweep with per-item approval | catches retrieval regressions; stops the memory decaying into a junk drawer. [10](10-memory-hygiene.md) |
+| **`/garden-memory`** | **periodic memory staleness report**: read-only check of every memory's files and code symbols against main, a lint re-run and a near-duplicate sweep; changes apply row by row, each approved | catches memories that went stale; stops the memory decaying into a junk drawer. [10](10-memory-hygiene.md) |
 | **`/confirm-deployment`** | **release gate** (not ticket-scoped): review a tag-to-tag delta across repos before a production deploy — code review + deploy-risk scan (migrations, queues, config/secrets) → GO/NO-GO | a last read-only safety net before prod |
 | **`next-steps`** | the four-field block **every flow prints last**: what landed and where, what is yours because only you can do it, the literal next command with its **argument filled in**, and whether it runs in this session or a fresh one | **not a flow you type** — one definition that all twenty-three terminal points invoke, the same argument as `dispatch-weight` below. A stage that finishes and says nothing leaves you holding it, and nothing in the output says so. [`templates/skills/next-steps/`](../../templates/skills/next-steps/SKILL.md) |
 

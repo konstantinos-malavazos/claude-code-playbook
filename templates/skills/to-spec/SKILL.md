@@ -100,7 +100,7 @@ copy of the plan.
 - **Never write to the tracker.** This is an internal file; one `<TICKET-ID>` stays one
   ticket.
 - **Never write to memory.** Everything here is pre-merge and ephemeral. The durable record
-  is the one consolidated memory written when the ticket lands.
+  is the `gotcha` and `feature` memories written when the ticket lands.
 - **Do not re-explore the codebase.** Reuse `planner.md` and `context-gatherer.md`. If a
   fact you need is genuinely missing, name it and stop — a fresh sweep here re-runs work
   that already cost a full agent.

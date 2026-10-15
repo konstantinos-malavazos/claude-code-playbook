@@ -7,7 +7,8 @@ A previously-shipped ticket (`$ARGUMENTS`) came back from QA. Fix it **in place*
 stays one ticket / one commit per repo / one metrics row.
 
 ## Sequence
-1. **Load context** — read the consolidated memory for `$ARGUMENTS` and the merged code.
+1. **Load context** — read the `feature` memory `$ARGUMENTS` landed, the `gotcha` memories
+   linked to it, and the merged code.
    Re-fetch the ticket + QA comments (read-only) for the reported failure.
 2. **@fixer-planner** — using the `diagnose` skill,
    reproduce and root-cause the bug. **If it can't be reproduced or explained, STOP and ask
@@ -25,8 +26,9 @@ stays one ticket / one commit per repo / one metrics row.
 4. **Amend, don't add** — the fix amends the existing branch commit (amend-as-you-go).
    No `fix: address QA` follow-up commits.
 5. **Review** — @repo-reviewer → @release-reviewer, same as /start-ticket.
-6. **Land** — update the ticket's durable memory with the root cause + fix (append, don't
-   duplicate). Push the branch where allowlisted; the user merges.
+6. **Land** — update the ticket's `feature` memory with the root cause + fix (an update,
+   not a second feature memory). A new trap found in code outside the diff is a new `gotcha`
+   memory, linked to it. Push the branch where allowlisted; the user merges.
 7. **Say what they do now** — end with the `next-steps` block: the branch and the amended
    commit's **new** sha, plus the fact that this **amended**, so there is no new commit to
    look for; the MR/PR description to re-paste; `/test-ticket $ARGUMENTS` to re-prove the

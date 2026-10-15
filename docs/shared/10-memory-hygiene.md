@@ -55,30 +55,22 @@ Three patterns from a bulk encoder are still worth reusing in any long batch job
 
 ---
 
-## `/garden-memory` — periodic hygiene
+## `/garden-memory` — periodic staleness report
 
-Run monthly (or when retrieval feels off). Two phases.
+Run monthly, or when retrieval feels off. It is **read-only**: it lists every memory and
+writes a dated report, one row per finding, each with a proposed action and an empty
+Decision column. It checks:
 
-### Phase A — retrieval eval (golden queries)
+- every `source_files` path still exists, case-exact, on the repo's main branch, and says
+  why a miss is one: a case mismatch, a rename, or a delete;
+- every backticked code symbol in the content still exists on main, with misses confirmed
+  through Serena;
+- the stored memory still passes the `memory-lint` rules, which catches vocabulary drift;
+- near-duplicates: the same type, plus a similar title or overlapping `source_files`.
 
-Keep a version-controlled set of **golden queries** with **content assertions** — "this
-question must retrieve a memory containing these facts." Assert on **content, never on
-memory ids**, because ids churn and the knowledge should not. Run the queries, log
-pass/fail, and surface **regressions vs last month** explicitly. Retrieval quality becomes
-a tracked number, not a vibe.
-
-### Phase B — sweep
-
-Look for:
-
-- near-duplicate memories → propose a merge,
-- superseded-but-unmarked memories → mark obsolete with a `superseded_by` pointer,
-- memories missing their project/scope tags,
-- tag-vocabulary violations,
-- low-confidence orphans (nothing links to them, low confidence).
-
-Propose fixes. Apply **only what's approved**. **Never delete** silently, and never
-auto-edit the golden set.
+The staleness report is now the health signal. `/garden-memory apply <date>` walks the
+rows one at a time, shows the exact call, and makes it only on your yes. **Never delete.**
+Usage alone never justifies marking a memory obsolete.
 
 ---
 
@@ -86,7 +78,7 @@ auto-edit the golden set.
 
 An un-gardened memory decays two ways. It fills with noise, so retrieval returns junk. It
 also goes stale, so it returns confidently-wrong old conclusions. The daily gate stops the
-first. The periodic eval and sweep stop the second. Together they're the difference
+first. The periodic staleness report stops the second. Together they're the difference
 between a memory you trust on ticket N+50 and one you've learned to ignore.
 ---
 > **Last verified against:** Claude Code `2.1.226` — August 2026

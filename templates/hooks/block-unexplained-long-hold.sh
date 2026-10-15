@@ -51,7 +51,7 @@ block() { echo "BLOCKED by block-unexplained-long-hold: $1" >&2; exit 2; }
 _lib="${BASH_SOURCE[0]//\\//}"
 case "$_lib" in */*) _lib="${_lib%/*}/_lib/common.sh" ;; *) _lib="_lib/common.sh" ;; esac
 HOOK_LIB_LOADED=
-# shellcheck source=/dev/null
+# shellcheck source-path=SCRIPTDIR source=_lib/common.sh
 if ! . "$_lib" 2>/dev/null || [ "$HOOK_LIB_LOADED" != 1 ]; then
     block "the shared hook library is missing or broken at $_lib — re-run the installer."
 fi

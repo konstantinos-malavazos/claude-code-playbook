@@ -81,19 +81,13 @@ fi
 # Every section reads markdown, and the fenced-block rule is the one thing they all
 # have to agree on, so the readers live in one python module the sections import.
 #
-# The candidate list is the one in templates/hooks/_lib/common.sh: a WindowsApps
-# python3 goes last, never dropped (why: that file), then the first
-# candidate that runs `-c pass` wins.
-PY_LIST=()
-PY_LAST=()
-while IFS= read -r _p; do
-    [ -n "$_p" ] || continue
-    case "${_p,,}" in
-        */windowsapps/*) PY_LAST+=("$_p") ;;
-        *)               PY_LIST+=("$_p") ;;
-    esac
-done <<< "$(command -v python3 2>/dev/null; command -v python 2>/dev/null; true)"
-PY_LIST+=(${PY_LAST[@]+"${PY_LAST[@]}"})
+# The interpreter candidates are the hooks' own; the first that runs `-c pass` wins.
+HOOK_LIB_LOADED=
+# shellcheck source-path=SCRIPTDIR source=../templates/hooks/_lib/common.sh
+if ! . "$REPO/templates/hooks/_lib/common.sh" || [ "${HOOK_LIB_LOADED-}" != 1 ]; then
+    echo "FAIL: $REPO/templates/hooks/_lib/common.sh is missing or did not load — no interpreter list to run with." >&2
+    exit 1
+fi
 
 PY=""
 for _c in ${PY_LIST[@]+"${PY_LIST[@]}"}; do
@@ -977,17 +971,19 @@ fi
 if want D-G; then
 banner "D-G · every skill a template names ships, or is allowlisted"
 DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
-import os, re, sys, importlib.util
+import os, re, shutil, sys, tempfile, importlib.util
 spec = importlib.util.spec_from_file_location(
     "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
 R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
 REPO = R.REPO
 
-skills_dir = os.path.join(REPO, "templates", "skills")
-all_skills = {
-    name for name in os.listdir(skills_dir)
-    if os.path.isdir(os.path.join(skills_dir, name))
-}
+def shipped_skills(skills_dir):
+    return {
+        name for name in os.listdir(skills_dir)
+        if os.path.isfile(os.path.join(skills_dir, name, "SKILL.md"))
+    }
+
+all_skills = shipped_skills(os.path.join(REPO, "templates", "skills"))
 lib = R.read("install-lib.py")
 m = re.search(r"NEVER_INSTALL\s*=\s*\{([^}]*)\}", lib)
 never_install = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
@@ -1037,6 +1033,15 @@ for rel in R.tracked(".md"):
 ctrl_missing = 1 if len(flagged("Load the `no-such-skill-planted` skill first.")) > 0 else 0
 ctrl_real = 1 if len(flagged("Load the `dispatch-weight` skill.")) > 0 else 0
 
+ctrl_dir = tempfile.mkdtemp(prefix="dg-ctrl-")
+try:
+    os.makedirs(os.path.join(ctrl_dir, "loadable"))
+    open(os.path.join(ctrl_dir, "loadable", "SKILL.md"), "w").close()
+    os.makedirs(os.path.join(ctrl_dir, "no-skill-md"))
+    ctrl_skill_md = 1 if shipped_skills(ctrl_dir) == {"loadable"} else 0
+finally:
+    shutil.rmtree(ctrl_dir, ignore_errors=True)
+
 def emit(s):
     sys.stdout.buffer.write((s + "\n").encode("utf-8"))
 
@@ -1045,6 +1050,7 @@ emit("SHIPS %d" % len(SHIPS))
 emit("SEEN %d" % seen)
 emit("CTRL_MISSING %d" % ctrl_missing)
 emit("CTRL_REAL %d" % ctrl_real)
+emit("CTRL_SKILL_MD %d" % ctrl_skill_md)
 for b in sorted(set(bad)):
     emit("BAD " + b)
 PYEOF
@@ -1074,6 +1080,12 @@ if [ "${D_G_CTRL_REAL:-1}" = "0" ]; then
   pass "D-G · negative control (real skill not flagged) passed"
 else
   fail "D-G · negative control (real skill not flagged) failed"
+fi
+D_G_CTRL_SKILL_MD="$(sed -n 's/^CTRL_SKILL_MD //p' "$REPO/tests/.docs-out")"
+if [ "${D_G_CTRL_SKILL_MD:-0}" = "1" ]; then
+  pass "D-G · negative control (a skill folder without SKILL.md does not ship) passed"
+else
+  fail "D-G · negative control (a skill folder without SKILL.md does not ship) failed"
 fi
 if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
   while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")

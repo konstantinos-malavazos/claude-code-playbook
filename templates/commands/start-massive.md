@@ -53,7 +53,9 @@ the user has not confirmed.
 
 ## 3. Sweep the context once
 
-Invoke `@context-gatherer` scoped to the **destination**, not to a ticket.
+Invoke `@context-gatherer` scoped to the **destination**, not to a ticket. If its
+`## Stale memories` section is not `none`, relay its warning line to the user verbatim and
+carry on; a stale memory does not stop the flow.
 
 It writes to the handoffs directory, which is hardcoded in that agent and which you do not
 edit. **Copy the brief into the chart folder as `context.md` in this same session**, because

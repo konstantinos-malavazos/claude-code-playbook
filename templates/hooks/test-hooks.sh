@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regression suite for all seven hooks.
+# Regression suite for all eight hooks.
 #
 # A guardrail that stops guarding keeps reporting success, so these cannot be verified by
 # reading them. Run this after editing any hook, and after a Claude Code release that
@@ -32,6 +32,7 @@ MCP_HOOK=./block-mcp-writes.sh
 HOLD_HOOK=./block-unexplained-long-hold.sh
 FORMAT_HOOK=./format-on-edit.sh
 HANDOFFS_HOOK=./handoffs-only.sh
+ML_HOOK=./memory-lint.sh
 
 # --- python ---------------------------------------------------------------------
 # The hooks parse their payload with python, and so does this suite when it builds one.
@@ -44,7 +45,7 @@ HANDOFFS_HOOK=./handoffs-only.sh
 # be building payloads with one python and judging a hook that chose another — and the
 # case it would miss is exactly the one at the bottom of this file. Why a WindowsApps
 # python3 goes to the END of the list and is never dropped is in _lib/common.sh.
-# shellcheck source=/dev/null
+# shellcheck source-path=SCRIPTDIR source=_lib/common.sh
 if ! . ./_lib/common.sh || [ "${HOOK_LIB_LOADED-}" != 1 ]; then
     echo "FAIL: _lib/common.sh is missing or did not load — no hook can run without it." >&2
     exit 1
@@ -944,7 +945,7 @@ run_push3() { # <command> <expected-exit>
 }
 HOOK_HOME="$ALLOW_HOME"
 # trunk-no: push yes, trunk-push written out as no.
-git -C "$REPO" remote set-url origin https://github.com/example/trunk-no.git 2>/dev/null && HOOK_ORIGIN=trunk-no
+git -C "$REPO" remote set-url origin https://github.com/example/trunk-no.git 2>/dev/null && HOOK_ORIGIN="trunk-no"
 run_push3 "git push origin main"                                                 2
 run_push3 "git push origin HEAD:develop"                                         2
 run_push3 "git push origin refs/heads/main"                                      2
@@ -980,7 +981,7 @@ run_push3 "git push origin --tags master"                                       
 run $GIT_HOOK Bash       "git push origin --tags; git push"                      2
 git -C "$REPO" symbolic-ref HEAD refs/heads/feature && HOOK_BRANCH=""
 # trunk-ok: trunk-push yes. The 4th field must not swallow own-claude-md either.
-git -C "$REPO" remote set-url origin https://github.com/example/trunk-ok.git 2>/dev/null && HOOK_ORIGIN=trunk-ok
+git -C "$REPO" remote set-url origin https://github.com/example/trunk-ok.git 2>/dev/null && HOOK_ORIGIN="trunk-ok"
 run_push3 "git push origin main"                                                 0
 run_push3 "git push --all"                                                       0
 run_push3 "git push --mirror origin"                                             0
@@ -1106,7 +1107,7 @@ HOOK_HOME="$DENY_HOME"
 echo "block-infra-staging.sh — the two answers are independent"
 # github.com/example/push-only says push yes, own-claude-md NO.
 HOOK_HOME="$ALLOW_HOME"
-git -C "$REPO" remote set-url origin https://github.com/example/push-only.git 2>/dev/null && HOOK_ORIGIN=push-only
+git -C "$REPO" remote set-url origin https://github.com/example/push-only.git 2>/dev/null && HOOK_ORIGIN="push-only"
 run $GIT_HOOK   Bash     "git push origin feature"                         0
 run $INFRA_HOOK Bash     "git add CLAUDE.md"                               2
 git -C "$REPO" remote set-url origin https://github.com/example/allowed-repo.git 2>/dev/null && HOOK_ORIGIN=""
@@ -1569,6 +1570,45 @@ run_raw_msg $HANDOFFS_HOOK "malformed JSON"   '{"tool_name":"Write","tool_input"
 run_raw_msg $HANDOFFS_HOOK "no tool_name"     '{"tool_input":{"file_path":"/ws/.claude/handoffs/205/x.md"}}' 2 "no tool_name"
 run_raw     $HANDOFFS_HOOK "valid JSON, wrong shape" '[]' 2
 
+echo "memory-lint.sh — a Forgetful create/update must pass lint.py; every other call passes"
+# The hook finds lint.py at ../skills/memory-lint/ beside itself, which in this repo is
+# templates/skills/memory-lint/, so these cases run the real lint.
+ML_ARGS='"title":"Retry wrapper swallows the timeout error","content":"The retry wrapper catches the timeout error and retries without a deadline, so callers must pass one.","context":"Seen while debugging the importer.","keywords":["retry","timeout"],"importance":8,"project_ids":[3],"source_files":["src/retry.py"]'
+ML_GOOD='{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":{"tool_name":"create_memory","arguments":{'"$ML_ARGS"',"tags":["gotcha","importer"]}}}'
+ML_NOTYPE='{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":{"tool_name":"create_memory","arguments":{'"$ML_ARGS"',"tags":["importer"]}}}'
+ML_QUERY='{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":{"tool_name":"query_memory","arguments":{"query":"retry"}}}'
+run_raw_msg $ML_HOOK "create, no type tag"            "$ML_NOTYPE" 2 "FAIL type"
+run_raw     $ML_HOOK "create, passes lint"            "$ML_GOOD"   0
+run_raw_msg $ML_HOOK "create, a line ref in content" '{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":{"tool_name":"create_memory","arguments":{"title":"Retry wrapper","content":"See src/retry.py:42 for the loop.","context":"importer","keywords":["retry"],"tags":["gotcha","importer"],"importance":8,"project_ids":[3],"source_files":["src/retry.py"]}}}' 2 "FAIL line_refs"
+run_raw_msg $ML_HOOK "update, two type tags"         '{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":{"tool_name":"update_memory","arguments":{"memory_id":12,"tags":["gotcha","feature","importer"]}}}' 2 "FAIL type"
+run_raw     $ML_HOOK "update, one field"             '{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":{"tool_name":"update_memory","arguments":{"memory_id":12,"title":"Retry wrapper swallows the timeout"}}}' 0
+# The connector form of the tool name is wired beside the registered one; the hook judges
+# the inner call, whatever the outer name.
+run_raw     $ML_HOOK "connector name, passes lint"   "${ML_GOOD/mcp__forgetful__/mcp__claude_ai_forgetful__}"   0
+run_raw_msg $ML_HOOK "connector name, no type tag"   "${ML_NOTYPE/mcp__forgetful__/mcp__claude_ai_forgetful__}" 2 "FAIL type"
+run_raw     $ML_HOOK "not a write: query_memory"     "$ML_QUERY" 0
+run_raw     $ML_HOOK "not a write: link_memories"    '{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":{"tool_name":"link_memories","arguments":"anything"}}' 0
+run_raw_msg $ML_HOOK "malformed JSON"                '{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":' 2 "did not parse"
+run_raw_msg $ML_HOOK "no tool_input"                 '{"tool_name":"mcp__forgetful__execute_forgetful_tool"}' 2 "did not parse"
+run_raw     $ML_HOOK "valid JSON, wrong shape"       '[]' 2
+run_raw_msg $ML_HOOK "no inner tool_name"            '{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":{"arguments":{"title":"x"}}}' 2 "no inner tool_name"
+run_raw_msg $ML_HOOK "create, arguments not an object" '{"tool_name":"mcp__forgetful__execute_forgetful_tool","tool_input":{"tool_name":"create_memory","arguments":"{}"}}' 2 "FAIL payload"
+# A hook installed without its skill: every write is refused, every other call still passes.
+ML_NOLINT="$SCRATCH/ml-nolint/hooks"
+ML_BADLINT="$SCRATCH/ml-badlint/hooks"
+if mkdir -p "$ML_NOLINT/_lib" "$ML_BADLINT/_lib" "$ML_BADLINT/../skills/memory-lint" \
+   && cp "$ML_HOOK" "$ML_NOLINT/" && cp ./_lib/common.sh "$ML_NOLINT/_lib/" \
+   && cp "$ML_HOOK" "$ML_BADLINT/" && cp ./_lib/common.sh "$ML_BADLINT/_lib/" \
+   && printf 'this is not python (\n' > "$ML_BADLINT/../skills/memory-lint/lint.py" \
+   && [ ! -e "$ML_NOLINT/../skills" ]; then
+    run_raw_msg "$ML_NOLINT/memory-lint.sh"  "lint missing: create"        "$ML_GOOD"  2 "lint.py is not installed"
+    run_raw     "$ML_NOLINT/memory-lint.sh"  "lint missing: query_memory"  "$ML_QUERY" 0
+    run_raw_msg "$ML_BADLINT/memory-lint.sh" "lint broken: create"         "$ML_GOOD"  2 "did not run"
+else
+    printf '  FAIL [setup] the memory-lint copies without a working lint.py were not built — those cases did not run\n'
+    fail=$((fail + 1))
+fi
+
 echo "every blocking hook — an unreadable payload must BLOCK (exit 2)"
 # The other half of failing closed: the parser is present and the payload defeats it.
 # Same verdict as no parser at all, for the same reason — the hook did not find out what
@@ -1646,6 +1686,7 @@ if mkdir -p "$LIBLESS" "$BADLIB/_lib" "$CUTLIB/_lib" "$GOODLIB/_lib" \
     P_HOLD='{"tool_name":"Bash","cwd":'"$HOOK_CWD_JSON"',"tool_input":{"command":"npm test"}}'
     P_FMT='{"tool_name":"Write","tool_input":{"file_path":"'"$SCRATCH"'/never-written.py"}}'
     P_HO='{"tool_name":"Write","tool_input":{"file_path":"/ws/.claude/handoffs/205/x.md"}}'
+    P_ML="$ML_QUERY"
     # Control: the same copies with the library beside them allow every one of these, so
     # a refusal below is about the library and nothing else.
     run_raw "$GOODLIB/block-dangerous-git.sh"          "lib intact: git status"          "$P_GIT"  0
@@ -1655,6 +1696,7 @@ if mkdir -p "$LIBLESS" "$BADLIB/_lib" "$CUTLIB/_lib" "$GOODLIB/_lib" \
     run_raw "$GOODLIB/block-unexplained-long-hold.sh"  "lib intact: npm test"            "$P_HOLD" 0
     run_raw "$GOODLIB/format-on-edit.sh"               "lib intact: Write x.py"          "$P_FMT"  0
     run_raw "$GOODLIB/handoffs-only.sh"                "lib intact: Write a handoff"     "$P_HO"   0
+    run_raw "$GOODLIB/memory-lint.sh"                  "lib intact: query_memory"        "$P_ML"   0
     for d in "$LIBLESS" "$BADLIB" "$CUTLIB"; do
         how="${d##*/}"
         run_raw_msg "$d/block-dangerous-git.sh"         "$how: git status"          "$P_GIT"  2 "shared hook library"
@@ -1664,6 +1706,7 @@ if mkdir -p "$LIBLESS" "$BADLIB/_lib" "$CUTLIB/_lib" "$GOODLIB/_lib" \
         run_raw_msg "$d/block-unexplained-long-hold.sh" "$how: npm test"            "$P_HOLD" 2 "shared hook library"
         run_raw_msg "$d/format-on-edit.sh"              "$how: Write x.py"          "$P_FMT"  0 "shared hook library"
         run_raw_msg "$d/handoffs-only.sh"               "$how: Write a handoff"     "$P_HO"   2 "shared hook library"
+        run_raw_msg "$d/memory-lint.sh"                 "$how: query_memory"        "$P_ML"   2 "shared hook library"
     done
 else
     printf '  FAIL [setup] the hook copies and their library variants were not built — the library cases did not run\n'
@@ -1674,7 +1717,7 @@ echo "every blocking hook — no parser on PATH must BLOCK (exit 2)"
 # The layer no code inside a hook can test for itself: what happens when the thing the
 # hook parses with is not there. A hook that exits 127 is not a near-miss of 2 — Claude
 # Code treats every code but 2 as a non-blocking error and runs the tool call anyway, so
-# these five cases are the difference between a guardrail and a decoration.
+# these cases are the difference between a guardrail and a decoration.
 #
 # The stripped PATH is the real PATH minus every directory holding a python, rather than
 # an empty one: the hooks still need cat, grep and tr to reach the point of refusing.
@@ -1707,6 +1750,8 @@ else
     run $HOLD_HOOK   Bash "npm test"                      2
     # A handoff path, which with a parser present is an ALLOW.
     run_write Write '/ws/.claude/handoffs/205/x.md'       2
+    # A call that is not a write, which with a parser present is an ALLOW.
+    run_raw_msg $ML_HOOK "no python: query_memory" "$ML_QUERY" 2 "no python3 or python on PATH"
     HOOK_PATH="$PATH"
 fi
 
@@ -1822,6 +1867,8 @@ else
     # failure — this expects 0, deliberately.
     HOOK_PATH="$WAPPS_REAL:$NOPY_PATH"
     run $GIT_HOOK Bash "git status" 0
+    # memory-lint.sh runs a second program, lint.py, through the same demoted candidate.
+    run_raw $ML_HOOK "WindowsApps only: create, passes lint" "$ML_GOOD" 0
     HOOK_PATH="$PATH"
 fi
 

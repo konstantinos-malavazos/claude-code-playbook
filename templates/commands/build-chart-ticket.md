@@ -62,7 +62,8 @@ first. An out-of-date sweep is worse than none, because it reads as current.
 
 Then invoke `@context-gatherer <TICKET-ID>` for **the delta only**: what this ticket touches
 that `context.md` does not already cover. Pass it the ticket's Question and tell it
-`context.md` is the baseline.
+`context.md` is the baseline. If its `## Stale memories` section is not `none`, relay its
+warning line to the user verbatim and carry on; a stale memory does not stop the flow.
 
 **One sweep is not enough for a multi-week map, and that is why this step exists.** The
 destination-scoped sweep reaches the obvious neighbours. It does not reach the landmine one

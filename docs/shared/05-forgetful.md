@@ -32,16 +32,31 @@ Memory is only valuable if it's **signal-dense**. The rule: **write what the nex
 will read, and nothing else.** So:
 
 - **In-flight ticket state** → filesystem handoff files: scratch space that stays until you
-  delete it, never a durable store.
-  Never written to Forgetful.
-- **Durable conclusions** → one consolidated memory per unit of work, written only when
-  that unit is done (root cause, fix shape, blast radius, reusable recipes, settled
-  decisions). Each unit has one owner. These are the per-unit consolidations, not the only
-  durable writes: the global session-end writeback and `/end-of-day` also write memories.
-  The owners:
-  - **per ticket** — `/start-ticket`, when you approve the review;
-  - **per map** — charting, when the map closes;
-  - **per project** — the bootstrap's memory two.
+  delete it, never a durable store. That includes the open questions a grilling round
+  defers: they go in `open-questions.md` in the ticket's handoff folder, where
+  `/resume-ticket` reads them. **No in-flight state goes to memory** — memory gets only the
+  approval writes and the end-of-session writeback types.
+- **Durable conclusions** → written only when the unit of work is done, and only what
+  reading the code would not tell you. A ticket lands as separate, linked memories:
+  - up to five `gotcha` memories, one per trap, non-obvious why, negative result,
+    cross-repo contract or per-config divergence found in the code the ticket visited
+    (importance 8, `source_files` = that file, owned by its repo). Zero is normal;
+  - then one `feature` memory for what shipped (importance 6, `source_files` = the diff,
+    one owner project), linked to each gotcha.
+
+### Which flows write memory
+
+| Flow | When | What it writes |
+|---|---|---|
+| `/start-ticket` | on APPROVE, at Land | up to five `gotcha` memories, then one `feature` memory linked to each |
+| charting | when the map closes | one `ruling` memory per map (plus one per repo when it will not fit) |
+| bootstrap | step 7 | memory two, a `ruling`: why this stack, why this chain, what was ruled out |
+| `/test-ticket` | after the run | the `recipe` memory, banked or confirmed |
+| `/end-of-day` | on per-item approval | the day's durable conclusions |
+| session-end writeback | end of a session | one `gotcha`, `ruling`, `investigation` or `contract` memory — never flow state |
+
+A changed fact gets a new memory, and the old one is marked obsolete with `superseded_by`.
+A small correction is an update instead.
 
 If you write chatter to memory, retrieval degrades and the whole pillar rots. Guard the
 gate: nothing enters memory un-reviewed. See [10-memory-hygiene.md](10-memory-hygiene.md).
@@ -60,6 +75,37 @@ Keep memories **atomic and tagged**:
   fix → blast radius → test recipe).
 - A **confidence** and a **validated** marker where relevant (e.g. a test recipe that's
   "provisional" until a real staging run flips it to "validated").
+
+**Every memory has exactly one type**, carried as one tag. The type sets its importance
+(±1) and whether `source_files`, the repo-relative files it is about, is required. The
+seven are a default; edit them in the `memory-lint` skill's `vocab.json`.
+
+| Type | Holds | Importance | `source_files` |
+|---|---|---|---|
+| `ruling` | a settled decision and its why | 9 | optional |
+| `contract` | what one side promises another, across repos | 8 | required (both sides) |
+| `gotcha` | a trap reading the code will not show | 8 | required |
+| `architecture` | how a part fits and why | 8 | required |
+| `investigation` | a negative result, what was ruled out | 7 | optional |
+| `recipe` | reusable steps, such as a test's produce recipe | 7 | required |
+| `feature` | what a finished ticket shipped | 6 | required |
+
+**Anti-rot rules.** Serena reads structure live; memory keeps only what reading the code
+would not tell you. Memory rots in predictable ways, so these stay out:
+
+- **Line references** (`file.ext:123`, `line 123`, `L123`) — rejected. Name the symbol.
+- **Branch state** ("branch X is current", "X is merged") — rejected.
+- **Flow-state words** (`RESUME`, "in progress", "watermark") — rejected. In-flight state
+  belongs in handoff files.
+- **Hard counts** ("5 flags") — warned. The code changes and the count does not.
+- **Tags that drift** — at least one repo/project tag, at most ten, lowercase. A renamed
+  tag is rejected with its replacement named, a retired tag is rejected, and a tag shaped
+  like a ticket id is rejected.
+
+**Enforcement.** The `memory-lint` skill checks every create against these rules, and an
+update on the fields it supplies. Its hook runs before the memory server's write tool and
+blocks a write that fails; if the lint cannot run, the write is blocked too.
+`/garden-memory` re-runs the lint over stored memories to catch vocabulary drift.
 
 Your memory server has its own exact call shape and field limits. Capture those in a
 `memory-schema` skill, so the agent uses the right shape and stops inventing fields.
@@ -83,14 +129,16 @@ it is actually for.
 
 ## How it plugs into the flow
 
-- **First action of any non-trivial session** — query memory for prior context on the
-  topic/component/ticket before touching code.
+- **First action when starting work on a ticket, a component, or an investigation** —
+  query memory for prior context before touching code.
 - **The gatherer** does the heavy sweep in a throwaway context and distils it into the
   handoff brief.
-- **On APPROVE**, the ticket's handoff files are consolidated into one durable memory;
-  the handoffs stay on disk as scratch space until you delete them.
+- **On APPROVE**, the ticket's handoff text is harvested into up to five `gotcha`
+  memories and one linked `feature` memory; the handoffs stay on disk as scratch space
+  until you delete them.
 - **`/end-of-day`** harvests any other durable conclusions from the day.
-- **`/garden-memory`** periodically evaluates retrieval quality and prunes cruft.
+- **`/garden-memory`** periodically writes a read-only staleness report and changes a
+  memory only on a per-row approval.
 
 Config snippet: [`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet)
 — paste it as-is. What each entry means is in

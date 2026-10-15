@@ -119,7 +119,8 @@ legitimate, but it must be *managed*, not forgotten:
 - **Price it** — how expensive is it to reverse if we guess wrong now? Cheap → take a
   sensible default and move on. Expensive → placeholder, and build no dependents on it.
 - **Unblock** — plan around it so independent work proceeds.
-- **Record it** — write the open question into the durable ticket state, so
+- **Record it** — write the open question into `open-questions.md` in the ticket's handoff
+  folder (`<workspace>/.claude/handoffs/<TICKET-ID>/`), so
   [`/resume-ticket`](../../commands/resume-ticket.md) picks it up when the answer lands.
 
 **A deferral with no owner and no price is a silent assumption wearing a label.**

@@ -56,7 +56,7 @@ blind to exactly one failure, so the answer is layered rather than picked:
 | **Fail closed** | the hook exits **2** when it cannot parse | the script never running at all |
 | Check the wiring at setup | run a hook live and confirm it blocks | anything that changes afterwards |
 
-**The five blocking hooks exit `2` when they cannot read their payload** — and so does the
+**The six blocking hooks exit `2` when they cannot read their payload** — and so does the
 agent-scoped `handoffs-only.sh`: no parser on
 `PATH`, nothing on `PATH` that turns out to be a working python, or a payload that will
 not parse. This matters because of the box above: Claude
@@ -89,7 +89,7 @@ re-opens the multi-line flatten bug this directory has already shipped once.
 bash templates/hooks/test-hooks.sh
 ```
 
-It covers all seven hooks. `format-on-edit.sh` always exits 0, so for it the suite checks what it leaves behind on a payload carrying non-ASCII text: whether the edited file reached the formatter. For the five blocking hooks and `handoffs-only.sh` it covers what must be blocked, what must be allowed, `Bash` and
+It covers all eight hooks. `format-on-edit.sh` always exits 0, so for it the suite checks what it leaves behind on a payload carrying non-ASCII text: whether the edited file reached the formatter. For the six blocking hooks and `handoffs-only.sh` it covers what must be blocked, what must be allowed, `Bash` and
 `PowerShell` payloads, multi-line commands, LF **and** CRLF line endings, and **both sides
 of every conditional line**: a listed repo and an unlisted one, `.claude/agents/` and
 `.claude/handoffs/`.
@@ -210,8 +210,9 @@ where the bug goes to live.**
 | `block-unexplained-long-hold.sh` | PreToolUse · Bash\|PowerShell | block a call asking for more than the tool's default timeout with no expected duration in its `description` | ✓ | ✓ |
 | `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited | ✓ | ✓ |
 | `handoffs-only.sh` | PreToolUse · Write\|Edit, **agent frontmatter only** | let the reviewer agents write only under `.claude/handoffs/` (and release-reviewer's chart `reviews/`) | ✓ | ✓ |
+| `memory-lint.sh` | PreToolUse · mcp (Forgetful) | run the `memory-lint` skill's `lint.py` on every `create_memory` / `update_memory` and block a write it FAILs; fails closed without python or `lint.py` | ✓ | ✓ |
 | `repo-allowlist.sample` | — | the per-repo answers the two git hooks read; install **empty** at `~/.claude/repo-allowlist` | ✓ | |
-| `test-hooks.sh` | — | regression suite for all seven hooks; run it, don't read it | ✓ | ✓ |
+| `test-hooks.sh` | — | regression suite for all eight hooks; run it, don't read it | ✓ | ✓ |
 
 The **solo** / **team** columns say which entrance needs each template. The allowlist is the
 first row to claim one column: on the team path the driver does not own the repo, so both

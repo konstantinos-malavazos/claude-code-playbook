@@ -86,6 +86,7 @@ than the two above:
 | `wait-what` | **you type it** — the last message did not land, so it gets re-pitched simply | ✓ | ✓ |
 | `handoff` | **you type it** — compact this session into one file a fresh session resumes from | ✓ | ✓ |
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape. **Ships a filled-in `forgetful.SKILL.md` alongside the placeholder** | ✓ | ✓ |
+| `memory-lint` | a memory write blocked with a `FAIL <rule>:` line, or editing its `vocab.json` — the rules every memory write must pass, kept as data and checked by `lint.py`; its hook blocks a failing write. **Ships `lint.py`, `vocab.json` and `garden_check.py`, which `/garden-memory` runs** | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
 | `to-questionnaire` | **you type it** — a decision blocked on a fact another **person** holds; writes the document you send them | ✓ | ✓ |
 | `wizard` | manual work only a human can do — writes a bash script that walks them through it stage by stage. **Ships `template.sh`; copy both or neither** | ✓ | ✓ |
