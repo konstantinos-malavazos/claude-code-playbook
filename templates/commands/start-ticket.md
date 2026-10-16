@@ -32,8 +32,16 @@ holding the evidence does, and you read its answer and route:
   review fix, a drift fix, an `@integration-tester` route-back, an alignment return — and so
   does the dispatch of `@integration-tester` itself.
 
-Record the dispatched model, the weight, the reason and the pass number in that track's
-handoff. There are six dispatch sites, and this list is their numbering everywhere else:
+- **Dispatched line:** write this line into every implementation dispatch prompt, at all six
+  sites below, and tell the agent to copy it verbatim as its handoff's **first line**:
+
+  `Dispatched: <model> (weight: <light|heavy> — <reason>; pass: initial|review-fix N|drift-fix N)`
+
+  `<model>` is the tier alias you set on that dispatch, or `none` where the floor rule had
+  you set nothing. `<reason>` is the criterion the `dispatch-weight` skill named. `N` counts
+  that track's fix passes from 1. Never an exact model id: the Agent tool takes a tier name.
+
+There are six dispatch sites, and this list is their numbering everywhere else:
 
 - site 1 — **initial** dispatch of a track, on the weight in `planner.md` (step 5).
 - site 2 — **drift** fix `@aligner` routes back (step 5).
@@ -63,6 +71,7 @@ A weight read once from `planner.md` and reused covers only site 1, the initial 
    questions to the user. Collect answers or managed deferrals. If answers change the
    design, send @planner back to RE-PLAN. Record deferrals in
    `<workspace>/.claude/handoffs/$ARGUMENTS/open-questions.md`.
+   Once the plan is approved, run the `context-checkpoint` skill with `gate: plan-approval`.
 5. **Decompose fork:**
    - `slice-count == 1` → dispatch the **layer specialists in chain order** (per the
      layer chain in the repo's CLAUDE.md). **Dispatch site 1**, the initial dispatch — apply
@@ -80,6 +89,7 @@ A weight read once from `planner.md` and reused covers only site 1, the initial 
      the next slice only after the previous one's last specialist returns. Then @aligner →
      @integrator → @integration-tester (see docs/shared/09). @aligner's drift fixes are site 2
      above, and land on the chain tip.
+   - After the alignment check (or the last specialist, where there is none), run the `context-checkpoint` skill with `gate: alignment`.
 6. **Review** — you dispatch every reviewer; no agent dispatches another.
    1. One **@repo-reviewer** per repo the branch touched, **all in one message**, each →
       `repo-reviewers/<repo>.md`: that repo's verdict, its MR/PR description, and a proposed
@@ -87,6 +97,7 @@ A weight read once from `planner.md` and reused covers only site 1, the initial 
    2. Then **@release-reviewer** in ticket mode, the cross-repo **judge** → the consolidated
       `repo-reviewer.md`: the FINAL verdict, every finding tagged `[<repo>/<track>]`, and one
       re-pass weight line per specialist.
+   3. Once the verdict is in, run the `context-checkpoint` skill with `gate: review-verdict`.
    - `BLOCKED` → a reviewer halted, or a deferred decision for that repo is still open.
      **Stop and tell the user** which repo and why. Do not re-dispatch.
    - `REQUEST CHANGES` → back to the responsible specialist (amend, don't add commits);
@@ -95,6 +106,7 @@ A weight read once from `planner.md` and reused covers only site 1, the initial 
      findings. Not the first pass's weight, and not a blanket one-tier bump — a one-line
      rename and a broken contract with three untouched callers both come back as
      `REQUEST CHANGES`. The ratchet applies: never below the tier that track last ran at.
+     Before each re-pass, run the `context-checkpoint` skill with `gate: review-fix`.
    - `APPROVE` → continue.
 7. **Land** — harvest the ticket into memory from the handoff text only; never re-read code
    for it.

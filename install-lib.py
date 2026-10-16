@@ -45,13 +45,14 @@ del reconfigure
 # Written with "/" separators and compared through _unit_rel, which normalises the
 # separator first. Under Git Bash this file runs on a WINDOWS python, where
 # os.path.relpath returns "skills\\engineering-standards" — a raw comparison misses
-# every entry here, all three become ordinary units, and skill:adapt-to-stack picks
+# every entry here, each becomes an ordinary unit, and skill:adapt-to-stack picks
 # up a skill:engineering-standards edge that drags one of them into `recommended`.
-# The install then fails its own placeholder gate on a unit nobody chose. (#99)
+# The install then fails its own placeholder gate on a unit nobody chose.
 NEVER_INSTALL = {
     "agents/layer-specialist.md",
     "agents/slice-layer-specialist.md",
     "skills/engineering-standards",
+    "skills/write-core",
 }
 
 # README.md is documentation for the template set, not an installable unit. It also
@@ -1284,20 +1285,33 @@ def merge_json(target, additions):
 
     Hook arrays merge entry-by-entry on the same rule: a matcher block that is already
     there is extended with the individual hook commands it is missing, never replaced.
+
+    An object whose every value is an object (`modelSettings`, keyed by model id) is a
+    collection other writers add members to. It is merged member by member even when
+    absent, so the record names each member, never the collection, and remove cannot
+    take a member someone else added. Each member's value is recorded under "values",
+    so remove can tell a member still as we wrote it from one the user has since edited.
     """
     original = load_json(target)
     if not isinstance(original, dict):
         raise SystemExit("refusing to merge into %s: top level is not an object" % target)
 
     added = []       # json-pointer-ish paths this run created
+    values = {}      # "/"-joined path -> the value written, for collection members
     conflicts = []
 
     def walk(dst, src, path):
+        members = bool(path) and _is_collection(src)
         for key, val in src.items():
             here = path + [key]
-            if key not in dst:
+            if key not in dst and _is_collection(val):
+                dst[key] = {}
+                walk(dst[key], val, here)
+            elif key not in dst:
                 dst[key] = val
                 added.append(here)
+                if members:
+                    values["/".join(str(p) for p in here)] = val
             elif isinstance(dst[key], dict) and isinstance(val, dict):
                 walk(dst[key], val, here)
             elif isinstance(dst[key], list) and isinstance(val, list):
@@ -1331,7 +1345,12 @@ def merge_json(target, additions):
 
     walk(original, additions, [])
     save_json(target, original)
-    return {"added": added, "conflicts": conflicts, "target": target}
+    return {"added": added, "values": values, "conflicts": conflicts, "target": target}
+
+
+def _is_collection(obj):
+    """A non-empty object whose every value is an object: a keyed set of members."""
+    return isinstance(obj, dict) and bool(obj) and all(isinstance(v, dict) for v in obj.values())
 
 
 def _ident(item):
@@ -1364,12 +1383,13 @@ def _find_matcher(lst, item):
 def unmerge_json(target, record):
     """Undo exactly the additions in `record`, and nothing else.
 
-    Anything the user added later, or changed, stays. A key we created but whose value
-    no longer matches what we wrote is left in place and reported — that is a user edit
-    wearing our key name, and decision 7 says we keep it.
+    Anything the user added later, or changed, stays. A path whose written value is in
+    record["values"] and no longer matches it is left in place and returned under
+    "kept" — that is a user edit wearing our key name.
     """
     data = load_json(target)
     removed, kept = [], []
+    wrote = record.get("values") or {}
 
     for path in sorted(record.get("added", []), key=len, reverse=True):
         node = data
@@ -1385,15 +1405,19 @@ def unmerge_json(target, record):
         if not ok:
             continue
         leaf = path[-1]
+        name = "/".join(str(p) for p in path)
         if isinstance(node, dict):
             if leaf in node:
+                if name in wrote and node[leaf] != wrote[name]:
+                    kept.append(name)
+                    continue
                 del node[leaf]
-                removed.append("/".join(str(p) for p in path))
+                removed.append(name)
         elif isinstance(node, list):
             for i, cand in enumerate(node):
                 if _ident(cand) == leaf:
                     del node[i]
-                    removed.append("/".join(str(p) for p in path))
+                    removed.append(name)
                     break
 
     _prune_empty(data)
@@ -1506,6 +1530,34 @@ def hook_wiring(snippet_path, memory_json_path, installed_hooks):
         if keep_blocks:
             result["hooks"][event] = keep_blocks
     return result
+
+
+# The effort default each recorded model gets in settings.json's modelSettings.
+MODEL_EFFORT = (("<fast-model-id>", "high"), ("<strong-model-id>", "medium"))
+
+
+def model_settings(ph_spec_path):
+    """The settings.json modelSettings block: an effortLevel per recorded model id.
+
+    modelSettings is keyed by full model id; an alias key is read by nothing, so a
+    recorded value that is empty, still a <token>, or not a full id is left out, and
+    each one that is not empty is named on stderr. Fast is built before strong, so
+    where the two ids are the same, strong's level stands. Returns {} when no id is left.
+    """
+    with open(ph_spec_path, encoding="utf-8") as fh:
+        values = json.load(fh).get("values") or {}
+    block = {}
+    for token, level in MODEL_EFFORT:
+        mid = str(values.get(token) or "").strip()
+        if not mid:
+            continue
+        if (mid.startswith("<") and mid.endswith(">")) or "claude-" not in mid:
+            sys.stderr.buffer.write((
+                "%s (%s) is not a full model id, so no effort default was written for it\n"
+                % (mid, token.strip("<>"))).encode("utf-8"))
+            continue
+        block[mid] = {"effortLevel": level}
+    return {"modelSettings": block} if block else {}
 
 
 def _hook_placements(doc):
@@ -2175,6 +2227,8 @@ def main(argv):
         out(unmerge_json(a[0], json.loads(read(a[1]))))
     elif cmd == "hook-wiring":
         out(hook_wiring(a[0], a[1], a[2:]))
+    elif cmd == "model-settings":
+        out(model_settings(a[0]))
     elif cmd == "unwire-hooks":
         out(unwire_hooks(a[0], a[1:]))
     elif cmd == "verify-wiring":

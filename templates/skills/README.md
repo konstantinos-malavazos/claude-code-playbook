@@ -39,10 +39,11 @@ than the two above:
 
 - **The directory name is what you type**, not the `name` field. `name` only changes the
   label in listings, so a skill in `foo/` is always `/foo`, however the frontmatter reads.
-  **`engineering-standards` is the one template where this matters.** There is one skill
-  per layer, so the *directory* must be named `backend-standards` (or whatever) as well as
-  the `<layer>` placeholder being filled. Otherwise you have three skills all answering to
-  `/engineering-standards`. `/adapt-to-stack` does that renaming when it generates them.
+  **`engineering-standards` and `write-core` are the two templates where this matters.**
+  There is one skill per layer, so the *directory* must be named `backend-standards` or
+  `backend-write-core` (or whatever) as well as the `<layer>` placeholder being filled.
+  Otherwise you have three skills all answering to `/engineering-standards`.
+  `/adapt-to-stack` does that renaming when it generates them.
   The rule is here because it is what makes the output distinct, not because you type it.
 - **So an unfilled `name:` placeholder is harmless in a skill, and fatal in an agent.**
   Three installed copies of `engineering-standards` all carrying the shipped
@@ -75,8 +76,9 @@ than the two above:
 | Skill | Loads on / used for | solo | team |
 |---|---|---|---|
 | `commit-conventions` | about to commit / branch naming / MR-PR template | ✓ | ✓ |
-| `engineering-standards` | **one per layer, generated** — the review/coding standard for that language | ✓ | ✓ |
-| `adapt-to-stack` | a repo whose `CLAUDE.md` names a layer chain — generates one specialist, its slice-mode variant and one standards skill per layer into that repo's own `.claude/`, and never overwrites | ✓ | ✓ |
+| `engineering-standards` | **one per layer, generated** — the full review standard for that language | ✓ | ✓ |
+| `write-core` | **one per layer, generated, preloaded, never typed** — `<layer>-write-core`, the short write-time rule set both layer specialists list in `skills:`. **Must not set `disable-model-invocation`**, or the preload silently stops | ✓ | ✓ |
+| `adapt-to-stack` | a repo whose `CLAUDE.md` names a layer chain — generates one specialist, its slice-mode variant, one standards skill and one write-core skill per layer into that repo's own `.claude/`, and never overwrites | ✓ | ✓ |
 | `code-access` | **preloaded, never typed** — every agent that declares Serena tools lists it in `skills:`. The one copy of the code access protocol: read rules, escapes, the tool check and HALTED block, the "No active project" retry, and the paragraph every implementation dispatch carries. **Must not set `disable-model-invocation`**, or the preload silently stops | ✓ | ✓ |
 | `dispatch-weight` | **before every implementation dispatch** — classifies THAT dispatch `light` or `heavy` so the orchestrator sets the model for one run — the cheap tier on `light`, the strong one on `heavy`, and never below the specialist's own pinned floor. One definition, six call sites | ✓ | ✓ |
 | `next-steps` | **at every flow's ending** — the four-field hand-back that says what landed, what is yours, the next command with its argument filled in, and whether it is this session or a fresh one. One definition, twenty-three call sites | ✓ | ✓ |
@@ -85,7 +87,8 @@ than the two above:
 | `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
 | `wait-what` | **you type it** — the last message did not land, so it gets re-pitched simply | ✓ | ✓ |
-| `handoff` | **you type it** — compact this session into one file a fresh session resumes from | ✓ | ✓ |
+| `handoff` | **you type it, or `context-checkpoint` sends the model to it** — compact this session into one file a fresh session resumes from | ✓ | ✓ |
+| `context-checkpoint` | **run by the orchestrator at `/start-ticket`'s gates** — measures how full this session's context is from its own transcript, logs every check, and on a recommendation sends the model to `handoff` and stops at the gate. **Ships `occupancy.py` and `tests.py`** | ✓ | ✓ |
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape. **Ships a filled-in `forgetful.SKILL.md` alongside the placeholder** | ✓ | ✓ |
 | `memory-lint` | a memory write blocked with a `FAIL <rule>:` line, or editing its `vocab.json` — the rules every memory write must pass, kept as data and checked by `lint.py`; its hook blocks a failing write. **Ships `lint.py`, `vocab.json` and `garden_check.py`, which `/garden-memory` runs** | ✓ | ✓ |
 | `research` | a decision blocked on an **outside** fact — third-party docs, a vendor API, a spec | ✓ | ✓ |
@@ -125,8 +128,8 @@ agents that say *load `memory-schema`* would keep loading the empty one.
 
 ## On `disable-model-invocation`
 
-`bootstrap`, `cut-backlog`, `to-questionnaire`, `wait-what` and `handoff` set it. Two tests
-decide it, and a veto overrides both.
+`bootstrap`, `cut-backlog`, `to-questionnaire` and `wait-what` set it. Two tests decide it,
+and a veto overrides both.
 
 **Test 1 — [`PHILOSOPHY.md`](../../PHILOSOPHY.md) §5:** *if it's hard to reverse **or**
 leaves your machine, a human confirms it.* `bootstrap` writes memory and ends in a commit.
@@ -134,10 +137,9 @@ leaves your machine, a human confirms it.* `bootstrap` writes memory and ends in
 field because it never overwrites. The worst an unasked run does is add files you delete.
 
 **Test 2 — the run is not the model's to start.** `wait-what` is *you* saying the last
-message did not land. `to-questionnaire` needs a recipient only you know exists. `handoff` is
-you deciding this session ends here, which is a fact about your day and not about the work.
-None of the three is a run the model can decide to begin, so the field makes them typed-only
-rather than confirmation gates.
+message did not land. `to-questionnaire` needs a recipient only you know exists. Neither is
+a run the model can decide to begin, so the field makes them typed-only rather than
+confirmation gates.
 
 Conversation skills — `charting`, `pitch`, `grilling`, `diagnose` — deliberately leave it
 unset. A conversation that starts a turn early costs you one redirect.
@@ -150,6 +152,9 @@ it asks you to type the thing. `prototype` writes files and still gets no field,
 both mid-flow, so the field would stop the decompose path at the dispatch and ask a human to
 type a step the orchestrator was already running.
 `bootstrap` step 5's *Run `/adapt-to-stack`* is why `adapt-to-stack` has none either.
+`handoff` passes Test 2 when you type it, but `context-checkpoint` sends the model to it at a
+gate when the session is full, so it carries no field. It still never ends the session: the
+checkpoint stops at the gate, and clearing or starting fresh stays yours.
 
 **When the veto and a test conflict, test the test first.** A skill that must be dispatched to
 and looks too dangerous to dispatch is usually holding a side effect that belongs to its

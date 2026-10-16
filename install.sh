@@ -475,8 +475,8 @@ discover_units() {
   awk -F'\t' '{c[$1]++} END {for (k in c) printf "    %-11s %d\n", k, c[k]}' "$TSV" | sort
 
   printf '\n'
-  note "  Three files are deliberately NOT installed:"
-  note "    layer-specialist · slice-layer-specialist · engineering-standards"
+  note "  Four files are deliberately NOT installed:"
+  note "    layer-specialist · slice-layer-specialist · engineering-standards · write-core"
   note "  They are half-written on purpose. The /adapt-to-stack command finishes"
   note "  them off for each project you use, to match that project's languages,"
   note "  and saves the result inside that project. Copied here unfinished they"
@@ -1542,13 +1542,14 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
   else
     printf '{"hooks":{}}\n' > "$WORK/wiring-preview.json"
   fi
+  pb model-settings "$PH_SPEC" > "$WORK/model-settings-preview.json" 2>/dev/null
 
   screen "What this will write"
   printf '\n'
-  py - "$WORK/plan-preview.tsv" "$WORK/wiring-preview.json" "$SETTINGS" <<'PY'
+  py - "$WORK/plan-preview.tsv" "$WORK/wiring-preview.json" "$SETTINGS" "$WORK/model-settings-preview.json" <<'PY'
 import json, sys
 
-plan_path, wiring_path, settings = sys.argv[1], sys.argv[2], sys.argv[3]
+plan_path, wiring_path, settings, model_path = sys.argv[1:5]
 
 groups = {}
 for line in open(plan_path, encoding="utf-8"):
@@ -1593,7 +1594,8 @@ if not wrote_any:
     print("  nothing to write.\n")
 
 wiring = json.load(open(wiring_path)).get("hooks") or {}
-if wiring:
+models = json.load(open(model_path)).get("modelSettings") or {}
+if wiring or models:
     print("  keys added to %s:" % settings)
     for event in sorted(wiring):
         for block in wiring[event]:
@@ -1601,6 +1603,8 @@ if wiring:
             for h in block.get("hooks") or []:
                 print("      hooks / %s / matcher=%s" % (event, matcher))
                 print("          %s" % h.get("command", ""))
+    for mid in sorted(models):
+        print("      modelSettings / %s / effortLevel=%s" % (mid, models[mid].get("effortLevel")))
     print("")
     print("  If one of those settings already exists with a different value, your")
     print("  value is kept. The installer never overwrites it, and it tells you")
@@ -1800,25 +1804,51 @@ PY
 
   memory_schema_swap
 
-  # ── hook wiring, filtered to the hooks actually installed ─────────────
-  local hooks_installed
+  # ── settings.json: the hook wiring, filtered to the hooks actually installed,
+  #    and the per-model effort defaults. ONE merge: write_manifest records one
+  #    merge.json, and that record is all remove ever takes back out.
+  local hooks_installed settings_keys line
   hooks_installed=$(settings_hooks)
   if [[ -n "${hooks_installed// /}" ]]; then
-    backup_file "$SETTINGS"
     # shellcheck disable=SC2086
     pb hook-wiring "$HOOK_SNIPPET" "$WORK/memory.json" $hooks_installed > "$WORK/wiring.json"
-    pb merge-json "$SETTINGS" "$WORK/wiring.json" > "$WORK/merge.json"
-    ok "merged hook wiring into $SETTINGS"
-    # Decision 1: the same line the pre-install screen taught, repeated where the
-    # user is standing when they next try to push.
-    if ! grep -qvE '^[[:space:]]*(#|$)' "$CLAUDE_HOME/repo-allowlist" 2>/dev/null; then
-      TODO+=("Claude cannot run 'git push' in any repo until you allow that repo. Your OWN git push is unaffected. To allow one, add a line to $CLAUDE_HOME/repo-allowlist, like:   github.com/you/weekend-project    yes    yes   — that is (part of your remote URL from 'git config --get remote.origin.url') (may Claude push here? yes/no) (is this repo's CLAUDE.md its own? yes/no). An optional 4th field, trunk-push, lets Claude push to main, master or develop there; it is no unless it says yes.")
+  else
+    printf '{}\n' > "$WORK/wiring.json"
+  fi
+  pb model-settings "$PH_SPEC" > "$WORK/model-settings.json" 2> "$WORK/model-settings.err"
+  settings_keys=$(py - "$WORK/settings-additions.json" "$WORK/wiring.json" "$WORK/model-settings.json" <<'PY'
+import json, sys
+add = {}
+for p in sys.argv[2:]:
+    add.update(json.load(open(p, encoding="utf-8")))
+json.dump(add, open(sys.argv[1], "w", encoding="utf-8"), indent=2)
+sys.stdout.buffer.write(" ".join(sorted(add)).encode("utf-8"))
+PY
+)
+  if [[ -n "$settings_keys" ]]; then
+    backup_file "$SETTINGS"
+    pb merge-json "$SETTINGS" "$WORK/settings-additions.json" > "$WORK/merge.json"
+    if [[ -n "${hooks_installed// /}" ]]; then
+      ok "merged hook wiring into $SETTINGS"
+    fi
+    if [[ " $settings_keys " == *" modelSettings "* ]]; then
+      ok "merged per-model effort defaults (modelSettings) into $SETTINGS"
     fi
     while IFS= read -r line; do
       [[ -n "$line" ]] && CONFLICTS+=("$line")
     done < <(py -c 'import json,sys
 for c in json.load(open(sys.argv[1]))["conflicts"]:
-    print("%s — kept yours (%r); ours would have been %r" % (c["path"], c["yours"], c["ours"]))' "$WORK/merge.json")
+    sys.stdout.buffer.write(("%s — kept yours (%r); ours would have been %r\n" % (c["path"], c["yours"], c["ours"])).encode("utf-8"))' "$WORK/merge.json")
+  fi
+  while IFS= read -r line; do
+    if [[ -n "$line" ]]; then note "$line"; fi
+  done < "$WORK/model-settings.err"
+  if [[ -n "${hooks_installed// /}" ]]; then
+    # Decision 1: the same line the pre-install screen taught, repeated where the
+    # user is standing when they next try to push.
+    if ! grep -qvE '^[[:space:]]*(#|$)' "$CLAUDE_HOME/repo-allowlist" 2>/dev/null; then
+      TODO+=("Claude cannot run 'git push' in any repo until you allow that repo. Your OWN git push is unaffected. To allow one, add a line to $CLAUDE_HOME/repo-allowlist, like:   github.com/you/weekend-project    yes    yes   — that is (part of your remote URL from 'git config --get remote.origin.url') (may Claude push here? yes/no) (is this repo's CLAUDE.md its own? yes/no). An optional 4th field, trunk-push, lets Claude push to main, master or develop there; it is no unless it says yes.")
+    fi
   fi
 }
 
@@ -2010,16 +2040,24 @@ if os.path.exists(merge_path):
     # already present and so reports no additions — replacing the record with that
     # empty list would erase the memory of what run 1 added, and remove would then
     # leave our hook entries wired in settings.json forever.
-    prior = []
+    prior, prior_values = [], {}
     for entry in manifest["json"]:
         if entry.get("target") == rec["target"]:
             prior = entry.get("added", [])
+            prior_values = entry.get("values") or {}
     combined = list(prior)
     for path in rec["added"]:
         if path not in combined:
             combined.append(path)
+    names = {"/".join(str(p) for p in path) for path in combined}
+    values = dict(prior_values)
+    values.update(rec.get("values") or {})
+    entry = {"target": rec["target"], "added": combined}
+    kept_values = {k: v for k, v in values.items() if k in names}
+    if kept_values:
+        entry["values"] = kept_values
     manifest["json"] = [j for j in manifest["json"] if j.get("target") != rec["target"]]
-    manifest["json"].append({"target": rec["target"], "added": combined})
+    manifest["json"].append(entry)
 
 os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
 with open(manifest_path, "w") as fh:
@@ -2825,12 +2863,17 @@ for i, rec in enumerate(manifest.get("json", [])):
     with open(os.path.join(sys.argv[2], "unmerge-%d.json" % i), "w") as fh:
         json.dump(rec, fh)
 PY
-  local i=0 target
+  local i=0 target line
   while [[ -f "$WORK/unmerge-$i.json" ]]; do
     target=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["target"])' "$WORK/unmerge-$i.json")
     backup_file "$target"
-    pb unmerge-json "$target" "$WORK/unmerge-$i.json" > /dev/null
+    pb unmerge-json "$target" "$WORK/unmerge-$i.json" > "$WORK/unmerged-$i.json"
     ok "reverted our additions in $target"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && LEFT_ALONE+=("$line")
+    done < <(py -c 'import json,sys
+for k in json.load(open(sys.argv[1]))["kept"]:
+    sys.stdout.buffer.write(("settings.json %s — kept, you changed it since install\n" % k).encode("utf-8"))' "$WORK/unmerged-$i.json")
     i=$((i + 1))
   done
 

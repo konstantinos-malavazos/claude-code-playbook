@@ -19,8 +19,9 @@
       pwsh.exe       -NoProfile -File tests/test-install-ps1.ps1
 
     It needs the same things install.ps1 needs — Git Bash and a python inside it —
-    because seven of the eleven sections run the real installer end to end. Sections
-    4, 7, 9, 10 and 11 reach install.sh, so a break in EITHER half lands here.
+    because most sections run the real installer end to end. Sections 4, 7, 9, 10, 11
+    and 12 reach install.sh, and 13 reads what 10 and 11 left behind, so a break in
+    EITHER half lands here.
 
 .NOTES
     Nothing here writes to the real ~/.claude: every run that gets as far as install.sh
@@ -381,6 +382,40 @@ inlog $r12 'is not a folder' 'install.sh ran serena-wire and checked the folder 
 inlog $r12 "no such folder o'k" 'the folder argument arrives whole, spaces and apostrophe included'
 chk ($r12.Code -ne 0) 'exits non-zero for a folder that is not there' "rc=$($r12.Code)"
 notcrashed $r12 'no raw PowerShell error'
+
+# ---------------------------------------------------------------- 13 modelSettings
+# The per-model effort defaults land through this door too. Section 10's install wrote
+# settings.json and section 11's updates replayed it: each recorded model id must carry
+# its effortLevel there, keyed by the full id.
+banner '13 · an install through install.ps1 merges the per-model effort defaults'
+$man13 = Join-Path $ch10 '.playbook-install.json'
+$set13 = Join-Path $ch10 'settings.json'
+$values13 = $null
+$models13 = $null
+if ((Test-Path $man13) -and (Test-Path $set13)) {
+    try {
+        $values13 = ([IO.File]::ReadAllText($man13) | ConvertFrom-Json).config.placeholders.values
+        $models13 = ([IO.File]::ReadAllText($set13) | ConvertFrom-Json).modelSettings
+    } catch {
+        $values13 = $null
+    }
+}
+chk ($null -ne $values13) 'read the manifest and settings.json section 10 left' "see $($r10.Log)"
+if ($null -ne $values13) {
+    $want13 = @{ '<strong-model-id>' = 'medium'; '<fast-model-id>' = 'high' }
+    foreach ($tok13 in '<strong-model-id>', '<fast-model-id>') {
+        $id13 = [string]$values13.$tok13
+        $got13 = $null
+        if ($id13 -and $null -ne $models13 -and $models13.PSObject.Properties[$id13]) {
+            $got13 = $models13.$id13.effortLevel
+        }
+        chk ($got13 -eq $want13[$tok13]) "modelSettings[$id13].effortLevel is $($want13[$tok13])" "got '$got13' in $set13"
+    }
+    $keys13 = @()
+    if ($null -ne $models13) { $keys13 = @($models13.PSObject.Properties | ForEach-Object { $_.Name }) }
+    chk (($keys13.Count -gt 0) -and -not ($keys13 | Where-Object { $_ -notlike '*claude-*' })) `
+        'every modelSettings key is a full model id' "keys: $($keys13 -join ', ')"
+}
 
 Write-Host ''
 Write-Host '================================'

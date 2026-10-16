@@ -5,9 +5,9 @@ description: >-
   Use at the end of a working session, before a context limit, or when parking work you will
   return to later. Writes ONE file per subject to the root of <workspace>/.claude/handoffs/,
   reads and supersedes any existing file for that subject rather than sitting beside it, and
-  carries only what exists nowhere else.
+  carries only what exists nowhere else. A gate checkpoint sent by context-checkpoint is the
+  one exception: it goes under the ticket's manual_handoffs/ folder, one file per gate.
 argument-hint: "[what the next session will focus on]"
-disable-model-invocation: true
 ---
 
 # Handoff
@@ -25,6 +25,19 @@ move it aside. A session handoff is about the session, not one ticket, so it sit
 root where the next session looks first. Handoffs are scratch space that stays until you
 delete it, never a durable store.
 
+**A gate checkpoint is the exception to this location.** When the `context-checkpoint` skill sends you
+here from a `/start-ticket` gate, the handoff is about that run, not the session, and it goes
+inside the ticket folder:
+
+- **Path:** `<workspace>/.claude/handoffs/<TICKET-ID>/manual_handoffs/<gate>-<utc>.md`, where
+  `<gate>` is the gate slug the checkpoint ran with and `<utc>` is the time now as
+  `YYYYMMDDTHHMMSSZ`.
+- **First line, exactly:** `Resume: ticket=<TICKET-ID> gate=<gate> next=<re-entry step>`,
+  where `<re-entry step>` is the `/start-ticket` step the next session starts at. That line
+  is what `/resume-ticket` reads.
+- **One file per gate, never superseded.** Each checkpoint writes a new file; the next
+  session takes the newest by its `<utc>`. The rest of this skill applies unchanged.
+
 ## One file per subject
 
 | Case | File |
@@ -32,6 +45,7 @@ delete it, never a durable store.
 | Ticket work | `handoff-<TICKET-ID>.md` |
 | A topic with no ticket | `handoff-<topic-kebab>.md` |
 | A charted map | `handoff-chart-<slug>.md` |
+| A gate checkpoint, sent by `context-checkpoint` | `<TICKET-ID>/manual_handoffs/<gate>-<utc>.md` — one per gate, never superseded (see above) |
 
 **A second handoff for the same subject supersedes the first. It does not sit beside it.**
 Two live handoffs for one subject is the failure this rule exists to prevent: the next session

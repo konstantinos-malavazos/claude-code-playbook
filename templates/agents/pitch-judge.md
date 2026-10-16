@@ -9,7 +9,7 @@ description: >-
 tools: TaskStop
 maxTurns: 1
 model: <strong-model-id>
-effort: xhigh
+effort: high
 ---
 
 You are an independent judge of a single idea. You have the whole record in front of you

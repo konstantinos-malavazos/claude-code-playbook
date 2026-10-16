@@ -262,6 +262,12 @@ chk $? "python3 -m py_compile the memory-lint scripts"
 chk $? "python3 -I templates/skills/memory-lint/tests.py (log: $LOGS/memory-lint-tests.out)"
 yn "$([ ! -e "$REPO/templates/skills/memory-lint/__pycache__" ] && echo 0 || echo 1)" \
    "the memory-lint skill directory holds no __pycache__ (it installs as a whole directory)"
+( cd "$REPO/templates/skills/context-checkpoint" && "$PY" -m py_compile occupancy.py tests.py && rm -rf __pycache__ ) >/dev/null 2>&1
+chk $? "python3 -m py_compile the context-checkpoint scripts"
+( cd "$REPO" && "$PY" -I templates/skills/context-checkpoint/tests.py ) > "$LOGS/context-checkpoint-tests.out" 2>&1
+chk $? "python3 -I templates/skills/context-checkpoint/tests.py (log: $LOGS/context-checkpoint-tests.out)"
+yn "$([ ! -e "$REPO/templates/skills/context-checkpoint/__pycache__" ] && echo 0 || echo 1)" \
+   "the context-checkpoint skill directory holds no __pycache__ (it installs as a whole directory)"
 ( cd "$REPO/templates/serena" && "$PY" -m py_compile serena_route.py && rm -rf __pycache__ ) >/dev/null 2>&1
 chk $? "python3 -m py_compile the route C kit"
 ( cd "$REPO/tests" && "$PY" -m py_compile fake_serena.py && rm -rf __pycache__ ) >/dev/null 2>&1
@@ -1162,6 +1168,159 @@ inlog p1e "Re-run ./install.sh: it asks for both ids" \
   "P1e: the TODO fires, and names a remedy that works on a file the installer owns"
 inlog p1e "the installer will not rewrite it" \
   "P1e: and says what to do for the one file re-running cannot fix"
+fi
+
+# ---------------------------------------------------------------- MS1
+# Catches: an install that writes no per-model effort default, one that overwrites the
+# user's own effortLevel, a remove that takes the user's entry out with ours, and an
+# alias written as a modelSettings key. The harness reads full model ids there, so an
+# alias key is a setting that does nothing, and nothing says so.
+#
+# ms1_ids — the recorded strong and fast ids, read from the manifest, one per line.
+ms1_ids() {
+  "$PY" - "$CH/.playbook-install.json" <<'PY'
+import json, sys
+v = json.load(open(sys.argv[1], encoding="utf-8"))["config"]["placeholders"]["values"]
+sys.stdout.buffer.write(("%s\n%s\n" % (v.get("<strong-model-id>", ""), v.get("<fast-model-id>", ""))).encode("utf-8"))
+PY
+}
+
+# ms1_check PREFIX STRONG FAST STRONG_LEVEL FAST_LEVEL — one named case per printed line.
+# A level of "-" asserts the id has no entry at all.
+ms1_check() {
+  local verdict name
+  while IFS='|' read -r verdict name; do
+    [ -n "$name" ] || continue
+    if [ "$verdict" = ok ]; then pass "$1 $name"; else fail "$1 $name"; fi
+  done < <("$PY" - "$CH/settings.json" "$2" "$3" "$4" "$5" <<'PY'
+import json, sys
+path, strong, fast, level_strong, level_fast = sys.argv[1:6]
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("ok" if ok else "no", name)).encode("utf-8"))
+try:
+    ms = json.load(open(path, encoding="utf-8")).get("modelSettings") or {}
+except Exception as exc:
+    ms = {}
+    say(False, "settings.json reads as JSON (%s)" % exc)
+for mid, level in ((strong, level_strong), (fast, level_fast)):
+    got = (ms.get(mid) or {}).get("effortLevel") if mid in ms else None
+    if level == "-":
+        say(mid not in ms, "modelSettings has no entry for %s (got %r)" % (mid, ms.get(mid)))
+    else:
+        say(got == level, "modelSettings[%s].effortLevel is %s (got %r)" % (mid, level, got))
+say(all("claude-" in k for k in ms), "every modelSettings key is a full model id (%s)" % ", ".join(sorted(ms)))
+PY
+)
+}
+
+# ms1_cr LOG TEXT — the CR bytes on the log lines holding TEXT, read as bytes: Git
+# Bash's grep strips CR from what it prints, so a grep pipeline counts 0 either way.
+ms1_cr() {
+  "$PY" -c 'import sys
+t = sys.argv[2].encode("utf-8")
+n = sum(l.count(b"\r") for l in open(sys.argv[1], "rb").read().split(b"\n") if t in l)
+sys.stdout.buffer.write(str(n).encode("utf-8"))' "$LOGS/$1.out" "$2"
+}
+
+if want MS1; then
+banner "MS1 · per-model effort defaults are merged into settings.json, never over yours"
+fresh_env ms1; with_servers
+keys ms1 "${FULL[@]}"; run install ms1
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "MS1a exits 0 (rc=$RC)"
+MS1_IDS="$(ms1_ids)"
+MS1_STRONG="$(printf '%s\n' "$MS1_IDS" | sed -n 1p)"
+MS1_FAST="$(printf '%s\n' "$MS1_IDS" | sed -n 2p)"
+yn "$([ -n "$MS1_STRONG" ] && [ -n "$MS1_FAST" ] && [ "$MS1_STRONG" != "$MS1_FAST" ] && echo 0 || echo 1)" \
+   "MS1a the manifest records two different model ids (strong=$MS1_STRONG fast=$MS1_FAST)"
+ms1_check MS1a "$MS1_STRONG" "$MS1_FAST" medium high
+inlog ms1 "modelSettings / $MS1_STRONG / effortLevel=medium" \
+  "MS1a the confirm screen lists the strong id's effort default before anything is written"
+inlog ms1 "modelSettings / $MS1_FAST / effortLevel=high" \
+  "MS1a the confirm screen lists the fast id's effort default before anything is written"
+inlog ms1 "merged per-model effort defaults (modelSettings)" "MS1a the install says it merged them"
+
+# MS1e — on a settings.json that had no modelSettings, the user then adds an id of their
+# own and edits a level we wrote. Remove takes back only the entry still as we wrote it.
+"$PY" - "$CH/settings.json" "$MS1_FAST" <<'PY'
+import json, sys
+path, fast = sys.argv[1:3]
+d = json.load(open(path, encoding="utf-8"))
+d["modelSettings"]["claude-haiku-5"] = {"effortLevel": "low"}
+d["modelSettings"][fast]["effortLevel"] = "xhigh"
+json.dump(d, open(path, "w", encoding="utf-8"), indent=2)
+PY
+keys ms1er '' 'y'; run remove ms1er
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "MS1e remove exits 0 (rc=$RC)"
+ms1_check MS1e "$MS1_STRONG" "$MS1_FAST" - xhigh
+MS1E_OWN="$("$PY" -c 'import json,sys
+d = json.load(open(sys.argv[1], encoding="utf-8")).get("modelSettings") or {}
+sys.stdout.buffer.write(str((d.get("claude-haiku-5") or {}).get("effortLevel")).encode("utf-8"))' \
+  "$CH/settings.json" 2>/dev/null)"
+yn "$([ "$MS1E_OWN" = "low" ] && echo 0 || echo 1)" \
+   "MS1e an id the user added after install survives remove (got: $MS1E_OWN)"
+inlog ms1er "modelSettings/$MS1_FAST — kept, you changed it since install" \
+  "MS1e remove reports the edited level it kept"
+yn "$(ms1_cr ms1er "modelSettings/$MS1_FAST")" \
+   "MS1e the kept line carries no CR byte"
+
+# MS1f — a hook-less install still merges the effort defaults, and wires no hooks.
+fresh_env ms1f; with_servers
+keys ms1f '' '' '1' 'n' '' '2' 'n' '' '3' 'n' '1' '' '4' 'n' '' '6' 'n' '' '7' \
+          'i' 'later' '' '' '' '' '' '' '' '' 'y' '' '' '' ''
+run install ms1f
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "MS1f aligner-only install exits 0 (rc=$RC)"
+notinlog ms1f "merged hook wiring" "MS1f setup: no hook wiring is merged"
+MS1F_IDS="$(ms1_ids)"
+ms1_check MS1f "$(printf '%s\n' "$MS1F_IDS" | sed -n 1p)" "$(printf '%s\n' "$MS1F_IDS" | sed -n 2p)" medium high
+inlog ms1f "merged per-model effort defaults (modelSettings)" "MS1f the install says it merged them"
+yn "$("$PY" -c 'import json,sys
+sys.exit(0 if "hooks" not in json.load(open(sys.argv[1], encoding="utf-8")) else 1)' "$CH/settings.json" 2>/dev/null; echo $?)" \
+   "MS1f settings.json carries no hooks key"
+
+# MS1b — the user's own level for the strong id is kept and reported; the fast one lands.
+fresh_env ms1b; with_servers
+"$PY" - "$CH/settings.json" "$MS1_STRONG" <<'PY'
+import json, sys
+json.dump({"modelSettings": {sys.argv[2]: {"effortLevel": "low"}}}, open(sys.argv[1], "w", encoding="utf-8"), indent=2)
+PY
+keys ms1b "${FULL[@]}"; run install ms1b
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "MS1b exits 0 with a modelSettings of the user's own (rc=$RC)"
+ms1_check MS1b "$MS1_STRONG" "$MS1_FAST" low high
+inlog ms1b "modelSettings/$MS1_STRONG/effortLevel — kept yours ('low')" \
+  "MS1b the kept value is reported as a conflict"
+yn "$(ms1_cr ms1b "kept yours ('low')")" \
+   "MS1b the conflict line carries no CR byte"
+
+# MS1c — remove takes back our entry and only ours.
+keys ms1r '' 'y'; run remove ms1r
+yn "$([ "$RC" = "0" ] && echo 0 || echo 1)" "MS1c remove exits 0 (rc=$RC)"
+ms1_check MS1c "$MS1_STRONG" "$MS1_FAST" low -
+
+# MS1d — an alias is never written as a key; the skip is named.
+mkdir -p "$SANDBOX/ms1d"
+printf '{"paths": [], "values": {"<strong-model-id>": "opus", "<fast-model-id>": "claude-sonnet-5"}, "delete": []}\n' \
+  > "$SANDBOX/ms1d/spec.json"
+( cd "$REPO" && "$PY" install-lib.py model-settings "$SANDBOX/ms1d/spec.json" ) \
+  > "$SANDBOX/ms1d/out.json" 2> "$SANDBOX/ms1d/err.txt"
+chk $? "MS1d install-lib.py model-settings runs (stderr in $SANDBOX/ms1d/err.txt)"
+MS1D="$("$PY" -c 'import json,sys
+d = json.load(open(sys.argv[1], encoding="utf-8")).get("modelSettings") or {}
+sys.stdout.buffer.write((" ".join(sorted(d)) + "|" + str((d.get("claude-sonnet-5") or {}).get("effortLevel"))).encode("utf-8"))' \
+  "$SANDBOX/ms1d/out.json" 2>/dev/null)"
+yn "$([ "$MS1D" = "claude-sonnet-5|high" ] && echo 0 || echo 1)" \
+   "MS1d only the full id is written, at high (got: $MS1D)"
+yn "$(grep -qF 'opus' "$SANDBOX/ms1d/err.txt" && echo 0 || echo 1)" \
+   "MS1d the skipped alias is named on stderr"
+
+# One model for both tiers is a supported setup; the strong level stands for it.
+printf '{"paths": [], "values": {"<strong-model-id>": "claude-x-1", "<fast-model-id>": "claude-x-1"}, "delete": []}\n' \
+  > "$SANDBOX/ms1d/same.json"
+MS1E="$( ( cd "$REPO" && "$PY" install-lib.py model-settings "$SANDBOX/ms1d/same.json" ) 2>/dev/null \
+  | "$PY" -c 'import json,sys
+d = json.load(sys.stdin).get("modelSettings") or {}
+sys.stdout.buffer.write((" ".join(sorted(d)) + "|" + str((d.get("claude-x-1") or {}).get("effortLevel"))).encode("utf-8"))' 2>/dev/null)"
+yn "$([ "$MS1E" = "claude-x-1|medium" ] && echo 0 || echo 1)" \
+   "MS1d one id for both tiers gets the strong level (got: $MS1E)"
 fi
 
 # ══════════════════════════════════════════════════════════════════════════

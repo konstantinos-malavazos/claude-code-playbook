@@ -115,7 +115,7 @@ once per layer and fills in what `CLAUDE.md` already knows:
 | the **layer name** and the **repo(s)/paths** it owns | the chain section |
 | its **build/test commands** | the *build / test / run* section |
 | the **contract** it reads from the previous layer and writes for the next | chain **order** — the neighbours either side |
-| the **engineering standards** skill it loads | the skill generated in step 4, named for the layer |
+| the **write-core** skill it preloads, on its `skills:` line beside `code-access` | the `<layer>-write-core` generated in step 4, named for the layer |
 | every `<…>` placeholder on its **`tools:`** line — today that is `<memory-read-tools>` | the answers the installer recorded in `~/.claude/.playbook-install.json`; with no such record the flow stops and asks you |
 | its **model** | the optional per-layer id as a floor, or omitted so the weight sets the tier per run. Pinning one also deletes the template's `# model:` comment, which explains an omission a pinned file no longer has |
 
@@ -151,18 +151,28 @@ price of generating it anyway is one file per layer that nothing ever loads unle
 dispatch names it. Because the flow never overwrites, a re-run on a repo adapted before this
 existed simply adds the missing variants. That re-run is the upgrade.
 
-### 4. One engineering-standards skill per layer — generated
+### 4. One engineering-standards skill and one write-core skill per layer — generated
 
-Split your engineering standards **by language/layer** so each specialist loads only what
-it needs (a schema specialist shouldn't carry frontend rules). The flow copies
+Split your engineering standards **by language/layer** so each agent loads only what it
+needs (a schema specialist shouldn't carry frontend rules). The flow copies
 [`../../templates/skills/engineering-standards/SKILL.md`](../../templates/skills/engineering-standards/SKILL.md)
-per layer, into the repo's **`.claude/skills/`**. It names each file for its layer, so the
-specialist in step 2 can name the file it loads.
+per layer, into the repo's **`.claude/skills/`**, as `<layer>-standards`. That full standard
+is what the per-repo reviewer judges the diff against.
 
-**On day one these are mostly placeholders, and you should expect that.** The flow can fill
-in the language and the layer name and no more. The actual rules are yours to write as you
-learn what this codebase gets wrong. They are generated anyway, because the specialist
-loads that file and the alternative is pointing it at one that does not exist.
+Beside it, the flow copies
+[`../../templates/skills/write-core/SKILL.md`](../../templates/skills/write-core/SKILL.md)
+as `<layer>-write-core`: about fifteen rules, only the ones that are expensive to get wrong
+once the code compiles. The specialist and its slice variant **preload** it through their
+`skills:` line, so it is in context for every edit, and they do not load the full standard
+while writing. Style, naming and readability stay in the standard, for review to catch. The
+write-core sets `user-invocable: false` and never `disable-model-invocation`, because a skill
+that sets that field is not preloaded.
+
+**On day one the standards skills are mostly placeholders, and you should expect that.** The
+flow can fill in the language and the layer name and no more. The actual rules are yours to
+write as you learn what this codebase gets wrong. They are generated anyway, because review
+loads that file and the alternative is pointing it at one that does not exist. The
+write-core is complete on day one; sharpen it when you learn which mistakes your layer makes.
 
 ### What the flow will not generate
 
@@ -175,7 +185,7 @@ loads that file and the alternative is pointing it at one that does not exist.
 ### It never overwrites, and it tells you what it did
 
 A re-run creates what is missing and **leaves everything existing alone**. Add a fifth
-layer and you get that layer's three files. Change the test command in
+layer and you get that layer's four files. Change the test command in
 `CLAUDE.md` and nothing changes automatically.
 
 Diff-and-patch was rejected on purpose. Once real rules are written by hand there is no
@@ -194,10 +204,11 @@ The honest cost is drift the flow will never fix. So it ends with a report. Like
 | **disagrees with `CLAUDE.md`** | the file names a path, command or layer the chain no longer says. Yours to reconcile |
 | **still a scaffold** | the file is still carrying the template's `<PLACEHOLDER>` angle brackets |
 | **stale model comment** | a specialist generated before the weight rules landed, whose `# model:` comment **asserts** that the omission means it inherits the session's model. Prose drift only — the tier is set by the dispatching flow, which is installed globally — so reporting it is the whole remedy |
-| **missing Skill grant** | a specialist generated before agents were granted `Skill`, whose `tools:` line still lacks it — so it cannot load its standards skill. A real gap, not prose drift. The flow never overwrites the file; you add `Skill` to its `tools:` line by hand |
-| **no code-access preload** | a specialist generated before the code access protocol moved into the `code-access` skill: no `skills: [code-access]` line, its own older copy of the protocol, and no `Serena calls:` line — so the reviewer flags every run it makes. The flow never overwrites the file; you move it aside and re-run the flow, then carry over your own edits |
+| **missing Skill grant** | a specialist generated before agents were granted `Skill`, whose `tools:` line still lacks it — so it cannot load any skill on demand: not the `tdd` skill a current body points it to, nor the standards skill an older body tells it to load. A real gap, not prose drift. The flow never overwrites the file; you add `Skill` to its `tools:` line by hand |
+| **no code-access preload** | a specialist generated before the code access protocol moved into the `code-access` skill: no `code-access` entry on its `skills:` line, its own older copy of the protocol, and no `Serena calls:` line — so the reviewer flags every run it makes. The flow never overwrites the file; you move it aside and re-run the flow, then carry over your own edits |
+| **no write-core preload** | a specialist whose `skills:` line has no `<layer>-write-core` entry for its own layer — so it writes by the full standards skill, and a rule moved into the write-core never reaches it. The flow never overwrites the file; the remedy is the same move-aside-and-re-run |
 
-*Created* and *skipped* are what the flow **did** and are exclusive. The other five are what
+*Created* and *skipped* are what the flow **did** and are exclusive. The other six are what
 it **found**, and can appear together on one row.
 
 **Still a scaffold** costs no state at all — no timestamps, no ledger. **The convention that
@@ -236,7 +247,8 @@ The first item is yours. The rest are read off the flow's report.
       its paths and build/test commands filled in from that file.
 - [ ] The report shows **one slice-mode variant per layer** in `.claude/agents/`, beside its
       base specialist — generated even though no ticket has decomposed yet.
-- [ ] The report shows **one standards skill per layer** in `.claude/skills/`.
+- [ ] The report shows **one standards skill and one write-core skill per layer** in
+      `.claude/skills/`.
 - [ ] Nothing came back as **disagrees with `CLAUDE.md`** — or if it did, I reconciled it
       by hand.
 - [ ] I know which **standards skills** are **still a scaffold**, and that filling those in
@@ -250,6 +262,8 @@ The first item is yours. The rest are read off the flow's report.
 - [ ] Nothing came back as **missing Skill grant** — or if it did, I added `Skill` to that
       file's `tools:` line by hand.
 - [ ] Nothing came back as **no code-access preload** — or if it did, I moved that file
+      aside, re-ran the flow, and carried my own edits over.
+- [ ] Nothing came back as **no write-core preload** — or if it did, I moved that file
       aside, re-ran the flow, and carried my own edits over.
 - [ ] `/start-ticket` dispatches the specialists in order.
 

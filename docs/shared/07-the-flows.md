@@ -314,8 +314,14 @@ generator's contract: decide it **once, deliberately** — not per layer and not
 
 ### Calibrating it, and the trap it catches
 
-**Log four things in the track's handoff at every dispatch — the dispatched model, the
-weight, the reason, and the pass number** — then read them back across several tickets. The
+**Every dispatched track's handoff opens with one fixed line**, which the orchestrator
+writes into the dispatch prompt and the agent copies as its first line:
+
+`Dispatched: <model> (weight: <light|heavy> — <reason>; pass: initial|review-fix N|drift-fix N)`
+
+`<model>` is the tier alias set at dispatch, or `none` where no override was set. Because it
+is one fixed shape, `grep -h '^Dispatched:'` across the handoff folders reads it back across
+several tickets in one pass. The
 pass number is what turns the log into a signal: it separates *classified light and finished*
 from *classified light three times and still going*. Two readings, two different fixes:
 

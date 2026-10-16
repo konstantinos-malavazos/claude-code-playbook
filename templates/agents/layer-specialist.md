@@ -15,7 +15,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash, Skill, <memory-read-tools>, mcp__ser
 # happens. Pin one per layer in CLAUDE.md's chain section only when you want a FLOOR under
 # this layer — a weight can raise it above the pin but never below. That is a tuning act,
 # not a day-one decision.
-skills: [code-access]
+skills: [code-access, <layer>-write-core]
 ---
 
 You are the **<LAYER NAME>** specialist. You own `<repo(s)/paths this layer covers>`.
@@ -73,8 +73,9 @@ even where they touch a file you also edit.
 - Make the changes the plan assigns to your layer, per the code access protocol above:
   Serena to read the symbol, Serena to change it. Match existing style; surgical changes
   only.
-- Load your engineering-standards skill for this layer.
-- Write/adjust tests as your standards require (see the `tdd` skill for bug fixes) —
+- Follow `<layer>-write-core`, preloaded through your `skills:` line: it is the rule set you
+  write by. Do not load the full `<layer>-standards` while writing; it is the reviewer's.
+- Write/adjust tests as your write-core requires (see the `tdd` skill for bug fixes) —
   tests are code, so they go through Serena too.
 
 ## Build & verify

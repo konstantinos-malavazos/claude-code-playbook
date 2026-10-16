@@ -16,6 +16,9 @@
 #          agent's handoff reports its Serena calls
 #   A17    every "dispatch site N" mention agrees with start-ticket.md's numbering
 #   A18    no agent template holds Agent in its tools: line, or has no tools: line
+#   A19    the context checkpoint runs at every /start-ticket gate, /resume-ticket reads
+#          its handoff, and the threshold lives in occupancy.py alone
+#   A20    both layer specialists preload <layer>-write-core, and nothing switches it off
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -664,8 +667,8 @@ fi
 fi
 
 # ---------------------------------------------------------------- A9
-# Three files under templates/ are GENERATION TEMPLATES, not installables:
-# layer-specialist, slice-layer-specialist and engineering-standards. Each carries
+# Four files under templates/ are GENERATION TEMPLATES, not installables:
+# layer-specialist, slice-layer-specialist, engineering-standards and write-core. Each carries
 # a <layer> placeholder in its `name:`, and /adapt-to-stack writes a filled copy
 # per layer into the REPO's .claude/ — never into $CLAUDE_HOME. Stage 2 of the
 # installer prints that promise in its own words; install-lib.py keeps it with
@@ -679,11 +682,15 @@ fi
 #
 # It catches the quieter ways too: a renamed template leaves an entry matching
 # nothing, and an entry whose file no longer holds a placeholder is a template
-# that has stopped being one.
+# that has stopped being one. And from the other side: a template whose `name:`
+# carries <layer> but has no NEVER_INSTALL entry installs as an ordinary unit.
 if want A9; then
-banner "A9 · the three generation templates are not installable units"
+banner "A9 · the generation templates are not installable units"
 if [ -n "$PY" ]; then
   mkdir -p "$SCRATCH"
+
+  rm -rf "$SCRATCH/a9-plant" && mkdir -p "$SCRATCH/a9-plant/skills/probe" \
+    && printf -- '---\nname: <layer>-probe\n---\nbody\n' > "$SCRATCH/a9-plant/skills/probe/SKILL.md"
 
   # python reports what it found; the verdicts stay in the harness, as in A8.
   A9="$(cd "$REPO" && "$PY" -c '
@@ -729,7 +736,36 @@ for uid in sorted(units):
 # feed the guard the shape a windows python hands it and it must still match.
 win = lib._unit_rel(os.path.join(templates, "skills\\engineering-standards"), templates)
 print("SEP " + ("ok" if win in lib.NEVER_INSTALL else "broken(" + win + ")"))
-' "$SCRATCH/fakehome-a9" 2>"$SCRATCH/discover-a9.err")"
+
+# The other direction: a template whose name: carries <layer> and is NOT excluded
+# ships as an ordinary unit with an unfilled name.
+def fm_name(path):
+    lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+    if not lines or lines[0].strip() != "---":
+        return ""
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if line.startswith("name:"):
+            return line[5:].strip()
+    return ""
+
+def unguarded(root):
+    out = []
+    for dirpath, _dirs, files in os.walk(root):
+        for f in files:
+            path = os.path.join(dirpath, f)
+            if not f.endswith(".md") or "<layer>" not in fm_name(path):
+                continue
+            rel = os.path.relpath(path, root).replace(os.sep, "/")
+            if not any(rel == e or rel.startswith(e + "/") for e in lib.NEVER_INSTALL):
+                out.append(rel)
+    return sorted(out)
+
+for rel in unguarded(templates):
+    print("UNGUARDED " + rel)
+print("CONTROL " + ("ok" if unguarded(sys.argv[2]) == ["skills/probe/SKILL.md"] else "broken"))
+' "$SCRATCH/fakehome-a9" "$SCRATCH/a9-plant" 2>"$SCRATCH/discover-a9.err")"
 
   if [ -n "$A9" ]; then
     pass "install-lib.py discover runs (errors in $SCRATCH/discover-a9.err)"
@@ -739,10 +775,10 @@ print("SEP " + ("ok" if win in lib.NEVER_INSTALL else "broken(" + win + ")"))
 
   # An empty NEVER_INSTALL would pass every assertion below while excluding
   # nothing, which is the failure mode this line closes.
-  case "$A9" in *"entries 3"*)
-    pass "NEVER_INSTALL still names three templates" ;;
+  case "$A9" in *"entries 4"*)
+    pass "NEVER_INSTALL still names four templates" ;;
   *)
-    fail "NEVER_INSTALL no longer names three templates — reclassify, or fix the guard" ;;
+    fail "NEVER_INSTALL no longer names four templates — reclassify, or fix the guard" ;;
   esac
 
   if printf '%s\n' "$A9" | grep -q '^MISSINGSRC '; then
@@ -763,7 +799,7 @@ print("SEP " + ("ok" if win in lib.NEVER_INSTALL else "broken(" + win + ")"))
     printf '%s\n' "$A9" | sed -n 's/^UNIT /          discovered: /p'
     fail "a generation template is an installable unit — tick it and the placeholder gate goes red"
   else
-    pass "none of the three is discovered as a unit"
+    pass "none of them is discovered as a unit"
   fi
 
   if printf '%s\n' "$A9" | grep -q '^EDGE '; then
@@ -777,8 +813,21 @@ print("SEP " + ("ok" if win in lib.NEVER_INSTALL else "broken(" + win + ")"))
     pass "the guard matches a windows-shaped relative path too" ;;
   *)
     printf '%s\n' "$A9" | sed -n 's/^SEP /          /p'
-    fail "the guard is separator-dependent — under Git Bash all three become units again (#99)" ;;
+    fail "the guard is separator-dependent — under Git Bash every excluded template becomes a unit again" ;;
   esac
+
+  case "$A9" in *"CONTROL ok"*)
+    pass "control: a planted <layer> template missing from NEVER_INSTALL is flagged" ;;
+  *)
+    fail "control: a planted <layer> template missing from NEVER_INSTALL went unflagged — the check below guards nothing" ;;
+  esac
+
+  if printf '%s\n' "$A9" | grep -q '^UNGUARDED '; then
+    printf '%s\n' "$A9" | sed -n 's/^UNGUARDED /          not in NEVER_INSTALL: /p'
+    fail "a template whose name: carries <layer> is installable — it ships as a unit with an unfilled name"
+  else
+    pass "every template whose name: carries <layer> is in NEVER_INSTALL"
+  fi
 
   # The promise and the behaviour are two different files. Stage 2 of install.sh
   # names the three in prose; NEVER_INSTALL is what actually excludes them. Drift
@@ -1553,6 +1602,172 @@ else
 fi
 fi
 
+# ---------------------------------------------------------------- A19
+# The context checkpoint is wired by prose: one gate line per /start-ticket gate, a
+# Resume: reader in /resume-ticket, and a threshold that lives in occupancy.py alone.
+# A gate line a rewrite drops is a gate that never measures, and nothing in the run
+# says so. A threshold restated in prose is a second number that drifts from the one
+# the script applies.
+#
+# Catches: a gate site lost from start-ticket.md, resume-ticket.md no longer reading
+# the gate handoff, the threshold written as a number outside the script, and a second
+# threshold constant inside it.
+CHECKPOINT_DIR="$TEMPLATES/skills/context-checkpoint"
+A19_SLUGS="plan-approval alignment review-verdict review-fix"
+A19_THRESHOLD_RE='30 ?%|30 percent|per cent|0\.3'
+A19_PROSE="$COMMANDS/start-ticket.md $COMMANDS/resume-ticket.md $CHECKPOINT_DIR/SKILL.md $TEMPLATES/skills/handoff/SKILL.md"
+
+# a19_missing_gates FILE — the slugs with no line holding both the backticked skill
+# name and `gate: <slug>`, space-separated; empty when every gate is wired.
+a19_missing_gates() {
+  local slug missing=""
+  for slug in $A19_SLUGS; do
+    # shellcheck disable=SC2016
+    tr -d '\r' < "$1" | grep -F '`context-checkpoint`' \
+      | grep -qE "gate: $slug([^[:alnum:]-]|$)" || missing="$missing $slug"
+  done
+  printf '%s' "${missing# }"
+}
+
+# a19_restates FILE — does this file write the threshold as a number?
+a19_restates() { tr -d '\r' < "$1" | grep -qE "$A19_THRESHOLD_RE"; }
+
+if want A19; then
+banner "A19 · the context checkpoint is wired at every gate, and its threshold lives in one place"
+A19FIX="$SCRATCH/a19"
+mkdir -p "$A19FIX"
+
+# A19.0 — the probes, in both directions, before they judge the tree.
+tr -d '\r' < "$COMMANDS/start-ticket.md" | grep -vE 'gate: alignment([^[:alnum:]-]|$)' > "$A19FIX/no-alignment.md"
+if [ "$(a19_missing_gates "$A19FIX/no-alignment.md")" = "alignment" ]; then
+  pass "A19.0 a start-ticket.md with the alignment gate line removed is flagged, by name"
+else
+  fail "A19.0 removing the alignment gate line was not flagged as exactly [alignment] — the probe is broken, not the tree"
+fi
+{ [ -f "$CHECKPOINT_DIR/SKILL.md" ] && tr -d '\r' < "$CHECKPOINT_DIR/SKILL.md"; printf 'Hand off once the session is past 30%% of its window.\n'; } > "$A19FIX/restated.md"
+if a19_restates "$A19FIX/restated.md"; then
+  pass "A19.0 a skill copy that adds \"30%\" is flagged"
+else
+  fail "A19.0 a skill copy that adds \"30%\" passed — the threshold probe is broken, not the tree"
+fi
+printf 'set PLAYBOOK_CONTEXT_WINDOW=200000; without it the script assumes 1,000,000.\n' > "$A19FIX/windows.md"
+if a19_restates "$A19FIX/windows.md"; then
+  fail "A19.0 the window numbers read as a restated threshold — the probe would refuse the skill's own window line"
+else
+  pass "A19.0 the window numbers (200000, 1,000,000) are not read as the threshold"
+fi
+
+# A19.1 — the four gate lines
+a19_gaps="$(a19_missing_gates "$COMMANDS/start-ticket.md")"
+if [ -z "$a19_gaps" ]; then
+  pass "A19.1 start-ticket.md runs \`context-checkpoint\` at every gate: $A19_SLUGS"
+else
+  fail "A19.1 start-ticket.md has no context-checkpoint line for gate(s): $a19_gaps — that gate never measures"
+fi
+
+# A19.2 — the reader of the gate handoff
+if tr -d '\r' < "$COMMANDS/resume-ticket.md" | grep -qF 'manual_handoffs' \
+   && tr -d '\r' < "$COMMANDS/resume-ticket.md" | grep -qF 'Resume:'; then
+  pass "A19.2 resume-ticket.md reads the gate handoff's Resume: line from manual_handoffs/"
+else
+  fail "A19.2 resume-ticket.md no longer names manual_handoffs/ and Resume: — a gate handoff is written and never read"
+fi
+
+# A19.3 — no prose copy of the threshold
+for f in $A19_PROSE; do
+  rel="${f#"$REPO"/}"
+  if [ ! -f "$f" ]; then
+    fail "A19.3 $rel does not exist — a missing file must not pass as a clean one"
+  elif a19_restates "$f"; then
+    fail "A19.3 $rel restates the threshold as a number — the script owns it"
+  else
+    pass "A19.3 $rel does not restate the threshold"
+  fi
+done
+
+# A19.4 — one threshold constant in the script
+if [ ! -f "$CHECKPOINT_DIR/occupancy.py" ]; then
+  fail "A19.4 templates/skills/context-checkpoint/occupancy.py does not exist"
+else
+  a19_n="$(tr -d '\r' < "$CHECKPOINT_DIR/occupancy.py" | grep -cE '^[[:space:]]*THRESHOLD_FRACTION[[:space:]]*=[^=]')"
+  if [ "$a19_n" = "1" ]; then
+    pass "A19.4 occupancy.py assigns THRESHOLD_FRACTION exactly once"
+  else
+    fail "A19.4 occupancy.py assigns THRESHOLD_FRACTION $a19_n times, not once"
+  fi
+fi
+fi
+
+# ---------------------------------------------------------------- A20
+# Each layer specialist preloads a short write-time rule set, <layer>-write-core,
+# through its skills: line, and the full <layer>-standards stays with review. A skill
+# that sets disable-model-invocation is not preloaded, and nothing reports it; a
+# skills: line that loses the entry leaves the specialist writing with no rules at all.
+#
+# Catches: a specialist template that stops preloading code-access or the write-core,
+# the flag that switches the preload off, and a write-core whose closing line naming
+# what it leaves to review was cut.
+WRITE_CORE="$TEMPLATES/skills/write-core/SKILL.md"
+
+# a20_preloads FILE — does this template's skills: list code-access AND <layer>-write-core?
+a20_preloads() {
+  local s
+  s="$(fm_skills "$1")"
+  printf '%s\n' "$s" | grep -qx 'code-access' && printf '%s\n' "$s" | grep -qxF '<layer>-write-core'
+}
+
+if want A20; then
+banner "A20 · both layer specialists preload <layer>-write-core, and nothing switches it off"
+A20FIX="$SCRATCH/a20"
+mkdir -p "$A20FIX"
+
+# A20.0 — the probe, against the two shapes a regression takes
+tr -d '\r' < "$AGENTS/layer-specialist.md" \
+  | sed 's/^skills:.*/skills: [code-access]/' > "$A20FIX/no-write-core.md"
+tr -d '\r' < "$AGENTS/layer-specialist.md" \
+  | sed 's/^skills:.*/skills: [<layer>-write-core]/' > "$A20FIX/no-code-access.md"
+if ! a20_preloads "$A20FIX/no-write-core.md" && ! a20_preloads "$A20FIX/no-code-access.md"; then
+  pass "A20.0 a skills: line missing either entry is flagged"
+else
+  fail "A20.0 a skills: line missing one entry passed — the probe is broken, not the tree"
+fi
+
+# A20.1 — the preload, in both specialists
+for stem in layer-specialist slice-layer-specialist; do
+  if a20_preloads "$AGENTS/$stem.md"; then
+    pass "A20.1 $stem preloads code-access and <layer>-write-core"
+  else
+    fail "A20.1 $stem's skills: does not list both code-access and <layer>-write-core — it writes without its rules"
+  fi
+done
+
+# A20.2 — the template itself
+if [ ! -f "$WRITE_CORE" ]; then
+  fail "A20.2 templates/skills/write-core/SKILL.md does not exist — a missing skill must not pass as an unflagged one"
+else
+  if [ "$(fm_field "$WRITE_CORE" name | tr -d '\r')" = "<layer>-write-core" ]; then
+    pass "A20.2 the write-core template is named <layer>-write-core"
+  else
+    fail "A20.2 the write-core template's name: is not <layer>-write-core — the preload names a skill that is never generated"
+  fi
+  if [ "$(fm_field "$WRITE_CORE" user-invocable | tr -d '\r')" = "false" ]; then
+    pass "A20.2 the write-core template sets user-invocable: false"
+  else
+    fail "A20.2 the write-core template does not set user-invocable: false"
+  fi
+  if frontmatter "$WRITE_CORE" | tr -d '\r' | grep -q '^disable-model-invocation:'; then
+    fail "A20.2 the write-core template sets disable-model-invocation — that blocks the skills: preload, silently"
+  else
+    pass "A20.2 the write-core template leaves disable-model-invocation unset, so the preload loads it"
+  fi
+  if tr -d '\r' < "$WRITE_CORE" | sed '/^[[:space:]]*$/d' | tail -1 | grep -q '^Not here on purpose:'; then
+    pass "A20.2 the write-core template ends by naming what it leaves to review"
+  else
+    fail "A20.2 the write-core template's last line does not start \"Not here on purpose:\""
+  fi
+fi
+fi
+
 # ---------------------------------------------------------------- A12
 # The flow guardrails (#148). Five rules — a stated persona on every dispatch, an
 # explicit timeout with a per-call expectation, a concrete overrun trigger whose
@@ -2077,6 +2292,8 @@ terminal_class() {
     # preloaded into agents through skills:, never run as a flow
     code-access)                                                                    printf 'not-terminal' ;;
     tdd|to-spec|wait-what|next-steps|engineering-standards|review-guidelines)       printf 'not-terminal' ;;
+    # run inside a gate of another flow, and a generation template
+    context-checkpoint|write-core)                                                  printf 'not-terminal' ;;
     *)                                                                              printf 'UNCLASSIFIED' ;;
   esac
 }
