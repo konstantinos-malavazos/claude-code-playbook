@@ -55,7 +55,7 @@ This is a hard limit, not a target. A question that runs long is the failure mod
 plain words do not save it. **15 plain lines lose the room exactly as fast as jargon does.**
 
 ```
-❓ **Q3 of 7** — **<short title>**: <one line naming the decision in ordinary words.>
+❓ **Q3 of 7** — **<a question that "yes" answers with the recommendation>?** <one line naming the decision in ordinary words.>
 
 <Option A — two or three lines.>
 <Option B — two or three lines.>
@@ -63,6 +63,9 @@ plain words do not save it. **15 plain lines lose the room exactly as fast as ja
 ➡️ <your recommendation, with ONE reason.>
 ```
 
+- **Word the question so a bare "yes" accepts the recommendation.** Agreeing should cost one
+  word, not a retyped option: *"Store report dates in UTC? (recommended: reports are compared
+  across regions)"*. Anything else they type is their own answer.
 - **One idea per sentence.** Name the thing in ordinary words before using the repo's term
   for it, and never use a term the design has not defined yet.
 - **Two or three options**, one line of consequence each. Not a trade-off table.

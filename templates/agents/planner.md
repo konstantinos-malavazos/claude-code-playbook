@@ -49,6 +49,9 @@ Follow the `code-access` skill, preloaded through your `skills:` line. For your 
      permanent weight. Every later dispatch of that track — a review re-pass, a drift fix, a
      QA bounce-back — is classified again, by whichever agent is holding the evidence then.
    - a **risk assessment** (what could break; the blast radius to watch),
+   - the **testing seams** — one line per seam: the public boundary the tests drive, what it
+     catches, what it misses, and which acceptance criterion it proves. The user confirms
+     them at the grilling gate, and the specialists test only there,
    - the **acceptance-criteria mapping** (which step satisfies which criterion).
 4. Decide **slice-count**: `1` for the normal sequential path; `>1` only for a genuinely
    large ticket that splits into independent vertical slices (then flag decompose).
@@ -86,6 +89,8 @@ that track last ran at.
 #    - <layer-2> specialist — weight: heavy — signature change, 4 callers across 2 repos
 #    (initial dispatch only — every re-dispatch is classified again)
 ## Risk / blast radius
+## Testing seams
+#    - <boundary> — catches: … — misses: … — proves: <criterion>
 ## Open questions for grilling (owner + reversibility + planned default)
 ## Final commit message
 ```

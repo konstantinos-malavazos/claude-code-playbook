@@ -117,7 +117,7 @@ directory name. Same placeholder, opposite consequence:
   + test-run but no edit. Least privilege makes agents cheap *and* safe.
 - **Least privilege has a floor, and the floor is one tool.** You cannot scope an agent to
   zero: Claude Code **refuses to launch** one whose `tools` list resolves to nothing
-  (*"would be spawned with zero tools — refusing"*), and omitting `tools` does the
+  (v2.1.226: *"would be spawned with zero tools — refusing"*), and omitting `tools` does the
   opposite: it inherits **everything**, MCP servers included. So `tools: []` is not "no
   tools", it is one of those two failures depending on your version.
 - **For an agent that must only weigh, never fetch, the floor is a test, not a tool name.**

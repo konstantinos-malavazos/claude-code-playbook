@@ -29,8 +29,8 @@ proceeds as normal. The path is
   allocation, steps, risk, `## Open questions for grilling`. **Do not duplicate it.**
 - `<workspace>/.claude/handoffs/<TICKET-ID>/context-gatherer.md` — domain vocabulary,
   rulings, blast radius. Reuse its words so the spec speaks the project's language.
-- `<workspace>/.claude/handoffs/<TICKET-ID>/ticket-analyzer.md` — the acceptance criteria,
-  verbatim.
+- `<workspace>/.claude/handoffs/<TICKET-ID>/ticket-analyzer.md` — its
+  `## Acceptance criteria (verbatim)` section.
 
 ## What this adds — the only reason it exists
 

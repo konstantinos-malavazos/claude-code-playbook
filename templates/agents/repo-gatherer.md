@@ -38,7 +38,8 @@ this repo's boundary, not its internals.
 2. **Memory sweep** — prior conclusions about this repo and its boundary. Capture the
    provenance. For every memory you cite, run the stale check `@context-gatherer` step 2a
    describes (`source_files` paths case-exact, backticked symbols through `find_symbol`).
-3. **Serena sweep** — `activate_project` on this repo, then find the symbols the topic
+3. **Serena sweep** — `activate_project` on this repo (on route C there is none: your
+   tools already belong to this repo's own server), then find the symbols the topic
    terms name and every place the repo **crosses its boundary** near them.
 4. **Resolve each identifier to the literal string the code uses** — the topic name, the
    table name, the route, the config key as written, not the constant or variable that

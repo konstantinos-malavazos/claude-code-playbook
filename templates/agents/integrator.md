@@ -41,7 +41,7 @@ built.
 
 ## Steps
 
-### 0. Preconditions — all three, before you touch a branch
+### 0. Preconditions — all four, before you touch a branch
 
 - `Read` `aligner.md`. The verdict must be **ALIGNED**. Anything else, **or the file is
   absent** → STOP. Absent means the drift gate never ran, and integrating unaligned slices
