@@ -1,0 +1,8 @@
+{
+  "repos": {
+    "my-repo": {
+      "path": "<absolute path to the repo>",
+      "port": 9121
+    }
+  }
+}

@@ -33,6 +33,14 @@
           { "type": "command", "command": "~/.claude/hooks/format-on-edit.sh" }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/serena-leftover-notice.sh" }
+        ]
+      }
     ]
   }
 }

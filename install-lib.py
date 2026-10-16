@@ -19,6 +19,7 @@ import hashlib
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 
@@ -245,6 +246,14 @@ def discover(templates, claude_home):
         add("support:hook-lib", "hook-lib", ldir,
             os.path.join(claude_home, "hooks", "_lib"))
 
+    # route C's kit: one directory unit, like the hook library, installed only on route C
+    kdir = os.path.join(templates, "serena")
+    if os.path.isdir(kdir):
+        add("support:serena-kit", "serena-kit", kdir,
+            os.path.join(claude_home, "serena"), route_c_only=True)
+    if "hook:serena-leftover-notice" in units:
+        units["hook:serena-leftover-notice"]["route_c_only"] = True
+
     # the allowlist the blocking hooks read; installed with comments, zero entries
     sample = os.path.join(hdir, "repo-allowlist.sample")
     if os.path.exists(sample):
@@ -354,10 +363,19 @@ def _link_dependencies(units, templates):
             unit["needs"] = sorted(set(unit["needs"]) | {"support:repo-allowlist"})
         if "_lib/" in text and "support:hook-lib" in units:
             unit["needs"] = sorted(set(unit["needs"]) | {"support:hook-lib"})
+        # Anchored on the kit's own file names: `.serena/` is a project folder that the
+        # staging hooks name, and it is not the kit.
+        if re.search(r"(?<![\w.-])serena/serena[_-]", text) and "support:serena-kit" in units:
+            unit["needs"] = sorted(set(unit["needs"]) | {"support:serena-kit"})
         # A hook that runs a skill's script refuses its calls when that skill is absent.
         for ref in set(re.findall(r"skills/([a-z][a-z0-9-]+)/", text)):
             if ref in skills:
                 unit["needs"] = sorted(set(unit["needs"]) | {"skill:" + ref})
+
+    # The kit's .sh wrappers source the hook library the same way a hook does.
+    kit = units.get("support:serena-kit")
+    if kit and "support:hook-lib" in units and "_lib/" in _unit_text(kit["src"]):
+        kit["needs"] = sorted(set(kit["needs"]) | {"support:hook-lib"})
 
 
 def _unit_text(src):
@@ -596,7 +614,7 @@ def _server_scan(home, cwd, keys, plugin_terms=(), connectors=True):
             "connectors": connected}
 
 
-def serena_detect(home, cwd):
+def serena_detect(home, cwd, claude_home=None):
     """Work out which Serena route this machine is on, and show the evidence.
 
     A wrong prefix fails SILENTLY: in a `tools:` list with other working entries, an
@@ -618,7 +636,167 @@ def serena_detect(home, cwd):
     scan = _server_scan(home, cwd, ("serena",), ("serena",), connectors=False)
     # Plugin evidence wins: it is route A, and it is checked last for that reason.
     route = "A" if scan["plugins"] else ("B" if scan["registered"] else None)
+    # A repo map is route C's own evidence, and only a map makes it C: route C is
+    # opt-in, so with no map the result is the A/B answer above.
+    repo_map = os.path.join(claude_home or os.path.join(home, ".claude"), "serena-repos.json")
+    if os.path.isfile(repo_map):
+        scan["evidence"].append({"where": repo_map, "found": "route C repo map"})
+        route = "C"
     return {"route": route, "evidence": scan["evidence"]}
+
+
+# Route C. Each repo's read server listens on its port and its edit server on port +
+# SERENA_EDIT_OFFSET; the kit's EDIT_OFFSET in templates/serena/serena_route.py is the
+# same number, and RC2 fails if the two drift.
+SERENA_EDIT_OFFSET = 10
+SERENA_FIRST_PORT = 9121
+SERENA_LAST_PORT = 9620
+
+
+def _fwd(path):
+    return os.path.abspath(path).replace("\\", "/")
+
+
+def _same_dir(a, b):
+    return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
+
+
+def _repo_key(name, taken):
+    """A map key for a folder name: lower-case, every run of other characters one dash."""
+    base = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "repo"
+    key, n = base, 1
+    while key in taken:
+        n += 1
+        key = "%s-%d" % (base, n)
+    return key
+
+
+def _port_binds(port):
+    s = socket.socket()
+    try:
+        s.bind(("127.0.0.1", port))
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
+
+
+def _free_port(taken):
+    """The lowest port p where p and p + offset are both unused by `taken` and both bind."""
+    for p in range(SERENA_FIRST_PORT, SERENA_LAST_PORT + 1):
+        pair = {p, p + SERENA_EDIT_OFFSET}
+        if pair & taken:
+            continue
+        if _port_binds(p) and _port_binds(p + SERENA_EDIT_OFFSET):
+            return p
+    return None
+
+
+def _append_repos(text, entries):
+    """`text` with `entries` added at the end of its top-level "repos" object, and every
+    other byte left where it was. None when there is no such object to append to."""
+    depth, last, start, i = 0, None, None, 0
+    while i < len(text):
+        c = text[i]
+        if c == '"':
+            j = i + 1
+            while j < len(text) and text[j] != '"':
+                j += 2 if text[j] == "\\" else 1
+            if depth == 1:
+                last = text[i + 1:j]
+            i = j + 1
+            continue
+        if c in "{[":
+            depth += 1
+            if c == "{" and depth == 2 and last == "repos" and start is None:
+                start = i
+        elif c in "}]":
+            if c == "}" and depth == 2 and start is not None:
+                end = len(text[:i].rstrip())
+                m = re.search(r'\n([ \t]*)"', text[start:i])
+                sep = "\n" + m.group(1) if m else " "
+                first = text[end - 1] == "{"
+                add = ""
+                for e in entries:
+                    add += ("" if first else ",") + sep + json.dumps(e["key"]) + ": " \
+                        + json.dumps({"path": e["path"], "port": e["port"]})
+                    first = False
+                return text[:end] + add + text[end:]
+            depth -= 1
+        i += 1
+    return None
+
+
+def serena_discover(claude_home, scan_dir, out_path, exclude=None):
+    """Fill in route C's repo map from the git repos in `scan_dir`.
+
+    A child of `scan_dir` counts when it holds a `.git` entry, folder or file
+    (a worktree or submodule); `exclude` (the playbook clone) never does. With no map
+    yet, the repos found are written to `out_path`. With a map, a repo found that it
+    does not already name is appended to a copy of it at `out_path`, and nothing the
+    user wrote is changed; with nothing new, `out_path` is the map byte for byte.
+    `out_path` is never the claude home: install.sh copies it there only at install
+    time, so a run stopped before then leaves no map behind.
+    """
+    map_path = os.path.join(claude_home, "serena-repos.json")
+    existing, raw = None, b""
+    if os.path.isfile(map_path):
+        with open(map_path, "rb") as fh:
+            raw = fh.read()
+        try:
+            existing = json.loads(raw.decode("utf-8"))["repos"]
+            if not isinstance(existing, dict):
+                raise ValueError("repos is not an object")
+        except (ValueError, KeyError, TypeError, UnicodeDecodeError) as e:
+            return {"status": "invalid", "path": _fwd(map_path), "error": str(e)}
+    taken_keys = set(existing or {})
+    taken_paths, taken_ports = [], set()
+    for repo in (existing or {}).values():
+        if not isinstance(repo, dict):
+            continue
+        if isinstance(repo.get("path"), str) and repo["path"].strip():
+            taken_paths.append(repo["path"])
+        if isinstance(repo.get("port"), int):
+            taken_ports |= {repo["port"], repo["port"] + SERENA_EDIT_OFFSET}
+
+    found = []
+    names = sorted(os.listdir(scan_dir)) if os.path.isdir(scan_dir) else []
+    for name in names:
+        full = os.path.join(scan_dir, name)
+        if not os.path.isdir(full) or not os.path.exists(os.path.join(full, ".git")):
+            continue
+        if exclude and os.path.isdir(exclude) and _same_dir(full, exclude):
+            continue
+        if any(os.path.isdir(p) and _same_dir(full, p) for p in taken_paths):
+            continue
+        port = _free_port(taken_ports)
+        if port is None:
+            return {"status": "no-ports", "first": SERENA_FIRST_PORT, "last": SERENA_LAST_PORT}
+        key = _repo_key(name, taken_keys)
+        taken_keys.add(key)
+        taken_ports |= {port, port + SERENA_EDIT_OFFSET}
+        found.append({"key": key, "path": _fwd(full), "port": port,
+                      "edit_port": port + SERENA_EDIT_OFFSET})
+
+    if existing is None:
+        if not found:
+            return {"status": "none", "searched": _fwd(scan_dir)}
+        data = {"repos": {e["key"]: {"path": e["path"], "port": e["port"]} for e in found}}
+        with open(out_path, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(data, fh, indent=2)
+            fh.write("\n")
+        return {"status": "found", "searched": _fwd(scan_dir), "repos": found}
+
+    text = raw.decode("utf-8")
+    if found:
+        text = _append_repos(text, found)
+        if text is None:
+            return {"status": "invalid", "path": _fwd(map_path), "error": "no repos object to add to"}
+    with open(out_path, "wb") as fh:
+        fh.write(text.encode("utf-8") if found else raw)
+    return {"status": "kept", "path": _fwd(map_path), "searched": _fwd(scan_dir),
+            "repos": list(existing), "added": found}
 
 
 def memory_detect(home, cwd):
@@ -984,6 +1162,109 @@ def rewrite_serena(paths, prefix_to):
                 continue
             with open(f, "w", encoding="utf-8", newline="\n") as fh:
                 fh.write(text.replace("mcp__serena__", prefix_to))
+            changed.append(f)
+    return changed
+
+
+SERENA_TOOL_RE = re.compile(r"^mcp__serena(?:-[a-z0-9][a-z0-9-]*)?__([A-Za-z0-9_]+)$")
+# The frontmatter keys route C owns outright: rebuilt from the wiring on every run, so a
+# repo taken out of the map leaves nothing behind.
+SERENA_OWNED_RE = re.compile(r"^(mcpServers|disallowedTools):")
+
+
+def serena_wiring(map_path, profiles_path):
+    """The snapshot route C wiring is built from, and recorded so `update`, `list` and
+    `remove` can rebuild exactly what was written: the repos in map order, with both
+    ports, and the profile tool sets. A list, not a dict, so the order survives the
+    manifest's sort_keys."""
+    with open(map_path, encoding="utf-8") as fh:
+        repos = json.load(fh)["repos"]
+    with open(profiles_path, encoding="utf-8") as fh:
+        prof = json.load(fh)
+    return {
+        "repos": [{"key": k, "port": r["port"], "edit_port": r["port"] + SERENA_EDIT_OFFSET}
+                  for k, r in repos.items()],
+        "all_tools": list(prof["all_tools"]),
+        "read": list(prof["read"]),
+        "edit": list(prof["edit"]),
+    }
+
+
+def _wire_text(text, wiring):
+    """One agent file's text as route C wiring leaves it, or `text` unchanged when its
+    frontmatter `tools:` holds no Serena tool.
+
+    tools: keeps every non-Serena tool in order, then mcp__serena-<key>__<verb> for every
+    repo x every Serena verb the agent held (under any key, on a re-run), minus
+    activate_project, which a single-project server does not have. mcpServers: gives
+    one http server per repo, on its edit port when the agent holds an edit-only verb.
+    disallowedTools: is every repo x every other Serena tool. The body's mcp__serena__
+    becomes mcp__serena-<key>__, with <key> left for the reader to fill.
+    """
+    lines = text.split("\n")
+    if not lines or lines[0].rstrip("\r") != "---":
+        return text
+    close = next((i for i in range(1, len(lines)) if lines[i].rstrip("\r") == "---"), None)
+    if close is None:
+        return text
+    fm = lines[1:close]
+    ti = next((i for i, l in enumerate(fm) if l.startswith("tools:")), None)
+    if ti is None:
+        return text
+    entries = [t.strip() for t in fm[ti][len("tools:"):].split(",") if t.strip()]
+    base, other = [], []
+    for t in entries:
+        m = SERENA_TOOL_RE.match(t)
+        if not m:
+            other.append(t)
+        elif m.group(1) != "activate_project" and m.group(1) not in base:
+            base.append(m.group(1))
+    if not base:
+        return text
+    repos = wiring["repos"]
+    edit = bool(set(base) & (set(wiring["edit"]) - set(wiring["read"])))
+    tools = other + ["mcp__serena-%s__%s" % (r["key"], t) for r in repos for t in base]
+    denied = ["mcp__serena-%s__%s" % (r["key"], t)
+              for r in repos for t in wiring["all_tools"] if t not in base]
+    kept, owned = [], False
+    for i, line in enumerate(fm):
+        if i == ti:
+            kept.append("tools: " + ", ".join(tools))
+            continue
+        if SERENA_OWNED_RE.match(line):
+            owned = True
+            continue
+        if owned and line[:1] in (" ", "\t", "-"):
+            continue
+        owned = False
+        kept.append(line)
+    kept.append("mcpServers:")
+    for r in repos:
+        kept += ["  - serena-%s:" % r["key"], "      type: http",
+                 "      url: http://127.0.0.1:%d/mcp" % (r["edit_port"] if edit else r["port"])]
+    kept.append("disallowedTools: " + ", ".join(denied))
+    out_text = "\n".join([lines[0]] + kept + lines[close:])
+    return out_text.replace("mcp__serena__", "mcp__serena-<key>__")
+
+
+def wire_route_c(paths, wiring):
+    """Give every Serena agent under `paths` route C's per-repo servers and tools.
+    Written LF; returns the files that changed."""
+    changed = []
+    for path in paths:
+        files = [os.path.join(path, r) for r in _walk_rel(path)] if os.path.isdir(path) else [path]
+        for f in files:
+            if not f.endswith(".md"):
+                continue
+            try:
+                text = read(f)
+            except (UnicodeDecodeError, OSError):
+                continue
+            new = _wire_text(text, wiring)
+            if new == text:
+                continue
+            with open(f, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(new)
             changed.append(f)
     return changed
 
@@ -1441,7 +1722,8 @@ def _as_installed(files, unit, config):
         tracker = {}
     memory = config.get("memory") or {}
     swap = memory.get("server") == "forgetful" and "forgetful.SKILL.md" in files
-    if not (prefix or values or delete or tracker or swap):
+    wiring = config.get("serena_wiring") if config.get("serena_route") == "C" else None
+    if not (prefix or values or delete or tracker or swap or wiring):
         return None
     out = {}
     for rel, data in files.items():
@@ -1450,10 +1732,14 @@ def _as_installed(files, unit, config):
         except UnicodeDecodeError:
             out[rel] = data
             continue
-        # Same order as install_stage_body: the Serena rewrite, then the placeholder fill.
+        # Same order as install_stage_body: the Serena rewrite, the route C wiring from
+        # the RECORDED snapshot (never the live map), then the placeholder fill.
+        is_md = (rel or os.path.basename(src)).endswith(".md")
         if prefix:
             text = text.replace("mcp__serena__", prefix)
-        if (rel or os.path.basename(src)).endswith(".md"):
+        if wiring and is_md:
+            text = _wire_text(text, wiring)
+        if is_md:
             text = _fill_text(text, values, delete)
         if tracker and rel == "":
             for token, value in tracker.items():
@@ -1500,6 +1786,29 @@ def _matches_a_shipped_version(unit, dest, config=None):
         if older is not None and _lf_digest(older, is_dir) == got:
             return "older"
     return None
+
+
+def _serena_route_moved(config, serena):
+    """Does this run answer the Serena question differently from the recorded run?
+
+    `serena` is this run's (prefix, route). None, or a config with no recorded
+    prefix, is never a move: there is nothing to compare against.
+    """
+    config = config or {}
+    if serena is None or "serena_prefix" not in config:
+        return False
+    was_c = config.get("serena_route") == "C" and bool(config.get("serena_wiring"))
+    was = (config.get("serena_prefix") or "", "C" if was_c else "")
+    now = (serena[0] or "", "C" if serena[1] == "C" else "")
+    return was != now
+
+
+def _names_serena(unit):
+    """Does the unit's template name a Serena tool by the template's own prefix?"""
+    try:
+        return any(b"mcp__serena__" in data for data in _unit_bytes(unit["src"]).values())
+    except OSError:
+        return False
 
 
 def exclusive_siblings(units, uid, recorded):
@@ -1571,7 +1880,7 @@ def drop_retired_paths(added, snippet_path):
     return [p for p in added if not stale(p)]
 
 
-def plan_install(units, manifest, selected, spec=None):
+def plan_install(units, manifest, selected, spec=None, serena=None):
     """Decide, per selected unit, what an install run may actually do to it.
 
     Nine actions. Two of them write a file and one deletes one:
@@ -1597,9 +1906,16 @@ def plan_install(units, manifest, selected, spec=None):
     `spec` is the recorded placeholder answers, and it is what turns `current` into
     `upgrade` for a file that lost a grant. Optional because a fresh install has no
     answers on record yet, and every unit is `install` there anyway.
+
+    `serena` is this run's Serena (prefix, route). When it differs from the recorded
+    one, a `current` unit whose template names a Serena tool is `upgrade`: the file
+    holds the recorded route's tool names, and on route C its per-repo servers, which
+    the prefix rewrite and the route C wiring never match. An edited file stays
+    `skip-edited`.
     """
     recorded = manifest.get("units") or {}
     config = manifest.get("config")
+    serena_moved = _serena_route_moved(config, serena)
     hook_src = hook_dest = None
     for u in units.values():
         if u["kind"] == "hook":
@@ -1682,6 +1998,8 @@ def plan_install(units, manifest, selected, spec=None):
             if _lost_a_recorded_fill(unit, dest, spec):
                 action = "upgrade"
         else:
+            action = "upgrade"
+        if action == "current" and serena_moved and _names_serena(unit):
             action = "upgrade"
         rows.append((action, uid, unit["kind"], unit["src"], dest))
     # An exclusive unit that writes its destination replaces the unshipped record
@@ -1827,7 +2145,10 @@ def main(argv):
         spec = json.loads(read(a[0]))
         out({"changed": apply_placeholders(spec["paths"], spec["values"], spec["delete"])})
     elif cmd == "serena-detect":
-        out(serena_detect(a[0], a[1]))
+        # Optional 3rd arg: the claude home, where route C's repo map lives.
+        out(serena_detect(a[0], a[1], a[2] if len(a) > 2 else None))
+    elif cmd == "serena-discover":
+        out(serena_discover(a[0], a[1], a[2], a[3] if len(a) > 3 else None))
     elif cmd == "memory-detect":
         out(memory_detect(a[0], a[1]))
     elif cmd == "tracker-detect":
@@ -1844,6 +2165,10 @@ def main(argv):
         out(PLACEHOLDER_CONTRACT)
     elif cmd == "serena-rewrite":
         out({"changed": rewrite_serena(json.loads(read(a[0])), a[1])})
+    elif cmd == "serena-wire":
+        # paths.json, then a repo map plus profiles.json, or a recorded wiring alone.
+        wiring = serena_wiring(a[1], a[2]) if len(a) > 2 else json.loads(read(a[1]))
+        out({"changed": wire_route_c(json.loads(read(a[0])), wiring), "wiring": wiring})
     elif cmd == "merge-json":
         out(merge_json(a[0], json.loads(read(a[1]))))
     elif cmd == "unmerge-json":
@@ -1863,7 +2188,9 @@ def main(argv):
         # install — load_json returns {} for a path that is not there — and every
         # unit is `install` in that run, so the check has nothing to do anyway.
         spec = load_json(a[3]) if len(a) > 3 else None
-        tsv(plan_install(units, manifest, selected, spec))
+        # Optional 5th and 6th: this run's Serena prefix and route, either may be "".
+        serena = (a[4], a[5]) if len(a) > 5 else None
+        tsv(plan_install(units, manifest, selected, spec, serena))
     elif cmd == "plan-state":
         # Optional 3rd arg: the recorded placeholder answers, for the same reason
         # plan-install takes an optional 4th — a unit that lost a fill is not

@@ -334,6 +334,12 @@ banner_pb() {
       printf '    %s\n\n' "$CLAUDE_HOME"
       printf '  It only reads. Nothing is written, changed or deleted.\n'
       ;;
+    serena-wire)
+      printf '  This re-reads your route C repo map, adds any new git repo found next\n'
+      printf '  to this folder, and gives the agents in\n'
+      printf '    %s\n' "$CLAUDE_HOME"
+      printf '  one Serena server per repo. It asks you nothing.\n'
+      ;;
     *)
       printf '  This installs ready-made commands, agents and guardrails for Claude\n'
       printf '  Code into this folder:\n'
@@ -446,7 +452,7 @@ preflight() {
       PY="$cand"; break
     fi
   done
-  [[ -n "$PY" ]] || die "python 3.7 or newer is required, and none was found. This installer needs it, and so do all eight guardrail hooks."
+  [[ -n "$PY" ]] || die "python 3.7 or newer is required, and none was found. This installer needs it, and so do all nine guardrail hooks."
 
   [[ -f "$LIB" ]]       || die "install-lib.py is not next to this script. Run ./install.sh from inside the folder you cloned."
   [[ -d "$TEMPLATES" ]] || die "the templates/ folder is not next to this script. Run ./install.sh from inside the folder you cloned."
@@ -787,6 +793,8 @@ PY
 # Stage 4 — Serena route
 # ══════════════════════════════════════════════════════════════════════════
 SERENA_PREFIX=""
+SERENA_ROUTE=""
+SERENA_MAP_WRITE="no"
 
 # serena_gate — Serena is MANDATORY, so no evidence means no install.
 #
@@ -800,7 +808,7 @@ SERENA_PREFIX=""
 # or install_finish() on the way out — all three call _clear, which would wipe the
 # instructions off the screen at the exact moment the user needs to read them.
 serena_gate() {
-  pb serena-detect "$HOME" "$PWD" > "$WORK/serena.json"
+  pb serena-detect "$HOME" "$PWD" "$CLAUDE_HOME" > "$WORK/serena.json"
   # Gate on the FINDING, not on the length of the evidence list. _server_scan
   # appends an evidence row for an unparseable ~/.claude.json, and counting rows
   # read that row as a reason to continue — a corrupt config file let the gate
@@ -829,6 +837,9 @@ serena_gate() {
   printf '                           mcpServers.serena in <workspace>/.mcp.json or\n'
   printf '                           in ~/.claude.json. See\n'
   printf '                           templates/mcp/project.mcp.json.snippet\n\n'
+  printf '       Route C (many repos, one Serena server for each): set up A or B\n'
+  printf '                           first. This installer then offers C at its\n'
+  printf '                           Serena step.\n\n'
   printf '    3. Check it worked: run /mcp in Claude Code. You should see serena\n'
   printf '       listed, AND the tools that write code (replace_symbol_body,\n'
   printf '       rename_symbol, safe_delete_symbol). A Serena that can only read\n'
@@ -936,6 +947,120 @@ memory_gate() {
   exit 1
 }
 
+# route_c_units — the units discovery tags route_c_only, one per line.
+route_c_units() {
+  py - "$UNITS" <<'PY'
+import json, sys
+units = json.load(open(sys.argv[1]))
+sys.stdout.buffer.write("".join(u + "\n" for u in sorted(units) if units[u].get("route_c_only")).encode())
+PY
+}
+
+# serena_map_refusal MAP — the repo map failed the kit's validator: say which lines, and
+# stop before anything is written. Never through stage(), which clears the screen.
+serena_map_refusal() {
+  {
+    printf '\n  %s%s✗ The route C repo map has a problem:%s %s\n\n' "$BOLD" "$RED" "$RESET" "$1"
+    sed 's/^/      /' "$WORK/serena-validate.txt"
+    printf '\n  %sNothing has been installed and nothing has been changed.%s\n' "$BOLD" "$RESET"
+    printf '  Fix that line, or delete the file and the installer will make a new one;\n'
+    printf '  then run the installer again.\n\n'
+  } >&2
+  exit 1
+}
+
+# serena_map_ready — leave route C's repo map in $WORK/serena-repos.json and say what
+# is in it. With no map yet, it is made from the git repos in $SERENA_REPOS_DIR, or in
+# the folder this clone sits in; an existing map gains any repo found there that it does
+# not name, and nothing in it changes. SERENA_MAP_WRITE=yes when the map on disk is to
+# be written. Returns 1, having said why in plain words, when there is no map and no
+# repo was found. Stops the run, before anything is written, on a map the kit's
+# validator refuses.
+serena_map_ready() {
+  local map="$CLAUDE_HOME/serena-repos.json" scan status added
+  scan="${SERENA_REPOS_DIR:-$(dirname "$HERE")}"
+  SERENA_MAP_WRITE="no"
+  if [[ -f "$map" ]] && ! py "$TEMPLATES/serena/serena_route.py" validate --map "$map" \
+       > "$WORK/serena-validate.txt" 2>&1; then
+    serena_map_refusal "$map"
+  fi
+  pb serena-discover "$CLAUDE_HOME" "$scan" "$WORK/serena-repos.json" "$HERE" \
+    > "$WORK/serena-discover.json" \
+    || die "could not look for repos in $scan — install-lib.py serena-discover failed (its error is above)"
+  status=$(py -c 'import json,sys;sys.stdout.write(json.load(open(sys.argv[1]))["status"])' "$WORK/serena-discover.json")
+  added=$(py -c 'import json,sys;sys.stdout.write(str(len(json.load(open(sys.argv[1])).get("added") or [])))' "$WORK/serena-discover.json")
+
+  heading "Route C — the repo map"
+  py - "$WORK/serena-discover.json" "${map//\\//}" <<'PY'
+import json, sys
+d, target = json.load(open(sys.argv[1], encoding="utf-8")), sys.argv[2]
+def say(s=""):
+    sys.stdout.buffer.write(("  " + s + "\n").encode("utf-8"))
+def rows(repos):
+    for r in repos:
+        say("    %-20s %s   read port %d / edit port %d" % (r["key"], r["path"], r["port"], r["edit_port"]))
+st = d["status"]
+if st == "found":
+    say("Found %d git repo(s) in %s:" % (len(d["repos"]), d["searched"]))
+    rows(d["repos"])
+    say()
+    say("This list is saved to %s when the install runs." % target)
+    say("Edit it only to correct it, then run:  bash install.sh serena-wire")
+elif st == "kept":
+    say("Using your repo map %s (%d repo(s))." % (target, len(d["repos"])))
+    if d["added"]:
+        say("New git repos found in %s are added to the end of it, and nothing" % d["searched"])
+        say("already in it changes:")
+        rows(d["added"])
+    else:
+        say("Nothing new was found in %s." % d["searched"])
+elif st == "none":
+    say("No git repos were found in %s, so route C has nothing to serve." % d["searched"])
+    say("Route C needs your code repos in that folder, or SERENA_REPOS_DIR set to the")
+    say("folder that holds them before you run the installer, like this:")
+    say("    SERENA_REPOS_DIR=/c/code bash install.sh")
+    say("Or add a repo by hand: copy templates/serena/serena-repos.example.json to")
+    say("%s, put the repo's folder in \"path\", and run the installer again." % target)
+elif st == "no-ports":
+    say("No free pair of ports was left between %d and %d." % (d["first"], d["last"]))
+else:
+    say("The repo map %s could not be read: %s" % (d.get("path"), d.get("error")))
+PY
+  printf '\n'
+  case "$status" in
+    found|kept) ;;
+    none) return 1 ;;
+    *) die "route C cannot go on until the repo map is fixed (see above). Nothing has been installed or changed." ;;
+  esac
+  if [[ "$status" == "found" || "$added" != "0" ]]; then
+    SERENA_MAP_WRITE="yes"
+    py "$TEMPLATES/serena/serena_route.py" validate --map "$WORK/serena-repos.json" \
+      > "$WORK/serena-validate.txt" 2>&1 || serena_map_refusal "$map"
+  fi
+  return 0
+}
+
+# serena_wire_run PATHS_JSON — give every Serena agent under PATHS_JSON one server per
+# repo: from the recorded wiring when update has one, otherwise from the repo map. The
+# wiring used is left in $WORK/serena-wiring.json for write_manifest to record.
+serena_wire_run() {
+  local n
+  if [[ -f "$WORK/serena-wiring.json" ]]; then
+    pb serena-wire "$1" "$WORK/serena-wiring.json" > "$WORK/serena-wire.json"
+  else
+    pb serena-wire "$1" "$WORK/serena-repos.json" "$TEMPLATES/serena/profiles.json" > "$WORK/serena-wire.json"
+  fi
+  n=$(py - "$WORK/serena-wire.json" "$WORK/serena-wiring.json" <<'PY'
+import json, sys
+r = json.load(open(sys.argv[1], encoding="utf-8"))
+with open(sys.argv[2], "w", encoding="utf-8", newline="\n") as f:
+    json.dump(r["wiring"], f, indent=2)
+sys.stdout.write(str(len(r["changed"])))
+PY
+)
+  ok "gave $n agent file(s) one Serena server per repo"
+}
+
 serena_stage() {
   stage "Serena — which tool names to use"
   serena_gate
@@ -958,20 +1083,45 @@ PY
   note "  A  you installed the Serena PLUGIN    ->  mcp__plugin_serena_serena__"
   note "  B  you registered it yourself, in"
   note "     .mcp.json or ~/.claude.json        ->  mcp__serena__   (the default)"
+  note "  C  many repos: one Serena server per"
+  note "     repo, started only when needed     ->  mcp__serena-<repo>__"
   printf '\n'
   say "Pressing Enter takes the suggestion, which is based on what was found above."
   printf '\n'
 
-  local suggest ans
+  local suggest ans fallback id
   suggest=$(py -c 'import json,sys;print(json.load(open(sys.argv[1]))["route"] or "B")' "$WORK/serena.json")
-  printf '  %sRoute [A/B, Enter = %s]%s ' "$BOLD" "$suggest" "$RESET"
+  fallback="B"
+  [[ "$suggest" == "A" ]] && fallback="A"
+  printf '  %sRoute [A/B/C, Enter = %s]%s ' "$BOLD" "$suggest" "$RESET"
   _read ans
   [[ -z "$ans" ]] && ans="$suggest"
+  SERENA_ROUTE=""
+  case "$ans" in
+    c|C)
+      if serena_map_ready; then
+        SERENA_ROUTE="C"
+      else
+        warn "Continuing with route $fallback — nothing is set up for route C."
+        ans="$fallback"
+      fi
+      ;;
+  esac
   case "$ans" in
     a|A) SERENA_PREFIX="mcp__plugin_serena_serena__"; ok "will rename the Serena tools to the plugin form" ;;
+    c|C) SERENA_PREFIX="";                            ok "route C: each agent gets one Serena server per repo in the map" ;;
     *)   SERENA_PREFIX="";                            ok "keeping mcp__serena__, which is what the files already say" ;;
   esac
-  TODO+=("Check the real Serena tool names with /mcp in Claude Code, then run one agent and confirm it actually got them.")
+  # The route C units are installed on route C and on no other route, whatever the
+  # preset ticked: `recommended` ticks every hook and `everything` every unit.
+  for id in $(route_c_units); do
+    if [[ "$SERENA_ROUTE" == "C" ]]; then sel_add "$id"; else sel_del "$id"; fi
+  done
+  if [[ "$SERENA_ROUTE" == "C" ]]; then
+    TODO+=("Route C: before you dispatch an agent on a repo, start that repo's Serena server:  bash ${CLAUDE_HOME//\\//}/serena/serena-up.sh <repo>   (add --edit for an agent that changes code). bash ${CLAUDE_HOME//\\//}/serena/serena-down.sh stops them all. The repo names are the keys in ${CLAUDE_HOME//\\//}/serena-repos.json.")
+  else
+    TODO+=("Check the real Serena tool names with /mcp in Claude Code, then run one agent and confirm it actually got them.")
+  fi
   printf '\n'
   pause "Press Enter to continue"
 }
@@ -1362,7 +1512,7 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
   # $PH_SPEC is passed here for the same reason install_stage_body passes it, and
   # it has to be the SAME argument list or the promise above is false: a unit that
   # lost a recorded fill is `upgrade`, and the screen must say so before it happens.
-  pb plan-install "$UNITS" "$MANIFEST" "$WORK/closed.txt" "$PH_SPEC" > "$WORK/plan-preview.tsv"
+  pb plan-install "$UNITS" "$MANIFEST" "$WORK/closed.txt" "$PH_SPEC" "$SERENA_PREFIX" "$SERENA_ROUTE" > "$WORK/plan-preview.tsv"
 
   local hooks_selected
   hooks_selected=$(sed -n 's/^hook://p' "$WORK/closed.txt" | tr '\n' ' ')
@@ -1383,7 +1533,7 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
     if (( TRK_TODO_TO > TRK_TODO_FROM )); then
       TODO=("${TODO[@]:0:TRK_TODO_FROM}" "${TODO[@]:TRK_TODO_TO}")
     fi
-    pb plan-install "$UNITS" "$MANIFEST" "$WORK/closed.txt" "$PH_SPEC" > "$WORK/plan-preview.tsv"
+    pb plan-install "$UNITS" "$MANIFEST" "$WORK/closed.txt" "$PH_SPEC" "$SERENA_PREFIX" "$SERENA_ROUTE" > "$WORK/plan-preview.tsv"
   fi
 
   if [[ -n "${hooks_selected// /}" ]]; then
@@ -1529,7 +1679,7 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
 
   # $PH_SPEC is the 4th argument so the plan can spot a file that lost a grant it
   # has an answer for, and reclassify it from `current` to `upgrade`.
-  pb plan-install "$UNITS" "$MANIFEST" "$SELECTED" "$PH_SPEC" > "$WORK/plan.tsv"
+  pb plan-install "$UNITS" "$MANIFEST" "$SELECTED" "$PH_SPEC" "$SERENA_PREFIX" "$SERENA_ROUTE" > "$WORK/plan.tsv"
 
   local action uid kind src dest
   : > "$WORK/written.txt"
@@ -1631,6 +1781,14 @@ json.dump([l.strip() for l in open(sys.argv[1]) if l.strip()], open(sys.argv[2],
     ok "rewrote the Serena prefix in $(py -c 'import json,sys;print(len(json.load(open(sys.argv[1]))["changed"]))' "$WORK/serena-rw.json") file(s)"
   fi
 
+  if [[ "$SERENA_ROUTE" == "C" ]]; then
+    if [[ "$SERENA_MAP_WRITE" == "yes" ]]; then
+      cp "$WORK/serena-repos.json" "$CLAUDE_HOME/serena-repos.json"
+      ok "saved the repo map → $CLAUDE_HOME/serena-repos.json"
+    fi
+    serena_wire_run "$WORK/paths.json"
+  fi
+
   py - "$PH_SPEC" "$WORK/paths.json" <<'PY'
 import json, sys
 spec = json.load(open(sys.argv[1]))
@@ -1720,14 +1878,15 @@ PY
 write_manifest() {
   py - "$MANIFEST" "$UNITS" "$SELECTED" "$WORK/merge.json" "$HERE" "$LIB" "$WORK/plan.tsv" \
          "$PH_SPEC" "$SERENA_PREFIX" "$WORK/tracker.json" "$WORK/adopt.txt" \
-         "$WORK/memory.json" "$HOOK_SNIPPET" <<'PY'
+         "$WORK/memory.json" "$HOOK_SNIPPET" "$SERENA_ROUTE" "$WORK/serena-wiring.json" <<'PY'
 import sys
 sys.dont_write_bytecode = True   # don't leave a __pycache__ in the user's clone
 
 import json, os, time, importlib.util
 
 (manifest_path, units_path, sel_path, merge_path, repo, lib_path, plan_path,
- ph_path, serena_prefix, tracker_path, adopt_path, memory_path, hook_snippet) = sys.argv[1:14]
+ ph_path, serena_prefix, tracker_path, adopt_path, memory_path, hook_snippet,
+ serena_route, wiring_path) = sys.argv[1:16]
 
 # reuse the library's hashing so the manifest and the planner agree exactly
 spec = importlib.util.spec_from_file_location("pblib", lib_path)
@@ -1762,6 +1921,14 @@ if os.path.exists(ph_path):
                               "delete": spec.get("delete", []),
                               "contract": spec.get("contract", 0)}
     config["serena_prefix"] = serena_prefix
+    # Route C's wiring as written, so list, update and remove can rebuild it. Absent
+    # on route A and B, whose files hold no route C wiring.
+    if serena_route == "C" and os.path.exists(wiring_path):
+        config["serena_route"] = "C"
+        config["serena_wiring"] = json.load(open(wiring_path, encoding="utf-8"))
+    else:
+        config.pop("serena_route", None)
+        config.pop("serena_wiring", None)
 if os.path.exists(tracker_path):
     # Merge rather than replace: a run where the user pressed Enter past a field
     # records nothing for it, and must not erase the answer they gave last time.
@@ -2324,7 +2491,7 @@ PY
 # it is reported and left for you to tick in the interactive run.
 load_recorded_config() {
   [[ -f "$MANIFEST" ]] || return 1
-  py - "$MANIFEST" "$PH_SPEC" <<'PY'
+  py - "$MANIFEST" "$PH_SPEC" "$WORK/serena-wiring.json" <<'PY'
 import json, sys
 try:
     m = json.load(open(sys.argv[1]))
@@ -2334,6 +2501,10 @@ cfg = m.get("config") or {}
 ph = cfg.get("placeholders")
 if not ph:
     sys.exit(1)
+# Route C replays the wiring on record, never the map as it is now: an update must
+# not quietly add a repo the user has not asked serena-wire for.
+if cfg.get("serena_route") == "C" and cfg.get("serena_wiring"):
+    json.dump(cfg["serena_wiring"], open(sys.argv[3], "w"), indent=2)
 # Carry the contract stamp through with the answers. Without it, this run's own
 # write_manifest re-records contract 0 from the replayed spec and DOWNGRADES the
 # stamp. That does not SILENCE the stop — a stopped run dies before write_manifest
@@ -2473,6 +2644,7 @@ update_mode() {
   local prefix
   if prefix=$(load_recorded_config); then
     SERENA_PREFIX="$prefix"
+    if [[ -f "$WORK/serena-wiring.json" ]]; then SERENA_ROUTE="C"; fi
     # Before reusing them, check they are still answers to the questions that were
     # actually asked. This is a hard stop and it must stay ABOVE `stage "Update"`
     # and install_stage_body: a refused update writes nothing.
@@ -2557,6 +2729,51 @@ discover_units_quiet() {
 # ══════════════════════════════════════════════════════════════════════════
 # remove
 # ══════════════════════════════════════════════════════════════════════════
+# serena_wire_mode [DIR...] — route C after the install: re-read the repo map, add any
+# new git repo found next to this clone, and rewire the installed agents, plus the agent
+# files in each DIR (a repo's own .claude/agents, which the manifest does not record).
+# Asks nothing, so it runs the same with nobody at the keyboard.
+serena_wire_mode() {
+  local d route
+  preflight
+  for d in "$@"; do
+    [[ -d "$d" ]] || die "serena-wire: $d is not a folder. Name a folder of agent files, such as <repo>/.claude/agents."
+  done
+  stage "Route C — wiring the agents to the repo map"
+  serena_map_ready || die "there is no repo map and no git repo was found, so there is nothing to wire."
+  [[ -f "$MANIFEST" ]] || die "no manifest at $MANIFEST — run ./install.sh first, and choose C at its Serena step."
+  route=$(py -c 'import json,sys;sys.stdout.write((json.load(open(sys.argv[1])).get("config") or {}).get("serena_route") or "")' "$MANIFEST")
+  [[ "$route" == "C" ]] || die "this install is on Serena route A or B, not C. Run ./install.sh and choose C at its Serena step."
+  if [[ "$SERENA_MAP_WRITE" == "yes" ]]; then
+    cp "$WORK/serena-repos.json" "$CLAUDE_HOME/serena-repos.json"
+    ok "saved the repo map → $CLAUDE_HOME/serena-repos.json"
+  fi
+  py - "$MANIFEST" "$WORK/paths.json" "$@" <<'PY'
+import json, os, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+paths = [r["dest"] for u, r in sorted((m.get("units") or {}).items())
+         if u.startswith("agent:") and os.path.isfile(r.get("dest") or "")]
+json.dump(paths + sys.argv[3:], open(sys.argv[2], "w"))
+PY
+  serena_wire_run "$WORK/paths.json"
+  # Only the wiring is recorded, never a new hash: an agent rewired here is still
+  # recognised as ours because list, update and remove rebuild it from this record.
+  py - "$MANIFEST" "$WORK/serena-wiring.json" <<'PY'
+import json, sys
+m = json.load(open(sys.argv[1], encoding="utf-8"))
+m.setdefault("config", {})["serena_wiring"] = json.load(open(sys.argv[2], encoding="utf-8"))
+with open(sys.argv[1], "w") as fh:
+    json.dump(m, fh, indent=2, sort_keys=True)
+    fh.write("\n")
+PY
+  ok "recorded the new wiring in $MANIFEST"
+  printf '\n'
+  note "Start a repo's server before you dispatch an agent on it:"
+  note "  bash ${CLAUDE_HOME//\\//}/serena/serena-up.sh <repo>   (add --edit for an agent that changes code)"
+  printf '\n'
+  exit 0
+}
+
 remove_mode() {
   preflight
 
@@ -2628,6 +2845,9 @@ PY
 
   rm -f "$MANIFEST"
   ok "manifest removed"
+  if [[ -e "$CLAUDE_HOME/serena-repos.json" || -e "$CLAUDE_HOME/serena-state" ]]; then
+    TODO+=("Kept ${CLAUDE_HOME//\\//}/serena-repos.json and ${CLAUDE_HOME//\\//}/serena-state — your route C repo map, which is yours to edit, and the servers' state. Delete them by hand if you no longer want them.")
+  fi
   TODO+=("Backups of every shared file this script touched are under $BACKUPS.")
   install_finish "Removed"
   exit 0
@@ -2768,6 +2988,13 @@ case "$MODE" in
     banner_pb "claude-code-playbook · state"
     list_mode
     ;;
+  serena-wire)
+    # preflight · rewire
+    TOTAL_STAGES=2
+    banner_pb "claude-code-playbook · serena-wire"
+    shift
+    serena_wire_mode "$@"
+    ;;
   install|"")
     require_tty
     banner_pb "claude-code-playbook · install" pause
@@ -2783,6 +3010,6 @@ case "$MODE" in
     install_finish "Install complete"
     ;;
   *)
-    die "unknown mode: $MODE (expected install, update, remove or list)"
+    die "unknown mode: $MODE (expected install, update, remove, list or serena-wire)"
     ;;
 esac

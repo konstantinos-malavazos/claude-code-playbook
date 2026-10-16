@@ -161,6 +161,7 @@ claude-code-playbook/
 │   ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory · start-massive · resume-massive · build-chart-ticket · feeling-lucky · feeling-very-lucky
 │   ├── hooks/        block-dangerous-git · block-infra-staging · block-secret-staging · block-mcp-writes · …
 │   ├── mcp/          MCP config snippets (global + project) + settings snippet
+│   ├── serena/       route C: serena-up · serena-down · tool profiles · example repo map
 │   ├── trackers/     one adapter, installed at ~/.claude/tracker.md
 │   └── views/        pages a skill fills with data and you open in a browser
 └── tests/                           offline, no model, no network — `bash tests/<name>.sh`, or `powershell.exe -File` / `pwsh -File` for the `.ps1`
@@ -210,6 +211,7 @@ PLAYBOOK_TEST_DIR="$S/i5" bash tests/test-installer.sh R1 R2 R3 L1 L2 L3 L4
 PLAYBOOK_TEST_DIR="$S/i6" bash tests/test-installer.sh SW1 SW2 ST1 ST2 ST3 ST4 ST5 ST6 LF1
 PLAYBOOK_TEST_DIR="$S/i7" bash tests/test-installer.sh SW3 SW4 SW5 SW6 SW7 SW8
 PLAYBOOK_TEST_DIR="$S/i8" bash tests/test-installer.sh HL1 HO1 ML1 MJ1 RT1 FX1 FX2 FX3
+PLAYBOOK_TEST_DIR="$S/i9" bash tests/test-installer.sh RC1 RC2 RC3 RC4 RC5 RC6 RC7 RC8 RC9
 ```
 
 Every chunk must end with `failed 0`. Add up the `passed` lines: they should match a full
@@ -324,7 +326,7 @@ so there is nothing to upgrade.
 
 ### Windows
 
-Windows needs one extra thing first, and it is not optional: **the eight guardrail hooks
+Windows needs one extra thing first, and it is not optional: **the nine guardrail hooks
 are bash scripts, and every one of them parses its input with Python.** A
 native-PowerShell install would place hooks that cannot execute — and a hook that cannot
 execute fails *closed*, jamming every command instead of guarding it. So Windows runs

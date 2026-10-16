@@ -71,12 +71,27 @@ working in (its folder name, or its path), then retry the call once. Halt only i
 activation fails or the retried call still fails, and then say in your HALTED block that
 activation was tried and failed, instead of naming missing tools.
 
+## Route C — one server per repo
+
+On route C each repo has its own Serena server, and your Serena tools are named
+`mcp__serena-<key>__<tool>`, where `<key>` is the repo's key in `~/.claude/serena-repos.json`.
+Use the tools whose key matches the repo you are working in.
+
+- On route C there is no `activate_project`: each server serves exactly one repo, so the
+  retry above never applies. Do not look for it and do not report its absence.
+- Your halt check tool is `mcp__serena-<key>__find_symbol` for the repo you work in. Missing,
+  or failing with a connection error, means that repo's server is not running. Halt as
+  above, and add the line that starts it:
+  `bash ~/.claude/serena/serena-up.sh <key>` (PowerShell: `powershell -ExecutionPolicy Bypass
+  -File ~/.claude/serena/serena-up.ps1 <key>`). An agent that edits code adds `--edit`. Never start a server yourself.
+
 ## Dispatch paragraph
 
 Every command that hands work to an implementation agent pastes the paragraph below into
 the dispatch prompt — the first dispatch and every re-dispatch: a review fix, a drift fix,
 a route-back, an alignment return. Fill `<live tools>` with the Serena tool names that
-resolve in the session right now. Paste it as it stands; do not paraphrase it.
+resolve in the session right now — on route C, the specialist's own `mcp__serena-<key>__*`
+tools for the repo it works in. Paste it as it stands; do not paraphrase it.
 
 > **Serena, in this run.** Your live Serena tools are: `<live tools>`. Find every symbol
 > with `find_symbol` or `get_symbols_overview` before any `Read` or grep. Call

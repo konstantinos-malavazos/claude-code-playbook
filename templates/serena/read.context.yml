@@ -1,0 +1,52 @@
+# excluded_tools is all_tools minus the read list in profiles.json; RC8b checks it.
+description: "Playbook route C, read profile - one repo, lookups and diagnostics only."
+prompt: |
+  This Serena server serves one repository, already active. There is no
+  activate_project. It offers only the read tools of the playbook's route C.
+excluded_tools:
+  - activate_project
+  - create_text_file
+  - delete_lines
+  - delete_memory
+  - edit_memory
+  - execute_shell_command
+  - get_current_config
+  - get_diagnostics_for_symbol
+  - initial_instructions
+  - insert_after_symbol
+  - insert_at_line
+  - insert_before_symbol
+  - jet_brains_debug
+  - jet_brains_find_declaration
+  - jet_brains_find_implementations
+  - jet_brains_find_referencing_symbols
+  - jet_brains_find_symbol
+  - jet_brains_get_symbols_overview
+  - jet_brains_inline_symbol
+  - jet_brains_list_inspections
+  - jet_brains_move
+  - jet_brains_rename
+  - jet_brains_run_inspections
+  - jet_brains_safe_delete
+  - jet_brains_type_hierarchy
+  - list_memories
+  - list_queryable_projects
+  - onboarding
+  - open_dashboard
+  - query_project
+  - read_memory
+  - remove_project
+  - rename_memory
+  - rename_symbol
+  - replace_content
+  - replace_in_files
+  - replace_lines
+  - replace_symbol_body
+  - restart_language_server
+  - safe_delete_symbol
+  - serena_info
+  - serena_repl
+  - write_memory
+tool_description_overrides: {}
+single_project: true
+structured_tool_output: false

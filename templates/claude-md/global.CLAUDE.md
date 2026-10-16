@@ -56,6 +56,19 @@ to `Edit`. Sparse Serena results are a finding to report, not permission to grep
 Evidence discipline: cite the symbol + `file:line` from the Serena result. "Grep found
 nothing" is not evidence of absence.
 
+### Route C — one Serena server per repo (only if the installer set it up)
+On route C the main session uses **no Serena tools**, even if the plugin or a shared server
+is still connected: each repo's server belongs to the agents wired to it. So in the main
+session:
+- Read code through `@serena-lookup`, never by `Read`/`Grep`. Edit code only by dispatching
+  an agent; the main session never edits code on route C.
+- Before dispatching, start the servers the work needs:
+  `bash ~/.claude/serena/serena-up.sh <key...>` (add `--edit` for an agent that edits).
+  The keys are in `~/.claude/serena-repos.json`. An agent that halts because its server is
+  down names the command; run it and dispatch again.
+- When the work is done, stop them: `bash ~/.claude/serena/serena-down.sh`.
+- On route C there is no `activate_project`.
+
 ## Forgetful (semantic memory) — on by default
 
 I should not have to ask. When starting work on a ticket, a component, or an investigation

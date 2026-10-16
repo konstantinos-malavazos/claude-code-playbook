@@ -19,6 +19,7 @@
 #   D-K  every markdown table row has its table's cell count
 #   D-L  a section id that names no section, and a missing python, fail the run
 #   D-M  a subagent waits in the foreground or hands the run back
+#   D-N  the CI chunk plan runs every installer section exactly once
 #
 #   bash tests/test-docs.sh              # all sections
 #   bash tests/test-docs.sh D-B D-D      # only these; an unknown id stops the run (exit 2)
@@ -1513,6 +1514,111 @@ if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
 else
   pass "D-M · every pinned file states the rule, and no tracked .md carries the retired advice"
 fi
+fi
+
+# ---------------------------------------------------------------- D-N
+# CI runs the Windows installer suite as one job per README chunk, and tests/ci-chunks.py
+# is what turns the chunk list into those jobs. A section it hands to no job never runs
+# on Windows; one it hands to two jobs, or a coupled group it splits, runs twice. Each
+# fixture below breaks the real README one of those ways, and the plan must refuse it.
+if want D-N; then
+banner "D-N · the CI chunk plan runs every installer section exactly once"
+D_N_TMP="$(mktemp -d)"
+"$PY" "$REPO/tests/ci-chunks.py" > "$D_N_TMP/real.out" 2>&1
+D_N_RC=$?
+if [ "$D_N_RC" = "0" ]; then
+  pass "D-N · the real README gives a chunk plan (rc=0)"
+else
+  fail "D-N · the real README gives a chunk plan (rc=$D_N_RC): $(head -3 "$D_N_TMP/real.out")"
+fi
+grep -vE '^[[:space:]]*#' "$REPO/tests/test-installer.sh" \
+  | grep -oE '(^|[^[:alnum:]_])want [[:alnum:]]+' | sed 's/.*want //' \
+  | LC_ALL=C sort -u > "$D_N_TMP/suite.ids"
+D_N_OUT="$D_N_TMP/real.out" "$PY" - <<'PYEOF' 2>&1 | LC_ALL=C sort > "$D_N_TMP/plan.ids"
+import io, json, os, sys
+v = {}
+with io.open(os.environ["D_N_OUT"], encoding="utf-8", errors="replace") as f:
+    for line in f:
+        k, _, rest = line.rstrip("\r\n").partition("=")
+        v[k] = rest
+chunks, sections = json.loads(v["chunks"]), json.loads(v["sections"])
+if sorted(chunks) != sorted(sections):
+    sys.stdout.buffer.write(b"MISMATCH chunks and sections name different jobs\n")
+for c in chunks:
+    for i in sections[c].split():
+        sys.stdout.buffer.write((i + "\n").encode("utf-8"))
+PYEOF
+D_N_SUITE="$(wc -l < "$D_N_TMP/suite.ids" | tr -d ' ')"
+if [ "${D_N_SUITE:-0}" -ge 10 ] && diff "$D_N_TMP/suite.ids" "$D_N_TMP/plan.ids" > "$D_N_TMP/diff" 2>&1; then
+  pass "D-N · the plan's jobs run each of the suite's ${D_N_SUITE} sections exactly once"
+else
+  fail "D-N · the plan's jobs do not run each of the suite's ${D_N_SUITE:-0} sections exactly once: $(head -5 "$D_N_TMP/diff" | tr '\n' ' ')"
+fi
+D_N_DIR="$D_N_TMP" DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$D_N_TMP/fx.out" 2>&1
+import io, os, re, sys
+d, repo = os.environ["D_N_DIR"], os.environ["DOCS_REPO"]
+with io.open(os.path.join(repo, "README.md"), "rb") as f:
+    text = f.read().decode("utf-8")
+with io.open(os.path.join(repo, "tests", "test-installer.sh"), encoding="utf-8") as f:
+    suite = f.read()
+HEAD = "### Running the installer suite"
+CHUNK = re.compile(r"bash tests/test-installer\.sh[ \t]+(\S[^\r\n]*)")
+GUARD = re.compile(r"^\s*if\s+(want\s+\S+(?:\s*\|\|\s*want\s+\S+)+)\s*;\s*then\b", re.M)
+lines = text.split("\n")
+start = next(n for n, l in enumerate(lines) if l.startswith(HEAD))
+rows = [n for n in range(start, len(lines)) if CHUNK.search(lines[n])]
+
+def ids(n):
+    return CHUNK.search(lines[n]).group(1).split()
+
+def put(src, n, new):
+    m = CHUNK.search(src[n])
+    out = list(src)
+    out[n] = src[n][:m.start(1)] + " ".join(new) + src[n][m.end(1):]
+    return out
+
+def save(name, src):
+    with io.open(os.path.join(d, name), "wb") as f:
+        f.write("\n".join(src).encode("utf-8"))
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
+
+last, first = rows[-1], rows[0]
+save("drop.md", put(lines, last, ids(last)[:-1]))
+emit("DROP %s" % ids(last)[-1])
+save("dup.md", put(lines, last, ids(last) + [ids(first)[0]]))
+emit("DUP %s" % ids(first)[0])
+group = [p.split()[1] for p in GUARD.search(suite).group(1).split("||")]
+moved = group[-1]
+home = next(n for n in rows if moved in ids(n))
+other = next(n for n in rows if n != home)
+split = put(lines, home, [i for i in ids(home) if i != moved])
+save("split.md", put(split, other, ids(other) + [moved]))
+emit("SPLIT %s" % moved)
+save("none.md", [l.replace(HEAD, "### Running it") for l in lines])
+emit("BUILT 4")
+PYEOF
+if [ "$(sed -n 's/^BUILT //p' "$D_N_TMP/fx.out")" = "4" ]; then
+  pass "D-N · built the four broken README fixtures"
+else
+  fail "D-N · [setup] the README fixtures were not built: $(head -3 "$D_N_TMP/fx.out")"
+fi
+d_n_refused() {  # fixture  words-the-refusal-must-name  label
+  "$PY" "$REPO/tests/ci-chunks.py" "$D_N_TMP/$1" "$REPO/tests/test-installer.sh" > "$D_N_TMP/$1.out" 2>&1
+  local rc=$?
+  if [ "$rc" != "0" ] && [ -n "$2" ] &&
+     grep -qE "(^|[^[:alnum:]])$2([^[:alnum:]]|\$)" "$D_N_TMP/$1.out"; then
+    pass "D-N · $3 is refused (rc=$rc), naming \"$2\""
+  else
+    fail "D-N · $3 is refused (rc=$rc), naming \"$2\": $(head -3 "$D_N_TMP/$1.out" | tr '\n' ' ')"
+  fi
+}
+d_n_refused drop.md "$(sed -n 's/^DROP //p' "$D_N_TMP/fx.out")" "a chunk list that leaves a section out"
+d_n_refused dup.md "$(sed -n 's/^DUP //p' "$D_N_TMP/fx.out")" "a chunk list that names a section twice"
+d_n_refused split.md "$(sed -n 's/^SPLIT //p' "$D_N_TMP/fx.out")" "a chunk list that splits a coupled group"
+d_n_refused none.md "found no installer chunks" "a README with no chunk list"
+rm -rf "$D_N_TMP"
 fi
 
 rm -f "$REPO/tests/.docs-out" "$REPO/tests/.docs-readers.py"

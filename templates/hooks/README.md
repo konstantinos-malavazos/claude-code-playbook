@@ -89,7 +89,7 @@ re-opens the multi-line flatten bug this directory has already shipped once.
 bash templates/hooks/test-hooks.sh
 ```
 
-It covers all eight hooks. `format-on-edit.sh` always exits 0, so for it the suite checks what it leaves behind on a payload carrying non-ASCII text: whether the edited file reached the formatter. For the six blocking hooks and `handoffs-only.sh` it covers what must be blocked, what must be allowed, `Bash` and
+It covers all nine hooks. `format-on-edit.sh` always exits 0, so for it the suite checks what it leaves behind on a payload carrying non-ASCII text: whether the edited file reached the formatter. `serena-leftover-notice.sh` always exits 0 too, so for it the suite checks what it prints: nothing when no server is recorded, and the leftover servers plus the `serena-down` command when one is. For the six blocking hooks and `handoffs-only.sh` it covers what must be blocked, what must be allowed, `Bash` and
 `PowerShell` payloads, multi-line commands, LF **and** CRLF line endings, and **both sides
 of every conditional line**: a listed repo and an unlisted one, `.claude/agents/` and
 `.claude/handoffs/`.
@@ -211,8 +211,9 @@ where the bug goes to live.**
 | `format-on-edit.sh` | PostToolUse · Write/Edit | auto-format the file that was just edited | ✓ | ✓ |
 | `handoffs-only.sh` | PreToolUse · Write\|Edit, **agent frontmatter only** | let the reviewer agents write only under `.claude/handoffs/` (and release-reviewer's chart `reviews/`) | ✓ | ✓ |
 | `memory-lint.sh` | PreToolUse · mcp (Forgetful) | run the `memory-lint` skill's `lint.py` on every `create_memory` / `update_memory` and block a write it FAILs; fails closed without python or `lint.py` | ✓ | ✓ |
+| `serena-leftover-notice.sh` | SessionStart · startup | route C only: names Serena servers and state files left from an earlier session, with the `serena-down` command; never blocks | ✓ | ✓ |
 | `repo-allowlist.sample` | — | the per-repo answers the two git hooks read; install **empty** at `~/.claude/repo-allowlist` | ✓ | |
-| `test-hooks.sh` | — | regression suite for all eight hooks; run it, don't read it | ✓ | ✓ |
+| `test-hooks.sh` | — | regression suite for all nine hooks; run it, don't read it | ✓ | ✓ |
 
 The **solo** / **team** columns say which entrance needs each template. The allowlist is the
 first row to claim one column: on the team path the driver does not own the repo, so both

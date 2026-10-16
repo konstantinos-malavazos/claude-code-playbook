@@ -7,14 +7,15 @@
 #   A11    the two model-id tokens are lowercase and reach a live install (issue #135)
 #   A12    the flow guardrails are stated where the dispatcher reads them (issue #148)
 #   A13    every Serena-declaring agent can activate its project, and code-access says
-#          what to do on "No active project"
+#          what to do on "No active project"; on route C a wired agent holds per-repo
+#          tools and no activate_project, and code-access says so
 #   A14    every agent that names a skill it does not preload grants Skill; the
 #          TaskStop-only agents do not
 #   A15    no slice template mentions a worktree
 #   A16    implementation dispatch carries the code-access paragraph, and every editing
 #          agent's handoff reports its Serena calls
 #   A17    every "dispatch site N" mention agrees with start-ticket.md's numbering
-#   A18    no agent template holds Agent in its tools: line
+#   A18    no agent template holds Agent in its tools: line, or has no tools: line
 #   N1-N4  the end-of-flow next-steps block (issue #104)
 #
 #   bash tests/test-wiring.sh            # all sections
@@ -970,6 +971,90 @@ elif grep -qF 'No active project' "$CODE_ACCESS" && grep -qF 'activate_project' 
 else
   fail "A13.2 the code-access skill does not name both \"No active project\" and activate_project — every Serena agent halts instead of activating and retrying"
 fi
+
+# A13.3 — route C. Templates stay route A/B shaped, so the check runs on what the
+# installer's serena-wire makes of them: one read agent and one edit agent, wired for a
+# two-repo map. A route C server is single-project and has no activate_project.
+A13W="$SCRATCH/a13"
+if [ -z "$PY" ]; then
+  printf '    SKIP  A13.3 no working python — route C wiring NOT checked\n'
+else
+  rm -rf "$A13W" && mkdir -p "$A13W/agents" "$A13W/alpha" "$A13W/beta" \
+    && "$PY" - "$AGENTS" "$TEMPLATES/serena/profiles.json" "$A13W" <<'PYA13' > "$A13W/pick.txt"
+import json, os, re, shutil, sys
+agents, profiles, work = sys.argv[1:4]
+prof = json.load(open(profiles, encoding="utf-8"))
+edit_only = set(prof["edit"]) - set(prof["read"])
+picked = {}
+for fn in sorted(os.listdir(agents)):
+    if not fn.endswith(".md") or fn == "README.md":
+        continue
+    text = open(os.path.join(agents, fn), encoding="utf-8").read().replace("\r\n", "\n")
+    m = re.search(r"^tools:(.*)$", text.split("\n---\n", 1)[0], re.M)
+    verbs = set(re.findall(r"mcp__serena__(\w+)", m.group(1))) if m else set()
+    if not verbs:
+        continue
+    role = "edit" if verbs & edit_only else "read"
+    if role not in picked:
+        picked[role] = fn
+        shutil.copy(os.path.join(agents, fn), os.path.join(work, "agents", role + ".md"))
+repos = {k: {"path": os.path.join(work, k).replace("\\", "/"), "port": p}
+         for k, p in (("alpha", 9301), ("beta", 9302))}
+json.dump({"repos": repos}, open(os.path.join(work, "map.json"), "w", encoding="utf-8"))
+json.dump([os.path.join(work, "agents")], open(os.path.join(work, "paths.json"), "w"))
+sys.stdout.buffer.write((" ".join("%s=%s" % kv for kv in sorted(picked.items())) + "\n").encode())
+PYA13
+  chk $? "A13.3 setup: a read agent and an edit agent from the templates ($(tr -d '\r\n' < "$A13W/pick.txt" 2>/dev/null))"
+  "$PY" "$REPO/install-lib.py" serena-wire "$A13W/paths.json" "$A13W/map.json" \
+    "$TEMPLATES/serena/profiles.json" > "$A13W/wire.out" 2>&1
+  chk $? "A13.3 install-lib.py serena-wire wires them for a two-repo map"
+  while IFS='|' read -r verdict name; do
+    if [ "$verdict" = PASS ]; then pass "A13.3 $name"; else fail "A13.3 $name"; fi
+  done < <("$PY" - "$A13W/agents" <<'PYA13C'
+import os, re, sys
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("PASS" if ok else "FAIL", name)).encode("utf-8"))
+for role, ports in (("read", {9301, 9302}), ("edit", {9311, 9312})):
+    path = os.path.join(sys.argv[1], role + ".md")
+    if not os.path.exists(path):
+        say(False, "%s agent: no template holds this role" % role)
+        continue
+    text = open(path, encoding="utf-8").read()
+    fm = text.split("\n---\n", 1)[0]
+    m = re.search(r"^tools:(.*)$", fm, re.M)
+    line = m.group(1) if m else ""
+    tools = [t.strip() for t in line.split(",") if t.strip()]
+    serena = [t for t in tools if t.startswith("mcp__serena")]
+    keys = {k.group(1) for k in (re.match(r"^mcp__serena-([a-z0-9-]+)__", t) for t in serena) if k}
+    say(bool(line) and "activate_project" not in line,
+        "%s agent: no activate_project on its tools: line" % role)
+    say(bool(serena) and all(re.match(r"^mcp__serena-(alpha|beta)__\w+$", t) for t in serena),
+        "%s agent: every Serena tool is mcp__serena-<key>__" % role)
+    say(keys == {"alpha", "beta"}, "%s agent: holds tools for both repos (got %s)" % (role, sorted(keys)))
+    say("mcp__serena__" not in text, "%s agent: no mcp__serena__ left anywhere in the file" % role)
+    got = {int(p) for p in re.findall(r"^\s+url: http://127\.0\.0\.1:(\d+)/mcp$", fm, re.M)}
+    say(got == ports, "%s agent: its servers are on the %s ports %s (got %s)"
+        % (role, role, sorted(ports), sorted(got)))
+PYA13C
+)
+fi
+
+# A13.4 — the code-access skill gives route C its own rule: no activate_project there,
+# and a down server is started with serena-up.
+if [ ! -f "$CODE_ACCESS" ]; then
+  fail "A13.4 templates/skills/code-access/SKILL.md does not exist"
+else
+  if grep -qF 'serena-up' "$CODE_ACCESS"; then
+    pass "A13.4 the code-access skill names serena-up, the route C start command"
+  else
+    fail "A13.4 the code-access skill never names serena-up — a route C agent that finds its server down cannot say how to start it"
+  fi
+  if tr -d '\r' < "$CODE_ACCESS" | grep -iE 'route c' | grep -qF 'activate_project'; then
+    pass "A13.4 the code-access skill says on one line what route C does about activate_project"
+  else
+    fail "A13.4 no line of the code-access skill names both route C and activate_project — a route C agent retries a tool its server does not have"
+  fi
+fi
 fi
 
 # ---------------------------------------------------------------- A14
@@ -1405,7 +1490,8 @@ fi
 # another agent, and the nesting leaves no trace in the output. Agent(<name>) is the
 # restricted form of the same grant.
 #
-# Catches: a reviewer or gatherer that fans out on its own again.
+# Catches: a reviewer or gatherer that fans out on its own again, and a template with
+# no tools: line, which inherits every tool, Agent included.
 a18_tools() {
   tr -d '\r' < "$1" | awk '/^---$/{n++; next} n==1' | sed -n 's/^tools:[[:space:]]*//p' | head -1
 }
@@ -1413,6 +1499,19 @@ a18_tools() {
 # a18_grants_agent TOOLS — does a tools: value hold Agent as a whole token?
 a18_grants_agent() {
   printf '%s\n' "$1" | tr ',' '\n' | tr -d ' \t\r' | grep -qE '^Agent(\(.*\))?$'
+}
+
+# a18_verdict FILE — the one per-file decision, used by the fixture case and the tree
+# loop alike: "no-tools" (no tools: line, so it inherits every tool), "agent" (its
+# tools: line grants Agent) or "ok".
+a18_verdict() {
+  if ! tr -d '\r' < "$1" | awk '/^---$/{n++; next} n==1' | grep -q '^tools:'; then
+    echo no-tools
+  elif a18_grants_agent "$(a18_tools "$1")"; then
+    echo agent
+  else
+    echo ok
+  fi
 }
 
 if want A18; then
@@ -1429,15 +1528,23 @@ else
   fail "A18.0 the probe flagged a lookalike token"
 fi
 
+# A18.0 — a template with frontmatter and no tools: line inherits every tool.
+A18FIX="$SCRATCH/a18"
+mkdir -p "$A18FIX" && printf -- '---\nname: no-tools\ndescription: fixture\nmodel: x\n---\n\nBody.\n' > "$A18FIX/no-tools.md"
+if [ "$(a18_verdict "$A18FIX/no-tools.md")" = "no-tools" ]; then
+  pass "A18.0 a template with no tools: line is flagged"
+else
+  fail "A18.0 a template with no tools: line passes — it inherits every tool, Agent included"
+fi
+
 a18_read=0
 for stem in $(stems "$AGENTS"); do
-  tools="$(a18_tools "$AGENTS/$stem.md")"
-  [ -n "$tools" ] && a18_read=$((a18_read+1))
-  if a18_grants_agent "$tools"; then
-    fail "A18 @$stem holds Agent in its tools: line — only the session dispatches agents"
-  else
-    pass "A18 @$stem does not hold Agent"
-  fi
+  [ -n "$(a18_tools "$AGENTS/$stem.md")" ] && a18_read=$((a18_read+1))
+  case "$(a18_verdict "$AGENTS/$stem.md")" in
+    agent)    fail "A18 @$stem holds Agent in its tools: line — only the session dispatches agents" ;;
+    no-tools) fail "A18 @$stem has no tools: line — it inherits every tool, Agent included" ;;
+    *)     pass "A18 @$stem does not hold Agent" ;;
+  esac
 done
 if [ "$a18_read" -gt 0 ]; then
   pass "A18.0 read a tools: line from $a18_read agent templates"

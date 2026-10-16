@@ -91,7 +91,8 @@ function Invoke-Installer {
         [string]$Log,
         [string]$Mode = 'list',
         [hashtable]$WithEnv = @{},
-        [string]$StdinFile = ''
+        [string]$StdinFile = '',
+        [string[]]$Extra = @()
     )
     $saved = @{}
     foreach ($k in $WithEnv.Keys) {
@@ -102,7 +103,7 @@ function Invoke-Installer {
         $outFile = Join-Path $Logs "$Log.txt"
         $hostArgs = @('-NoProfile')
         if ($HostExe -match 'powershell\.exe$') { $hostArgs += @('-ExecutionPolicy', 'Bypass') }
-        $hostArgs += @('-File', (Join-Path $Dir 'install.ps1'), $Mode)
+        $hostArgs += @('-File', (Join-Path $Dir 'install.ps1'), $Mode) + $Extra
         if ($StdinFile) {
             # Keystrokes for an install: the child inherits this stdin, and so does the
             # bash it hands off to. Start-Process joins its arguments with spaces and
@@ -359,6 +360,27 @@ if ($seeded11) {
     chk ($r11b.Code -eq 0) 'a second update exits 0' "rc=$($r11b.Code) — see $($r11b.Log)"
     chk ([IO.File]::ReadAllText($set11) -ceq $after11) 'a second update leaves settings.json unchanged' $set11
 }
+
+
+# ---------------------------------------------------------------- 12 serena-wire
+# The route C rewire mode, and the folder arguments it takes after the mode, have to
+# reach install.sh whole: -Mode must accept the name, and every extra argument must
+# be passed on.
+banner '12 · serena-wire is a mode, and its folder argument reaches install.sh'
+$h12 = Join-Path $Work 'h12/.claude'
+New-Item -ItemType Directory -Force -Path $h12 | Out-Null
+$d12 = Join-Path $Work "no such folder o'k"
+# install.sh refuses on stderr. Through Start-Process (the -StdinFile path) that stays
+# text; through the call operator a 5.1 host would wrap it in an error record of its own.
+$empty12 = Join-Path $Work 'empty12.txt'
+[IO.File]::WriteAllText($empty12, '')
+$r12 = Invoke-Installer -Dir $Repo -Log 'serena-wire' -Mode 'serena-wire' -Extra @($d12) `
+        -StdinFile $empty12 -WithEnv @{ CLAUDE_HOME = (ConvertTo-BashPath $h12) }
+notinlog $r12 'Cannot validate argument' '-Mode accepts serena-wire'
+inlog $r12 'is not a folder' 'install.sh ran serena-wire and checked the folder it was given'
+inlog $r12 "no such folder o'k" 'the folder argument arrives whole, spaces and apostrophe included'
+chk ($r12.Code -ne 0) 'exits non-zero for a folder that is not there' "rc=$($r12.Code)"
+notcrashed $r12 'no raw PowerShell error'
 
 Write-Host ''
 Write-Host '================================'
