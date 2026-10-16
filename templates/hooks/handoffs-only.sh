@@ -39,7 +39,6 @@ path="${fields#*$'\x1e'}"
 
 [ -n "$tool" ] || block "the payload carried no tool_name — a call with no name is not a call this hook can clear."
 
-# The matcher decides which tools arrive here; only the two that write a file are judged.
 case "$tool" in
     Write|Edit) : ;;
     *) exit 0 ;;

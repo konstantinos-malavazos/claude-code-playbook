@@ -328,7 +328,6 @@ $restArgs = ''
 foreach ($a in $Rest) { $restArgs += ' ' + (ConvertTo-BashQuoted ($a -replace '\\', '/')) }
 
 if ($useWsl) {
-    # Translate the Windows path so the Linux side can find the clone.
     $translated = Invoke-Probe 'wsl.exe' @('-e', 'wslpath', '-a', ($here -replace '\\', '/'))
     $wslPath = [string]($translated.Output | Select-Object -First 1)
     if ($translated.Code -ne 0 -or -not $wslPath) {

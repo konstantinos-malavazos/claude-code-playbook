@@ -622,7 +622,6 @@ NOT_A_COMMAND = {
 UNSHIPPED = {
     # #109 §8: docs/shared/12-when-not-to-use.md describes a `/hotfix` PATTERN you
     # assemble by hand. The decision-table row now says so too, instead of sitting
-    # formatted identically to the rows whose commands ship.
     "hotfix",
     # Issue #104 owns these two templates. They are named in the flow catalogue and
     # do not exist yet. DELETE THESE TWO NAMES when #104 ships them — that is what

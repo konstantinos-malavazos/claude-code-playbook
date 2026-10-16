@@ -157,7 +157,6 @@ EDIT_VERBS='(replace_symbol_body|insert_after_symbol|insert_before_symbol|create
 # This is the test the doc's inventory rule names: run it off the TOOL LIST, not
 # the job title. Reading the names instead misses the agents that quietly write
 # and amend — which is the error this repo already made once, about
-# @integration-tester.
 can_edit() { fm_field "$1" tools | grep -qE "$EDIT_VERBS"; }
 
 # has_weight_skill FILE — does this file send the reader to the one definition?
@@ -1779,7 +1778,6 @@ fi
 # produces a result of exactly the normal SHAPE.
 #
 # WHAT THESE CASES PROVE, PRECISELY, because the difference is the whole
-# disclosure this ticket owes its reader:
 #   A12.1-A12.7  prove A RULE IS WRITTEN, at the site the dispatcher reads. They
 #                cannot prove any agent obeyed it. In particular A12.5 proves the
 #                check-back duty is STATED at every site that spawns background
@@ -1819,7 +1817,6 @@ fi
 # than as a copy of somebody's asterisks. (\140 is the backtick, spelled in
 # octal on purpose: a literal one inside a quoted string reads to shellcheck as
 # a command substitution — SC2016 — and this repo has already lost an hour to
-# that once.)
 joined() { tr -d '\r*\140' < "$1" | tr '\n' ' ' | tr -s ' \t'; }
 
 # a12 NAME FILE ANCHOR — one anchor, one PASS/FAIL line. Every case gets its own

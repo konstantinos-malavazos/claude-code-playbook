@@ -200,7 +200,6 @@ def discover(templates, claude_home):
         unit.update(extra)
         units[uid] = unit
 
-    # agents ---------------------------------------------------------------
     adir = os.path.join(templates, "agents")
     for fn in sorted(os.listdir(adir)) if os.path.isdir(adir) else []:
         if not fn.endswith(".md") or fn in SKIP_NAMES:
@@ -219,7 +218,6 @@ def discover(templates, claude_home):
         add("skill:" + dn, "skill", full,
             os.path.join(claude_home, "skills", dn))
 
-    # commands -------------------------------------------------------------
     cdir = os.path.join(templates, "commands")
     for fn in sorted(os.listdir(cdir)) if os.path.isdir(cdir) else []:
         if not fn.endswith(".md") or fn in SKIP_NAMES:
@@ -229,7 +227,6 @@ def discover(templates, claude_home):
             os.path.join(cdir, fn),
             os.path.join(claude_home, "commands", fn))
 
-    # hooks ----------------------------------------------------------------
     hdir = os.path.join(templates, "hooks")
     for fn in sorted(os.listdir(hdir)) if os.path.isdir(hdir) else []:
         if not fn.endswith(".sh") or fn in SKIP_HOOKS:
@@ -281,7 +278,6 @@ def discover(templates, claude_home):
             os.path.join(vdir, fn),
             os.path.join(claude_home, fn))
 
-    # global CLAUDE.md ------------------------------------------------------
     # Only the global layer has a machine-level destination. repo.CLAUDE.md and
     # workspace.CLAUDE.md are per-repo/per-workspace: the installer does not know
     # which repo you mean, so it reports them instead of guessing a path.
@@ -337,8 +333,6 @@ def _link_dependencies(units, templates):
         # skill and classify each fix" is an instruction that fails SILENTLY when the
         # skill is not installed: the load finds nothing and the agent carries on with
         # the step undone. Thirteen agents said that and declared nothing, so a
-        # selection of agents without their commands installed instructions that could
-        # not be followed. (#97)
         for ref in set(re.findall(r"`([a-z][a-z0-9-]+)`", body)):
             if ref in skills and ref != me:
                 needs.add("skill:" + ref)
@@ -500,12 +494,6 @@ def apply_placeholders(paths, values, delete):
 # ---------------------------------------------------------------------------
 # MCP server detection
 # ---------------------------------------------------------------------------
-# One scanner, three locations, every server. Detection used to be asymmetric:
-# serena_detect read ~/.claude.json, the project .mcp.json AND ~/.claude/plugins,
-# while install.sh's server_registered read ~/.claude.json alone — so a memory or
-# tracker server registered in project scope was invisible and took the DELETE
-# branch. Two readers of the same fact drifted apart, which is the bug. Everything
-# that asks "is this server here?" now asks the same function.
 
 # The mcpServers key a memory server registers under. Forgetful is the one this
 # playbook documents and fills in for; the rest are here so a machine that runs a
@@ -515,7 +503,6 @@ MEMORY_SERVER_KEYS = ("forgetful", "memory", "mem0", "basic-memory", "openmemory
 # Tracker MCPs, by registered key. `tracker` used to be the ONLY key looked for,
 # but the repo's own templates/mcp/project.mcp.json.snippet names the server
 # `gitlab` — follow the shipped snippet and the tracker token was deleted from
-# every agent that has one.
 TRACKER_SERVER_KEYS = ("tracker", "gitlab", "jira", "atlassian", "linear", "youtrack")
 
 # Forgetful's wrapper trio. Every operation dispatches through

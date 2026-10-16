@@ -47,7 +47,6 @@ set -euo pipefail
 
 block() { echo "BLOCKED by block-unexplained-long-hold: $1" >&2; exit 2; }
 
-# python parses the payload and a payload it cannot read is a BLOCK, never a pass.
 _lib="${BASH_SOURCE[0]//\\//}"
 case "$_lib" in */*) _lib="${_lib%/*}/_lib/common.sh" ;; *) _lib="_lib/common.sh" ;; esac
 HOOK_LIB_LOADED=
@@ -105,8 +104,6 @@ timeout = ti.get("timeout")
 if timeout is None:
     sys.exit(0)                                  # no timeout requested — untouched
 if isinstance(timeout, bool) or not isinstance(timeout, (int, float)):
-    # A timeout this hook cannot compare is a timeout it did not read. Same rule as an
-    # unreadable payload: it does not get to pass because the check was inconclusive.
     # The TYPE name, not the value: the value can contain spaces ("5 minutes") and the
     # shell below splits this line on whitespace. What the reader needs is which shape
     # arrived, not a quoted echo of what they already typed.
