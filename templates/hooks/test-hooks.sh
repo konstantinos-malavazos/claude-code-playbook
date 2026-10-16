@@ -10,8 +10,6 @@
 # A GREEN RUN MEANS TWO THINGS, and it needs both: the patterns match what they should
 # match, AND every blocking hook stops the call when it cannot read the payload. The
 # second half is why the no-parser section at the bottom exists. Failing closed is new
-# code in every one of those scripts, and this directory has twice shipped a guardrail
-# whose new code was never run.
 #
 # WHAT IT STILL CANNOT TELL YOU: whether the hooks are wired into your settings.json.
 # The suite invokes the scripts directly and never sees your Claude Code config, so a
@@ -74,10 +72,6 @@ fi
 # a PATH assignment governs the lookup of the command it prefixes.
 BASH_BIN=$(command -v bash)
 
-# Both counters are DERIVED by running. Nothing in this repo writes the case count down by
-# hand any more: three passes of #117 hand-set it in the README (84, then 162, then 187) and
-# it was wrong at some point in every one of them. A number nobody derives is a number that
-# rots, and a suite is the one place that can always count itself.
 ran=0
 fail=0
 
@@ -119,7 +113,6 @@ HOOK_BRANCH=""           # the scratch repo's checked-out branch when it is not 
 
 # HOOK_CWD is assigned once and never reassigned, so its JSON encoding is the same string
 # for every case in this file. It used to be recomputed inside run(), which is one python
-# process per case for an answer that cannot change — the largest single spawn saving in
 # the suite, and invisible to every case. HOOK_HOME and HOOK_PATH DO move between cases;
 # neither is part of the payload.
 HOOK_CWD_JSON=$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$HOOK_CWD")
@@ -168,7 +161,6 @@ run() { # <script> <tool-name> <command> <expected-exit>
     # `printf -v`, not payload=$(printf …). The substitution form forks a subshell for a
     # string bash can assemble in the shell it is already in; that fork measured ~30ms on
     # Windows, per case, for nothing. The remaining substitution is the one real python
-    # call left in the payload build — it was two before the HOOK_CWD hoist above.
     printf -v payload '{"tool_name":"%s","cwd":%s,"tool_input":{"command":%s}}' "$2" \
         "$HOOK_CWD_JSON" \
         "$("$PY" -c "import json,sys;print(json.dumps(sys.argv[1]))" "$3")"
@@ -292,7 +284,6 @@ EOF
 # exit code alone cannot tell a refusal that explains itself from one that does not, and
 # for the interpreter cases at the bottom of this file the message IS the behaviour under
 # test: the block was always correct, it just talked about JSON while the real cause was
-# which python3 PATH resolved to (#146).
 run_msg() { # <script> <tool-name> <command> <expected-exit> <substring the message must contain>
     local payload out got=0 shown
     printf -v payload '{"tool_name":"%s","cwd":%s,"tool_input":{"command":%s}}' "$2" \
@@ -396,9 +387,6 @@ run $GIT_HOOK Bash       "git reset --hard origin/main"                    2
 run $GIT_HOOK Bash       "git clean -fd"                                   2
 run $GIT_HOOK Bash       "git branch -D feature"                           2
 # `-D` is one of EIGHT spellings git accepts for the same destructive operation, and for
-# a long time it was the only one blocked — measured, seven of these sailed through (#115).
-# A guardrail that stops one spelling of eight is not a guardrail, and nothing in a green
-# run said so, because no case here had ever asked.
 run $GIT_HOOK Bash       "git branch --delete --force feature"             2
 run $GIT_HOOK Bash       "git branch --force --delete feature"             2
 run $GIT_HOOK Bash       "git branch -d --force feature"                   2
@@ -440,13 +428,6 @@ REWRITE_HINT="Rewrite it with plain quoting (no nested, escaped or unbalanced qu
 run_msg $GIT_HOOK Bash   "git push 'unterminated"                                 2 "$REWRITE_HINT"
 
 # --- The command is not always the first word (#117 re-pass) ----------------------
-# Every case below was BLOCKED by the text scan this hook replaces and ALLOWED by the
-# first cut of the tokenizer, which required word 0 of a segment to be `git` and gave up
-# otherwise. Measured against both hooks, not read off a diff. They are here because the
-# four must-BLOCK cases added in the first pass were all ALREADY GREEN on master: they
-# asserted the old grep, not the new code, and this whole class went untested while the
-# suite stayed green.
-#
 # A wrapper carries the command:
 run $GIT_HOOK Bash       "sudo git push --force"                                  2
 run $GIT_HOOK Bash       "env git branch -D x"                                    2
@@ -510,10 +491,6 @@ run $GIT_HOOK PowerShell 'git branch `
 # The cases above are LF-only, and the join they assert was defeated by a CRLF payload:
 # parse() wrote its output in TEXT mode, which doubled the CR; python then read those
 # three bytes back as TWO newlines, the join ate one, and the flag was orphaned again. Every
-# LF case above stayed green through all of it — LF-only coverage is what let it ship.
-# Built with printf, exactly like the CRLF payload in the must-BLOCK section above
-# (`"$(printf 'git status\r\ngit push')"`): this suite already conceded
-# that a CRLF payload is a real shape, so the omission was the continuation, not the shape.
 # CRLF is what a Windows editor produces by default, and this repo is Windows-primary.
 run $GIT_HOOK Bash       "$(printf 'git branch \\\r\n-D f')"                     2
 run $GIT_HOOK Bash       "$(printf 'git reset \\\r\n--hard HEAD~1')"             2
@@ -531,8 +508,6 @@ run $GIT_HOOK Bash       "$(printf 'git push --force # \344\275\240\345\245\275'
 # path depends on it (the must-ALLOW twins are further down). But bash removes that
 # backslash before git runs, so the flag was filed as kind=path and every rule is gated on
 # kind=opt. Measured with a git shim on PATH: bash really ran `add -A`, `reset --hard` and
-# `clean -fd`. These three were 0 in BOTH allowlist states on master AND at 23eb109, so they
-# are a TIGHTENING this fix brings with it rather than a regression it repairs — red at
 # 23eb109 either way. NOT allowlist-scoped: `git add -A` is one nothing can unlock.
 # SINGLE-QUOTED on purpose, or the backslash never reaches the hook.
 run $GIT_HOOK Bash       'git add \-A'                                           2
@@ -541,7 +516,6 @@ run $GIT_HOOK Bash       'git clean \-fd'                                       
 
 # --- The forward scan is a TRADE, and both directions are recorded here ------------
 # Scanning forward for the git program means an UNQUOTED mention is judged as a command.
-# These four were ALLOWED by the text scan this hook replaces — its plain-push rule was
 # the one ANCHORED pattern in the file — and are BLOCKED now. They are genuine FALSE
 # POSITIVES on harmless commands, and they are the price paid for the tightenings below.
 # Green before this re-review and after it: they record the cost, they prove no fix.
@@ -561,13 +535,10 @@ run $GIT_HOOK Bash       '"git" push --force'                                   
 # strip_heredocs() truncated the line AT the operator and threw the rest away. In bash the
 # BODY starts on the next line, so whatever follows the operator on this one is a real
 # command — measured with a git shim on PATH that records the argv bash actually passed,
-# and every one of these ran. All were 2 on the text scan this hook replaces.
 #
 # This class is NOT allowlist-scoped, which is why it lives here in the unlisted section:
 # `git add -A` and `git add .` returned 0 in BOTH states, and those two are the ones
 # repo-allowlist.sample says nothing can unlock. Every heredoc case written before this
-# pass put the operator LAST on its line, where the discarded remainder is empty — which is
-# how four passes and 199 green cases went by without one of them asking.
 run $GIT_HOOK Bash       "cat <<EOF ; git branch -D feature
 body
 EOF"                                                                              2
@@ -620,7 +591,6 @@ run $GIT_HOOK Bash       "# use <<'EOF' to stop expansion
 git clean -fd"                                                                    2
 
 # --- The six shapes that used to block BY ACCIDENT --------------------------------
-# These were green before this pass and are green after it, and they are the point of the
 # section. At 84ae124 they blocked for the wrong reason: truncating at the operator cut the
 # quoted mention in half, shlex raised ValueError and the hook exited 3 — fail-closed by
 # accident. The obvious one-line repair of the truncation above REPAIRS THE QUOTE TOO, and
@@ -699,8 +669,6 @@ npm run build"                                                             0
 # A character OUTSIDE the machine ANSI codepage. parse() used to write its output in text
 # mode, which encodes with that codepage, so this raised UnicodeEncodeError; `2>/dev/null`
 # ate the traceback and `|| block` reported "the payload did not parse as JSON" — a false
-# positive carrying a false diagnostic, in the hook that exists to remove false positives.
-# It was invisible for as long as it was because no payload in this suite held a non-ANSI
 # byte. Written with printf octal escapes so the bytes are UTF-8 whatever wrote this file.
 run $GIT_HOOK Bash       "$(printf 'echo \344\275\240\345\245\275')"       0
 run $GIT_HOOK Bash       "$(printf 'git commit -m \344\275\240\345\245\275')" 0
@@ -715,7 +683,6 @@ run $GIT_HOOK PowerShell 'git commit -F C:\tmp\msg.txt'                    0
 run $GIT_HOOK Bash       'git checkout -- src\a.cs'                        0
 
 echo "block-dangerous-git.sh — must ALLOW (exit 0), the mention is not the act"
-# The five false positives from issue #117 — measured exit=2 want=0 on master before this
 # fix landed. A guard that reads command TEXT instead of command ARGUMENTS blocks any of
 # these, because the dangerous string merely appears in the payload.
 run $GIT_HOOK Bash       "echo \"never run git push --force here\""                    0
@@ -726,7 +693,6 @@ run $GIT_HOOK Bash       "cat > note.md <<'EOF'
 Do not use git push --force on this repo.
 EOF"                                                                                    0
 # A commit message that names the flag it explains is prose, not the act — the same shape
-# that blocked writing this ticket's own grilling notes (.claude/handoffs/117/grilling.md).
 run $GIT_HOOK Bash       "git commit -m 'explain why git branch -D is dangerous'"       0
 # A heredoc body is DATA, not a command — the same push line as a REAL command still
 # blocks (`run $GIT_HOOK Bash "git push origin master" 2`, in the must-BLOCK section);
@@ -866,7 +832,6 @@ run $GIT_HOOK Bash       "$(printf 'echo a\r\ngit push \\\r\n--force')"    2
 # \r\r each arrive as TWO newlines — a single-\n join eats one and the survivor orphans the
 # flag exactly as no join at all did. parse() was fixed to stop MANUFACTURING that
 # doubling; these assert the join survives one that arrives in the payload. Measured 0 here
-# at 84ae124 with all four cases above already green.
 run $GIT_HOOK Bash       "$(printf 'git push \\\r\r\n--force')"            2
 run $GIT_HOOK Bash       "$(printf 'git push \\\n\r--force')"              2
 run $GIT_HOOK Bash       "$(printf 'git push \\\r\r--force')"              2
@@ -876,7 +841,6 @@ run $GIT_HOOK PowerShell "$(printf 'git push `\r\r\n--force')"             2
 # so a backslash stays literal and a Windows path survives — but bash strips it before git
 # runs, so an escaped flag arrived as a token that did not start with a hyphen, was filed
 # as kind=path, and every rule below is gated on kind=opt. No rule ever looked at it. A
-# git shim on PATH recorded bash passing the real flag to git while the hook returned 0.
 # Unlisted, the leftover bare `git push` is caught by the plain-push rule and the call
 # exits 2 anyway, so these four would go green against nothing there — the same trap as
 # the continuation cases above. Allowlisted, push is permitted by design and stopping the
@@ -1116,10 +1080,6 @@ HOOK_HOME="$DENY_HOME"
 echo "block-infra-staging.sh — a never-stage name counts only at a path boundary"
 # The hook matches the three never-stage names against the COMMAND TEXT. While those
 # patterns were bare substrings, ANY path whose basename merely CONTAINED one was refused —
-# including this repo's own templates/commands/garden-memory.md, which is a tracked file
-# and was unstageable for as long as the pattern was unanchored. The suite was green the
-# whole time, because the only case it ever asserted was the true positive. Same shape as
-# the finding in issue #29: the direction nobody ran is the direction that breaks.
 #
 # So: one case per name, in BOTH directions. The true positives come first, because an
 # anchor loose enough to let the real thing through is the failure that actually costs
@@ -1134,7 +1094,6 @@ run $INFRA_HOOK PowerShell "git add .serena\\project.yml"                  2
 run $INFRA_HOOK Bash     "git add .Serena/project.yml"                     2
 
 # ...and a path that merely CONTAINS a name goes through. These are the cases that were
-# never written, and every one of them was a false BLOCK.
 run $INFRA_HOOK Bash     "git add templates/commands/garden-memory.md"     0
 run $INFRA_HOOK Bash     "git add src/inmemory.md"                         0
 # .serenade, not .serenity — `.serenity` is `.seren`+`ity` and never contained the name at
@@ -1147,7 +1106,6 @@ run $INFRA_HOOK Bash     "git add notes.forgetfulness.md"                  0
 run $INFRA_HOOK Bash     "git add garden-MEMORY.md"                        0
 
 echo "block-infra-staging.sh — CLAUDE.md is a path too, not a substring"
-# The allowlist flip had the identical unanchored defect, ten lines below the loop above.
 # Unlisted repo, so the real file is still refused — but a name that merely ends in it is
 # not the file the allowlist is being asked about.
 run $INFRA_HOOK Bash     "git add CLAUDE.md"                               2
@@ -1155,12 +1113,6 @@ run $INFRA_HOOK Bash     "git add docs/about-claude.md"                    0
 run $INFRA_HOOK Bash     "git add CLAUDE.md.bak"                           0
 
 echo "block-infra-staging.sh — it stages, or it only MENTIONS: the arguments, not the text"
-# The scan used to read the whole command as text, so a command that merely NAMED an infra
-# path was refused as if it were staging one. Writing a note ABOUT this rule was blocked
-# twice while #112 was being fixed, once in the notes for #112 itself. Because a compound
-# command dies whole, anything chained in FRONT of the mention never ran either, and the
-# failure read as if that first step was the problem.
-#
 # A name only counts when it is an ARGUMENT of git add / commit / stage.
 run $INFRA_HOOK Bash     "git commit -m 'stop tracking MEMORY.md'"         0
 run $INFRA_HOOK Bash     "git commit -m 'move .serena out of the repo'"    0
@@ -1265,7 +1217,6 @@ run $SECRET_HOOK PowerShell "\$k = 'ghp_0123456789abcdefghijklmnopqrstuvwx'" 2
 # Every literal in the list gets a case, because the list is not checked uniformly: the
 # PRIVATE KEY pattern is the one that starts with `-`, and grep read it as options and
 # exited 2, which the caller's `if` treats as "no match". It failed open on the single
-# most valuable credential a repo can leak while this suite ran green — the suite only
 # ever exercised .pem by PATH, which the separate path rule catches. One case per pattern.
 run $SECRET_HOOK Bash     "echo -----BEGIN RSA PRIVATE KEY----- > k.txt"   2
 run $SECRET_HOOK Bash     "echo -----BEGIN OPENSSH PRIVATE KEY----- > k"   2
@@ -1487,7 +1438,6 @@ run_hold "past the maximum, a stopped run is stopped as a tree" 900000 "run the 
 
 echo "block-unexplained-long-hold.sh — the refusal must carry a remedy runnable from where it fired"
 # An exit code cannot tell a stop that can be acted on from one that strands the reader.
-# This repo has already shipped a hard stop whose remedy could not be run from the point
 # of the stop, so the remedy text is asserted, not assumed. The refusal also quotes the
 # convention verbatim: a hook that refuses in different words from the rule it enforces is
 # a second, undocumented rule.
@@ -1531,7 +1481,6 @@ echo "block-unexplained-long-hold.sh — PowerShell is a SEPARATE tool and gets 
 # do prove is that the script REACHES THE SAME VERDICT on a PowerShell payload, which is the
 # half that would rot silently: a later edit keying any of the judgement off the tool name
 # would leave the matcher correct and the behaviour split, and only these lines would say so.
-# The tool-naming case below is the one that was genuinely red before the matcher landed.
 HOLD_TOOL=PowerShell
 run_hold "no description at all"         300000 ""                             2
 run_hold "a reason that is not a duration" 600000 "it is slow on Windows"      2
@@ -1761,7 +1710,6 @@ echo "block-dangerous-git.sh — a python3 that is NOT python must BLOCK and nam
 # program and, where the Store package is not installed, prints an advert and exits 9009.
 # The hook blocked — it has always blocked — but it blocked with a message about JSON,
 # which points the reader at the payload when the payload was fine. Nothing in the refusal
-# named the interpreter, so there was nothing to act on. #146.
 #
 # THE STUB IS DELIBERATELY THE SAME SHAPE AS CI'S OWN SHIM. .github/workflows/tests.yml
 # writes a /bin/sh script named python3 onto PATH for the Windows job (see the "Give Git
@@ -1790,7 +1738,6 @@ else
 fi
 
 echo "block-dangerous-git.sh — a WindowsApps python3 is DEMOTED, never DROPPED"
-# The two lines the whole ticket is named after, and until now the only two with no case
 # at all: the `*/windowsapps/*` arm that moves a candidate to the END of the list, and the
 # line that appends that held-back list back on. Both were verified by hand during review
 # and both were right — but the suite would have stayed green if a later edit turned the

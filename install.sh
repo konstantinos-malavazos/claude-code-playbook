@@ -752,7 +752,6 @@ selection_stage() {
         if [[ "$total" -le 0 ]]; then
           warn "nothing selected"; pause
         elif [[ "$chosen_tracker" == "none" && "$TRACKER_DEFERRED" != "yes" ]]; then
-          # Decision 6: the tracker is a required CHOICE, not an unticked extra.
           if tracker_required_screen; then return 0; fi
         else
           return 0
@@ -763,7 +762,6 @@ selection_stage() {
   done
 }
 
-# Decision 5: dependencies are auto-ticked, but VISIBLY.
 review_screen() {
   screen "Review · everything that will be installed"
   pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
@@ -856,8 +854,6 @@ serena_gate() {
 
 # agents_declaring TOKEN — the agent names whose tools: line declares TOKEN.
 # Derived from the template tree every time it is asked, never written down: the
-# last two counts in this repo to be typed by hand were both wrong, and #109
-# existed to remove exactly that habit.
 agents_declaring() {
   grep -lE "^tools:.*$1" "$TEMPLATES"/agents/*.md 2>/dev/null \
     | sed 's#.*/##; s#\.md$##' | grep -v '^README$' || true
@@ -869,12 +865,6 @@ agents_declaring() {
 # produces nothing durable. /end-of-day, /garden-memory,
 # /test-ticket's banked recipes, charting's one-memory-per-map close and
 # /start-ticket's consolidation step all no-op in silence.
-#
-# Before this gate, no memory server meant the two memory blanks were DELETED from
-# the agents and the installer printed "nothing left unfilled" over the result.
-# That is the silent success the Serena gate exists to prevent, applied to the
-# other required pillar — see docs/shared/02-prerequisites.md, which has listed
-# both under Required all along.
 #
 # CRITICAL: this prints and then EXITS. Like serena_gate it must not route through
 # stage(), screen() or install_finish() on the way out — all three call _clear,
@@ -1150,10 +1140,6 @@ PY
 # ask_tools VAR PROMPT DEFAULT WHAT_IT_COSTS — one tool-name answer that cannot be
 # thrown away by accident.
 #
-# This is the whole point of #105. The old prompt printed
-# "[Enter = take the blank out instead]" under a stage whose opening line is
-# "Press Enter at any question to take the suggested answer", so the key the stage
-# told you to press deleted a tool grant from 13 agents and the install still
 # reported success. Here Enter TAKES the suggestion; where there is no suggestion
 # Enter re-asks; and removing the grant is an explicit '-' that says what it costs
 # and then asks again. Deleting a tool grant is a decision, so it needs an answer.
@@ -1307,8 +1293,6 @@ placeholder_stage() {
   printf '\n'
 
   # ── tracker ──────────────────────────────────────────────────────────────
-  # The adapter was chosen back in the selection stage, so this no longer has to
-  # ask for tracker tool names before knowing whether a tracker MCP is even
   # wanted. The GitHub adapter drives the gh CLI and needs none: for that one
   # deletion is the RIGHT answer, not a loss, and the installer can now say so.
   #
@@ -1331,8 +1315,6 @@ placeholder_stage() {
   # Branch on the ROUTE, not on the adapter name. Naming github here was a second
   # copy of the table the comment above says lives in install-lib.py, and it sent
   # gitlab-shape — which drives glab and registers no server either — down the MCP
-  # path, where it drew a pointless probe and a TODO telling the user to register
-  # a server their adapter never reads.
   TRK_TODO_FROM=${#TODO[@]}
   if [[ -z "$trk_mcp" ]]; then
     ok "your tracker adapter is $chosen_tracker, which does not read through an MCP server"
@@ -1393,14 +1375,9 @@ PY
 # Stage 6 — confirm, in the only place a confirmation is worth anything:
 #            after the plan is known and before a single byte is written.
 # ══════════════════════════════════════════════════════════════════════════
-# A flag would only have reached people who read the README, which is the same
-# problem $CLAUDE_HOME has today. This screen answers "what is this about to do to
-# my computer" for everybody, including the person who ran it on a hunch.
 
 # hooks_warning_screen HOOKS — decision 1, in plain language, BEFORE any hook is
 # written or wired. The word "allowlist" used to appear exactly once in this
-# installer, inside a code comment, and the first a stranger heard about it was
-# their next `git push` being refused.
 hooks_warning_screen() {
   screen "Before the guardrail hooks go in — please read this"
   printf '\n'
@@ -1517,7 +1494,6 @@ for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.jso
   local hooks_selected
   hooks_selected=$(sed -n 's/^hook://p' "$WORK/closed.txt" | tr '\n' ' ')
 
-  # Decision 1: the guardrail explanation comes before any hook is written or wired.
   if [[ -n "${hooks_selected// /}" ]]; then
     hooks_warning_screen
   fi
@@ -1676,7 +1652,6 @@ install_stage() {
 # Kept separate from the stage banner and the manifest write so `update` can run
 # exactly the same copy / rewrite / fill / wire path without a second stage.
 install_stage_body() {
-  # close the selection over its dependency edges, then write the closed set back
   pb resolve-deps "$UNITS" "$(sel_json)" > "$WORK/resolved.json"
   py -c 'import json,sys
 for u in json.load(open(sys.argv[1]))["selected"]: print(u)' "$WORK/resolved.json" > "$SELECTED"
@@ -2360,9 +2335,6 @@ else:
         names = d["missing"].get(kind) or []
         if names:
             print("      NO %-8s tools in %d agent(s): %s" % (kind, len(names), ", ".join(names)))
-    # Which FILE lost WHICH tools. These rows were computed on every run and then
-    # thrown away: the summary above names a capability and a count, and leaves you
-    # to work out which file to open.
     print("")
     # Joined by hand, not with os.path.join: on Windows that returns a backslash
     # and the directory arrives with forward slashes, so the path printed back to

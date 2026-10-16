@@ -14,7 +14,6 @@ set -euo pipefail
 
 block() { echo "BLOCKED by block-infra-staging: $1" >&2; exit 2; }
 
-# python parses the payload and a payload it cannot read is a BLOCK, never a pass.
 _lib="${BASH_SOURCE[0]//\\//}"
 case "$_lib" in */*) _lib="${_lib%/*}/_lib/common.sh" ;; *) _lib="_lib/common.sh" ;; esac
 HOOK_LIB_LOADED=
@@ -51,14 +50,6 @@ cmd="$(parse command)" || block "the payload did not parse as JSON — refusing 
 # --- What does this command actually STAGE? ------------------------------------
 # Every check below reads the ARGUMENTS of a git add/commit/stage, never the command text.
 #
-# The text scan this replaces refused any command in which a never-stage name APPEARED at
-# all. `git commit -m "stop tracking MEMORY.md"` was blocked. So was a heredoc writing a
-# note about the rule — twice while #112 was being fixed, once in the notes for #112
-# itself. And because a compound command dies whole, anything chained in FRONT of the
-# mention never ran either, so the failure read as if that first step was the problem.
-# Anchoring the patterns to a path boundary did not close this: in prose a name has a space
-# on each side, and a space IS a path boundary.
-#
 # So the tokenizer, staged_args() in _lib/common.sh, answers the only question worth
 # asking — WHICH WORDS are paths handed to a staging verb — and the checks compare a whole
 # path COMPONENT against a whole name. That is exact, so the anchor regexes are gone:
@@ -66,9 +57,6 @@ cmd="$(parse command)" || block "the payload did not parse as JSON — refusing 
 #
 # Case folding stays, and is the decision recorded in #112: Windows resolves .Serena and
 # .serena to one directory, so a different spelling must not be a way through.
-#
-# A command that will not tokenize is a BLOCK, exactly as an unreadable payload is: the
-# hook did not find out what it was being asked to clear, so it does not clear it.
 
 # The pre-filter never asks for the verb: `git -C <dir> add …` does not put the verb
 # next to the program name, and a filter that demanded that let the whole command past.

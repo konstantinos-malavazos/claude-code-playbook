@@ -7,7 +7,6 @@ set -euo pipefail
 
 block() { echo "BLOCKED by block-mcp-writes: $1" >&2; exit 2; }
 
-# python parses the payload and a payload it cannot read is a BLOCK, never a pass.
 _lib="${BASH_SOURCE[0]//\\//}"
 case "$_lib" in */*) _lib="${_lib%/*}/_lib/common.sh" ;; *) _lib="_lib/common.sh" ;; esac
 HOOK_LIB_LOADED=

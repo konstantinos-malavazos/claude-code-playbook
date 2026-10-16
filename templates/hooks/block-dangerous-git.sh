@@ -13,8 +13,6 @@ block() { echo "BLOCKED by block-dangerous-git: $1" >&2; exit 2; }
 # absent from most machines, and hand-rolling the two filters with sed/grep is not the
 # cheap option it looks like: a real command arrives with its line breaks encoded as the
 # two characters \n, and decoding those by hand re-opens the multi-line flatten bug this
-# directory has already shipped once. The dependency is swapped, not removed — python is
-# a dependency too, and it wins on being present and on being a real JSON reader.
 #
 # NO PARSER, OR A PARSE THAT ERRORS, IS A BLOCK. Claude Code treats every exit code
 # other than 2 as a non-blocking error and lets the tool call through, so 127 is not a
@@ -40,8 +38,6 @@ hook_read_payload
 
 # BOTH FIELDS ARE WRITTEN THROUGH THE BINARY BUFFER. This is the INPUT side of the very
 # hazard the tokenizer's OUTPUT was hardened against (see the note at its final write). One
-# end of a pipe was hardened and the other was not, and that is not a coincidence: no
-# duplication note in this directory has ever listed parse() as a shared part, so nobody
 # checked it. Two measured failures came out of the text-mode write:
 #
 #   1. CR DOUBLING, and it re-opened a fixed force push. On Windows a text-mode stdout
@@ -64,22 +60,9 @@ hook_read_payload
 #      also defeated the allowlist whenever the repo path contained such a character. A
 #      false positive carrying a false diagnostic, in the hook that exists to remove false
 #      positives. UTF-8 out, and the bytes bash reads are the bytes the payload carried.
-#
-# THE FIELDS ARE NOT PULLED OUT HERE ANY MORE. parse() used to sit at this point and run
-# its own python process; it is now the head of payload_fields() further down, which is
-# the same program as the tokenizer. The note above is unchanged and still describes the
-# write that program makes, because it is still the same write — see the merge note at
-# payload_fields() for why the two became one, and why the binary buffer matters MORE now
-# rather than less. Nothing between here and there reads the payload.
 
 # --- What does this command actually DO? ---------------------------------------
 # Every rule below reads the ARGUMENTS of a git subcommand, never the command text.
-#
-# The text scan this replaces refused any command in which a dangerous string APPEARED at
-# all. `echo "never run git push --force here"` was blocked. So was a commit message
-# explaining why a flag is banned, a grep for it in docs/, and a heredoc writing a note
-# about it — including, measurably, the notes for this very ticket (#117). And because a
-# compound command dies whole, anything chained in FRONT of the mention never ran either.
 #
 # This program shares its helpers with staged_args() in _lib/common.sh, but not its
 # reading of the arguments. The deliberate divergences, each a real decision and not a
@@ -99,12 +82,6 @@ hook_read_payload
 #      they split INSIDE a word: `--format=%(refname)` becomes three tokens, so
 #      `git branch --format=%(refname) -D feature` splits into segments and the segment
 #      carrying the force flag starts with `-D`, not `git` — silently dropped, ALLOW.
-#      Measured. The span is bounded so it CANNOT cross a command separator or whitespace:
-#      the first cut of this used `[^)]*`, which ran from a `%(` in one command to the
-#      first `)` anywhere later and swallowed whole commands in between —
-#      `echo '%(' ; git branch -D feature ; echo ')'` collapsed to `echo '%'` and the
-#      branch delete was never seen. A format placeholder never contains a separator or a
-#      space, so forbidding them inside the span costs nothing and closes that hole.
 #   5. A backtick that is not before a newline is a separator: it is command substitution,
 #      and `` `git branch -D f` `` is otherwise a single token that is not `git`.
 #      staged_args() must not do this: there the split moves a path word out of its add
@@ -124,23 +101,10 @@ hook_read_payload
 # escapes REMOVED — the spelling bash will actually hand git. See deb() for why that view
 # is taken for options only and never for a path.
 #
-# A command that will not tokenize is a BLOCK, exactly as an unreadable payload is.
-# ONE PYTHON PROCESS PER INVOCATION, and this is where the second one went. Reading the
-# fields out of the JSON and tokenizing the command used to be two separate programs, so
-# an ordinary git command paid two process spawns and a push paid three — on the one
-# platform where a process spawn is the most expensive thing a hook does. They are one
-# program now: it reads the payload once, and returns everything the shell below needs.
-#
 # THE THREE FIELDS COME BACK IN ONE STRING, separated by a record separator (\x1e), and
 # the command comes LAST on purpose. The command is the only field that can itself contain
 # newlines, so it has to be the one that is "everything after the last separator"; a
 # line-per-field format would have been ambiguous for exactly that field.
-#
-# STILL WRITTEN THROUGH THE BINARY BUFFER, for both of the measured reasons in the note
-# further up — and the merge makes the first of them REACHABLE where it was not. A
-# text-mode stdout rewrites every \n as CR LF, and the CR travels on the last field of the
-# line; the old parse() emitted a single field with no newline in it at all, so it had no
-# line for that to happen on. This program emits several. Do not take the buffer off.
 #
 # NO GIT, NO TOKENIZER. The early exit below is a pre-filter: an ordinary non-git Bash
 # call does not pay for tokenizing, and a non-git command that will not tokenize is not
@@ -190,9 +154,6 @@ def deb(w):
     # backslash before git ever sees the word, so a flag written with one arrived here as
     # a token that did not start with a hyphen, was filed as a path, and every rule is
     # gated on kind = opt. No rule ever looked at it. Measured with a git shim on PATH
-    # recording the real argv (#117, fifth pass): four force-flag spellings on push all
-    # EXECUTED while this hook returned 0 in an allowlisted repo, where letting the push
-    # itself through is the whole point and stopping the flag is the only job left.
     # The dollar-sign quoting forms are the same hole by another route: shlex leaves the
     # dollar glued to the front of the word, bash does not pass it on. That one is not an
     # evasion trick, it is ordinary quoting somebody may type by accident.
@@ -207,8 +168,6 @@ def deb(w):
     # applied to the ARGUMENT loop only. The loop that skips the options git itself takes
     # BEFORE the subcommand still tests the raw word, so an escaped GLOBAL option hides the
     # subcommand behind it — measured 0 in both allowlist states on master and here alike,
-    # i.e. not a regression of this branch, and it belongs with the other option-spelling
-    # gaps on #141 rather than in a fix scoped to what this branch moved.
     return w.replace("\\", "").lstrip("$")
 
 def prepare(src):
@@ -368,22 +327,10 @@ while q < len(queue):
 # hands bash an argument with a carriage return glued to it, which matches nothing. That
 # fails OPEN — and only on Windows, and only from the second line onward, which is to say
 # only for a call that runs more than one command.
-#
-# THE OTHER END OF THIS PIPE IS parse(), and it shipped text-mode while this end did not —
-# see the long note there. Same hazard, same platform, opposite direction; hardening one
-# end and not the other is what let a fixed force push run again under a CRLF payload.
 emit("".join(line + "\n" for line in out))
 '
 }
 
-# The one read of the payload, and the one place this hook can fail to read it. Three
-# outcomes, three different things to say:
-#   0  the payload parsed and the command tokenized (possibly to nothing)
-#   3  python ran, and shlex refused the command — a command we cannot read is a block,
-#      exactly as an unreadable payload is
-#   *  no candidate interpreter could run the program at all, or the payload is not JSON.
-#      py_tried then asks each candidate whether it is python, so the message can tell
-#      "your payload is malformed" apart from "the python3 on your PATH is not python".
 _rc=0
 fields="$(payload_fields)" || _rc=$?
 case "$_rc" in
@@ -392,8 +339,6 @@ case "$_rc" in
     *) block "the payload did not parse as JSON — refusing to guess what this command does. $(py_tried)" ;;
 esac
 
-# Split on the record separator. cwd first, tokenized rows second, the command last —
-# see the format note at payload_fields().
 payload_cwd="${fields%%$'\x1e'*}"
 _rest="${fields#*$'\x1e'}"
 args="${_rest%%$'\x1e'*}"
@@ -401,15 +346,6 @@ cmd="${_rest#*$'\x1e'}"
 
 # Normalize for matching. Newlines and \r become ';' so a CRLF payload behaves the same as
 # an LF one and a separate LINE stays a separate command.
-#
-# NOTHING IN THIS HOOK ANCHORS ON THAT SEPARATOR ANY MORE. An earlier version of this
-# comment said "the patterns below anchor on a start-of-string or a [;&|] separator" —
-# they did then, they do not now, and the file contradicted itself about it. $norm has
-# exactly two readers left: the --no-verify and --no-gpg-sign rules, and both are bare
-# unanchored substrings (see the note at those rules). The `git` pre-filter used to be a
-# third; it now lives inside payload_fields(), and the shell branches on whether any rows
-# came back. The git rules read the tokenized rows instead, which do their own newline
-# handling.
 #
 # PARAMETER EXPANSION, NOT `tr`. This was two processes per invocation for a transform
 # bash can do in the shell it is already running, and on Windows a spawn costs more than
@@ -466,7 +402,6 @@ push_target_check() { # <refspec | --all | --mirror | --branches> — blocks a p
 # than testing the command text a second time. Two copies of "does this mention git" in
 # two languages is a shared contract that can drift, and the drift would be silent: the
 # rows are empty exactly when the tokenizer was not run or found no git invocation, which
-# is the same set of commands the text filter used to let through to an empty $args.
 if [ -n "$args" ]; then
     # Rows include commands nested in $( ), backticks and any multi-word argument
     # (bash -c, ssh, eval), up to MAX_DEPTH. A commit message and the arguments of echo,
@@ -500,9 +435,6 @@ if [ -n "$args" ]; then
             fi
         fi
 
-        # git push — the human pushes manually, unless this repo is allowlisted for it.
-        # The `sub` row is why a bare `git push` with no arguments is caught. Asked once
-        # per command.
         if [ "$sub" = push ] && [ -z "$push_checked" ]; then
             push_checked=1
             allowlist_says push "$payload_cwd" || \
@@ -544,19 +476,14 @@ if [ -n "$args" ]; then
                     -*[fF]*)  block "git clean -f" ;;
                 esac ;;
             # --- git branch: block FORCE, allow SAFE (#115) -------------------------
-            # This was one pattern, `git +branch +-D`, and it was wrong in both
-            # directions.
             #
             # Too strict: it folded case, and `-d` is the OPPOSITE of `-D` — it refuses a
             # branch with unmerged commits. So the safe cleanup was blocked and then
-            # reported as a force delete. That is the bug in #115.
             #
             # Too loose, and the worse half: `-D` is one of eight spellings git accepts
             # for the same destructive operation. Measured on the unfixed hook, these all
-            # sailed through —
             #   git branch --delete --force · --force --delete · -d --force · -fd · -df
             #   git branch -f <name> <start> · --force <name> <start>  (force-MOVES a ref)
-            # — so the guardrail stopped exactly one of them and let seven past.
             #
             # The rule is therefore about FORCE, not about delete: on `git branch`, any
             # force flag is destructive, whether it deletes an unmerged branch or moves a
@@ -568,7 +495,6 @@ if [ -n "$args" ]; then
             # Case-SENSITIVE on purpose, and the reason payload_fields() folds nothing but the
             # subcommand: `-D` blocks, `-d` does not. Every spelling above is a case in
             # templates/hooks/test-hooks.sh, in BOTH directions — the missing allow-case
-            # is why this survived so long.
             branch)
                 case "$arg" in
                     --force*) block "git branch --force — use --delete on its own, which refuses unmerged branches" ;;
@@ -601,7 +527,6 @@ fi
 # message that merely QUOTES `--no-verify` still false-positives. The FP class survives
 # for exactly these two flags, by decision, not by oversight.
 #
-# `grep -Eiq` was CASE-INSENSITIVE, and these are bash substring tests now — two more
 # processes off every single invocation, git or not. The `,,` is therefore load-bearing
 # and not a tidy-up: without it `--No-Verify` stops being blocked, which is a security
 # guardrail quietly narrowing. Both patterns below are already lower case.

@@ -138,7 +138,6 @@ PY
 # with_memory_connector - Forgetful reached as a claude.ai CONNECTOR, which is a
 # FOURTH registration route: it never lands under mcpServers, only in this
 # historical list. This is the shape of the maintainer's own machine, where
-# mcpServers is empty and every server is a connector - the gate refused it.
 # The name is lower-case on purpose: the tool prefix keeps the case of whatever
 # is recorded here, so "claude.ai forgetful" is mcp__claude_ai_forgetful__.
 with_memory_connector() {
@@ -297,7 +296,6 @@ fi
 # ------------------------------------------------- 17 the documented Windows command
 # Windows PowerShell ships set to `Restricted`, so a bare `.\install.ps1` dies with
 # "running scripts is disabled on this system" before the script's first line runs.
-# The README told people to type exactly that.
 #
 # The install.ps1 suite cannot catch it, and never will: it launches the script with
 # -ExecutionPolicy Bypass itself (see New-Run in tests/test-install-ps1.ps1), because
@@ -462,7 +460,6 @@ assert d.get("hooks"), "no hooks block"
 PY
 chk $? "settings.json has a hooks block"
 inlog t6 "github.com/you/weekend-project    yes    yes" "closing summary repeats the allowlist line"
-# #122's own reproduction: this is the run whose log said "NO tracker tools in 6
 # agent(s)" on a correct install. local-markdown reads files off the disk, so the
 # deleted tracker token was never a lost grant.
 inlog t6 "every installed agent carries the tools its template declared"          "check 1b is GREEN on a clean local-markdown install"
@@ -725,7 +722,6 @@ run_in() {
 
 # agents_with_memory — the agent FILENAMES whose template declares a memory tool.
 # Derived from the tree on every run. The number was written down by hand twice in
-# this repo and was wrong both times.
 agents_with_memory() {
   ( cd "$REPO" && grep -lE '^tools:.*<memory-(read|write)-tools>' templates/agents/*.md ) \
     | sed 's#.*/##'
@@ -1051,8 +1047,6 @@ fi
 # must never fill. (2) even lowercased, apply_placeholders only ever
 # substitutes into the three frontmatter blocking keys (name/model/tools), so
 # a prose BODY token had no path to be filled at all. start-ticket.md already
-# carries the correct lowercase tokens in prose and ships them blank today —
-# this case is the control experiment, run for real.
 if want P1; then
 banner "P1 · the two model-id tokens are FILLED in command bodies, never left blank"
 fresh_env p1; with_servers
@@ -1108,8 +1102,6 @@ yn "$([ -z "$P1_MISSING" ] && echo 0 || echo 1)" \
 # said the same thing with the line wrapped between "no" and "model override".
 # So: flatten newlines first (the wrap is real, and a per-line grep cannot see
 # across it), and accept the optional "model" word. Keyed to the literal
-# "no model override" this guarded exactly one of the three files while its label
-# claimed all three.
 #
 # `tr -d '\r'` BEFORE the flatten, and it is load-bearing, not hygiene. These .md
 # files reach the sandbox through git on Windows, so the wrap point is "no\r\n" —
@@ -1328,7 +1320,6 @@ fi
 # ══════════════════════════════════════════════════════════════════════════
 # `update` is non-interactive: it replays the answers recorded at install time.
 # These six ask what that replay is allowed to do. U1/U2 lock in behaviour that
-# already worked; U3-U6 are the new behaviour this branch adds.
 #
 # A case that has to MUTATE a template does it in a throwaway clone_repo, never in
 # $REPO: the mutation IS the case, and the real tree must not move underneath the
@@ -1338,9 +1329,6 @@ fi
 # sandbox install, so a case keying on the generic tick, on the ✗ line, or on "verify
 # is clean" is born green and proves nothing. Every string below is either absent from
 # the tree before this branch, or specific to that case's own planted mutation.
-# Check 1b used to be listed here too — it went red on every sandbox install because a
-# deleted <tracker-read-tools> counted as a lost grant whatever the route. That was the
-# bug, not the baseline; T1-T3 below are what hold it green now.
 
 # ---------------------------------------------------------------- U1
 # Catches: the update path silently no-opping — a fixed template that never
@@ -1868,7 +1856,6 @@ case "$T1TOOLS" in
   *)             pass "no tracker placeholder left in its tools: line" ;;
 esac
 inlog t1 "@ticket-analyzer gets Bash" "the installer says it granted the shell"
-# #122, on the same run.
 inlog t1 "every installed agent carries the tools its template declared" \
          "check 1b is GREEN on a correct github install"
 notinlog t1 "some agents are installed without a capability" "1b does not go red"

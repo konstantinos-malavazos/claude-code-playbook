@@ -3,13 +3,6 @@
 # Blocks staging/committing credential-shaped paths, and obvious token literals anywhere
 # in the command. Exit 2 = block.
 #
-# WHY THIS EXISTS, since it is not general hygiene: the push block was quietly doing
-# secret-leak protection. While a human ran every push, a committed key was survivable —
-# you see the diff. Once a repo is allowlisted for push (see repo-allowlist.sample),
-# nobody does. The failure is concrete: the agent writes .env with a live key, commits,
-# pushes; the repo is private so it feels fine; six months later you make it public to
-# show someone and the key is in the history.
-#
 # WHAT IT CANNOT DO: it sees the command, not the file. `git add config.yml` with a
 # password inside passes. This blocks credential-shaped NAMES and pasted-in literals —
 # it is not a secret scanner, and calling it one would be the kind of guardrail that
@@ -19,7 +12,6 @@ set -euo pipefail
 
 block() { echo "BLOCKED by block-secret-staging: $1" >&2; exit 2; }
 
-# python parses the payload and a payload it cannot read is a BLOCK, never a pass.
 _lib="${BASH_SOURCE[0]//\\//}"
 case "$_lib" in */*) _lib="${_lib%/*}/_lib/common.sh" ;; *) _lib="_lib/common.sh" ;; esac
 HOOK_LIB_LOADED=
@@ -61,7 +53,6 @@ do
     # -e is load-bearing: without it a pattern starting with `-` is parsed as options and
     # grep exits 2 on usage, which this `if` reads as "no match" and waves the command
     # through. The PRIVATE KEY pattern below is exactly that shape, and it failed open for
-    # as long as it has existed. Found by running the hook, not by reading it.
     if printf '%s' "$norm" | grep -Eq -e "$pat"; then
         block "a credential literal matching /$pat/ is in this command — do not put it on a command line at all."
     fi
