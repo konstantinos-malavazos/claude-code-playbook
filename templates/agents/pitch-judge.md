@@ -26,8 +26,7 @@ absence is itself evidence. Say so and judge anyway.
 
 > **If you are editing this frontmatter:** `tools: TaskStop` plus `maxTurns: 1` is the
 > evidence floor, on two axes. `tools: []` does not mean "no tools": Claude Code **refuses
-> to launch a subagent whose list resolves to nothing** (v2.1.226: *"would be spawned with
-> zero tools — refusing"*), so this agent would silently never run. `TaskStop` is the one
+> to launch a subagent whose list resolves to nothing**, so this agent would silently never run. `TaskStop` is the one
 > member of the background subset that cannot read, fetch, write or execute. It is there to
 > satisfy the launch requirement, **not to be used**, and it is not perfectly inert — called
 > with an unknown id it names the running background agents. That is what `maxTurns: 1` is

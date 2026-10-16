@@ -2284,7 +2284,7 @@ terminal_class() {
     start-ticket|test-ticket)                                                       printf 'terminal' ;;
     # the skills a human is left standing at the end of
     adapt-to-stack|bootstrap|charting|cut-backlog|grilling|handoff)                 printf 'terminal' ;;
-    pitch|prototype|research|to-questionnaire|to-tickets|wizard)                    printf 'terminal' ;;
+    pitch|prototype|research|retro|to-questionnaire|to-tickets|wizard)              printf 'terminal' ;;
     # always-loaded skills, the block's own definition, and a generation template
     commit-conventions|diagnose|dispatch-weight|memory-schema)                      printf 'not-terminal' ;;
     # run inside a hook and inside another flow, never a flow of its own
@@ -2354,10 +2354,10 @@ done
 
 # A classification list that had drifted to zero terminals would pass every line
 # above while asserting nothing at all.
-if [ "$n_terminal" = "23" ]; then
-  pass "23 terminal points, which is the inventory this landed against"
+if [ "$n_terminal" = "24" ]; then
+  pass "24 terminal points, which is the inventory this landed against"
 else
-  fail "$n_terminal terminal points, not 23 — the inventory moved; change it here deliberately"
+  fail "$n_terminal terminal points, not 24 — the inventory moved; change it here deliberately"
 fi
 fi
 

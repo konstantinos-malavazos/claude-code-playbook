@@ -119,16 +119,15 @@ Two rules go with the table:
 - **Match on the family word, not the whole id.** An exact-id table has no row for someone
   who answered `claude-sonnet-4-5` at install, and the installer accepts any string.
 - **An unmappable id means no override — never a guess downward.** That is invariant 1
-  applied: no override reproduces the old behaviour for that one setup, which is expensive
-  but never wrong.
+  applied: with no override that one setup runs on the orchestrator's model, which is
+  expensive but never wrong.
 
-The alias set is a property of the harness, not of this playbook. Verified against Claude
-Code `2.1.226`; re-check it after an upgrade.
+The alias set is a property of the harness, not of this playbook.
 
 **Why `light` sets a tier explicitly instead of overriding nothing.** The two layer
 specialists are the only agent templates that pin no `model:` — which is exactly what makes
 them weight-eligible — and an agent with no pin defaults to `inherit`, i.e. the
-**orchestrator's** model, the strong one. So "no override" silently handed every light
+**orchestrator's** model, the strong one. So "no override" would silently hand every light
 dispatch the expensive tier. `light` therefore sets the cheap tier outright, and invariant 3
 still decides the rest: where the specialist pins something higher, set nothing.
 

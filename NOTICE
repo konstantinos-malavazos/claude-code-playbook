@@ -27,3 +27,16 @@ the codebase, because an approved plan and a context sweep already exist by
 the time they run; and `to-tickets` produces internal work-units approved
 on a board rather than issues published to a tracker. Each file states its
 own derivation in its opening lines.
+
+────────────────────────────────────────────────────────────────────────
+
+templates/skills/diagnose/SKILL.md
+templates/skills/retro/SKILL.md
+
+Adapted — not included verbatim — from Matt Pocock's `diagnosing-bugs` and
+`retro` skills, licensed under the MIT License by their original author.
+
+Both were rewritten for this playbook: `diagnose` keeps its own name, its
+Serena tracing and its performance-regression section, and `retro` proposes
+playbook issues and files none without the user's approval. Each file states
+its own derivation in its opening lines.

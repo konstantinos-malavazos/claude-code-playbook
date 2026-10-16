@@ -81,12 +81,13 @@ than the two above:
 | `adapt-to-stack` | a repo whose `CLAUDE.md` names a layer chain — generates one specialist, its slice-mode variant, one standards skill and one write-core skill per layer into that repo's own `.claude/`, and never overwrites | ✓ | ✓ |
 | `code-access` | **preloaded, never typed** — every agent that declares Serena tools lists it in `skills:`. The one copy of the code access protocol: read rules, escapes, the tool check and HALTED block, the "No active project" retry, and the paragraph every implementation dispatch carries. **Must not set `disable-model-invocation`**, or the preload silently stops | ✓ | ✓ |
 | `dispatch-weight` | **before every implementation dispatch** — classifies THAT dispatch `light` or `heavy` so the orchestrator sets the model for one run — the cheap tier on `light`, the strong one on `heavy`, and never below the specialist's own pinned floor. One definition, six call sites | ✓ | ✓ |
-| `next-steps` | **at every flow's ending** — the four-field hand-back that says what landed, what is yours, the next command with its argument filled in, and whether it is this session or a fresh one. One definition, twenty-three call sites | ✓ | ✓ |
+| `next-steps` | **at every flow's ending** — the four-field hand-back that says what landed, what is yours, the next command with its argument filled in, and whether it is this session or a fresh one. One definition, twenty-four call sites | ✓ | ✓ |
 | `review-guidelines` | loaded by the repo reviewer — your house review standard. **Ships as a stub you fill in**; until then the reviewer uses its own severity terms | ✓ | ✓ |
 | `tdd` | test-first feature/bug work (red-green-refactor) | ✓ | ✓ |
 | `diagnose` | hard bugs / performance regressions | ✓ | ✓ |
 | `grilling` | stress-testing a plan; the deferred-decision gate | ✓ | ✓ |
 | `wait-what` | **you type it** — the last message did not land, so it gets re-pitched simply | ✓ | ✓ |
+| `retro` | **you type it** — a finished session → proposed playbook improvements, most severe first, each naming the file to change. Files nothing | ✓ | ✓ |
 | `handoff` | **you type it, or `context-checkpoint` sends the model to it** — compact this session into one file a fresh session resumes from | ✓ | ✓ |
 | `context-checkpoint` | **run by the orchestrator at `/start-ticket`'s gates** — measures how full this session's context is from its own transcript, logs every check, and on a recommendation sends the model to `handoff` and stops at the gate. **Ships `occupancy.py` and `tests.py`** | ✓ | ✓ |
 | `memory-schema` | before any memory WRITE — enforces your memory server's call shape. **Ships a filled-in `forgetful.SKILL.md` alongside the placeholder** | ✓ | ✓ |
@@ -128,7 +129,7 @@ agents that say *load `memory-schema`* would keep loading the empty one.
 
 ## On `disable-model-invocation`
 
-`bootstrap`, `cut-backlog`, `to-questionnaire` and `wait-what` set it. Two tests decide it,
+`bootstrap`, `cut-backlog`, `retro`, `to-questionnaire` and `wait-what` set it. Two tests decide it,
 and a veto overrides both.
 
 **Test 1 — [`PHILOSOPHY.md`](../../PHILOSOPHY.md) §5:** *if it's hard to reverse **or**
@@ -137,7 +138,8 @@ leaves your machine, a human confirms it.* `bootstrap` writes memory and ends in
 field because it never overwrites. The worst an unasked run does is add files you delete.
 
 **Test 2 — the run is not the model's to start.** `wait-what` is *you* saying the last
-message did not land. `to-questionnaire` needs a recipient only you know exists. Neither is
+message did not land. `to-questionnaire` needs a recipient only you know exists. `retro` judges a
+session you decided was over. None is
 a run the model can decide to begin, so the field makes them typed-only rather than
 confirmation gates.
 

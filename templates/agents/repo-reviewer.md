@@ -45,7 +45,8 @@ the two apart — which is why this is a halt and not a caveat.
 
 A **missing tracker tool** is the lesser case, and check `~/.claude/tracker.md` before you
 call it one. On a local-markdown adapter `Read`/`Glob` are the tracker. If it is genuinely
-gone, you still have `ticket-analyzer.md`: review against its criteria and head that section
+gone, you still have `ticket-analyzer.md`: review against its
+`## Acceptance criteria (verbatim)` and head that section
 `criteria not re-fetched`, so the verdict says which copy it was judged against.
 
 ## Steps
@@ -73,7 +74,10 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
      test you reasoned about is not a test that passed.
 
    Resolve every changed symbol through Serena as above. Check:
-   - each acceptance criterion is met,
+   - each acceptance criterion **as re-fetched in step 1** is met. Compare it with
+     `ticket-analyzer.md`'s `## Acceptance criteria (verbatim)`: a difference means the ticket
+     changed mid-flow — judge against the re-fetched text and report the difference as a
+     finding. The restated checklist is the analyzer's reading, used only to explain a finding,
    - correctness, security, the house standard from `review-guidelines` once it is filled
      in, and the `<layer>-standards` skill for each layer the diff touches, where the repo
      has generated one,

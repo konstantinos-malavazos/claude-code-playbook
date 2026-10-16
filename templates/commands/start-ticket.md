@@ -54,7 +54,9 @@ A weight read once from `planner.md` and reused covers only site 1, the initial 
 
 ## Sequence
 1. **@ticket-analyzer** — tracker → `ticket-analyzer.md`.
-2. **Gather** — fork on the rows of `ticket-analyzer.md`'s `## Likely repos`:
+2. **Gather** — on route C, start the servers for every `## Likely repos` key first with
+   `bash ~/.claude/serena/serena-up.sh <key...>`, and again for the repos of any second
+   round. Then fork on the rows of `ticket-analyzer.md`'s `## Likely repos`:
    - **one row** → **@context-gatherer** — heavy memory + Serena sweep →
      `context-gatherer.md`.
    - **two or more** → one **@repo-gatherer** per row, **all in one message**, each →
@@ -68,7 +70,8 @@ A weight read once from `planner.md` and reused covers only site 1, the initial 
 3. **@planner** — design + track allocation + slice-count + final commit message; creates
    the branch → `planner.md`.
 4. **Grilling gate** — load the `grilling` skill; present ONLY the planner's open
-   questions to the user. Collect answers or managed deferrals. If answers change the
+   questions to the user, plus its `## Testing seams` for them to confirm — the specialists
+   test only at confirmed seams. Collect answers or managed deferrals. If answers change the
    design, send @planner back to RE-PLAN. Record deferrals in
    `<workspace>/.claude/handoffs/$ARGUMENTS/open-questions.md`.
    Once the plan is approved, run the `context-checkpoint` skill with `gate: plan-approval`.
@@ -135,8 +138,7 @@ A weight read once from `planner.md` and reused covers only site 1, the initial 
 
 ## Guardrails
 - Never write to the tracker. **Push the branch when `~/.claude/repo-allowlist` permits
-  it, and not otherwise.** The hook is the authority. This flow no longer adds a
-  second, invisible no. **Never push to the trunk, and never merge**: that is the step that
+  it, and not otherwise.** The hook is the authority. **Never push to the trunk, and never merge**: that is the step that
   makes a change the trunk's problem, and it stays yours. **Commit no AI-infra files**: `.claude/` (except `agents/` and `skills/`, which
   are product files generated from this repo's `CLAUDE.md`), MCP state, memory files.
 - Keep the branch at exactly one commit per repo.

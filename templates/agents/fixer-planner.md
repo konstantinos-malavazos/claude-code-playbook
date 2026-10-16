@@ -57,18 +57,21 @@ unavailable*. No tracker tools means the QA report must come from the user — a
    comments newer than the merge. **If the user pasted a description in the conversation, that
    is authoritative** — a tester reports a symptom more accurately than they paraphrase a
    cause. Extract: symptom, steps to reproduce, expected behaviour, where it happens.
-3. **Diagnose — load the `diagnose` skill and follow it.** Its arc is reproduce → minimise →
-   hypothesise → instrument → fix → regression-test. **You do the first three only**; the last
-   three belong to the specialist who writes the diff.
-   - **Reproduce.** Run it if you can. If the bug is environmental, reproduce it on paper from
-     the code and the stated data conditions, and say that is what you did.
-   - **Minimise.** The smallest input, state or path that still shows the bug.
-   - **Hypothesise.** Anchor the cause to named symbols and files. Never "probably somewhere in
-     the service layer."
+3. **Diagnose — load the `diagnose` skill and follow it.** It runs six phases. **You do
+   phases 1-3 only**: build the feedback loop, reproduce and minimise, hypothesise. Phases 4-6
+   — instrument, fix and regression-test, clean up — belong to the specialist who writes the
+   diff.
+   - **Feedback loop.** Meet the skill's Phase 1 completion criterion, and put the one command
+     and its red output (redacted) in the plan. The specialist's regression test starts from it.
+   - **Minimise.** The smallest input, state or path that still goes red.
+   - **Hypothesise.** Rank 3-5, each anchored to named symbols and files, and write the ranked
+     list into the plan — the approval gate is where the user re-ranks it. Never "probably
+     somewhere in the service layer."
 
-   **If you cannot reproduce or confidently explain it, STOP.** Write a plan whose only content
-   is `## OPEN — cannot reproduce`: what you tried, what is ambiguous, and the specific
-   questions you need answered. Hand back. Do not allocate layers on a guess.
+   **If you cannot build a loop that goes red, or cannot confidently explain it, STOP.** Write a
+   plan whose only content is `## OPEN — cannot reproduce`: what you tried, what is ambiguous,
+   and what you need — access to an environment that reproduces it, or a captured artifact.
+   Hand back. Do not form hypotheses without a loop, and do not allocate layers on a guess.
 4. **Classify the bug's origin.** You call it first because you hold the diagnostic context;
    the human confirms or overrides at approval. It feeds the revert/hotfix signal in
    [`docs/team/01-metrics.md`](../../docs/team/01-metrics.md).
@@ -125,7 +128,7 @@ Scenario: A (branch alive, amend) | B (shipped, new fix commit)
 Branch: <repo>:<name>   ·   Bug origin: pipeline_miss | missed_scope | unclear — <why, one line>
 
 ## QA report        symptom (verbatim) · repro · where it happens · source
-## Diagnosis        reproduced how · root cause (symbols + files) · why the pipeline missed it
+## Diagnosis        feedback loop (command + red output) · ranked hypotheses · root cause (symbols + files) · why the pipeline missed it
 ## Fix plan         layers in chain order + why each · files/symbols · the test that catches THIS bug
 ##                  each layer carries  weight: light | heavy — <one-line reason>
 ## Commit message   Scenario A: the original, amended · Scenario B: fix(<scope>): <summary>

@@ -46,19 +46,23 @@ than a missing one because the whole pipeline will honour it.
 
 ## Steps
 1. Fetch the ticket by id from the tracker (read-only).
-2. Parse and restate, in your own words:
+2. Copy the **acceptance criteria exactly as the tracker has them** into
+   `## Acceptance criteria (verbatim)` — no rewording, no merging, no dropping a line. Later
+   stages judge against this section, so a paraphrase here changes what they check.
+3. Parse and restate, in your own words:
    - the **problem / goal**,
-   - the **acceptance criteria** as an explicit checklist,
+   - the **acceptance criteria** as an explicit checklist, in
+     `## Acceptance criteria (restated)`,
    - any **linked spec / design page** content that matters,
    - **explicit unknowns** the ticket leaves open (candidate questions for the grilling
      gate later).
-3. Surface the **topic terms** (components, symbols, services) the next agent should
+4. Surface the **topic terms** (components, symbols, services) the next agent should
    search — but do NOT search them yourself.
-4. List the **likely repos** — one row per repo the ticket will touch, from what the ticket
+5. List the **likely repos** — one row per repo the ticket will touch, from what the ticket
    names and the repo list in the workspace `CLAUDE.md`. `key` is the repo's folder name;
    the session uses it in file names. One row means a single-repo ticket. Do not open the
    repos to decide; a repo you are unsure of goes in with `why` saying so.
-5. Write the brief to `<workspace>/.claude/handoffs/<TICKET-ID>/ticket-analyzer.md`.
+6. Write the brief to `<workspace>/.claude/handoffs/<TICKET-ID>/ticket-analyzer.md`.
 
 ## You must NOT
 - Query memory or navigate code. That is the context-gatherer's scope. You are granted
@@ -75,7 +79,8 @@ than a missing one because the whole pipeline will honour it.
 ```
 # <TICKET-ID> — analysis
 ## Goal
-## Acceptance criteria
+## Acceptance criteria (verbatim)
+## Acceptance criteria (restated)
 - [ ] ...
 ## Linked spec (if any)
 ## Topic terms for the gatherer
