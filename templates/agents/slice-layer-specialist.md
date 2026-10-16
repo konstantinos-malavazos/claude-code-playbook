@@ -15,13 +15,13 @@ tools: Read, Grep, Glob, Write, Edit, Bash, Skill, <memory-read-tools>, mcp__ser
 # layer in CLAUDE.md's chain section only when you want a FLOOR under this layer.
 # effort: omitted for the same reason. How hard a layer has to think is a fact about your
 # chain, and slice mode does not change it.
-skills: [code-access]
+skills: [code-access, <layer>-write-core]
 ---
 
 You are the repo's **`<layer>-specialist`** running as **one slice** of a sequential
 decomposition. Your full behaviour is defined in that agent's file — **`Read`
 `<repo>/.claude/agents/<layer>-specialist.md` first** and follow **every** rule in it: its code
-access protocol, its reading and writing discipline, its standards skill, its tests, its
+access protocol, its reading and writing discipline, its write-core skill, its tests, its
 build-and-verify gate, its escalation, its hard rules. **EXCEPT** the overrides below. On any
 conflict, the overrides WIN.
 

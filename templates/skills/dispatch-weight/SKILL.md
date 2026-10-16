@@ -50,21 +50,23 @@ signature"*, never *"this looks tricky"*.
 
 - touches **more than 3 files** — 3 or fewer is `light`,
 - spans **more than one repo**,
-- changes a **shared contract or signature with multiple callers** — count them with
-  Serena's `find_referencing_symbols`, never a grep,
+- changes a **shared contract or signature with multiple callers** — **2 or more**, counted
+  with Serena's `find_referencing_symbols`, never a grep,
 - has to work around a **placeholder seam** left by a deferred decision.
 
 Otherwise `light`. Tune the list to your team; it is a starting point, not scripture. Keep it
 **here**, in this one file, when you do.
 
-### Two more criteria that only exist on a fix pass
+### Three more criteria that only exist on a fix pass
 
 A re-pass, a drift fix and a QA bounce-back also read `heavy` when:
 
-- the reviewer raised **several findings against one track**, or
+- the reviewer raised several findings against one track — **3 or more**,
+- **any** finding is at **contract/schema tier** — it changes a shape another track, repo
+  or stored record depends on, or
 - **any** finding says the **design** was wrong rather than the details.
 
-The second one outranks file count. A one-file change that reopens a design decision is a
+The last one outranks file count. A one-file change that reopens a design decision is a
 heavy dispatch; a twelve-file rename is not.
 
 ---
@@ -129,6 +131,26 @@ them weight-eligible — and an agent with no pin defaults to `inherit`, i.e. th
 **orchestrator's** model, the strong one. So "no override" silently handed every light
 dispatch the expensive tier. `light` therefore sets the cheap tier outright, and invariant 3
 still decides the rest: where the specialist pins something higher, set nothing.
+
+### The `Dispatched:` line
+
+Every implementation dispatch prompt carries one fixed line, and the dispatched agent copies
+it verbatim as its handoff's **first line**:
+
+```
+Dispatched: <model> (weight: <light|heavy> — <reason>; pass: initial|review-fix N|drift-fix N)
+```
+
+- **`<model>`** is the tier alias you set on that dispatch, from the table above — or `none`
+  where you set no override (an unmappable id, or a pinned floor that is already higher).
+  It is never an exact model id: the dispatch `model` field takes only a tier name, and a
+  specialist's frontmatter is the one place an exact id is written.
+- **`<reason>`** is the criterion the classifier named.
+- **`pass`** is `initial` on the first dispatch of a track, and `review-fix N` or
+  `drift-fix N` on the Nth fix pass of that kind.
+
+One fixed line, in one place, is what makes the weights auditable with a single grep across
+handoffs.
 
 ---
 

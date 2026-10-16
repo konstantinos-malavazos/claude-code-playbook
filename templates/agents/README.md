@@ -31,7 +31,7 @@ cannot choose. The full set:
 | `model` | `sonnet` / `opus` / `haiku` / `fable`, a full id, or `inherit`. **Defaults to `inherit`** | ✓ all but the two layer specialists |
 | `permissionMode` | `default`, `acceptEdits`, `auto`, `dontAsk`, `bypassPermissions`, `plan` | — |
 | `maxTurns` | Caps agentic turns. The way to make an agent that weighs but cannot act | ✓ `pitch-judge`, `decision-steward` |
-| `skills` | Skills preloaded into its context at startup — full content, not just the description | — |
+| `skills` | Skills preloaded into its context at startup — full content, not just the description | ✓ `code-access` on every Serena agent; `<layer>-write-core` on the two layer specialists |
 | `mcpServers` | Which MCP servers it gets | — |
 | `hooks` | Lifecycle hooks scoped to this agent | — |
 | `memory` | `user` / `project` / `local` — persistent cross-session memory | — |
@@ -153,22 +153,26 @@ directory name. Same placeholder, opposite consequence:
   cost of thinking too little is paid by everyone downstream, and nothing in the output reveals
   it: a thin verdict and a thorough one arrive in the same shape.
 
-  **Then ask the second question: does anything check it?** A judgement a later stage
-  re-examines can afford `high`; one that closes a gate with nothing behind it stays `xhigh`.
-  That is why the `/start-ticket` spine — `context-gatherer`, `planner`, `repo-reviewer`,
-  `release-reviewer` — runs `high` rather than `xhigh`: the planner trusts the gatherer's
-  sweep but makes pinpoint Serena reads wherever a design decision depends on exact current
-  code, the plan meets a human at the grilling gate, and the per-repo verdicts are reconciled
-  by the judge before a human opens the PR. `xhigh` is kept for the agents whose answer
-  is the last word — `map-reviewer` closing a map, `pitch-judge` killing an idea,
-  `decision-steward` answering unattended, and `aligner`, `fixer-planner` and `test-planner`,
-  none of which has a reviewer of its own.
+  **Every judging agent runs `high`, and none runs `xhigh`.** The `/start-ticket` spine —
+  `context-gatherer`, `planner`, `repo-reviewer`, `release-reviewer` — is checked by a later
+  stage: the planner makes pinpoint Serena reads wherever a design decision depends on exact
+  current code, the plan meets a human at the grilling gate, and the per-repo verdicts are
+  reconciled by the judge before a human opens the PR. The agents whose answer is the last
+  word — `map-reviewer` closing a map, `pitch-judge` killing an idea, `decision-steward`
+  answering unattended, and `aligner`, `fixer-planner` and `test-planner` — run `high` too.
+  No shipped agent states `xhigh`; raise one yourself where you see its answers come back
+  thin.
 
   Where the work is bounded but one call inside it still needs judgement, `high` — `tester`
-  executes an approved plan, but deciding FAIL versus INCONCLUSIVE is not mechanical. Where
-  the job is
-  parse-and-restate with a fast model behind it, dial it **down**: `ticket-analyzer` is
-  `medium`, and that is a saving, not a compromise.
+  executes an approved plan, but deciding FAIL versus INCONCLUSIVE is not mechanical.
+  `ticket-analyzer` runs `high` on its fast model, because the fast tier at a higher effort
+  costs less than escalating it to the strong one.
+
+  **The session default is set per model, by the installer.** It merges a `modelSettings`
+  entry into `~/.claude/settings.json` for the two model ids you recorded — `medium` on the
+  strong one, `high` on the fast one — and never overwrites an entry you already have. An
+  agent's own `effort` still overrides it. Shape, versions and the merge rule:
+  [`../mcp/README.md`](../mcp/README.md).
 
   **The two layer specialists are the exception, for the same reason they pin no `model`.** One
   layer is mechanical and the next is design-heavy, and which is which is a fact about your

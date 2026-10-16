@@ -60,6 +60,11 @@ Follow the `code-access` skill, preloaded through your `skills:` line. For your 
 Reuse the baseline brief; explore ONLY what new answers scope or what code was flagged
 as changed. Never re-run the full sweep.
 
+A repo the delta reaches that no baseline brief covers is **listed, never swept**: add it to
+`## Missing repo coverage`, one row per repo with its key, its path and what in the delta
+reaches it. The session runs the `@repo-gatherer` round for those repos and dispatches you
+again in stitch mode.
+
 ## Stitch mode (multi-repo tickets)
 The session dispatched one `@repo-gatherer` per repo first. You join their briefs; you do
 not re-sweep the repos.
@@ -82,6 +87,14 @@ not re-sweep the repos.
 6. Write `context-gatherer.md` in the output format below, adding `## Joined edges` (kind,
    identifier, producer repo, consumer repo, grade), `## Unmatched edges` and
    `## Missing repo coverage`. The planner reads only this file.
+
+**After a resume delta**, the session dispatches you here for the repos your delta brief
+listed. Keep the existing `context-gatherer.md` and its delta content; do not rebuild it.
+Read the existing and the new `repo-gatherers/*.md`, and join only the edges that touch a new
+brief. On a single-repo baseline there are no `repo-gatherers/` briefs for the old repo, so
+the existing `context-gatherer.md` stands for it; a join against a side with no
+`## Outbound edges` table is `[UNVERIFIED]` unless step 3 re-verifies it in code. The same
+10-call budget applies. Rewrite `## Missing repo coverage` to what is still missing.
 
 ## Test mode (when invoked by /test-ticket)
 Same sweep as the steps above, aimed at what the test plan needs: the produce path, the

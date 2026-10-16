@@ -199,12 +199,15 @@ Put each group below in one chunk, or a section runs twice and its results count
 
 **Give each chunk its own scratch folder.** Sections reuse the same folder names inside
 it, so two chunks sharing one folder can trip over each other. Each of these chunks took
-under four and a half minutes:
+under four and a half minutes.
+
+The chunk lines below are also the Windows CI matrix: `tests/ci-chunks.py` reads them from
+this section, so an edit to them changes what CI runs.
 
 ```bash
 S=/tmp/installer-run
 PLAYBOOK_TEST_DIR="$S/i1" bash tests/test-installer.sh 13 17 1 2 3 4 5 6 7 9 10 11 8 14 19 15 16 18
-PLAYBOOK_TEST_DIR="$S/i2" bash tests/test-installer.sh M1 M2 M8 M3 M4 M6 M5 P1
+PLAYBOOK_TEST_DIR="$S/i2" bash tests/test-installer.sh M1 M2 M8 M3 M4 M6 M5 P1 MS1
 PLAYBOOK_TEST_DIR="$S/i3" bash tests/test-installer.sh U1 U2 U3 U4 U5 U6 U7 U8 U9 S1 S2 S3 S4 S5 S6
 PLAYBOOK_TEST_DIR="$S/i4" bash tests/test-installer.sh T1 T2 T3 T4 T5 T6 T7
 PLAYBOOK_TEST_DIR="$S/i5" bash tests/test-installer.sh R1 R2 R3 L1 L2 L3 L4

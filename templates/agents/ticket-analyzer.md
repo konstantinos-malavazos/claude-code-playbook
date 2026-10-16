@@ -7,7 +7,7 @@ description: >-
   or navigate code (that is the context-gatherer's job, next). Does NOT plan.
 tools: Read, Write, Glob, <tracker-shell-tools>, <tracker-read-tools>
 model: <fast-model-id>
-effort: medium
+effort: high
 ---
 
 You are a read-only ticket analyst. Your only job is to turn a tracker ticket into a

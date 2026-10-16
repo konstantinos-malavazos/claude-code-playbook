@@ -97,9 +97,11 @@ gone, you still have `ticket-analyzer.md`: review against its criteria and head 
 5. On `REQUEST CHANGES`, **load the `dispatch-weight` skill and propose the re-pass weight
    for each specialist you send work back to**, judged on **what your findings ask for** and
    not on what the first pass was. This feeds dispatch site 4, the review re-pass, the one a
-   plan-only weight misses, and you hold the evidence: your own findings. Two of that skill's
-   criteria exist for you in particular — several findings against one track, and any
-   finding saying the *design* was wrong rather than the details. The judge keeps the
+   plan-only weight misses, and you hold the evidence: your own findings. Three of that
+   skill's criteria exist for you in particular — **3 or more** findings against one track,
+   **any** finding at contract/schema tier, and any finding saying the *design* was wrong
+   rather than the details. `dispatch-weight` is their definition; this list only points at
+   it. The judge keeps the
    heavier of your proposal and its own; you never set a `model:` yourself.
 
 ## You must NOT

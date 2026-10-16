@@ -10,7 +10,7 @@ description: >-
   @tester executes them. Never writes production code, branches, or commits.
 tools: Read, Grep, Glob, Write, Edit, Bash, Skill, <memory-read-tools>, <memory-write-tools>, <tracker-read-tools>, mcp__serena__get_symbols_overview, mcp__serena__activate_project, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__find_declaration, mcp__serena__find_implementations, mcp__serena__search_for_pattern, mcp__serena__find_file, mcp__serena__list_dir, mcp__serena__read_file
 model: <strong-model-id>
-effort: xhigh
+effort: high
 skills: [code-access]
 ---
 

@@ -118,6 +118,33 @@ GitHub equivalent is:
 settings key reference, and an unrecognised key here is ignored **silently**. A line that
 does nothing looks exactly like one that works. Set your theme with `/config` instead.
 
+### `modelSettings` — written by the installer, not by this snippet
+
+```json
+"modelSettings": {
+  "<strong-model-id>": { "effortLevel": "medium" },
+  "<fast-model-id>":   { "effortLevel": "high" }
+}
+```
+
+A per-model session effort default. The installer writes it into `~/.claude/settings.json`
+for the two model ids you recorded: the strong one at `medium`, the fast one at `high`. An
+agent's own `effort:` line still overrides it for that agent's run.
+
+- **Keys are full model ids**, such as `claude-opus-5-5`. Only full ids are documented as
+  keys, so a recorded value that is not one (an alias such as `opus`) is skipped, and the
+  installer says so in one line.
+- **Valid values are `low`, `medium`, `high` and `xhigh`.** `max` is not one.
+- **A top-level `effortLevel` is ignored by Opus 5.5 and later** until a level is saved under
+  `modelSettings`.
+- **It is merged, never overwritten.** An entry you already have for that id is kept as
+  yours, and the installer reports the difference as a conflict. `remove` takes out only
+  the entries the installer added.
+- **It needs Claude Code v2.1.251 or later.** Older builds ignore the unknown key silently.
+
+Do not add it to `settings.json.snippet`: the installer does not read that file, and the ids
+there would be unfilled tokens.
+
 ### `cleanupPeriodDays`
 
 Claude Code deletes session transcripts older than `cleanupPeriodDays`, which defaults

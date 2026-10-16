@@ -1,8 +1,9 @@
 ---
 name: adapt-to-stack
 description: >-
-  Generate one layer specialist agent, its slice-mode variant, and one engineering-standards
-  skill per layer of a repo's chain, read out of that repo's own CLAUDE.md — creating what is
+  Generate one layer specialist agent, its slice-mode variant, one engineering-standards
+  skill and one write-core skill per layer of a repo's chain, read out of that repo's own
+  CLAUDE.md — creating what is
   missing, never overwriting what exists, and ending in one report. Use when a repo's
   CLAUDE.md declares a layer chain and the specialists do not exist yet, when the chain
   gains a layer, or the user says "adapt to my stack" / "generate the layer
@@ -44,8 +45,8 @@ chain shapes and the repo kept one:
 
 | Shape | What the chain section says | What you generate |
 |---|---|---|
-| **A** — this repo is the whole chain | every layer, in order, plus where each lives | one specialist, one slice variant and one standards skill **per layer** |
-| **B** — this repo is one layer among sibling repos | this repo's one layer, and the contract either side | **one** specialist, **one** slice variant and **one** standards skill |
+| **A** — this repo is the whole chain | every layer, in order, plus where each lives | one specialist, one slice variant, one standards skill and one write-core skill **per layer** |
+| **B** — this repo is one layer among sibling repos | this repo's one layer, and the contract either side | **one** specialist, **one** slice variant, **one** standards skill and **one** write-core skill |
 
 ### If the input is missing or unfilled, stop
 
@@ -72,7 +73,7 @@ Say which of the three it is, name the sections you need, and point at
 | 1 | Read the chain out of the repo's `CLAUDE.md` |
 | 2 | Generate one **layer specialist** per layer, into `.claude/agents/` |
 | 3 | Generate one **slice variant** of that specialist per layer, into `.claude/agents/` |
-| 4 | Generate one **standards skill** per layer, into `.claude/skills/` |
+| 4 | Generate one **standards skill** and one **write-core skill** per layer, into `.claude/skills/` |
 | 5 | Confirm what you wrote is visible to git |
 | 6 | Report, and stop |
 
@@ -99,15 +100,16 @@ From `templates/agents/layer-specialist.md`, one file per layer, into the repo's
 | the **repo(s)/paths it owns** | where the chain says that layer lives |
 | the **build / test commands** in its verify block | *build / test / run* |
 | the **contract** it reads and the one it writes | the layers either side of it in the chain |
-| the **engineering-standards skill it loads** | the skill step 4 generates for this layer, by name |
+| the **`<layer>` in `<layer>-write-core`** on its `skills:` line | the write-core skill step 4 generates for this layer, by name |
 | every `<…>` placeholder on the **`tools:`** line — today that is `<memory-read-tools>` | see *The tool placeholders* below |
 | `model` | see below |
 
-**Leave two lines exactly as the template has them:** `skills: [code-access]` in the
-frontmatter, and the `Serena calls:` line the specialist writes at the end of its handoff.
-The first preloads the `code-access` skill — the code access protocol, halt rule included —
-and the installer ships that skill beside this one for it. Strip it and the specialist runs
-with no protocol at all.
+**Leave two lines exactly as the template has them, filling only `<layer>`:**
+`skills: [code-access, <layer>-write-core]` in the frontmatter, and the `Serena calls:` line
+the specialist writes at the end of its handoff. The first preloads the `code-access` skill —
+the code access protocol, halt rule included — which the installer ships beside this one, and
+this layer's `<layer>-write-core`, which step 4 writes. Strip either and the specialist
+writes without that rule set.
 
 **The template's description opens with a line about where the file comes from and how many
 of it there are. Replace it with the layer this file is for.** That opener is provenance,
@@ -204,7 +206,7 @@ the specialist step 2 just wrote for the same layer.
 | the **next layer's slice variant** it hands on to | the layer after this one in the chain |
 | every `<…>` placeholder on the **`tools:`** line — today that is `<memory-read-tools>` | the same rule as step 2, and the same value: this variant carries the same `tools:` line as its base |
 | `model` | the same rule as step 2, on the same layer |
-| `skills: [code-access]` | keep it as it stands — the variant preloads `code-access` itself, the same as its base |
+| `skills: [code-access, <layer>-write-core]` | keep it as it stands, with `<layer>` filled — the variant preloads both itself, the same as its base |
 
 **There is almost nothing to fill in, and that is the point.** This file is an override
 shell: it Reads its base specialist and inherits everything it does not override. Anything
@@ -233,10 +235,11 @@ dispatch names it. And because the flow never overwrites, a re-run on a repo gen
 before this step existed adds the missing slice variants and touches nothing else. That
 re-run is how a reader upgrades.
 
-### 4 — One standards skill per layer
+### 4 — One standards skill and one write-core skill per layer
 
 From `templates/skills/engineering-standards/SKILL.md`, one directory per layer, into the
-repo's `.claude/skills/`.
+repo's `.claude/skills/`. Then, beside it, the layer's write-core: see *The write-core
+skill* below.
 
 > **Name the directory `<layer>-standards`, not `engineering-standards`.** The directory
 > name is what gets typed and what makes the skill distinct. Three layers copied into one
@@ -259,6 +262,24 @@ output.** The rules themselves are the human's to write as they learn what this 
 gets wrong. Generate the file anyway. The specialist in step 2 names it, and the
 alternative is pointing an agent at a file that does not exist. Every one of these lands in
 the report as **still a scaffold**, on day one and honestly.
+
+#### The write-core skill
+
+From `templates/skills/write-core/SKILL.md`, one directory per layer, into the repo's
+`.claude/skills/`, named `<layer>-write-core`, beside `<layer>-standards`. The specialist and
+its slice variant preload it through their `skills:` line; review keeps loading the full
+`<layer>-standards`.
+
+- **Fill `<layer>` and `<LAYER/LANGUAGE>`, and no more.** The template's rules are generic
+  on purpose; sharpening them for this codebase is the human's, as with the standard.
+- **Keep `user-invocable: false`, and never add `disable-model-invocation`.** A skill that
+  sets that field is not preloaded, so the specialist would write without it, and nothing
+  reports the loss.
+- **Keep the last line, `Not here on purpose: …`.** It is what tells a reader the short list
+  is short by design.
+- **Check the name is not taken in `~/.claude/skills/`**, by the same rule and with the same
+  stop as `<layer>-standards` above: a personal skill of that name shadows the generated one.
+- **Replace the template's provenance opener with the layer and language**, as above.
 
 ### 5 — Confirm what you wrote is visible to git
 
@@ -288,12 +309,15 @@ Chain: **schema** ──► **api** ──► **web** (3 layers, shape A)
 | `.claude/agents/schema-specialist.md` | schema | **created** | — |
 | `.claude/agents/slice-schema-specialist.md` | schema | **created** | — |
 | `.claude/skills/schema-standards/SKILL.md` | schema | **created** | **still a scaffold** — 7 `<…>` brackets |
+| `.claude/skills/schema-write-core/SKILL.md` | schema | **created** | — |
 | `.claude/agents/api-specialist.md` | api | **skipped** | **stale model comment** — its `# model:` line says the omission means it inherits the session's model |
 | `.claude/agents/slice-api-specialist.md` | api | **created** | — |
 | `.claude/skills/api-standards/SKILL.md` | api | **skipped** | — |
+| `.claude/skills/api-write-core/SKILL.md` | api | **created** | — |
 | `.claude/agents/web-specialist.md` | web | **skipped** | **disagrees with `CLAUDE.md`** — names `src/ui`; the chain says `src/web` · **still a scaffold** — 1 `<…>` bracket, on `tools:` |
 | `.claude/agents/slice-web-specialist.md` | web | **skipped** | — |
 | `.claude/skills/web-standards/SKILL.md` | web | **skipped** | **still a scaffold** — 12 `<…>` brackets |
+| `.claude/skills/web-write-core/SKILL.md` | web | **skipped** | **still a scaffold** — 2 `<…>` brackets |
 
 `.gitignore`: `.claude/` ignored, with `!.claude/agents/` and `!.claude/skills/` — added this run.
 
@@ -308,8 +332,8 @@ does not work is the *dispatch*, in this session, which is the one failure a rep
 every row says **created** would otherwise hide.
 
 **The values sit on two axes.** *Created* and *skipped* are what **you did** and are
-exclusive; *disagrees*, *still a scaffold*, *stale model comment*, *missing Skill grant* and
-*no code-access preload* are what **you found**, are orthogonal to both, and can appear together on one row. A
+exclusive; *disagrees*, *still a scaffold*, *stale model comment*, *missing Skill grant*,
+*no code-access preload* and *no write-core preload* are what **you found**, are orthogonal to both, and can appear together on one row. A
 standards skill generated one minute ago is *created* **and** *still a scaffold*, every time.
 
 | Row | What it means |
@@ -319,15 +343,19 @@ standards skill generated one minute ago is *created* **and** *still a scaffold*
 | **disagrees with `CLAUDE.md`** | the file names a path, command or layer the chain no longer says |
 | **still a scaffold** | the file still carries the template's `<PLACEHOLDER>` angle brackets |
 | **stale model comment** | the file's `# model:` comment **asserts** that the omission means the specialist inherits the session's model |
-| **missing Skill grant** | an agent file whose `tools:` line has no `Skill`, so it cannot load the standards skill its body tells it to load |
-| **no code-access preload** | an agent file whose frontmatter has no `skills: [code-access]` line — it still carries its own older copy of the code access protocol and writes no `Serena calls:` line |
+| **missing Skill grant** | an agent file whose `tools:` line has no `Skill`, so it cannot load any skill on demand — not the `tdd` skill a current body points it to, nor the standards skill an older body tells it to load |
+| **no code-access preload** | an agent file whose `skills:` line has no `code-access` entry — it still carries its own older copy of the code access protocol and writes no `Serena calls:` line |
+| **no write-core preload** | an agent file whose `skills:` line has no `<layer>-write-core` — it still follows its older body and loads the full `<layer>-standards` while writing |
 
 **"Still a scaffold" costs no state.** No timestamps, no ledger, no marker file. You detect
 it by reading the file for angle brackets. The convention that makes a template fillable is
 what makes un-filled-ness detectable.
 
-**Run that bracket check on the generated agents too, not only on the standards skills.**
-On a skill a leftover bracket is expected and honest — the rules are the human's to write.
+**Run that bracket check on the generated agents and write-core skills too, not only on the
+standards skills.** On a standards skill a leftover bracket is expected and honest — the
+rules are the human's to write. On a write-core it is a defect: step 4 fills both of its
+placeholders, and a bracket left in `name:` is a skill no specialist's `skills:` line can
+find.
 On an agent it is a defect, and the worst-behaved of the three: a bracket left on `tools:`
 is stripped at launch in silence, and the agent runs looking correct without the tools its
 own body calls mandatory. So an agent row with an unfilled `tools:` placeholder carries
@@ -350,18 +378,30 @@ phrase *and* a negation is healthy. Only an assertion is stale.
 this run took its `tools:` line from the current template, which grants `Skill`, so the value
 can only land on a **skipped** agent row — a specialist or slice variant from an older copy
 of this skill. Unlike *stale model comment*, this is a gap in what the agent can do, not
-wording that drifted: without `Skill` it cannot load its standards skill. Match `Skill` as a
+wording that drifted: without `Skill` it cannot load a skill on demand — the `tdd` skill a
+current body points to for bug fixes, or the standards skill an older body tells it to load
+while writing. Match `Skill` as a
 whole comma-separated token on the `tools:` line, not as a substring. Report it with the
 evidence "its `tools:` line has no `Skill`", and **do not edit the file** — the human adds
 the grant by hand.
 
 **`no code-access preload` lands on skipped agent rows too**, for the same reason: every
-template this skill generates from carries `skills: [code-access]`. Such a specialist still
+template this skill generates from carries `code-access` on its `skills:` line. Match it as
+a whole entry of that list, not as the whole line: a current file reads
+`skills: [code-access, <layer>-write-core]`. Such a specialist still
 works under its older inline protocol, but it does not pick up a change to `code-access`,
 and it writes no `Serena calls:` line, so the reviewer raises a `[MINOR]` on every run it
-makes. Report it with the evidence "no `skills: [code-access]` in its frontmatter", and
+makes. Report it with the evidence "no `code-access` in its `skills:` line", and
 **do not edit the file**. The remedy is the human's: move the file aside, re-run this skill
 so it generates a fresh one, and carry over anything they had changed by hand.
+
+**`no write-core preload` lands on skipped agent rows the same way**: both agent templates
+carry `<layer>-write-core` on their `skills:` line. Match it as a whole entry of that list,
+with the row's own layer filled in. Such a specialist writes by the full standards skill
+instead of the write-core, so a rule moved into the write-core never reaches it. Report it
+with the evidence "no `<layer>-write-core` in its `skills:` line", and **do not edit the
+file**; the remedy is the same move-aside-and-re-run as above. It can sit on one row with
+*no code-access preload*.
 
 **Every row carries evidence** — the bracket count, the path that disagrees, the layer it
 belongs to. A row with nothing beside it is an opinion.
@@ -374,7 +414,7 @@ belongs to. A row with nothing beside it is an opinion.
 ## Never overwrite
 
 **Create what is missing. Leave everything that exists exactly as it is.** A re-run after a
-layer is added generates that layer's three files and touches nothing else.
+layer is added generates that layer's four files and touches nothing else.
 Change the test command in `CLAUDE.md` and nothing changes automatically. It lands in the
 report as *disagrees*, and there it stops.
 
@@ -382,7 +422,7 @@ Diff-and-patch is not an option, and neither is regenerating over the top: once 
 are written by hand there is no reliable boundary between the template's lines and someone's
 own, so a patcher that guesses wrong **destroys hand-written standards silently**.
 
-## Three things generated, three refused
+## Four things generated, three refused
 
 | Not generated | Why |
 |---|---|
@@ -390,10 +430,10 @@ own, so a patcher that guesses wrong **destroys hand-written standards silently*
 | Serena setup | Owned by the scaffolding step that has the project's Serena verdict. Two steps owning one act is one too many. |
 | `commit-conventions` | **Not per-stack.** One `<scope>` placeholder and a main-branch name, identical whatever the language is — a setup-time copy. Generating it per repo makes N copies of one workspace-wide convention. |
 
-**A fourth is not yours to add.** If something else looks like it ought to be generated
-here, that is a decision and it is not yours. Say so and stop. The slice variant sat in the
-refused column until the repo owner decided otherwise and wrote the decision into this
-file. That is the bar, and it is met before a run, never during one.
+**A fifth is not yours to add.** If something else looks like it ought to be generated
+here, that is a decision and it is not yours. Say so and stop. The slice variant and the
+write-core skill were each added only when the repo owner decided so and wrote the decision
+into this file. That is the bar, and it is met before a run, never during one.
 
 ## Where you stop
 
@@ -402,7 +442,7 @@ Five stops, and none of them is a failure of the step:
 | You stop when | And you say |
 |---|---|
 | `CLAUDE.md` is missing, short a section, or unfilled | which of the three, which sections you need, and where the template is |
-| A standards skill's name is taken in `~/.claude/skills/` | which name, and that the personal one would shadow the generated one everywhere |
+| A standards or write-core skill's name is taken in `~/.claude/skills/` | which name, and that the personal one would shadow the generated one everywhere |
 | The report is done | nothing more — no ranking, no reconciliation, no filling in |
 | A generated file would land outside the repo | what you were about to write, and where |
 | Something genuinely needs deciding | what it is, and that it is a decision rather than a step |
@@ -410,7 +450,7 @@ Five stops, and none of them is a failure of the step:
 ## Stop condition
 
 **The step is done when the report exists.** Not when every row says *created*, and not
-when the scaffolds are filled in. A report of nine *skipped* rows is a complete, correct
+when the scaffolds are filled in. A report of twelve *skipped* rows is a complete, correct
 run on a repo that was already adapted.
 
 **Then the `next-steps` block.** Where the restart line fired it **is** the next step and it
