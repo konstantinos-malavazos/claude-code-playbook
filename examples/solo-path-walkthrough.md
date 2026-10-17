@@ -108,7 +108,7 @@ children.
 | 2 | **#3 — where do recipes come from?** (`grilling`) | You type them in. No scraping, no import. *Importing from recipe sites* moves to **Out of scope**. It never graduates. |
 | 3 | **#4 — what happens when a pantry line matches nothing?** (`grilling`) | The app shows the line beside the shopping list, and you teach it the alias there. **The app never guesses silently.** The word **alias** is settled here. It goes into the map's `Notes`. |
 | 4 | **#5 — what does the week actually look like?** (`prototype`) | Three rough takes on one screen, and you react to them. One page: five rows, shopping list underneath, no calendar. |
-| 5–6 | two smaller decisions | Then the map stops growing. The frontier empties, and nothing is left open. That is what separates *cleared* from [*stalled*](../docs/solo/03-charting.md#three-endings). |
+| 5–6 | two smaller decisions | Then the map stops growing. The frontier empties, and nothing but the tail is left open. That is what separates *cleared* from [*stalled*](../docs/solo/03-charting.md#three-endings). |
 | 7–8 | **the tail**, below | |
 
 The map **grew** for the first three sessions. That is
@@ -305,7 +305,7 @@ point on nothing is solo-specific.
   no-spikes rule and the gate's *find the hard part* do not collide.
 - **Every handoff is something you can go and read** — a ticket, a resolution comment, a
   file on disk. Nothing is carried between stages in your head, and nothing records *which
-  stage you are in*. You [look at the repo](../docs/solo/01-the-solo-path.md#which-stage-are-you-standing-in).
+  stage you are in*, beyond the one handover task the spine allows. You [look at the repo](../docs/solo/01-the-solo-path.md#which-stage-are-you-standing-in).
 - **The red check was legible only because all seven ran.** One red reads as a typo. Four
   would have read as a wrong stack, and that is a different stage.
 - **Unit 4 was cut even though it was real work.** The trace check names *which* ticket

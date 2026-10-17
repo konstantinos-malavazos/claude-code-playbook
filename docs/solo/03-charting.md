@@ -12,8 +12,8 @@ you can never say which one you mean.
 
 You run it with **`/charting`**, from
 [`templates/skills/charting/SKILL.md`](../../templates/skills/charting/SKILL.md). That
-template owns the mechanics and this doc does not repeat them. The template deliberately
-does **not** know where the solo path is going. That is the one thing this doc supplies.
+template owns the mechanics, including the tail's on the solo path, and this doc does not
+repeat them. This doc supplies the destination you hand it, and the why behind the tail.
 
 ---
 
@@ -76,7 +76,7 @@ remains of the first.
 | 2 | Take a ticket from **the frontier** — the open, unblocked, unclaimed ones. Claim it before any work. |
 | 3 | Resolve it. Usually a [`/grilling`](../../templates/skills/grilling/SKILL.md) conversation, one question at a time. Sometimes a [`/research`](../../templates/skills/research/SKILL.md) subagent, sometimes a [`/prototype`](../../templates/skills/prototype/SKILL.md) you react to, sometimes manual work. |
 | 4 | Post the answer as a resolution comment, **gist first**, and close the ticket. |
-| 5 | Look at what the answer just made visible, and ticket it. |
+| 5 | Look at what the answer just made visible, and ticket it. That includes anything the answer hands to you — an install, a sign-in — as a `task` claimed to you. |
 
 Step 5 is the one that feels like nothing and is actually the stage working. See
 [fog of war](#fog-of-war) below.
@@ -88,7 +88,8 @@ reading a list. One command fills
 The page draws one box per ticket, highlights the frontier and nothing else, and gives you
 the answer behind any closed box you click, and the command that starts any open one. It is
 regenerated whenever you ask for it and after every ticket close, and never committed, so
-the page you open at the start of a session already shows the current frontier.
+the page you open at the start of a session already shows the current frontier. Name the
+stack draws greyed, as *held*, with no start command, while anything else on the map is open.
 
 **The gist line is not a formality.** Every resolution comment opens with a one-line
 summary. The map's decision list is rebuilt from those first lines rather than kept up by
@@ -97,7 +98,8 @@ hand. Skip it once and regeneration stops being mechanical.
 **A session that runs out before the ticket does** posts a progress comment and keeps the
 claim. Nothing is lost and nothing is jammed, because the claim was never a lock. **That
 comment is the whole of resuming here.** Next session you open the ticket and read it.
-Nothing else is stored, on this stage or any other. See
+Nothing else is stored, on this stage or any other, apart from the one handover task the
+spine names as its exception. See
 [the spine](01-the-solo-path.md#which-stage-are-you-standing-in).
 
 [../team/03-massive-tickets.md](../team/03-massive-tickets.md) runs this same skill against an
@@ -188,7 +190,8 @@ you reach for a layer name here, that is stage 3 leaking backwards.
 
 Choosing the stack is a real decision, and charting is already the machine for resolving
 decisions. So it lives **on the map** rather than standing as a stage of its own. Two
-tickets, in this order:
+tickets, in this order, both created when the map is charted, with ticket 2 blocked by
+ticket 1 as their one edge:
 
 | | Ticket | Kind |
 |---|---|---|
@@ -198,6 +201,10 @@ tickets, in this order:
 Together they are **the tail**. **Neither is takeable while any other ticket on the map is
 open.** Product decisions shape the stack far more than the stack shapes the product, so
 every one of them goes first.
+
+Ticket 1's answer also names the toolchain you have to install. Closing it opens that install
+as a `task` claimed to you, and the map cannot clear until it is closed. That task does not
+hold ticket 2 back: writing the commands does not need the toolchain installed.
 
 **How the stack actually gets chosen is its own doc**,
 [06-choosing-the-stack.md](06-choosing-the-stack.md). This section owns *placement and
@@ -211,8 +218,10 @@ ticket. That is bookkeeping that gets forgotten once and then silently lies to y
 **The rule has a documented escape.** Occasionally a product question genuinely cannot be
 answered without the stack. *"should this work offline?"* is one. Its honest answer depends
 on whether offline is nearly free or three weeks of work in the stack you would pick. When a
-ticket is truly stuck on this, take the stack early **and record why in its answer.** A
-stuck ticket is a signal worth writing down, not a rule to bend around quietly.
+ticket is truly stuck on this, take the stack early **and record why in a comment on it.** A
+stuck ticket is a signal worth writing down, not a rule to bend around quietly. The ticket
+stays open: the layer chain, the test gate and the Serena verdict are still its to decide,
+and it closes at the tail.
 
 The tail's second ticket is what makes [the bootstrap](04-the-bootstrap.md) testable: its
 checks are what stage 3 runs to prove it is done.
@@ -272,12 +281,16 @@ next section.
 **Cleared** is the ordinary ending: the frontier is empty, the fog is gone, the tail is
 resolved, and there is nothing left to decide before someone goes and does the thing. This
 is the same ending the [skill](../../templates/skills/charting/SKILL.md) calls **done**. The
-skill's name is the general one, because not every map hands off to a bootstrap.
+skill's name is the general one, because not every map hands off to a bootstrap. Before it
+clears, the skill sweeps the closed answers for setup only you can do and tickets each one,
+so a map with an install still owed stalls instead. A cleared map's closing comment ends
+with `next: /bootstrap, in a fresh session`, and one task, *Run /bootstrap (fresh session)*,
+opens claimed to you, outside the map. The bootstrap closes it.
 
 **Stalled** is the one that looks like cleared and is not. The frontier is empty, but
 tickets are still open, because every one of them is waiting on somebody outside the
-session. On this path that is almost always a `task`: an account to open, access to
-provision, a domain to buy. **Do not read an empty frontier as stage 2 finishing.** Check
+session. On this path that is almost always a `task`: a toolchain to install, a licence or
+an account to open, access to provision, a device to get, a domain to buy. **Do not read an empty frontier as stage 2 finishing.** Check
 whether anything is still open first.
 
 A stalled map is not handed to [the bootstrap](04-the-bootstrap.md), and the map is not
@@ -320,6 +333,8 @@ conversation is still the cheapest way to have discovered it.
 | **A cleared map** | Every decision closed, and each one recoverable from its own ticket. |
 | **A named stack** | Seam check 1, done. |
 | **The bootstrap checks** | Written against the actual stack, which is what makes stage 3 testable. |
+| **The toolchain, installed** | Named by Name the stack, and installed by you as the `task` the map waited on. |
+| **A handover task** | *Run /bootstrap (fresh session)*, claimed to you, outside the map. The bootstrap closes it. |
 | **The settled names** | On the map's `Notes`, written inline as each one settled, then pruned at the tail of the ones that died. Bootstrap step 3 copies what survives into the repo's `CLAUDE.md`, their second and final home, and [seam check 3](01-the-solo-path.md#the-seam--where-the-solo-path-stops). The rule is charting's *One name per thing*, and **none is a valid answer.** |
 | **One memory** | *What this project is and who it is for.* Written when the map closes: one per map, never one per ticket, so stage 3 can add the second and the [seam](01-the-solo-path.md#the-seam--where-the-solo-path-stops) arithmetic comes out at exactly two. See [05-forgetful.md](../shared/05-forgetful.md). |
 

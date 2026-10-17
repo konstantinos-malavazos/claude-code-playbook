@@ -184,6 +184,10 @@ and not know it.
 That split is what [decide-or-make](03-charting.md#decide-or-make--never-both) demands: one
 ticket produces an answer, the next produces a file.
 
+**Ticket 1's answer also names the toolchain** you have to install for that stack. That is
+not a fourth decision — the stack already fixed it. Closing ticket 1 opens the install as a
+`task` claimed to you, and the map stays stalled until you close it.
+
 **Whether tests gate is a *stack* question, not a taste one.** Run the test command against
 an empty project and stacks disagree about what happens:
 

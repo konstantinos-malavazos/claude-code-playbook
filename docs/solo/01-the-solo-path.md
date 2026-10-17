@@ -61,8 +61,8 @@ stage is **cutting**, and the artifact it produces is **the backlog**.
 
 ## Which stage are you standing in?
 
-**Nothing stores the answer.** You go and look. Every stage leaves a tell in the repo or
-the tracker. Read these top to bottom and stop at the first that matches.
+**Nothing stores the answer**, with one exception below. You go and look. Every stage
+leaves a tell in the repo or the tracker. Read these top to bottom and stop at the first that matches.
 
 | Where you are | The tell |
 |---|---|
@@ -82,6 +82,12 @@ gate is one sitting, so you will not lose track of being in it.
 > anywhere on this path. Each of them would be **a fact about the repo written down beside
 > the repo**. It can be wrong, and nothing would catch it. The tells above *are* the repo,
 > so they cannot disagree with it.
+>
+> **One exception: the handover task.** Two handovers leave nothing open on the tracker —
+> charting closing Done, and the bootstrap going green. Each opens one task claimed to you,
+> *Run /bootstrap (fresh session)* and *Run /cut-backlog (fresh session)*, and the stage it
+> names closes it. It is a to-do on the surface you already watch, not a tell. Where it and
+> the table disagree, the table wins.
 
 The same rule answers the resume question one level down, and both stage docs say so. A
 bootstrap that died partway is resumed by

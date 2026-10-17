@@ -47,8 +47,8 @@
                                        // Where ids carry a key prefix (Jira ABC-123),
                                        // put it in the template: "/start-ticket ABC-{n}".
                                        // Missing → the page says so and shows no
-                                       // command. It never guesses one. Claimed and
-                                       // blocked tickets never show it.
+                                       // command. It never guesses one. Claimed, held
+                                       // and blocked tickets never show it.
     "tickets": [
       {
         "number":    40,
@@ -56,6 +56,11 @@
         "state":     "open" | "closed",
         "url":       "...",
         "claimedBy": "login, or null when unclaimed",
+        "held":      true,      // optional — set only when a rule the edges do not
+                                // show keeps the ticket untakeable (the solo tail's
+                                // Name the stack while anything else is open). Drawn
+                                // greyed, never offered a start command. Omit it
+                                // otherwise.
         "labels":    ["wayfinder:task"],
         "blockedBy": [ {"number": 36, "state": "closed"},   // NUMBERS, not database ids —
                        {"number": 37, "state": "open"} ],   // and each blocker's own state
@@ -106,6 +111,7 @@
     --blocked-fill: #fdeceb; --blocked-line: #c5372c; --blocked-fg: #8c2820;
     --claimed-fill: #fff3d6; --claimed-line: #a9761a; --claimed-fg: #7a5410;
     --frontier-fill: #d9f2e4; --frontier-line: #0f7a44; --frontier-fg: #0a5730;
+    --held-fill: #e8eaed; --held-line: #6b7076; --held-fg: #4a4e54;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -115,6 +121,7 @@
       --blocked-fill: #3a1f1c; --blocked-line: #e08b81; --blocked-fg: #f0b7b0;
       --claimed-fill: #3a2f16; --claimed-line: #e0bb6b; --claimed-fg: #f0d79b;
       --frontier-fill: #143a27; --frontier-line: #5fd196; --frontier-fg: #9ae7bf;
+      --held-fill: #2c2e32; --held-line: #9aa0a6; --held-fg: #c3c7cc;
     }
   }
   * { box-sizing: border-box; }
@@ -136,6 +143,7 @@
   .chip.blocked  { background: var(--blocked-fill);  border: 1.5px dashed var(--blocked-line); }
   .chip.claimed  { background: var(--claimed-fill);  border: 2px dotted var(--claimed-line); }
   .chip.frontier { background: var(--frontier-fill); border: 2.5px solid var(--frontier-line); }
+  .chip.held     { background: var(--held-fill);     border: 3px double var(--held-line); }
 
   main { display: flex; align-items: stretch; height: calc(100vh - 108px); }
   #canvas { flex: 1 1 auto; overflow: auto; padding: 16px; }
@@ -163,15 +171,17 @@
   .node rect { stroke-width: 1.5; }
   .node.closed   rect { fill: var(--closed-fill);   stroke: var(--closed-line); }
   .node.blocked  rect { fill: var(--blocked-fill);  stroke: var(--blocked-line); stroke-dasharray: 5 3; }
-  /* Four outlines, not four colours — thick / dotted / dashed / thin-and-small keeps the
-     states apart in greyscale and for a colourblind reader. */
+  /* Five outlines, not five colours — thick / dotted / dashed / dash-dot / thin-and-small
+     keeps the states apart in greyscale and for a colourblind reader. */
   .node.claimed  rect { fill: var(--claimed-fill);  stroke: var(--claimed-line); stroke-width: 2; stroke-dasharray: 1.5 3.5; }
   .node.frontier rect { fill: var(--frontier-fill); stroke: var(--frontier-line); stroke-width: 2.5; }
+  .node.held     rect { fill: var(--held-fill);     stroke: var(--held-line); stroke-width: 1.8; stroke-dasharray: 7 3 1.5 3; }
   .node text { font-family: inherit; font-size: 13px; font-weight: 600; text-anchor: middle; }
   .node.closed   text { fill: var(--closed-fg); font-size: 11px; font-weight: 400; }
   .node.blocked  text { fill: var(--blocked-fg); }
   .node.claimed  text { fill: var(--claimed-fg); }
   .node.frontier text { fill: var(--frontier-fg); }
+  .node.held     text { fill: var(--held-fg); }
   .node:hover rect { filter: brightness(0.96); }
   .node.hit rect { stroke-width: 3.5; }
   .edge { fill: none; stroke: var(--closed-line); stroke-width: 1.4; }
@@ -241,10 +251,11 @@
 (function () {
   "use strict";
 
-  var STATES = ["frontier", "claimed", "blocked", "closed"];
+  var STATES = ["frontier", "claimed", "held", "blocked", "closed"];
   var LABELS = {
     frontier: "frontier — open, unblocked, unclaimed",
     claimed:  "claimed — someone is on it",
+    held:     "held — until the rest closes",
     blocked:  "blocked — something before it is open",
     closed:   "closed"
   };
@@ -400,6 +411,7 @@
 
   function stateOf(t) {
     if (t.state === "closed") return "closed";
+    if (t.held === true) return "held";
     var open = blockers(t).filter(function (b) { return b.state !== "closed"; });
     if (open.length) return "blocked";
     return t.claimedBy ? "claimed" : "frontier";
@@ -598,6 +610,10 @@
     if (s === "closed") return null;
     var box = document.createElement("div");
     box.className = "start";
+    if (s === "held") {
+      box.textContent = "Held until the rest of the map closes — not startable yet.";
+      return box;
+    }
     if (s === "blocked") {
       box.textContent = "Not startable yet — waits on " + blockers(t).filter(function (b) {
         return b.state !== "closed";

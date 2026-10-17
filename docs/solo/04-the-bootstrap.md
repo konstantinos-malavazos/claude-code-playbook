@@ -28,6 +28,8 @@ are in this order*. The template owns *how to run them*.
 | **The stack, and the layer chain** | Named **together**, by the tail's first ticket in [charting](03-charting.md#the-tail). The method is in [06-choosing-the-stack.md](06-choosing-the-stack.md). |
 | **The Serena verdict** | Decided with the stack, on the test *will you ever need to ask who calls this?* |
 | **The bootstrap checks** | The tail's second ticket wrote them, against the stack. Stage 3 is the first place they can run. |
+| **The toolchain, installed** | Named by the tail's first ticket. Installing it was the `task` the map stayed stalled on until you closed it. |
+| **A handover task** | *Run /bootstrap (fresh session)*, claimed to you when the map cleared. Stage 3 closes it on green. |
 | **One memory** | *What this project is and who it is for*, written when the map closed. Stage 3 writes the second. |
 
 **Nothing here is re-opened.** Stage 3 is a checklist you execute. If it turns out a
@@ -285,6 +287,11 @@ So *did stage 3 finish?* has the same answer as *how far did it get?*: **run it 
 The skipping is what makes that cheap. A re-run against a finished repo prints the report
 you lost.
 
+**Green also hands over.** Stage 3 closes charting's *Run /bootstrap (fresh session)* task
+and opens *Run /cut-backlog (fresh session)*, claimed to you. Both are tracker writes,
+outside the line, so you see them first. The task is a reminder, not a second tell: the
+commit is still what says stage 3 finished. Red writes nothing to the tracker.
+
 ---
 
 ## What was decided in stage 2, not here
@@ -316,6 +323,7 @@ and killed, and why the chain is one of the three things ticket 1 decides.
 | **A `CLAUDE.md`** | Stack, commands, the branch this repo ships from, layer chain, Serena verdict, the settled names. The permanent home for all six, and the only `CLAUDE.md` a one-repo project has below the global one. |
 | **Layer specialists on disk** | Which is what makes [`/start-ticket`](../shared/08-ticket-pipeline.md) able to dispatch at all. |
 | **Two memories** | The seam's arithmetic comes out at exactly two, with no special-casing. |
+| **A handover task** | *Run /cut-backlog (fresh session)*, claimed to you. Cutting closes it. |
 | **One report** | Seven of the seam's eight items. [Cutting](05-cutting.md) makes the remaining one true: item 6, *the backlog exists*. It does that against a repo that is real, so its tickets can name paths that exist. |
 
 ---

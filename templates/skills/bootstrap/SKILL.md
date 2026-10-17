@@ -177,6 +177,14 @@ The last step is the exit test, below. **On an all-green report, and only then, 
 commit**: explicit paths, never `git add .`. Red commits nothing: on day one the recovery
 is to delete the folder and start again, and there is nothing worth keeping in history.
 
+**Then, green only, the handover.** Look for an open task titled exactly
+**Run /bootstrap (fresh session)** — charting opened it when the map closed. Propose closing
+it, and opening one task titled exactly **Run /cut-backlog (fresh session)**, claimed to the
+user, unless one is already open. Both are tracker writes, so the line applies: **show both
+and wait.** No incoming task — a map charted before handover tasks existed — closes nothing;
+still propose the outgoing one. **Red writes nothing to the tracker**, and the incoming task
+stays open.
+
 ## The exit test
 
 Run **every** check the tail wrote. All of them. Every time.
@@ -236,8 +244,8 @@ guarantee it is a good one. A stage that keeps working until everything passes i
 stage that will quietly change a decision to get there.
 
 **Both reports end with the `next-steps` block, and their commit lines are opposites.**
-Green: the commit's sha and what it staged, nothing left for the user, and `/cut-backlog` in a
-fresh session because cutting re-reads the whole map. Red: **nothing committed**, and why;
+Green: the commit's sha and what it staged, the handover task linked by id as the user's,
+and `/cut-backlog` in a fresh session because cutting re-reads the whole map. Red: **nothing committed**, and why;
 the failed rows the user has to classify as a wrong check or a wrong stack; and that
 `/bootstrap` is safe to re-run once they have, because every finished step skips itself.
 
@@ -255,11 +263,16 @@ the disk and skips itself. Nothing records where you stopped; you re-derive it b
 | 5 | Generate the specialists | the agent and skill files. **Already idempotent** — `/adapt-to-stack` creates what is missing and never overwrites |
 | 6 | Verify the tracker adapter | **nothing** |
 | 7 | Write the two memories | the two memories |
-| 8 | Run every check, report | the commit — **green only** |
+| 8 | Run every check, report | the commit and the open *Run /cut-backlog (fresh session)* task — **green only**. A re-run that finds that task open opens none |
 
 **Do not write a progress file.** Not `.claude/bootstrap-progress.md`, not a marker line in
 `CLAUDE.md`, not anything else. It is a second copy of what the disk already says, and it
 can be wrong while the disk is right.
+
+**One exception: the handover task.** The open, claimed *Run /cut-backlog (fresh session)*
+task is a to-do on the tracker the user already watches, and `/cut-backlog` closes it. It is
+not a progress record: a re-run still re-derives every step from the disk, and the commit
+stays the tell that stage 3 finished.
 
 **The report is not written anywhere either**: a file for it is the progress file under
 another name. To find out whether stage 3 finished, run it again: every step skips itself,
