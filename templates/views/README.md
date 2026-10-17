@@ -52,11 +52,13 @@ tracker.
 |---|---|---|
 | **Frontier** | thick solid green | open, unblocked, unclaimed — **the one the picture exists to surface** |
 | **Claimed** | dotted amber | open and takeable, but someone is on it |
+| **Held** | dash-dot grey | open, but a rule the edges do not show keeps it untakeable until the rest closes — the solo tail's Name the stack |
 | **Blocked** | dashed red | open, but something before it is not done |
 | **Closed** | thin grey, and smaller | done |
 
-Four **outlines**, not four colours: thick / dotted / dashed / thin-and-small keeps the
-states apart in greyscale and for a colourblind reader.
+Five **outlines**, not five colours: thick / dotted / dash-dot / dashed / thin-and-small
+keeps the states apart in greyscale and for a colourblind reader. Held is the only state
+the page does not work out itself: the generator sets `"held": true` on the ticket.
 
 **Closed tickets stay on the picture.** A graph with the finished work deleted shows *that*
 a ticket is takeable but not *why*. The arrows that explain it point at nothing.
@@ -119,7 +121,8 @@ cannot know which flow walks the graph, so the generator writes it into the slot
 `startCommand`: `/charting {n}` for a solo map, `/resume-massive <KEY>#{n}` for a team map,
 `/start-ticket {n}` for a backlog. Where ids carry a key prefix (Jira's `ABC-123`) the prefix
 goes in the template, `/start-ticket ABC-{n}`. A blocked ticket names what it waits on
-instead, and a claimed one names who holds it — never a command, because the claim is what
+instead, a held one says it waits for the rest of the map, and a claimed one names who
+holds it — never a command, because the claim is what
 keeps it out of other hands. A page without `startCommand` says so and
 shows no command; it never guesses one.
 
@@ -152,4 +155,6 @@ The harness re-verification checklist does not apply here. Nothing in this file 
 frontmatter, a matcher, or a tool name.
 
 Verified live on a 35-ticket map: page 480 KB, 48 embedded comments, one `gh api graphql`
-call to fetch and shape, no console errors, all four states legible.
+call to fetch and shape, no console errors, all four states legible. The fifth, held, was
+checked on a four-ticket fixture page: greyed with its own outline, counted in the legend,
+and offering no start command.

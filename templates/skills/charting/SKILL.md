@@ -136,6 +136,9 @@ ticket ids carry a key prefix, put the prefix in the template (`/charting ABC-{n
 adapter numbers tickets per effort, name the effort too (`/charting <effort-slug> {n}`) once
 more than one is open.
 
+**On the solo path, set `"held": true` on Name the stack while any ticket outside the tail is
+open**, at every write and regeneration. Never add a blocker edge to show the tail rule.
+
 **Regenerate it on every ticket close**, as the last step of the close (step 7 below), and
 at the end of charting the map (its step 6). Write the file; do not open it. The next
 session then opens a picture that already shows the new frontier, instead of one a close
@@ -253,6 +256,35 @@ name you do not know you have the wrong way round.
 the **frontier** here is tickets on a map with no open blockers. Both are loaded at once, so
 say which you mean.
 
+### The tail — solo path only
+
+**You are on the solo path when the destination you were handed is** *a backlog of work units
+on a scaffolded repo that passes the seam*. Every other destination — a team map, a docs
+effort, a migration — has no tail, and nothing in this section applies to it.
+
+On the solo path the map ends in two tickets, **the tail**:
+
+| | Ticket | Type |
+|---|---|---|
+| 1 | **Name the stack** | `grilling` — what the stack is, the layer chain, the test gate and the Serena verdict. Its resolution also names the toolchain the owner must install |
+| 2 | **Write the bootstrap checks** — the exact build command, the test command if the stack gates on one, the Serena index check if the verdict calls for one | a make with no layer, per the no-chain rule above |
+
+**Neither is takeable while any other ticket on the map is open** — except the owner tasks
+closing Name the stack opens, which never hold Write the bootstrap checks: writing the
+commands does not need the toolchain installed. That is a rule you apply,
+not edges you wire: blocking the tail on every ticket would need a new edge for each ticket
+you create. The one edge is ticket 2 blocked by ticket 1. The adapter's frontier does not
+know the rule, so you apply it yourself when choosing (step 2 below), and the picture shows
+it as *held*.
+
+**The early-stack escape.** When a product question truly cannot be answered without the
+stack — *"should this work offline?"* — take Name the stack early. Comment the stack and why
+it was taken early, and keep the ticket open: the layer chain, the test gate and the Serena
+verdict stay open on it, and it closes at the tail like any other tail ticket.
+
+How the stack is chosen is
+[`docs/solo/06-choosing-the-stack.md`](../../../docs/solo/06-choosing-the-stack.md).
+
 ## Fog of war
 
 The map is *deliberately* incomplete. Do not chart what you cannot yet see.
@@ -325,7 +357,8 @@ the answer is stop, but say which situation you are in.
 3. **Create the map** — Destination and Notes filled in, Decisions so far empty, the fog
    sketched into Not yet specified.
 4. **Create the tickets you can specify now**, then wire the blocking edges in a **second
-   pass** — issues need ids before they can reference each other.
+   pass** — issues need ids before they can reference each other. On the solo path, create
+   the tail too, and wire Write the bootstrap checks blocked by Name the stack in that pass.
 5. **Fire the research subagents** for every `research` ticket, in parallel, but **name
    the list and get the human's nod first**, since each one spends a background context.
    Claim each to the agent as you dispatch it. **Each dispatch states a persona**: the role
@@ -344,8 +377,9 @@ the answer is stop, but say which situation you are in.
 
 1. **Load the map** — the low-resolution view, not every ticket body.
 2. **Choose the ticket.** If the user named one, take it. Otherwise take the first ticket
-   on the frontier. **Claim it before any work**, then **read the claim back** — a claim
-   that silently failed looks identical to one that worked.
+   on the frontier — on the solo path, skipping the tail while the tail rule above holds it.
+   **Claim it before any work**, then **read the claim back** — a claim that silently failed
+   looks identical to one that worked.
 3. **Resolve it.** Zoom as needed: **read** a related or closed ticket on demand — body
    *and* comments, because on a closed one the decision is in the comment; invoke the
    skills the Notes name.
@@ -353,7 +387,9 @@ the answer is stop, but say which situation you are in.
    regenerate Decisions so far.
 5. **Update the map's edges** — graduate newly-specifiable fog into tickets, rule anything
    past the destination out of scope, and delete or rewrite tickets the decision
-   invalidated.
+   invalidated. **A resolution that hands an action to a person outside the session** — an
+   install, a sign-in, a device to get — **becomes a `task` under the map**, claimed to them
+   in step 6. Closing Name the stack always does this, for the toolchain it named.
 6. **If the ticket ends the session in someone else's hands, claim it to them** — the
    person who owes the access grant, the agent still researching. Comment what was asked
    and when. This is not politeness; see below.
@@ -413,6 +449,21 @@ Three ways a map can stop. Work out which one you are in before you say anything
 ticketed, or ruled out of scope, and nothing left to decide before someone goes and does
 the thing.
 
+On the solo path, two more checks come first:
+
+- **The tail exists and is closed.** A map with no tail is not Done: create the tail now and
+  carry on walking.
+- **Sweep the closed resolutions for owner-only setup** that `/bootstrap` needs — ask for
+  *the whole graph* and read the comments. Each action handed to a person that is not
+  already a ticket becomes a `task` under the map, claimed to them. The map is then
+  **Stalled**, below, until those close.
+
+**A Done map hands over, solo path only.** Its closing comment ends with the line
+`next: /bootstrap, in a fresh session`. Then open one task titled exactly
+**Run /bootstrap (fresh session)**, unless one is already open — claimed to the owner, and
+**not** linked to the map, so the map still counts Done. `/bootstrap` finds it by that title
+and closes it. Without it, nothing open on the tracker says what comes next.
+
 **Stalled.** The frontier is empty but tickets are still open, because every one of them is
 blocked on something outside this session. This is **not** done. Name each blocked ticket
 and who owns the thing it waits on. That owner is the ticket's claim, which is why you
@@ -429,7 +480,8 @@ and the cheapest possible outcome — the one charting exists to make affordable
 **All three end with the `next-steps` block, and they need three different next steps.**
 
 - **Done** — the memory ids the close produced, and the stage that takes over from the map. On
-  the solo path that is `/bootstrap`, in a fresh session, because it re-reads the whole map.
+  the solo path that is `/bootstrap`, in a fresh session, because it re-reads the whole map,
+  with the handover task linked by id.
 - **Stalled** — no command to run, and saying so is the point. What the user does *today*:
   chase the owner you named, or say yes to the one `grilling` ticket that refills the frontier.
 - **Abandoned** — nothing left to run, and where the record is. The cheapest outcome is still

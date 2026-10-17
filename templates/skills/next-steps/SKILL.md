@@ -61,6 +61,11 @@ this pipeline, and this block must not quietly reintroduce it.
 **Push only where `~/.claude/repo-allowlist` permits it.** Where it does not, say plainly
 that the branch is local and unpushed, and give the one line to add.
 
+**Link the ticket for anything the user still owns after the session.** Where a tracker
+adapter is installed (`~/.claude/tracker.md`), an item in **Yours now** that outlives this
+session names the ticket that tracks it, by id and title. If the stage made no ticket, say
+the item plainly. This block never creates one.
+
 **Say why a fresh session, in one clause.** It is a context-sizing rule — the next unit is
 *sized* to a fresh context — not housekeeping. *"One ticket per session, because the next one
 is sized to a fresh context"* is the whole sentence.
@@ -77,7 +82,7 @@ A green report that commits itself:
 
 ```
 **Landed** — 7 of 7 seam checks pass. One commit on `master`, a1b3f9c: CLAUDE.md, the stub, and the layer specialists under `.claude/`.
-**Yours now** — nothing. Check a row against its evidence if you want to.
+**Yours now** — #14 *Run /cut-backlog (fresh session)*, claimed to you; cutting closes it. Check a row against its evidence if you want to.
 **Next command** — `/cut-backlog`
 **This session or a fresh one** — fresh: cutting reads the whole map, and this context is full of scaffolding.
 ```
@@ -108,4 +113,5 @@ A verdict with nothing to run:
 - Print a placeholder argument, a command that does not ship, or an artifact without its
   path or id.
 - Say *commit your work* without reading the stage's own commit rule.
+- Create a ticket. Link the one the stage made, or name the item without one.
 - Restate the report. Four lines, each carrying something the report did not.

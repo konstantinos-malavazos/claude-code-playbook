@@ -20,6 +20,7 @@
 #   D-L  a section id that names no section, and a missing python, fail the run
 #   D-M  a subagent waits in the foreground or hands the run back
 #   D-N  the CI chunk plan runs every installer section exactly once
+#   D-O  the solo skills and docs name the same tail and handover tickets
 #
 #   bash tests/test-docs.sh              # all sections
 #   bash tests/test-docs.sh D-B D-D      # only these; an unknown id stops the run (exit 2)
@@ -1618,6 +1619,70 @@ d_n_refused dup.md "$(sed -n 's/^DUP //p' "$D_N_TMP/fx.out")" "a chunk list that
 d_n_refused split.md "$(sed -n 's/^SPLIT //p' "$D_N_TMP/fx.out")" "a chunk list that splits a coupled group"
 d_n_refused none.md "found no installer chunks" "a README with no chunk list"
 rm -rf "$D_N_TMP"
+fi
+
+# ---------------------------------------------------------------- D-O
+# Catches: a solo ticket title the charting skill, the bootstrap, the cut-backlog or
+# 03-charting stopped naming, or spells differently. A receiving stage looks its handover
+# task up by exact title and, finding none, carries on and creates nothing, so a creator
+# and receiver that disagree leave a stale task open with every other check green.
+#
+# Read through strip_fences: 03-charting's ASCII diagram names the tail in lower case
+# inside a fence, and a title found only there is a picture, not an instruction. Tail
+# titles match case-insensitively (the docs write them in running prose); handover
+# titles match exact-case (they are looked up verbatim). Whitespace is collapsed first,
+# so a title wrapped across two lines still counts.
+if want D-O; then
+banner "D-O · the solo skills and docs name the same tail and handover tickets"
+DOCS_REPO="$REPO" "$PY" - <<'PYEOF' > "$REPO/tests/.docs-out" 2>&1
+import os, sys, importlib.util
+spec = importlib.util.spec_from_file_location(
+    "readers", os.path.join(os.environ["DOCS_REPO"], "tests", ".docs-readers.py"))
+R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
+
+def emit(s):
+    sys.stdout.buffer.write((s + "\n").encode("utf-8"))
+
+CHARTING = "templates/skills/charting/SKILL.md"
+CHART_DOC = "docs/solo/03-charting.md"
+BOOTSTRAP = "templates/skills/bootstrap/SKILL.md"
+CUT_BACKLOG = "templates/skills/cut-backlog/SKILL.md"
+
+# (title, files that must name it, matched exact-case)
+WANTED = (
+    ("Name the stack", (CHARTING, CHART_DOC), False),
+    ("Write the bootstrap checks", (CHARTING, CHART_DOC), False),
+    ("Run /bootstrap (fresh session)", (CHARTING, BOOTSTRAP), True),
+    ("Run /cut-backlog (fresh session)", (BOOTSTRAP, CUT_BACKLOG), True),
+)
+
+text, checks = {}, 0
+for title, files, exact in WANTED:
+    for rel in files:
+        if rel not in text:
+            text[rel] = " ".join(R.strip_fences(R.read(rel)).split())
+        hay, needle = (text[rel], title) if exact else (text[rel].lower(), title.lower())
+        checks += 1
+        if needle not in hay:
+            emit('BAD %s never names "%s"' % (rel, title))
+
+emit("DOFILES %d" % len(text))
+emit("DOCHECKS %d" % checks)
+PYEOF
+DO_FILES="$(sed -n 's/^DOFILES //p' "$REPO/tests/.docs-out")"
+DO_CHECKS="$(sed -n 's/^DOCHECKS //p' "$REPO/tests/.docs-out")"
+# Positive control: four files read and eight (file, title) checks made. A zero is a
+# reader that found nothing, and "no title is missing" is vacuously true over no checks.
+if [ "${DO_FILES:-0}" -ge 4 ] && [ "${DO_CHECKS:-0}" -ge 8 ]; then
+  pass "D-O · read ${DO_FILES} files and made ${DO_CHECKS} (file, title) checks"
+else
+  fail "D-O · read ${DO_FILES:-0} files and made ${DO_CHECKS:-0} checks — the check is broken, not the docs"
+fi
+if grep -q '^BAD ' "$REPO/tests/.docs-out"; then
+  while IFS= read -r b; do fail "${b#BAD }"; done < <(grep '^BAD ' "$REPO/tests/.docs-out")
+else
+  pass "the skills and docs name the same tail and handover tickets"
+fi
 fi
 
 rm -f "$REPO/tests/.docs-out" "$REPO/tests/.docs-readers.py"

@@ -137,7 +137,9 @@ A backlog differs on both counts:
 ## A board on screen, and nothing is created until you approve
 
 Cutting renders the whole backlog as a **board you edit in place** — reorder, merge, split,
-drop, rewrite. When you approve it, **every ticket is created at once.**
+drop, rewrite. When you approve it, **every ticket is created at once.** If the bootstrap
+left a *Run /cut-backlog (fresh session)* task open, the board names it, and approving the
+board closes it with the creates.
 
 The alternative is to create them first and tidy up in the tracker. That means editing a
 dozen real issues one at a time, deleting the ones you did not want, and writing to a shared

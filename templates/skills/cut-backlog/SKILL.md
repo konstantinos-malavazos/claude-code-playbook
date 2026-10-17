@@ -44,7 +44,7 @@ Cutting never names a tracker and never writes a raw CLI call. It states an inte
 contract's vocabulary, and the one installed adapter doc at `~/.claude/tracker.md` answers
 it. One tracker in context, never four.
 
-The verbs this stage uses: **create · read · edit body · label · mark blocked**, and the
+The verbs this stage uses: **create · read · list · close · edit body · label · mark blocked**, and the
 composed **whole graph**. Nothing here branches on which tracker is underneath. Where a
 tracker lacks a verb natively the adapter fakes it, and you are never told.
 
@@ -154,6 +154,11 @@ Reorder · merge · split · drop · rewrite. Nothing exists in the tracker yet.
 **The numbers are board positions, not ticket ids.** No ids exist until step 6, and saying
 otherwise invites the human to reference a number that will not survive.
 
+**Before rendering, look for an open task titled exactly Run /cut-backlog (fresh session)** —
+the bootstrap opened it when it went green. If there is one, the board's last line names it,
+by id and title, as closing on approval, so approving the board approves that close. If there
+is none, carry on.
+
 > **This is a hard stop, and it is deliberate.** Do not create anything, do not create the
 > first one *"to get started"*, and do not treat a nod at the plan as approval of the board.
 > Wait for it.
@@ -167,7 +172,8 @@ including the traces. A merge or a split changes what points at what.
 
 ### 6 — Create every ticket at once
 
-On approval, create them all, in one burst, with no further check-ins.
+On approval, create them all, in one burst, with no further check-ins. After the creates,
+close the handover task the board named, in the same burst.
 
 Two rules about *what* you create:
 
