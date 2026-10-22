@@ -23,6 +23,8 @@ work already exist as a ticket somebody else wrote?**
 |---|---|---|
 | On a team, holding a ticket you didn't write, in a repo that already exists | **the agile path** | [docs/shared/02-prerequisites.md](docs/shared/02-prerequisites.md) → [03-setup.md](docs/shared/03-setup.md), then `/start-ticket` |
 | On your own, holding a **raw idea** — no repo, no spec, nobody to hand you one | **the solo path** | [docs/solo/01-the-solo-path.md](docs/solo/01-the-solo-path.md), then `/pitch` |
+| On your own, holding a **project that already exists** but was not built through the path — a folder, a repo, a prototype | **the solo path**, by a side door | [docs/solo/09-adoption.md](docs/solo/09-adoption.md), then `/adopt` |
+| On your own, holding **one feature** for a product already past the seam | **the solo path**, by a side door | [docs/solo/10-the-feature-gate.md](docs/solo/10-the-feature-gate.md), then `/add-feature` |
 
 ```
         WHAT YOU ARE HOLDING                        WHERE YOU ENTER
@@ -40,6 +42,13 @@ work already exist as a ticket somebody else wrote?**
 that say a repo is ready. Then it hands over to exactly the same pipeline the agile path
 runs. Everything downstream of that seam is shared. If you arrive with a ticket, you were
 already past the seam and never needed the front-end.
+
+**The solo path has two side doors as well as its front one.** Code that already exists is
+evidence, not a verdict. A project that started somewhere else goes through
+[adoption](docs/solo/09-adoption.md): `/adopt` surveys it cold, judges it with the same kill
+gate, and enters it at `/pitch`, charting or cutting. One feature on a product that already
+passed the seam goes through [the feature gate](docs/solo/10-the-feature-gate.md):
+`/add-feature` judges it and routes a build by fog, never by size.
 
 **One case reaches both doors: fog.** An effort on a codebase that already exists, whose
 destination is clear but whose *route* is not. It is not a raw idea, and `/start-ticket`
@@ -144,7 +153,9 @@ claude-code-playbook/
 │   │   ├── 05-cutting.md           Stage 4 — /cut-backlog: the first version into work units
 │   │   ├── 06-choosing-the-stack.md  How the stack actually gets chosen (charting's tail)
 │   │   ├── 07-guardrails-when-solo.md  Which guardrails hold when you own everything
-│   │   └── 08-feeling-lucky.md     Walking a stage 2 map unattended, and what that costs
+│   │   ├── 08-feeling-lucky.md     Walking a stage 2 map unattended, and what that costs
+│   │   ├── 09-adoption.md          Side door — /adopt: an existing project onto the path
+│   │   └── 10-the-feature-gate.md  Side door — /add-feature: one feature past the seam
 │   └── team/                       ONLY WITH OTHER PEOPLE
 │       ├── 01-metrics.md           Costing a pipeline run against story points
 │       ├── 02-team-adoption.md     Rolling this out to a team
@@ -156,8 +167,8 @@ claude-code-playbook/
 │   └── ticket-flow-walkthrough.md  One ticket through /start-ticket
 ├── templates/
 │   ├── claude-md/    global · workspace · per-repo CLAUDE.md skeletons
-│   ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · map-reviewer · decision-steward · …
-│   ├── skills/       tdd · engineering-standards · grilling · pitch · charting · bootstrap · cut-backlog · next-steps · …
+│   ├── agents/       ticket-analyzer · context-gatherer · planner · layer-specialist · repo-reviewer · pitch-judge · map-reviewer · decision-steward · project-surveyor · …
+│   ├── skills/       tdd · engineering-standards · grilling · pitch · charting · bootstrap · cut-backlog · adopt · add-feature · next-steps · …
 │   ├── commands/     start-ticket · fix-ticket · test-ticket · resume-ticket · end-of-day · garden-memory · start-massive · resume-massive · build-chart-ticket · feeling-lucky · feeling-very-lucky
 │   ├── hooks/        block-dangerous-git · block-infra-staging · block-secret-staging · block-mcp-writes · …
 │   ├── mcp/          MCP config snippets (global + project) + settings snippet
@@ -263,6 +274,9 @@ step 4 forks.
    - **Done when:** all eight
      [seam checks](docs/solo/01-the-solo-path.md#the-seam--where-the-solo-path-stops) hold.
      Then you are standing where the agile path starts.
+   - **Already have code?** A project you started elsewhere runs `/adopt`
+     ([09](docs/solo/09-adoption.md)) instead of `/pitch`. One feature on a product past the
+     seam runs `/add-feature` ([10](docs/solo/10-the-feature-gate.md)).
 
 You do **not** need everything on day one.
 

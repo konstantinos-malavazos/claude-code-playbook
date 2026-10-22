@@ -92,11 +92,14 @@ deletes both from the adapter you picked, because the adapter is what decides th
 | Jira | its MCP tool names | deleted — it needs no shell |
 | Local markdown | deleted — `Read`/`Glob` **are** the tracker | deleted — same |
 
-`<tracker-shell-tools>` exists for exactly one agent. `ticket-analyzer` is the only
-template declaring `<tracker-read-tools>` that grants no `Bash` of its own, so on a CLI
-adapter it was the only one the delete actually disabled — and it is the first agent
-`/start-ticket` dispatches, so the whole pipeline halted on its first line. The other five
-templates carrying the token grant `Bash` in the same line and never lost the route.
+`<tracker-shell-tools>` exists for the agents that declare `<tracker-read-tools>` but grant
+no `Bash` of their own: `ticket-analyzer` and `project-surveyor`. On a CLI adapter they were
+the ones the delete actually disabled — and `ticket-analyzer` is the first agent
+`/start-ticket` dispatches, so the whole pipeline halted on its first line. Both carry the
+two tokens side by side, and both use the tracker read/list only: `project-surveyor` lists
+open issues, and its `handoffs-only.sh` hook keeps its one `Write` inside the handoff
+folder. The other templates carrying `<tracker-read-tools>` grant `Bash` in the same line
+and never lost the route.
 
 **And every body that calls a tool set mandatory now checks it has that set, and halts if
 it does not.** This is the only defence here that does not depend on someone running a
@@ -354,13 +357,14 @@ carries `mcp__serena__activate_project` for this.
 | `test-planner.md` | criteria → an approved staging test plan; owns the produce-recipe loop (plans and banks, never runs) | ✓ | ✓ |
 | `tester.md` | runs the approved plan — calls the produce driver, reconciles, verdicts, confirms or corrects the recipe | ✓ | ✓ |
 | `serena-lookup.md` | answers ONE code question through Serena — where is X, who calls Y — in 1-3 sentences and at most 15 `file:line` sites; an optional offload for long lookups (read-only) | ✓ | ✓ |
-| `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) | ✓ | |
+| `pitch-judge.md` | anonymised case file → an independent build/kill/park verdict (**gathers no evidence**) — for `/pitch` and `/adopt` | ✓ | |
+| `project-surveyor.md` | **`/adopt` only** — a cold survey of a whole existing project → one survey brief: stack, layer chain, commands, how finished, failing seam checks, open issues (read-only; never recommends a verdict) | ✓ | |
 | `map-reviewer.md` | final judge of a charted map, once, at close — Destination reached? criteria met? (comments only) | | ✓ |
 | `decision-steward.md` | one grilling question on an unattended walk → an answer **plus a basis** (**gathers no evidence**) | ✓ | |
 
-The **solo** / **team** columns say which entrance needs each template. The three that claim
-a single column each have exactly one flow that dispatches them, and are dead weight without
-it: `pitch-judge` by the [`pitch` skill](../skills/README.md), `decision-steward` by
+The **solo** / **team** columns say which entrance needs each template. The ones that claim
+a single column are dead weight without the flow that dispatches them: `pitch-judge` by the
+[`pitch` and `adopt` skills](../skills/README.md), `project-surveyor` by `adopt`, `decision-steward` by
 [`/feeling-lucky`](../commands/feeling-lucky.md), and `map-reviewer` by
 [`/resume-massive`](../commands/README.md). That last one is team-only
 ([03-massive-tickets.md](../../docs/team/03-massive-tickets.md)), so a solo builder charting
