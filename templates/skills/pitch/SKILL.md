@@ -3,9 +3,11 @@ name: pitch
 description: >-
   Put a raw idea through a one-hour kill gate and come out with a verdict — build, kill,
   or park. Six questions asked one at a time, two cold search subagents, three hard kills,
-  and an anonymised third-party judge. Use when the user has an idea and no repo, or says
-  "is this worth building" / "should I build this" / "pitch this" / "kill or build". NOT
-  for work that already has a ticket, a repo, or a spec.
+  and an anonymised third-party judge. Use when the user has an idea and no repo — or a
+  folder /adopt sent back as an unjudged ideas-file entry — or says "is this worth
+  building" / "should I build this" / "pitch this" / "kill or build". NOT for work that
+  already has a ticket or a spec, a project with real code you want to continue (/adopt),
+  or one feature on an existing product (/add-feature).
 ---
 
 # Pitch — the burden of proof is on the idea

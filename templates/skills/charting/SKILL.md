@@ -74,6 +74,11 @@ One issue labelled `<LABEL-PREFIX>:map`. Its tickets are its child issues. The m
 **index, not a store**. A decision lives in exactly one place, its own ticket, and the map
 only gists it and links to it.
 
+**The map issue is found by its label, never by its number.** A pitch-born repo's map is #1;
+an adopted repo's takes the next free number. While a map is open,
+[`/add-feature`](../add-feature/SKILL.md) may add child tickets to it — **one product, one
+open frontier** — and charting walks them like any other.
+
 ```markdown
 ## Destination
 
@@ -464,6 +469,11 @@ On the solo path, two more checks come first:
 **not** linked to the map, so the map still counts Done. `/bootstrap` finds it by that title
 and closes it. Without it, nothing open on the tracker says what comes next.
 
+**An adopted map hands over to `/adopt` instead.** When the map's Notes carry an `Adopted:`
+line, the code already exists: the closing line reads `next: /adopt, in a fresh session`, and
+the task is titled exactly **Run /adopt (fresh session)**. `/adopt` does the setup and never
+scaffolds; [`/adopt`](../adopt/SKILL.md) finds the task by that title and closes it.
+
 **Stalled.** The frontier is empty but tickets are still open, because every one of them is
 blocked on something outside this session. This is **not** done. Name each blocked ticket
 and who owns the thing it waits on. That owner is the ticket's claim, which is why you
@@ -481,7 +491,7 @@ and the cheapest possible outcome — the one charting exists to make affordable
 
 - **Done** — the memory ids the close produced, and the stage that takes over from the map. On
   the solo path that is `/bootstrap`, in a fresh session, because it re-reads the whole map,
-  with the handover task linked by id.
+  with the handover task linked by id — or `/adopt` when the Notes carry `Adopted:`.
 - **Stalled** — no command to run, and saying so is the point. What the user does *today*:
   chase the owner you named, or say yes to the one `grilling` ticket that refills the frontier.
 - **Abandoned** — nothing left to run, and where the record is. The cheapest outcome is still
