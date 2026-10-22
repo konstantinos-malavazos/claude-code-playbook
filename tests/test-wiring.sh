@@ -1924,6 +1924,8 @@ A12_SITES="$(a12_bg_sites)"
 A12_EXPECTED_SITES="templates/commands/feeling-lucky.md
 templates/commands/resume-massive.md
 templates/commands/start-massive.md
+templates/skills/add-feature/SKILL.md
+templates/skills/adopt/SKILL.md
 templates/skills/charting/SKILL.md
 templates/skills/grilling/SKILL.md
 templates/skills/pitch/SKILL.md"
@@ -2280,7 +2282,8 @@ terminal_class() {
     fix-ticket|garden-memory|resume-massive|resume-ticket|start-massive)            printf 'terminal' ;;
     start-ticket|test-ticket)                                                       printf 'terminal' ;;
     # the skills a human is left standing at the end of
-    adapt-to-stack|bootstrap|charting|cut-backlog|grilling|handoff)                 printf 'terminal' ;;
+    adapt-to-stack|add-feature|adopt|bootstrap|charting|cut-backlog)                printf 'terminal' ;;
+    grilling|handoff)                                                               printf 'terminal' ;;
     pitch|prototype|research|retro|to-questionnaire|to-tickets|wizard)              printf 'terminal' ;;
     # always-loaded skills, the block's own definition, and a generation template
     commit-conventions|diagnose|dispatch-weight|memory-schema)                      printf 'not-terminal' ;;
@@ -2351,10 +2354,10 @@ done
 
 # A classification list that had drifted to zero terminals would pass every line
 # above while asserting nothing at all.
-if [ "$n_terminal" = "24" ]; then
-  pass "24 terminal points, which is the inventory this landed against"
+if [ "$n_terminal" = "26" ]; then
+  pass "26 terminal points, which is the inventory this landed against"
 else
-  fail "$n_terminal terminal points, not 24 — the inventory moved; change it here deliberately"
+  fail "$n_terminal terminal points, not 26 — the inventory moved; change it here deliberately"
 fi
 fi
 
