@@ -2,6 +2,8 @@
 
 The kill gate is **stage 1** of the [solo path](01-the-solo-path.md). You arrive holding
 nothing but an idea — no repo, no spec, nobody to tell you whether it is any good.
+Already holding a prototype or a project with real code you want to continue? That is
+[adoption](09-adoption.md), through `/adopt`, not this gate.
 
 The stage answers **is this worth building at all?** It ends in a verdict: **build**,
 **kill**, or **park**. It takes about an hour. On *build* it creates a private repo and

@@ -5,8 +5,8 @@ description: >-
   true — the stub, CLAUDE.md, Serena if the verdict calls for it, the layer specialists,
   the tracker adapter check, two memories — then run every check once and report. Use
   when charting has closed with a named stack, or the user says "bootstrap the repo" /
-  "scaffold it" / "make the repo real". NOT for a repo that already builds, and NOT for
-  choosing a stack.
+  "scaffold it" / "make the repo real". NOT for a project that already held code before the
+  map (that is /adopt), and NOT for choosing a stack.
 disable-model-invocation: true
 ---
 
@@ -23,6 +23,13 @@ something that genuinely needs deciding, **stop and say so**. That is the backwa
 and it is the human's to take.
 
 ## Before the first step
+
+**First, refuse existing code.** If the map issue's Notes carry an `Adopted:` line, or there
+is no map issue and the repo already holds code, stop and point at
+[`/adopt`](../adopt/SKILL.md). Bootstrap scaffolds, and **scaffolding over existing code is
+the one thing it must not do**. `/adopt` does that project's setup instead. The stub an
+earlier run of this stage scaffolded is not existing code: on a pitch-born map a re-run
+[skips that step](#safe-to-re-run) and carries on.
 
 Five things must already exist. Check all five before touching anything.
 

@@ -102,10 +102,12 @@ than the two above:
 | `pitch` | a raw idea with no repo — the one-hour kill gate that ends in build, kill or park | ✓ | |
 | `bootstrap` | a decided-but-empty repo — scaffolds it and reports on the pipeline's preconditions. **Runs once per project** | ✓ | |
 | `cut-backlog` | a closed map + a scaffolded repo — cuts them into an ordered backlog of work units, approved on a board before anything is created | ✓ | |
+| `adopt` | an existing project not built through the solo path — a cold survey, the same hard kills and anonymised judge as `pitch`, then a verdict and an entry point at `pitch`, `charting` or `cut-backlog` | ✓ | |
+| `add-feature` | one feature for a product already past the seam — six questions, two hard kills, and a verdict plus a route chosen by fog, never by size | ✓ | |
 
-The **solo** / **team** columns say which entrance needs each template. `pitch`, `bootstrap`
-and `cut-backlog` are the ones that claim a single column: they are stages of the solo
-front-end, which the agile path does not have. Everything above them is shared by both.
+The **solo** / **team** columns say which entrance needs each template. `pitch`, `bootstrap`,
+`cut-backlog`, `adopt` and `add-feature` are the ones that claim a single column: they are
+stages and side doors of the solo front-end, which the agile path does not have. Everything above them is shared by both.
 
 **`charting`'s `✓ ✓` is load-bearing, not leftover.** It is stage 2 of the solo path *and*
 the engine behind the massive-ticket flow ([03-massive-tickets.md](../../docs/team/03-massive-tickets.md)).
@@ -115,6 +117,9 @@ skill from a solo install and you take stage 2 with it.
 
 `pitch` ships one agent alongside it — `pitch-judge`, in
 [`templates/agents/`](../agents/README.md). The skill is not complete without it.
+
+`adopt` reuses `pitch-judge` for its verdict and adds `project-surveyor`, the cold survey of
+the whole folder. Install it with both. `add-feature` runs no judge.
 
 `memory-schema` is the one template that ships **two** bodies. `SKILL.md` is the
 placeholder every other file in this repo refers to by name;

@@ -1622,8 +1622,8 @@ rm -rf "$D_N_TMP"
 fi
 
 # ---------------------------------------------------------------- D-O
-# Catches: a solo ticket title the charting skill, the bootstrap, the cut-backlog or
-# 03-charting stopped naming, or spells differently. A receiving stage looks its handover
+# Catches: a solo ticket title the charting skill, the bootstrap, the cut-backlog, the
+# adopt skill or 03-charting stopped naming, or spells differently. A receiving stage looks its handover
 # task up by exact title and, finding none, carries on and creates nothing, so a creator
 # and receiver that disagree leave a stale task open with every other check green.
 #
@@ -1647,12 +1647,14 @@ CHARTING = "templates/skills/charting/SKILL.md"
 CHART_DOC = "docs/solo/03-charting.md"
 BOOTSTRAP = "templates/skills/bootstrap/SKILL.md"
 CUT_BACKLOG = "templates/skills/cut-backlog/SKILL.md"
+ADOPT = "templates/skills/adopt/SKILL.md"
 
 # (title, files that must name it, matched exact-case)
 WANTED = (
     ("Name the stack", (CHARTING, CHART_DOC), False),
     ("Write the bootstrap checks", (CHARTING, CHART_DOC), False),
     ("Run /bootstrap (fresh session)", (CHARTING, BOOTSTRAP), True),
+    ("Run /adopt (fresh session)", (CHARTING, ADOPT), True),
     ("Run /cut-backlog (fresh session)", (BOOTSTRAP, CUT_BACKLOG), True),
 )
 
@@ -1671,9 +1673,9 @@ emit("DOCHECKS %d" % checks)
 PYEOF
 DO_FILES="$(sed -n 's/^DOFILES //p' "$REPO/tests/.docs-out")"
 DO_CHECKS="$(sed -n 's/^DOCHECKS //p' "$REPO/tests/.docs-out")"
-# Positive control: four files read and eight (file, title) checks made. A zero is a
+# Positive control: five files read and ten (file, title) checks made. A zero is a
 # reader that found nothing, and "no title is missing" is vacuously true over no checks.
-if [ "${DO_FILES:-0}" -ge 4 ] && [ "${DO_CHECKS:-0}" -ge 8 ]; then
+if [ "${DO_FILES:-0}" -ge 5 ] && [ "${DO_CHECKS:-0}" -ge 10 ]; then
   pass "D-O · read ${DO_FILES} files and made ${DO_CHECKS} (file, title) checks"
 else
   fail "D-O · read ${DO_FILES:-0} files and made ${DO_CHECKS:-0} checks — the check is broken, not the docs"

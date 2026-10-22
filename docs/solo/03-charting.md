@@ -2,7 +2,9 @@
 
 Charting is **stage 2** of the [solo path](01-the-solo-path.md). You arrive holding a
 *build* verdict, a private repo the [kill gate](02-the-kill-gate.md) created, and a map
-sitting in that repo as issue #1. Almost nothing else is settled yet.
+sitting in that repo as issue #1. Almost nothing else is settled yet. An
+[adopted](09-adoption.md) project arrives by the side door instead: `/adopt` seeded its map,
+some tickets already closed by the code, and the map is whatever number it got.
 
 The stage answers **what are we building, and on what?** It ends when nothing is left to
 decide, and hands over to [the bootstrap](04-the-bootstrap.md).
@@ -48,7 +50,8 @@ Charting itself stops well short of the horizon, at the last decision.
 
 ## The map, in one paragraph
 
-The map is a single issue on the repo's tracker — issue #1, created by the gate. Its
+The map is a single issue on the repo's tracker — **the map issue**, found by its `:map`
+label: issue #1 when the gate created it, the next free number when `/adopt` seeded it. Its
 tickets are its child issues, one question each, sized to a single agent session. The map
 is an **index, not a store**. A decision lives in exactly one place, its own ticket, and
 the map only gists it and links to it.
@@ -106,7 +109,7 @@ spine names as its exception. See
 existing multi-repo codebase. Read it for **how a map behaves over weeks**: the three endings,
 what the map never caches, and the two ways it fails silently. **Its commands are not yours
 to run.** They are bound to a chart folder under `<workspace>/.claude/charts/` and they
-dispatch `/build-chart-ticket`. Neither exists on the solo path. Your map is issue #1 on the
+dispatch `/build-chart-ticket`. Neither exists on the solo path. Your map is the map issue on the
 tracker, and you walk it with `/charting`, every session. That page sits under `team/` for
 the same reason: the three commands are team-only.
 
@@ -285,7 +288,9 @@ skill's name is the general one, because not every map hands off to a bootstrap.
 clears, the skill sweeps the closed answers for setup only you can do and tickets each one,
 so a map with an install still owed stalls instead. A cleared map's closing comment ends
 with `next: /bootstrap, in a fresh session`, and one task, *Run /bootstrap (fresh session)*,
-opens claimed to you, outside the map. The bootstrap closes it.
+opens claimed to you, outside the map. The bootstrap closes it. When the map's Notes carry an
+`Adopted:` line, the task is *Run /adopt (fresh session)* instead, and adoption's setup run
+closes it.
 
 **Stalled** is the one that looks like cleared and is not. The frontier is empty, but
 tickets are still open, because every one of them is waiting on somebody outside the
@@ -334,7 +339,7 @@ conversation is still the cheapest way to have discovered it.
 | **A named stack** | Seam check 1, done. |
 | **The bootstrap checks** | Written against the actual stack, which is what makes stage 3 testable. |
 | **The toolchain, installed** | Named by Name the stack, and installed by you as the `task` the map waited on. |
-| **A handover task** | *Run /bootstrap (fresh session)*, claimed to you, outside the map. The bootstrap closes it. |
+| **A handover task** | *Run /bootstrap (fresh session)*, claimed to you, outside the map. The bootstrap closes it. On an adopted map, *Run /adopt (fresh session)*, closed by adoption's setup run. |
 | **The settled names** | On the map's `Notes`, written inline as each one settled, then pruned at the tail of the ones that died. Bootstrap step 3 copies what survives into the repo's `CLAUDE.md`, their second and final home, and [seam check 3](01-the-solo-path.md#the-seam--where-the-solo-path-stops). The rule is charting's *One name per thing*, and **none is a valid answer.** |
 | **One memory** | *What this project is and who it is for.* Written when the map closes: one per map, never one per ticket, so stage 3 can add the second and the [seam](01-the-solo-path.md#the-seam--where-the-solo-path-stops) arithmetic comes out at exactly two. See [05-forgetful.md](../shared/05-forgetful.md). |
 

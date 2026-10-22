@@ -222,8 +222,12 @@ one of the two copies can still change.
 analyzer acts on. It earns its place by making a copied constraint **falsifiable** — without
 it, *"Storage: SQLite"* is either a decision or a typo and nothing on the page says which.
 
-**One line, `From map #1`, and no parent link.** The history stays recoverable; the map's
+**One line, `From map #N`, and no parent link** — `N` is the map issue's number, found by
+its `:map` label; in this fresh repo it is `#1`. The history stays recoverable; the map's
 tooling still does not see them.
+
+A single work ticket can also come from [the feature gate](../add-feature/SKILL.md) rather
+than a map. It has the same five parts, and its trace line reads `From feature #N — <name>`.
 
 ### 7 — Generate the picture
 
