@@ -12,6 +12,10 @@ The stage answers **make the repo real.** It ends with **one pass/fail report** 
 The stage is **the bootstrap**. The output is a **report**. Two names, kept distinct —
 the stage can finish while the report is red.
 
+**It refuses a repo that already holds code**, or whose map issue's Notes carry an
+`Adopted:` line, and points at [`/adopt`](09-adoption.md). Scaffolding over existing code is
+the one thing the bootstrap must not do; adoption does that project's setup instead.
+
 You run it with **`/bootstrap`**, from
 [`templates/skills/bootstrap/SKILL.md`](../../templates/skills/bootstrap/SKILL.md). That
 template owns the mechanics and this doc does not repeat them. This doc owns *why the steps

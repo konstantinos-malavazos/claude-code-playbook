@@ -255,13 +255,13 @@ nothing on the page tells you which. That is what makes the copy safe, not merel
 
 They are ordinary issues sitting **beside** the map, not under it.
 
-Charting's frontier query asks the tracker *which children of #1 are open?* If work units
+Charting's frontier query asks the tracker *which children of the map issue are open?* If work units
 are children, that query starts returning **jobs**, and charting only knows how to resolve
 **questions**. A closed map with a dozen open children also reads, correctly, as a map that
 never finished.
 
 They still came from the map, and that has to be recoverable. So each body carries the one
-line **`From map #1`** and no parent link. The history survives, and the map's tooling does
+line **`From map #N`** — `N` is the map issue's number, `#1` on a pitch-born repo — and no parent link. The history survives, and the map's tooling does
 not see them.
 
 ---
@@ -309,7 +309,7 @@ not see them.
 |---|---|
 | **An ordered backlog** | Units in the tracker, dependencies in the bodies, and **you approved it** — seam item 6, the last one. |
 | **Self-contained tickets** | Each carries its own constraints, so `@ticket-analyzer` needs nothing but the ticket. |
-| **A recoverable origin** | `From map #1` plus the decisions that bind each unit. |
+| **A recoverable origin** | `From map #N` plus the decisions that bind each unit. |
 
 With item 6 true, all eight [seam](01-the-solo-path.md#the-seam--where-the-solo-path-stops)
 checks hold. **The solo path stops here.** Everything after this is the shared pipeline, and

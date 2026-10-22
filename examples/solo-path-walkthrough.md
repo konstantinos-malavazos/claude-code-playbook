@@ -312,3 +312,7 @@ point on nothing is solo-specific.
   drifted, and a ticket count never can.
 - **Stage 2 was the long one.** Eight sessions of deciding, then one sitting each for
   stages 3 and 4. The path is front-loaded on purpose.
+
+`pantry-plan` came in by the front door, from a raw idea. A project that already has code
+comes in by [adoption](../docs/solo/09-adoption.md) instead, and one more feature on a product
+past the seam goes through [the feature gate](../docs/solo/10-the-feature-gate.md).

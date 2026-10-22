@@ -9,6 +9,16 @@ passes [the seam](#the-seam--where-the-solo-path-stops)**. It then hands over to
 [`/start-ticket`](../shared/08-ticket-pipeline.md). Everything downstream of that seam is
 already written, and both entrances share it.
 
+The raw idea is the front door. The solo path has **two side doors** as well:
+
+| Side door | For | Joins at | Doc |
+|---|---|---|---|
+| **Adoption** — [`/adopt`](../../templates/skills/adopt/SKILL.md) | an existing project — a folder, a repo, a prototype — not built through this path | `/pitch`, charting or cutting: the verdict's **entry point** decides | [09-adoption.md](09-adoption.md) |
+| **The feature gate** — [`/add-feature`](../../templates/skills/add-feature/SKILL.md) | one more feature on a product already past [the seam](#the-seam--where-the-solo-path-stops) | the far side of the seam: a **route** into the shared pipeline | [10-the-feature-gate.md](10-the-feature-gate.md) |
+
+They are **entrances, not stages**. The four stages stay four, and each side door joins them
+or the seam rather than adding one.
+
 This doc is the **spine**: the four stages, the question each one answers, and the exit
 condition that says you are done with it. Each stage has its own doc. This one does not
 repeat them.
@@ -19,7 +29,7 @@ repeat them.
 
 | # | Stage | The question it answers | Exit condition | Doc |
 |---|---|---|---|---|
-| 1 | **The kill gate** | Is this worth building at all? | A verdict is recorded — **build**, **kill**, or **park**. On *build*: a **private repo exists** and the map is its issue #1. | [02-the-kill-gate.md](02-the-kill-gate.md) |
+| 1 | **The kill gate** | Is this worth building at all? | A verdict is recorded — **build**, **kill**, or **park**. On *build*: a **private repo exists** and the map is its issue #1 — on a pitch-born repo; an adopted one finds it by its `:map` label. | [02-the-kill-gate.md](02-the-kill-gate.md) |
 | 2 | **Charting** | What are we building, and on what? | Every ticket on the map closed, **the tail resolved last**. Or the map is **abandoned**. | [03-charting.md](03-charting.md) |
 | 3 | **The bootstrap** | Make the repo real. | The stack-specific checks written by the tail pass (items 1–5, 7 and 8 of the seam). | [04-the-bootstrap.md](04-the-bootstrap.md) |
 | 4 | **Cutting** | Cut the first version into units the pipeline can run. | Work units exist in the tracker, ordered, and **you approved them**. | [05-cutting.md](05-cutting.md) |
@@ -67,10 +77,14 @@ leaves a tell in the repo or the tracker. Read these top to bottom and stop at t
 | Where you are | The tell |
 |---|---|
 | **Not started, or still in the gate** | No repo. |
-| **Stage 2 — charting** | The repo exists, and issue **#1 is open**. |
-| **Stage 3 — the bootstrap** | Issue **#1 is closed**, and the repo has **no `CLAUDE.md`**. |
+| **Stage 2 — charting** | The repo exists, and **the map issue is open**. |
+| **Adopted, setup not done** | The map issue is **closed**, its Notes carry an **`Adopted:`** line, and the repo has **no `CLAUDE.md`** (or one with no Serena verdict line). Run [`/adopt`](09-adoption.md) — it does only the setup half — not `/bootstrap`. |
+| **Stage 3 — the bootstrap** | The map issue is **closed**, and the repo has **no `CLAUDE.md`**. |
 | **Stage 4 — cutting** | `CLAUDE.md` and the layer specialists are on disk, and there are **no work tickets**. |
-| **Past the seam** | Work tickets exist, each carrying **`From map #1`**. |
+| **Past the seam** | Work tickets exist, each carrying **`From map #N`**. |
+
+**The map issue** is the one labelled `<LABEL-PREFIX>:map`. On a pitch-born repo it is #1. On
+an adopted repo it is the next free number, so you find it by its label, not its number.
 
 **Stage 1 has no row of its own.** That falls out of the first rule below. The repo is the
 gate's output, so *no repo* means you have not started, or you are still in the gate. The
@@ -83,10 +97,15 @@ gate is one sitting, so you will not lose track of being in it.
 > the repo**. It can be wrong, and nothing would catch it. The tells above *are* the repo,
 > so they cannot disagree with it.
 >
+> **The `Adopted:` line is not a stage marker.** It is a fact about the project's **origin**,
+> written once on the map when adoption seeds it, and it never changes. Which stage you are
+> in is still read off the tells.
+>
 > **One exception: the handover task.** Two handovers leave nothing open on the tracker —
 > charting closing Done, and the bootstrap going green. Each opens one task claimed to you,
 > *Run /bootstrap (fresh session)* and *Run /cut-backlog (fresh session)*, and the stage it
-> names closes it. It is a to-do on the surface you already watch, not a tell. Where it and
+> names closes it. On an adopted map, charting opens *Run /adopt (fresh session)* in place of
+> the first, and adoption's setup run closes it. It is a to-do on the surface you already watch, not a tell. Where it and
 > the table disagree, the table wins.
 
 The same rule answers the resume question one level down, and both stage docs say so. A
@@ -102,7 +121,7 @@ ticket**, on the tracker, where the rest of charting already lives.
 
 | Rule | What it means |
 |---|---|
-| **The repo is the gate's output** | Charting's artifact is an issue on a tracker, so the repo has to exist before charting, not after. A *build* verdict is what creates it. The agent creates it **private**, after confirming the name with you. Bootstrap therefore **scaffolds and never creates**. |
+| **The repo is the gate's output** | Charting's artifact is an issue on a tracker, so the repo has to exist before charting, not after. A *build* verdict is what creates it. The agent creates it **private**, after confirming the name with you. Bootstrap therefore **scaffolds and never creates**. On adoption the repo usually exists already; `/adopt` creates one, **private**, only for a bare local folder. |
 | **The tail goes last** | Choosing the stack is a decision, so it lives on the map as a ticket rather than as a stage of its own. It is two tickets: *name the stack*, then *write the bootstrap checks*. **Neither is takeable while any other ticket is open.** This is a rule, not blocker wiring. When a product decision is genuinely stuck without the stack, take the stack early **and record why in its answer**. |
 | **One backwards step** | If the bootstrap or cutting breaks a decision, you reopen the map and add a ticket. You do not push forward on something you now know is wrong. One step back, not a spiral. |
 
@@ -148,6 +167,7 @@ tracker holds both of these facts already, but the tracker is not what the gathe
 | A backlog of ordered, approved work units | [`/start-ticket`](../shared/08-ticket-pipeline.md) — the flagship flow, ~95% of tickets |
 | A unit too big for one sequential pass | [The decompose path](../shared/09-decompose-path.md) |
 | A repo with Serena, memory, and hooks in place | [The flows](../shared/07-the-flows.md), unchanged from the agile path |
+| An idea for one more feature on a product past the seam | [`/add-feature`](10-the-feature-gate.md) — the feature gate |
 
 Nothing downstream of the seam is solo-specific. That is the point of the seam.
 
