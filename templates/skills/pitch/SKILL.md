@@ -167,8 +167,8 @@ writing, then ask. This is the strongest mechanism here and it costs nothing.
 
 ## Dispatching `pitch-judge`
 
-Runs **once, automatically**, as part of the gate. Never on demand. An appeals court the
-user can invoke is a reprieve-shopping machine.
+`@pitch-judge` runs **once, automatically**, as part of the gate. Never on demand. An
+appeals court the user can invoke is a reprieve-shopping machine.
 
 **It receives a case file, never a transcript.** A relabelled conversation identifies itself
 in about two lines: one side asks every question, one side says *let me go and search*. Work

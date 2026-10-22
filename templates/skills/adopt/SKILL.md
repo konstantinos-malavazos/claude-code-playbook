@@ -174,7 +174,7 @@ are not asked about: cutting cuts its own units from the first version.
 The **order of operations is `/pitch`'s**, and so is the reveal: write **the case for
 killing**, every time; commit to **your** verdict in writing; only then ask for the user's.
 
-**Then dispatch [`pitch-judge`](../../agents/pitch-judge.md)** — the same anonymised third
+**Then dispatch [`@pitch-judge`](../../agents/pitch-judge.md)** — the same anonymised third
 party, once, automatically, never on demand. It weighs a case file and gathers nothing, which
 fits adoption unchanged. Build the case file exactly as `/pitch` describes, with these
 sections in place of its question answers and search reports:
