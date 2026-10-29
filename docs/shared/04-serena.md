@@ -7,6 +7,14 @@ with its precise `file:line`, instead of reading the whole file and guessing nam
 Serena is open-source and language-agnostic (it speaks the Language Server Protocol, so
 any language with an LSP is covered: TypeScript, Python, Go, Rust, C#, Java, …).
 
+**Version: pin `serena-agent==1.7.0`.** Serena 2.x (2.0.0 and 2.1.0, October 2026)
+exposes three tools — `activate_project`, `initial_instructions` and `serena_repl`, a
+Python REPL whose `s` object carries symbol search and editing. The per-operation tools
+every agent here declares are gone, so they are stripped at launch and the agents run
+with no code tools. 1.7.0 serves all of them. Moving the agents onto the REPL is future
+work; until then, the pinned command is in
+[03-setup.md](03-setup.md#step-2--stand-up-serena-eyes).
+
 ---
 
 ## Why it matters
@@ -160,8 +168,8 @@ The connect-time prompt below applies to route C servers too, and is still a man
   a package reports its references as missing, and the gap looks like dead code.
 - **Some language servers ignore `ignored_paths` when they discover projects**, so an
   excluded folder can still be indexed. It varies by version, so record the Serena version
-  you saw it on: `uvx --from git+https://github.com/oraios/serena serena --version`, or the
-  plugin's version.
+  you saw it on: `uvx --from serena-agent==1.7.0 serena --version`, or the plugin's
+  version.
 - **Serena's line numbers are 0-based** — `body_location`, and the `>N:` lines in
   reference snippets. Add one before you quote a `file:line`.
 - **An agent's `skills:` preload — what the `code-access` skill rides on — needs no `Skill`

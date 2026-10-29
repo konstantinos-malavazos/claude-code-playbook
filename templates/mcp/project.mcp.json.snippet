@@ -1,8 +1,15 @@
 {
   "mcpServers": {
     "serena": {
-      "type": "http",
-      "url": "http://localhost:9121/mcp"
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from", "serena-agent==1.7.0",
+        "serena", "start-mcp-server",
+        "--context", "agent",
+        "--project-from-cwd",
+        "--enable-web-dashboard", "false"
+      ]
     },
     "gitlab": {
       "type": "stdio",

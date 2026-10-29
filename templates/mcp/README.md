@@ -63,10 +63,17 @@ These are tied to THIS working copy. Enable them in
 
 ### `serena`
 
-**Only needed if you did NOT install the `serena` plugin** (see
-[`docs/shared/03-setup.md`](../../docs/shared/03-setup.md) step 2). The plugin route is
-simpler and is the recommended default. If you use it, **delete this entry**: two
-registrations means two tool namespaces, which means confusion.
+**This is the recommended route** (see
+[`docs/shared/03-setup.md`](../../docs/shared/03-setup.md) step 2). It runs Serena pinned
+to `serena-agent==1.7.0`: the `serena` plugin runs unpinned upstream HEAD, which is now
+Serena 2.x, and 2.x drops the per-operation tools the agents declare. `--context agent`
+exposes every tool the agents need (`claude-code` hides six of them), and
+`--enable-web-dashboard false` stops a crash on a machine where 2.x once ran. The same
+entry also works user-wide, via `claude mcp add --scope user serena -- uvx ...`;
+`--project-from-cwd` picks the project from the working directory.
+
+If you installed the plugin anyway, **delete this entry**: two registrations means two
+tool namespaces, which means confusion.
 
 **Tool prefix — this must match what your agents' `tools:` lists say:**
 

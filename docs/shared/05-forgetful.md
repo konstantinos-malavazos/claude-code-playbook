@@ -4,8 +4,9 @@
 linked **memories** and retrieves them by *meaning*, not keyword. Knowledge persists
 across sessions, machines, and weeks.
 
-Forgetful is open-source, ships a PostgreSQL + pgvector backend, speaks HTTP, and can
-embed locally. So memory content never has to leave the host, which matters in a
+Forgetful is open-source, speaks HTTP, and can embed locally. It stores to SQLite by
+default, which is all a solo setup needs; a PostgreSQL + pgvector backend is there for a
+store a team shares. So memory content never has to leave the host, which matters in a
 regulated or privacy-sensitive environment.
 
 > Any semantic-memory MCP with create/query/link works here. This playbook uses Forgetful

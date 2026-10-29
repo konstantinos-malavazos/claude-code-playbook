@@ -536,6 +536,33 @@ def _connector_prefix(name):
     return "mcp__%s__" % re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_")
 
 
+def _installed_plugins(home, evidence):
+    """(name, file) for each plugin Claude Code records as installed and not disabled.
+
+    The name is the plugin half of its `name@marketplace` key. A plugin switched off
+    under enabledPlugins in ~/.claude/settings.json is left out: its tools are gone,
+    so counting it would hand the agents a prefix that resolves to nothing.
+    """
+    path = os.path.join(home, ".claude", "plugins", "installed_plugins.json")
+    try:
+        data = load_json(path)
+    except json.JSONDecodeError:
+        evidence.append({"where": path, "found": "unparseable JSON — ignored"})
+        return []
+    installed = data.get("plugins") if isinstance(data, dict) else None
+    if not isinstance(installed, dict):
+        return []
+    try:
+        settings = load_json(os.path.join(home, ".claude", "settings.json"))
+    except json.JSONDecodeError:
+        settings = {}
+    enabled = settings.get("enabledPlugins") if isinstance(settings, dict) else None
+    if not isinstance(enabled, dict):
+        enabled = {}
+    return [(key.split("@", 1)[0], path) for key in installed
+            if isinstance(key, str) and enabled.get(key) is not False]
+
+
 def _server_scan(home, cwd, keys, plugin_terms=(), connectors=True):
     """Look for any of `keys` under mcpServers, in the four places a server lives.
 
@@ -587,16 +614,18 @@ def _server_scan(home, cwd, keys, plugin_terms=(), connectors=True):
 
     # A plugin install leaves state under ~/.claude/plugins rather than in any
     # mcpServers block, so a plugin-installed server is invisible to the scan above.
-    plugdir = os.path.join(home, ".claude", "plugins")
-    if plugin_terms and os.path.isdir(plugdir):
-        for dirpath, dirnames, filenames in os.walk(plugdir):
-            hit = next((t for t in plugin_terms
-                        if any(t in n for n in dirnames + filenames)), None)
-            if hit:
-                evidence.append({"where": dirpath, "found": "%s plugin files" % hit})
-                if hit not in plugins:
-                    plugins.append(hit)
-                break
+    # Only installed_plugins.json says what is INSTALLED. The rest of that folder is
+    # marketplace clones and caches, which hold every plugin the marketplace lists and
+    # outlive an uninstall: walking it for file names read an uninstalled serena as
+    # route A, and a security plugin's test file named *memory* as a memory server.
+    if plugin_terms:
+        for name, where in _installed_plugins(home, evidence):
+            hit = next((t for t in plugin_terms if t in name.lower()), None)
+            if hit is None:
+                continue
+            evidence.append({"where": where, "found": "%s plugin installed (%s)" % (hit, name)})
+            if hit not in plugins:
+                plugins.append(hit)
 
     return {"evidence": evidence, "registered": registered, "plugins": plugins,
             "connectors": connected}

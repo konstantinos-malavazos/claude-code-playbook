@@ -158,6 +158,28 @@ json.dump(d, open(p, "w", encoding="utf-8"), indent=2)
 PY
 }
 
+# with_plugin NAME [false] - NAME@claude-plugins-official recorded as installed, MERGED
+# into installed_plugins.json. Pass false to also switch it off under enabledPlugins.
+# Files under plugins/cache or plugins/marketplaces are NOT an install: the marketplace
+# clone holds every plugin it lists, and the cache outlives an uninstall.
+with_plugin() {
+  mkdir -p "$HOME_DIR/.claude/plugins"
+  "$PY" - "$HOME_DIR/.claude" "$1" "${2:-}" <<'PY'
+import json, os, sys
+home, name, state = sys.argv[1], sys.argv[2], sys.argv[3]
+key = name + "@claude-plugins-official"
+p = os.path.join(home, "plugins", "installed_plugins.json")
+d = json.load(open(p, encoding="utf-8")) if os.path.exists(p) else {"version": 2, "plugins": {}}
+d["plugins"][key] = [{"scope": "user", "installPath": os.path.join(home, "plugins", "cache", name)}]
+json.dump(d, open(p, "w", encoding="utf-8"), indent=2)
+if state == "false":
+    s = os.path.join(home, "settings.json")
+    sd = json.load(open(s, encoding="utf-8")) if os.path.exists(s) else {}
+    sd.setdefault("enabledPlugins", {})[key] = False
+    json.dump(sd, open(s, "w", encoding="utf-8"), indent=2)
+PY
+}
+
 # with_servers - BOTH pillars. This is the only state a normal install runs in now,
 # so it is what every case that expects a completed install must set up. A case that
 # calls only with_serena is deliberately testing the memory gate.
@@ -807,11 +829,10 @@ inlog m2b "Install complete" "runs to completion"
 
 banner "M2c · installed as a PLUGIN, with no mcpServers entry at all"
 fresh_env m2c; with_serena
-mkdir -p "$HOME_DIR/.claude/plugins/cache/forgetful-mcp"
-printf '{}\n' > "$HOME_DIR/.claude/plugins/cache/forgetful-mcp/plugin.json"
+with_plugin forgetful-mcp
 keys m2c "${FULL[@]}"; run install m2c
 notinlog m2c "No memory server is set up" "gate does not fire"
-inlog m2c "forgetful plugin files" "shows the evidence"
+inlog m2c "forgetful plugin installed (forgetful-mcp)" "shows the evidence"
 inlog m2c "Install complete" "runs to completion"
 
 # M2d catches: the gate refusing the maintainer's OWN machine. mcpServers there is
@@ -862,15 +883,14 @@ fi
 # would be refused and every answer after it would shift.
 banner "M2e · a non-Forgetful memory server installed as a PLUGIN"
 fresh_env m2e; with_serena
-mkdir -p "$HOME_DIR/.claude/plugins/cache/mem0-mcp"
-printf '{}\n' > "$HOME_DIR/.claude/plugins/cache/mem0-mcp/plugin.json"
+with_plugin mem0-mcp
 M2E_KEYS=("${FULL[@]}")
 M2E_KEYS[10]='mcp__mem0__search_memory'
 M2E_KEYS[11]='mcp__mem0__add_memory'
 keys m2e "${M2E_KEYS[@]}"; run install m2e
 notinlog m2e "No memory server is set up" "gate does not fire"
 inlog m2e "found a memory server (mem0)" "names the server it found"
-inlog m2e "mem0 plugin files" "shows the evidence"
+inlog m2e "mem0 plugin installed (mem0-mcp)" "shows the evidence"
 inlog m2e "Enter will not answer this one for you" "nothing is pre-filled for a non-Forgetful server"
 inlog m2e "Install complete" "runs to completion"
 
@@ -886,8 +906,7 @@ read -ra M2F_KEYS <<< "$(memory_keys)"
 yn "$([ "${#M2F_KEYS[@]}" -gt 0 ] && echo 0 || echo 1)" "the key list was read from install-lib.py (${#M2F_KEYS[@]} keys)"
 for k in "${M2F_KEYS[@]}"; do
   fresh_env "m2f-$k"
-  mkdir -p "$HOME_DIR/.claude/plugins/cache/$k-mcp"
-  printf '{}\n' > "$HOME_DIR/.claude/plugins/cache/$k-mcp/plugin.json"
+  with_plugin "$k-mcp"
   "$PY" "$REPO/install-lib.py" memory-detect "$HOME_DIR" "$M2F_CWD" > "$LOGS/m2f-$k.json" 2>/dev/null
   M2F_VERDICT="$("$PY" - "$LOGS/m2f-$k.json" "$k" <<'PY'
 import json, sys
@@ -911,8 +930,7 @@ done
 # are pre-filled.
 banner "M2g · a plugin name containing both forgetful and memory is Forgetful"
 fresh_env m2g
-mkdir -p "$HOME_DIR/.claude/plugins/cache/forgetful-memory-mcp"
-printf '{}\n' > "$HOME_DIR/.claude/plugins/cache/forgetful-memory-mcp/plugin.json"
+with_plugin forgetful-memory-mcp
 "$PY" "$REPO/install-lib.py" memory-detect "$HOME_DIR" "$M2F_CWD" > "$LOGS/m2g.json" 2>/dev/null
 M2G_VERDICT="$("$PY" - "$LOGS/m2g.json" <<'PY'
 import json, sys
@@ -940,9 +958,7 @@ fi
 if want M8; then
 banner "M8 · a corrupt ~/.claude.json does not open the memory gate"
 fresh_env m8
-mkdir -p "$HOME_DIR/.claude/plugins/cache/serena"
-printf '{}
-' > "$HOME_DIR/.claude/plugins/cache/serena/plugin.json"
+with_plugin serena
 printf '{ this is not json
 ' > "$HOME_DIR/.claude.json"
 keys m8 "${FULL[@]}"; run install m8
@@ -4227,7 +4243,7 @@ yn "$(cmp -s "$SANDBOX/rc1/b2.json" "$SANDBOX/rc1/b3.json" && echo 0 || echo 1)"
    "RC1 control: without a map the claude-home argument changes nothing"
 printf '{"repos": {}}\n' > "$CH/serena-repos.json" \
   && "$PY" "$RC1L" serena-detect "$HOME_DIR" "$SANDBOX/rc1" "$CH" > "$SANDBOX/rc1/c.json" \
-  && mkdir -p "$HOME_DIR/.claude/plugins/cache/serena" \
+  && with_plugin serena \
   && "$PY" "$RC1L" serena-detect "$HOME_DIR" "$SANDBOX/rc1" "$CH" > "$SANDBOX/rc1/ca.json" \
   && rm -f "$CH/serena-repos.json" \
   && "$PY" "$RC1L" serena-detect "$HOME_DIR" "$SANDBOX/rc1" "$CH" > "$SANDBOX/rc1/a.json"
@@ -4247,8 +4263,57 @@ c = get("c.json")
 say(c.get("route") == "C", "RC1 a repo map in the claude home makes the route C (got %r)" % c.get("route"))
 say(any("serena-repos.json" in (e.get("where") or "").replace("\\", "/")
         for e in c.get("evidence") or []), "RC1 the evidence names the repo map")
-say(get("ca.json").get("route") == "C", "RC1 the map wins over plugin files (got %r)" % get("ca.json").get("route"))
-say(get("a.json").get("route") == "A", "RC1 control: plugin files and no map is still route A")
+say(get("ca.json").get("route") == "C", "RC1 the map wins over an installed plugin (got %r)" % get("ca.json").get("route"))
+say(get("a.json").get("route") == "A", "RC1 control: an installed plugin and no map is still route A")
+PY
+)
+fi
+
+# ---------------------------------------------------------------- PD1
+# Catches: plugin detection reading the FILE NAMES under ~/.claude/plugins. The
+# official marketplace clone ships a serena folder whether or not serena is installed,
+# and the cache keeps one after an uninstall, so a machine on route B was told A and
+# its agents got mcp__plugin_serena_serena__ names that resolve to nothing. The same
+# walk read a security plugin's test file named *memory* as a memory server, which
+# opened the memory gate on a machine with none.
+if want PD1; then
+banner "PD1 · only installed_plugins.json counts as a plugin install"
+fresh_env pd1; with_serena
+mkdir -p "$HOME_DIR/.claude/plugins/marketplaces/official/external_plugins/serena" \
+         "$HOME_DIR/.claude/plugins/cache/directory/serena/abc123" \
+         "$HOME_DIR/.claude/plugins/marketplaces/official/plugins/security-guidance/tests"
+printf '{}\n' > "$HOME_DIR/.claude/plugins/marketplaces/official/plugins/security-guidance/tests/test_memory_safety.py"
+printf '{"version": 2, "plugins": {}}\n' > "$HOME_DIR/.claude/plugins/installed_plugins.json"
+PD1L="$REPO/install-lib.py"
+"$PY" "$PD1L" serena-detect "$HOME_DIR" "$SANDBOX/pd1" > "$SANDBOX/pd1/stale.json" \
+  && "$PY" "$PD1L" memory-detect "$HOME_DIR" "$SANDBOX/pd1" > "$SANDBOX/pd1/mem.json" \
+  && with_plugin serena false \
+  && "$PY" "$PD1L" serena-detect "$HOME_DIR" "$SANDBOX/pd1" > "$SANDBOX/pd1/off.json" \
+  && with_plugin serena \
+  && "$PY" "$PD1L" serena-detect "$HOME_DIR" "$SANDBOX/pd1" > "$SANDBOX/pd1/on-but-off.json" \
+  && rm -f "$HOME_DIR/.claude/settings.json" \
+  && "$PY" "$PD1L" serena-detect "$HOME_DIR" "$SANDBOX/pd1" > "$SANDBOX/pd1/on.json"
+chk $? "setup: detect with stale plugin files, a disabled plugin, and an enabled one"
+verdicts < <("$PY" - "$SANDBOX/pd1" <<'PY'
+import json, os, sys
+d = sys.argv[1]
+def say(ok, name):
+    sys.stdout.buffer.write(("%s|%s\n" % ("PASS" if ok else "FAIL", name)).encode("utf-8"))
+def get(n):
+    try:
+        return json.load(open(os.path.join(d, n), encoding="utf-8"))
+    except Exception:
+        return {}
+say(get("stale.json").get("route") == "B",
+    "PD1 marketplace and cache folders named serena do not make it route A (got %r)" % get("stale.json").get("route"))
+say(get("mem.json").get("server") is None,
+    "PD1 a file named *memory* in another plugin is not a memory server (got %r)" % get("mem.json").get("server"))
+say(get("off.json").get("route") == "B",
+    "PD1 an installed plugin switched off in enabledPlugins does not count (got %r)" % get("off.json").get("route"))
+say(get("on-but-off.json").get("route") == "B",
+    "PD1 reinstalling does not override enabledPlugins false (got %r)" % get("on-but-off.json").get("route"))
+say(get("on.json").get("route") == "A",
+    "PD1 control: an installed, enabled serena plugin is route A (got %r)" % get("on.json").get("route"))
 PY
 )
 fi
