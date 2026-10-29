@@ -95,16 +95,33 @@ check after each edit.
 
 Serena is **mandatory** in this playbook, for reading code *and* for editing it
 ([04-serena.md](04-serena.md#mandatory-not-preferred)). So get this step right before
-anything else. Pick Route A or Route B. Route C is an optional extra for later.
+anything else. Pick Route B (or Route A, once it works again). Route C is an optional extra for later.
 
-**Route A — plugin (simplest, recommended).** Install the `serena` plugin from the
-official marketplace (`/plugin`). It runs Serena via `uvx` straight from upstream, so
-there's no server to babysit and it updates with the plugin. It needs `uv` on PATH.
+**Serena 2.x breaks this playbook — pin `serena-agent==1.7.0`.** Serena 2.0 (October
+2026) replaced the per-operation tools with three: `activate_project`,
+`initial_instructions` and a Python REPL, `serena_repl`. The tools the agents declare —
+`find_symbol`, `get_symbols_overview`, `replace_symbol_body`, `rename_symbol` and the rest
+— no longer exist, so they are stripped from every `tools:` list and the agents launch
+with no code tools. 1.7.0 serves every Serena tool the agents declare.
 
-**Route B — project-scoped MCP server.** Run Serena yourself (follow its README; typically
-a local HTTP server after indexing) and register it in `<workspace>/.mcp.json`
+**Route B — MCP server pinned to 1.7.0 (recommended).** Register Serena yourself, pinned.
+Globally, for every repo:
+
+```bash
+claude mcp add --scope user serena -- uvx --from serena-agent==1.7.0 serena start-mcp-server \
+  --context agent --project-from-cwd --enable-web-dashboard false
+```
+
+`--project-from-cwd` activates the project from the nearest folder above the working
+directory that holds `.serena/project.yml` or `.git`, which is why one user-scope entry
+works across repos. The same command works as a project entry in `<workspace>/.mcp.json`
 ([`../../templates/mcp/project.mcp.json.snippet`](../../templates/mcp/project.mcp.json.snippet)).
-Use this if you want to pin a version or point at a shared instance.
+It needs `uv` on PATH.
+
+**Route A — plugin (currently broken).** The `serena` plugin from the official
+marketplace (`/plugin`) runs `uvx --from git+https://github.com/oraios/serena` — upstream
+HEAD, unpinned. **Today that installs Serena 2.x, so route A gives agents with no code
+tools.** Use route B until the plugin pins a 1.x release or the agents move to the REPL.
 
 **Route C — one server per repo (optional, for many or large repos).** Instead of one
 shared server, each repo gets its own, started only when you need it. Set up A or B first;
@@ -142,6 +159,12 @@ with your prefix across `~/.claude/agents/` yourself.
 3. Serena is **per-project**. Each solution/repo is its own Serena project. Activate the
    right one (`activate_project`) before working in it. On Route C there is nothing to
    activate: each server already serves one repo.
+4. **Two 1.7.0 traps.** `--context claude-code` hides six tools the agents declare
+   (`read_file`, `list_dir`, `find_file`, `search_for_pattern`, `activate_project`,
+   `create_text_file`) — use `--context agent`, which exposes all of them. And if Serena 2.x
+   ever ran on the machine, 1.7.0 crashes at startup with `ModuleNotFoundError: No module
+   named 'serena.dashboard.dashboard_api'` while reading `~/.serena/news_read.pkl`;
+   `--enable-web-dashboard false` skips it.
 
 **Optional:** Serena's connect-time prompt tells every agent to call
 `initial_instructions`, which the playbook's agents do not need. You can replace it with
@@ -151,11 +174,38 @@ not write into `~/.serena`, so this is a manual step.
 
 ## Step 3 — Stand up Forgetful (memory)
 
-1. Bring up the memory server and its PostgreSQL + pgvector backend (Docker is the easy
-   path; use local embeddings so content stays on the host).
-2. Register it as a **global** server in `~/.claude.json`
-   ([`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet);
-   the snippet ships a `tracker` entry too — delete it if you don't run one).
+1. Bring up the memory server. **Solo, the simple path is `uvx` with no database:**
+   `uvx forgetful-ai --transport http --host 127.0.0.1 --port 8020` stores to SQLite at
+   `~/.local/share/forgetful/forgetful.db` and embeds locally (`bge-small-en-v1.5`,
+   downloaded on first start). Pass `--host 127.0.0.1`: the default is `0.0.0.0`. To keep
+   it running, make it a systemd user service, `~/.config/systemd/user/forgetful.service`:
+
+   ```ini
+   [Unit]
+   Description=Forgetful MCP memory server
+   After=network.target
+
+   [Service]
+   ExecStart=%h/.local/bin/uvx forgetful-ai --transport http --host 127.0.0.1 --port 8020
+   Restart=on-failure
+   RestartSec=5
+
+   [Install]
+   WantedBy=default.target
+   ```
+
+   Then `systemctl --user daemon-reload && systemctl --user enable --now forgetful`. Logs:
+   `journalctl --user -u forgetful -f`. `loginctl enable-linger` keeps it running with no
+   login session, and needs no sudo for your own user. Smoke check, no MCP involved:
+   `uvx --from forgetful-ai forgetful memory recent --server http://localhost:8020 --json`.
+
+   **For a store a team shares, use PostgreSQL + pgvector instead** (Docker is the easy
+   path; keep local embeddings so content stays on the host).
+2. Register it as a **global** server in `~/.claude.json`:
+   `claude mcp add --scope user --transport http forgetful http://localhost:8020/mcp`
+   writes the same entry as
+   [`../../templates/mcp/global.claude.json.snippet`](../../templates/mcp/global.claude.json.snippet)
+   (the snippet ships a `tracker` entry too — delete it if you don't run one).
    A project-scoped `.mcp.json` entry and a plugin install both work as well, and so does
    connecting it as a **claude.ai connector** — that last route writes nothing to
    `mcpServers` at all, and the installer reads the connector list to find it.

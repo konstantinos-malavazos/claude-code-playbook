@@ -828,14 +828,17 @@ serena_gate() {
   printf '  %sDo this first:%s\n\n' "$BOLD" "$RESET"
   printf '    1. Install Claude Code and sign in, if you have not already.\n\n'
   printf '    2. Install Serena. Two routes — pick ONE:\n\n'
-  printf '       Route A (simplest): run /plugin inside Claude Code and install the\n'
-  printf '                           serena plugin from the official marketplace.\n'
-  printf '                           It runs Serena via uvx, so it needs uv on PATH.\n\n'
-  printf '       Route B:            run Serena yourself and register it under\n'
-  printf '                           mcpServers.serena in <workspace>/.mcp.json or\n'
-  printf '                           in ~/.claude.json. See\n'
-  printf '                           templates/mcp/project.mcp.json.snippet\n\n'
-  printf '       Route C (many repos, one Serena server for each): set up A or B\n'
+  printf '       Route B (recommended): register Serena pinned to 1.7.0 under\n'
+  printf '                           mcpServers.serena in ~/.claude.json or in\n'
+  printf '                           <workspace>/.mcp.json. Needs uv on PATH:\n\n'
+  printf '         claude mcp add --scope user serena -- \\\n'
+  printf '           uvx --from serena-agent==1.7.0 serena start-mcp-server \\\n'
+  printf '           --context agent --project-from-cwd --enable-web-dashboard false\n\n'
+  printf '                           Project-only form: templates/mcp/project.mcp.json.snippet\n\n'
+  printf '       Route A (broken for now): the serena plugin from the official marketplace\n'
+  printf '                           runs unpinned upstream Serena, which is now 2.x.\n'
+  printf '                           2.x drops the tools the agents use. Use route B.\n\n'
+  printf '       Route C (many repos, one Serena server for each): set up B\n'
   printf '                           first. This installer then offers C at its\n'
   printf '                           Serena step.\n\n'
   printf '    3. Check it worked: run /mcp in Claude Code. You should see serena\n'
@@ -848,7 +851,7 @@ serena_gate() {
   printf '    docs/shared/02-prerequisites.md\n'
   printf '    docs/shared/03-setup.md   (step 2)\n\n'
   printf '  %sPlaces this installer looked: %s/.claude.json, %s/.mcp.json,\n' "$DIM" "$HOME" "$PWD"
-  printf '  and %s/.claude/plugins%s\n\n' "$HOME" "$RESET"
+  printf '  and %s/.claude/plugins/installed_plugins.json%s\n\n' "$HOME" "$RESET"
   exit 1
 }
 
@@ -907,8 +910,10 @@ memory_gate() {
   printf '\n'
   printf '  %sDo this first:%s\n\n' "$BOLD" "$RESET"
   printf '    1. Install a semantic-memory MCP server. Forgetful is the one this\n'
-  printf '       playbook documents and fills in for, and it needs a PostgreSQL +\n'
-  printf '       pgvector backend — Docker is the easy path.\n\n'
+  printf '       playbook documents and fills in for. Solo, it runs on SQLite with\n'
+  printf '       no database to install: uvx forgetful-ai --transport http\n'
+  printf '       --host 127.0.0.1 --port 8020. A shared store wants PostgreSQL +\n'
+  printf '       pgvector — Docker is the easy path.\n\n'
   printf '    2. Register it. Two routes — pick ONE:\n\n'
   printf '       Route A: register it under mcpServers.forgetful in ~/.claude.json,\n'
   printf '                which makes it available in every project.\n\n'
@@ -933,7 +938,8 @@ memory_gate() {
   printf '    docs/shared/02-prerequisites.md\n'
   printf '    docs/shared/03-setup.md   (step 3)\n\n'
   printf '  %sPlaces this installer looked: %s/.claude.json (both mcpServers and\n' "$DIM" "$HOME"
-  printf '  the claude.ai connector list), %s/.mcp.json, and %s/.claude/plugins%s\n\n' "$PWD" "$HOME" "$RESET"
+  printf '  the claude.ai connector list), %s/.mcp.json, and\n' "$PWD"
+  printf '  %s/.claude/plugins/installed_plugins.json%s\n\n' "$HOME" "$RESET"
   exit 1
 }
 
@@ -1060,7 +1066,7 @@ serena_stage() {
 import json, sys
 d = json.load(open(sys.argv[1]))
 if not d["evidence"]:
-    print("      nothing — no Serena registration or plugin files were found")
+    print("      nothing — no Serena registration or installed plugin was found")
 for e in d["evidence"]:
     print("      %-22s ← %s" % (e["found"], e["where"]))
 PY
@@ -1130,7 +1136,7 @@ show_evidence() {
 import json, sys
 d = json.load(open(sys.argv[1]))
 if not d["evidence"]:
-    print("      nothing — no registration or plugin files were found")
+    print("      nothing — no registration or installed plugin was found")
 for e in d["evidence"]:
     print("      %-28s ← %s" % (e["found"], e["where"]))
 PY
