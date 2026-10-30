@@ -46,8 +46,9 @@ them; handoffs are never a durable store. Rehydrate from what is left. Don't red
    Loop until nothing's open, then end with the `next-steps` block naming the re-entry point
    the loop reached: back into the chain for the placeholders it lifted, or straight to review
    and land where nothing changed the code. This session — the delta is in context. Back in
-   the chain, every implementation dispatch carries the `## Dispatch paragraph` of the
-   `code-access` skill, as `/start-ticket`'s dispatch rule says.
+   the chain, every implementation dispatch follows `/start-ticket`'s dispatch rule — the
+   `## Dispatch paragraph` of the `code-access` skill, and the fallback dispatch where a
+   track has no dedicated agent.
 5. Merge metrics into the existing ledger row (don't create a new one).
 
 ## Guardrails

@@ -6,7 +6,8 @@ description: >-
   one-line reason naming the criterion that fired. Auto-loads whenever an agent is about to
   hand work to an implementation specialist, or is writing the plan/verdict/fix-plan that
   another agent will dispatch from. Triggers on "weight", "which model", "escalate",
-  "dispatch the specialist", "re-pass", "REQUEST CHANGES", "model escalation".
+  "dispatch the specialist", "re-pass", "REQUEST CHANGES", "model escalation", "no
+  specialist", "fallback persona".
 ---
 
 # Dispatch weight
@@ -150,6 +151,70 @@ Dispatched: <model> (weight: <light|heavy> — <reason>; pass: initial|review-fi
 
 One fixed line, in one place, is what makes the weights auditable with a single grep across
 handoffs.
+
+---
+
+## No specialist — the fallback dispatch
+
+**This section is not addressed to the classifier either.** It is for whoever dispatches,
+and it lives here for the same reason as the table above: this file is already loaded at the
+moment a dispatch is made.
+
+**When it applies.** The track's dedicated agent file does not exist in the target repo:
+`<repo>/.claude/agents/<layer>-specialist.md`, or `slice-<layer>-specialist.md` for a slice.
+That happens when no chain is declared, /adapt-to-stack never ran, the chain does not cover
+the layer, or the change is a one-off outside the chain. **If the file exists, dispatch that
+specialist as usual: an existing specialist always wins.** On a partial chain, only the
+uncovered layers fall back.
+
+> A file that is on disk but that the Agent tool reports "not found" is not a fallback case.
+> It has one of two causes. It was generated after this session started, and agents load at
+> session start: that is /adapt-to-stack's restart rule. Or its `name:` line still holds a
+> placeholder, and a restart does not fix that. Either way, stop and say so.
+
+**The persona.** Dispatch `general-purpose`. The **first line** of the prompt is a role
+line, for example *"You are a senior <backend | frontend | database | …> engineer
+specialised in <language / framework / layer>"*. Choose it **per dispatch**, from the
+work-unit, the files it touches and the stack the repo's `CLAUDE.md` names. It is never a
+fixed default and never left out. It is a line in the prompt only: write no agent file for
+it.
+
+**The `tdd` instruction.** The prompt says: *"Use the `tdd` skill: write the failing test
+first. For a bug, that is the test that reproduces it. Then make it pass."* It applies to new
+behaviour and to bug fixes. It is **not applicable** only to work with no testable
+behaviour: docs, config, pure prose or templates, and generated files. The prompt always
+names which case it is, as `tdd: applies` or `tdd: not applicable — <case>`, so a skip is a
+stated decision and never a silent one.
+
+**Everything a specialist dispatch carries, the fallback carries too:**
+
+- **Its inputs, read first.** The plan file the planner wrote (`planner.md`): this track, the
+  confirmed `## Testing seams` and the final commit message. The upstream layer's handoff:
+  the contract the agent must honour. **On a slice**, the upstream handoffs are the ones
+  already in this slice's directory, and the agent also reads its work-unit
+  `slices/slice-<N>.md`: the slice's scope, acceptance criteria and verify seam.
+- **The weight**, classified and routed exactly as for a specialist track. If the fallback
+  agent pins a `model:` of its own, that pin is a floor (invariant 3). With no pin, `light`
+  sets the cheap tier explicitly, for the same reason the layer specialists' `light` does.
+- **The `Dispatched:` line**, from the section above.
+- **Code access.** Tell the agent to load the `code-access` skill — a `general-purpose`
+  agent has no `skills:` preload — and paste that skill's `## Dispatch paragraph` with
+  `<live tools>` filled.
+- **Build and verify.** The repo's `CLAUDE.md` build and test commands. The agent does not
+  hand back until `get_diagnostics_for_file` is clean on every file it touched, the build is
+  green and the tests pass.
+- **The commit rules**, from `commit-conventions`: the planner's final commit message,
+  amend-as-you-go, one commit per repo, explicit paths, never push, never commit AI-infra
+  files. **On a slice**, carry the slice overrides instead: check the expected slice branch
+  before the first write, commit freely, and leave the collapse to one commit to the
+  integrator.
+- **The handoff, at the path the missing specialist would have written:**
+  `handoffs/<TICKET-ID>/<layer>-specialist.md`, or
+  `handoffs/<TICKET-ID>/slices/slice-<N>/<layer>-specialist.md` on a slice. The next layer,
+  the aligner and the reviewers then find it where they already look. The `Dispatched:` line
+  is its first line and the `Serena calls:` line its last.
+- **On a fix pass**, act only on the findings tagged `[<repo>/<track>]` for this track.
+- **The efficient-reasoning paragraph**, verbatim.
 
 ---
 

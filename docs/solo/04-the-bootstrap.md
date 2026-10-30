@@ -109,8 +109,10 @@ project assumed. See [04-serena.md](../shared/04-serena.md).
 
 This is the step the seam was missing. [`/start-ticket`](../shared/08-ticket-pipeline.md)
 dispatches its implement step to **layer specialists**. Until now nothing on this path
-guaranteed those agent files existed. Every other check could hold, and the pipeline would
-have nothing to dispatch to.
+guaranteed those agent files existed. Every other check could hold, and without them every
+track would fall back to a per-dispatch persona with none of this repo's layer standards —
+the [fallback dispatch](../../templates/skills/dispatch-weight/SKILL.md) in the
+`dispatch-weight` skill.
 
 Three different things own three different questions. None of them restates another:
 
@@ -327,7 +329,7 @@ and killed, and why the chain is one of the three things ticket 1 decides.
 |---|---|
 | **A repo that builds and runs** | The stub, plus one folder per layer. |
 | **A `CLAUDE.md`** | Stack, commands, the branch this repo ships from, layer chain, Serena verdict, the settled names. The permanent home for all six, and the only `CLAUDE.md` a one-repo project has below the global one. |
-| **Layer specialists on disk** | Which is what makes [`/start-ticket`](../shared/08-ticket-pipeline.md) able to dispatch at all. |
+| **Layer specialists on disk** | Which is what makes [`/start-ticket`](../shared/08-ticket-pipeline.md) dispatch to agents that carry this repo's layer standards. Without them every track falls back to a per-dispatch persona with none of them — the [fallback dispatch](../../templates/skills/dispatch-weight/SKILL.md). |
 | **Two memories** | The seam's arithmetic comes out at exactly two, with no special-casing. |
 | **A handover task** | *Run /cut-backlog (fresh session)*, claimed to you. Cutting closes it. |
 | **One report** | Seven of the seam's eight items. [Cutting](05-cutting.md) makes the remaining one true: item 6, *the backlog exists*. It does that against a repo that is real, so its tickets can name paths that exist. |

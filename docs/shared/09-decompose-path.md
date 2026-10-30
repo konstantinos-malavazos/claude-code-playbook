@@ -85,7 +85,9 @@ How a run goes:
    checks out `<TICKET-ID>_<slug>-slice-<N>`. It cuts that branch from the repo's previous
    slice branch, or from the final branch `<TICKET-ID>_<slug>` for the first slice in that
    repo. It checks that `git status` is clean, then dispatches the slice's specialists in
-   chain order. They commit on that branch. Each specialist checks that the expected branch
+   chain order. A slice layer with no slice specialist gets the
+   [fallback dispatch](../../templates/skills/dispatch-weight/SKILL.md) instead, carrying the
+   slice overrides. They commit on that branch. Each specialist checks that the expected branch
    is checked out before its first write, and stops if it is not.
 3. **Strictly in turn.** The next slice starts only after the previous slice's last
    specialist has returned.

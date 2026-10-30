@@ -65,8 +65,8 @@ there healthy. The ticket flows write their own memory as part of landing.
 
 The three `*-massive` templates are one flow and only work together — see
 [03-massive-tickets.md](../../docs/team/03-massive-tickets.md). They need the `charting`
-skill and a tracker adapter installed; `build-chart-ticket` also needs the layer specialists
-`/adapt-to-stack` generates.
+skill and a tracker adapter installed; `build-chart-ticket` also uses the layer specialists
+`/adapt-to-stack` generates, and falls back where a layer has none.
 
 **They are team-only, and the `charting` skill they run is not.** What the three add over
 `/charting` is a chart folder for an effort spanning several repos, a dispatch to the layer

@@ -105,7 +105,9 @@ every ticket that touches it.
 ## 5. Implement — one specialist, named by the label
 
 `make:<layer>` dispatches `@<layer>-specialist`, and that specialist's own file says whether
-its layer ships tests.
+its layer ships tests — on the fallback, its `tdd` line does. Where the repo has no
+`.claude/agents/<layer>-specialist.md`, the dispatch follows the `## No specialist — the
+fallback dispatch` section of the `dispatch-weight` skill.
 
 **Dispatch it on a weight, classified by the `dispatch-weight` skill.** The planner in step 3
 runs it over what this ticket actually changes; you read the answer and route. `light` → set,

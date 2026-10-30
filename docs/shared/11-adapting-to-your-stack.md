@@ -224,6 +224,11 @@ order**. The template command
 [`../../templates/commands/start-ticket.md`](../../templates/commands/start-ticket.md)
 already does this generically. You just list your layers.
 
+A layer with no specialist yet, or a repo where this flow has not run, is not a stop: the
+dispatch falls back, as the
+[fallback dispatch](../../templates/skills/dispatch-weight/SKILL.md) section of the
+`dispatch-weight` skill says. Running this flow is what replaces the fallback with the specialist.
+
 ---
 
 ## The alignment gate

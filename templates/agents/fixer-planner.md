@@ -26,7 +26,7 @@ Follow the `code-access` skill, preloaded through your `skills:` line. For your 
   what the code does comes from a Serena call, not from a grep or a memory of the ticket. Name
   any escape you used in the plan.
 - `Bash` is for **read-only git**: `log`, `show`, `diff`, `branch --list`. The one exception is
-  step 6, and only after the plan is approved.
+  step 7, the branch step, and only after the plan is approved.
 - **Halt check tool:** `find_symbol`. **Halt destination:** `fixer-planner.md`, containing only
   `# <TICKET-ID> fix — HALTED` and the HALTED block under `## HALTED — no Serena tools`. Say
   that no diagnosis was made and no fix plan was produced. **Do not diagnose from grep output,

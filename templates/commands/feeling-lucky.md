@@ -85,7 +85,10 @@ Each iteration is a **fresh context**. Repeat until step 5 halts you.
    order. Never append. **Re-read `map.md` immediately before editing it**, never from the
    copy loaded at iteration start.
 8. **Graduate the fog** — ticket what the answer just made visible, and **delete the
-   graduated patch from *Not yet specified*** so it lives in one place. Anything the decision
+   graduated patch from *Not yet specified*** so it lives in one place. A resolution that
+   hands an action to a person outside the session — an install, a sign-in, a device to get
+   — becomes a `task` under the map, claimed to them; like every `task` here, it does not
+   halt the walk. Anything the decision
    put past the destination gets closed with one line under *Out of scope*. **Then
    regenerate the picture** if the page template is installed, per the `charting` skill —
    write the file, do not open it. Whoever looks in the morning sees the map as the walk
@@ -111,7 +114,7 @@ Each iteration is a **fresh context**. Repeat until step 5 halts you.
 | `research` | one background subagent with the `research` skill's discipline in its prompt and **its role stated in one line** — a cold searcher on this one question. That pair is the persona; no template is written for it. Findings to `research/`. **Claim it to the agent as you dispatch**. The iteration that dispatched it owns it: wait in that iteration, **checking on it at each multiple of its stated expectation**. It runs in its own context, so its reading does not fill this one. Keep the turn while it runs: go on to the resolution comment and the close ([step 2.6](#2-the-loop)) only once it has reported or has been reported as overrun, and the comment records its findings or the overrun. A session that stops early can take its background agents with it |
 | `task` | **claim it to the owner**, comment what is being asked and when, move on. It does **not** halt — claiming is what takes it off the frontier so the walk continues past it |
 | `prototype` | **halt**, reason `prototype`. Reacting to something rough *is* the ticket |
-| `make:<layer>` | **halt**, reason `no-chain`. Stage 2 has no declared layer chain and no specialists — `/adapt-to-stack` runs a stage later, so there is nothing to dispatch to |
+| `make:<layer>` | **halt**, reason `no-chain`, kept on purpose. No stack has been chosen yet: stage 2 has no declared chain because the stack is decided on this map's tail. A `make:<layer>` here is charting reaching past its stop, and an unattended walk does not build, so the no-specialist fallback does not apply here |
 
 ## 4. Answering a grilling
 

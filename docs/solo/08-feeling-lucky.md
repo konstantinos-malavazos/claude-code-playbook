@@ -205,7 +205,7 @@ with one substitution:
 | `research` | a background subagent | **unchanged** — it already ran unattended ([02-the-kill-gate.md](02-the-kill-gate.md)) |
 | `task` | you do it | **claimed to you and left.** It does not halt. Claiming is what takes it off the frontier, so the walk continues past it |
 | `prototype` | you react to something rough | **halts.** Reacting *is* the ticket, and there is nobody to react |
-| `make:<layer>` | rare here — no chain is declared yet | **halts.** [Stage 2 has no layer chain and no specialists](../../templates/skills/charting/SKILL.md). `/adapt-to-stack` runs a stage later, so there is nothing to dispatch to |
+| `make:<layer>` | rare here — no chain is declared yet | **halts, on purpose.** No stack has been chosen yet: [stage 2 has no declared layer chain](../../templates/skills/charting/SKILL.md), because the stack is decided on this map's tail. A `make:<layer>` here is charting reaching past its stop, and an unattended walk does not build, so the [no-specialist fallback dispatch](../../templates/skills/dispatch-weight/SKILL.md) does not apply here |
 
 ### The tail always stops the walk
 

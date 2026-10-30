@@ -151,8 +151,9 @@ where both entrances are visible at once. When all eight hold, the front-end is 
 
 **On item 8 — declared is not the same as built.** Step 4 of
 [`/start-ticket`](../shared/08-ticket-pipeline.md) dispatches the implement step to layer
-specialists. Without item 8, every other check can hold and the pipeline still has nothing
-to dispatch to. That one gap made this seam eight checks rather than seven. The
+specialists. Without item 8, every other check can hold and every track still falls back to
+a per-dispatch persona with none of this repo's layer standards — the
+[fallback dispatch](../../templates/skills/dispatch-weight/SKILL.md). That one gap made this seam eight checks rather than seven. The
 [bootstrap](04-the-bootstrap.md) generates them.
 
 **On item 7 — two named memories, not "some memories".** "Memories were seeded" is not

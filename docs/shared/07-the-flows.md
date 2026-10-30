@@ -54,7 +54,8 @@ Turns a ticket id into a reviewed, single-commit branch.
         │
 @planner              consumes briefs → design + track allocation + branch;
         │             flags "decompose?" for very large tickets
-   grilling gate      ask the human ONLY what the code/brief can't answer
+   grilling gate      ask the human ONLY what the code/brief can't answer, and
+        │             confirm the plan's `## Testing seams`
         │             (open questions can be deferred — see below)
    {decompose?}
         ├── slice-count = 1 (the ~95% default):
@@ -85,7 +86,8 @@ Full step-by-step: [08-ticket-pipeline.md](08-ticket-pipeline.md).
 2. **Models are matched to work, and then to the ticket.** Pin a cheap, fast model on
    mechanical, bounded agents (the analyzer) and a stronger one on design, judgement and
    review. The layer specialists pin none: each dispatch to one carries a **weight** that
-   sets its tier for that run — cheap on `light`, strong on `heavy`. A model the repo's
+   sets its tier for that run — cheap on `light`, strong on `heavy`. The fallback dispatch,
+   for a track with no specialist, pins none either and carries its weight the same way. A model the repo's
    `CLAUDE.md` names for a layer is a floor the weight never goes below — see
    [Model escalation](#model-escalation-cheap-by-default-escalated-by-weight). Pin exact
    model *ids* so a run is reproducible: an alias moves to a new model with no diff, and on
@@ -222,7 +224,10 @@ may only raise its floor.
 | 5 | the QA bounce-back (`/fix-ticket`) | no | `@fixer-planner`, in the fix plan |
 | 6 | a secondary command that dispatches a specialist directly (`/build-chart-ticket`) | its own | its own planner step |
 
-The numbering is `/start-ticket`'s; every other copy follows it.
+The numbering is `/start-ticket`'s; every other copy follows it. A site whose track has no
+specialist dispatches the
+[fallback](../../templates/skills/dispatch-weight/SKILL.md) instead, under the same site
+number and with the same weight.
 
 **A `weight` field on the plan covers site 1, the initial dispatch, and silently misses the
 rest.** Site 4, the
