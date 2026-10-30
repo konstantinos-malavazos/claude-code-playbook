@@ -251,7 +251,10 @@ directory name. Same placeholder, opposite consequence:
      This is the answer for a one-off search dispatch: the role line plus
      [`../skills/research`](../skills/research/SKILL.md) types it completely, which is why
      the flows that fire search subagents name that skill and why no `research` agent exists
-     in this directory to be preferred over it.
+     in this directory to be preferred over it. For implementation work with no specialist,
+     answer 3 is the fallback dispatch in
+     [`../skills/dispatch-weight`](../skills/dispatch-weight/SKILL.md): the role line plus the
+     `tdd` skill.
 - **A call you expect to run long carries an explicit timeout and, in the same breath, what
   you expect *this call* to take.** Both together — a timeout with no expectation gives you
   nothing to judge the wait against, and an expectation with no timeout is a wish. **The duty

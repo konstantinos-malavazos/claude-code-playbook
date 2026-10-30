@@ -117,6 +117,8 @@ in the repo's `CLAUDE.md` — the same source
 [`/adapt-to-stack`](../shared/11-adapting-to-your-stack.md) generates the specialists from. A
 `schema → service → consumer` chain gives you `make:schema` dispatching
 `@schema-specialist`, and so on. Add a layer to the chain and you get its ticket type for free.
+Where the repo has no such specialist file, `/build-chart-ticket` dispatches the
+[fallback](../../templates/skills/dispatch-weight/SKILL.md) for that layer instead.
 
 **There is no track-allocation step, no slice fork, no aligner or integrator.**
 Charting already decomposed this effort; slicing a chart child again is slicing twice. This is

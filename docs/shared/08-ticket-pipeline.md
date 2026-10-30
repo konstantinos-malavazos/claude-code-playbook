@@ -69,7 +69,9 @@ repo ships from). The planner **cannot** write to memory — design only.
 ## Step 3b — Grilling gate (human)
 
 Before implementation, the planner surfaces only what the **code and briefs cannot
-answer**, which means genuine product/spec decisions. For each, you either answer or
+answer**, which means genuine product/spec decisions. The gate also presents the planner's
+`## Testing seams` for you to confirm, because the specialists test only at confirmed seams.
+For each open question, you either answer or
 **defer**. A deferral has to be managed rather than forgotten before the planner may
 proceed. [`templates/skills/grilling/`](../../templates/skills/grilling/SKILL.md) owns what
 that requires, including recording the open question in `open-questions.md` in the
@@ -94,6 +96,12 @@ higher than the weight asks for, set nothing. The orchestrator does not
 classify; it reads the weight and routes. The invariants — asymmetry, ratchet, floor — and
 why the weight rather than the pipeline position decides this:
 [07](07-the-flows.md#model-escalation-cheap-by-default-escalated-by-weight).
+
+**No specialist for a track.** Where the repo has no specialist file for a track, the
+orchestrator dispatches the fallback instead: a role line chosen for that dispatch, the
+`tdd` skill as an instruction, and everything a specialist dispatch carries. A specialist
+that exists always wins. The one rule is the *No specialist — the fallback dispatch* section
+of [`templates/skills/dispatch-weight/`](../../templates/skills/dispatch-weight/SKILL.md).
 
 Implementation is **Serena-only**: read the target symbol with `find_symbol` and its
 callers with `find_referencing_symbols`, change it with `replace_symbol_body` /

@@ -31,6 +31,9 @@ holding the evidence does, and you read its answer and route:
   prompt, with its `<live tools>` slot filled. Every dispatch carries it — the first one, a
   review fix, a drift fix, an `@integration-tester` route-back, an alignment return — and so
   does the dispatch of `@integration-tester` itself.
+- **No specialist for the track** → follow the `## No specialist — the fallback dispatch`
+  section of the `dispatch-weight` skill, at any of the sites below, slices included. A
+  specialist that exists always wins.
 
 - **Dispatched line:** write this line into every implementation dispatch prompt, at all six
   sites below, and tell the agent to copy it verbatim as its handoff's **first line**:

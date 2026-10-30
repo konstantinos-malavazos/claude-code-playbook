@@ -15,12 +15,19 @@ stays one ticket / one commit per repo / one metrics row.
    the user for more info. Do not guess.** Write a fix plan with track allocation, and a
    weight per track classified with the `dispatch-weight` skill — a QA bounce-back is its own
    dispatch and gets its own classification, never the shipped ticket's.
+   **Then STOP for the user's approval of the fix plan**, before any branch is set up or any
+   fix is dispatched. Present from `fixer-planner.md` the scenario (A or B), the red
+   feedback-loop command, the ranked hypotheses, the origin classification and the tracks
+   with their weights; the user approves, re-ranks the hypotheses or corrects the origin.
+   Only then send @fixer-planner back for its branch and hand-back steps alone, carrying the
+   user's changes: Scenario A checks out the existing branch, Scenario B cuts the fix branch.
 3. **Fix** — dispatch the responsible layer specialist(s), **each on its track's weight**:
    `light` → the tier `<fast-model-id>` belongs to, and **set it explicitly** — setting
    nothing is not the same thing, since a specialist with no pinned `model:` then inherits
    **your** model, the strong one; `heavy` → the tier `<strong-model-id>` belongs to, for
    that run only. Both go through the id-to-tier mapping in the `dispatch-weight` skill.
-   Never below the tier that track last ran at, and never below the specialist's pinned
+   A track with no specialist follows that skill's `## No specialist — the fallback
+   dispatch` section instead; a specialist that exists always wins. Never below the tier that track last ran at, and never below the specialist's pinned
    `model:` — where that pin is already higher, set nothing. Every dispatch, re-dispatch
    included, carries the `## Dispatch paragraph` of the `code-access` skill, pasted with its
    `<live tools>` slot filled. Write a **failing test that reproduces the bug first** (`tdd`
