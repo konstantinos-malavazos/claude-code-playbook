@@ -87,8 +87,10 @@ committed. **The reader is what settles that**: this page is for you, it needs a
 and an agent gains nothing from parsing HTML. Nothing downstream reads it, so a committed
 copy would be stale weight in the history rather than a record anyone wanted.
 
-**Whatever generates it also ensures `.claude/` is in the repo's `.gitignore` — with
-`!.claude/agents/` and `!.claude/skills/` beside it.** The hook stops the file entering git.
+**Whatever generates it also ensures `.claude/*` is in the repo's `.gitignore` — with
+`!.claude/agents/` and `!.claude/skills/` beside it.** The star matters: under a bare
+`.claude/` line the exceptions do nothing, because git never re-includes a path whose parent
+directory is excluded. The hook stops the file entering git.
 Nothing stops it showing as untracked noise, and **nothing else adds that line during
 charting**: `/adapt-to-stack` patches the exceptions onto an existing line, but that runs at
 the bootstrap. On the solo path this page cannot wait for it: the page runs during charting, a

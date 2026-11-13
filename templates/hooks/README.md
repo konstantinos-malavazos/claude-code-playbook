@@ -254,7 +254,9 @@ behind each answer is in
 **The hook and `.gitignore` have to sort the same way.** The hook blocks the *command*.
 `.gitignore` makes the file invisible to it. A blanket `.claude/` ignore line hides the
 generated specialists that are supposed to be committed, so whatever writes that line
-writes the `!.claude/agents/` and `!.claude/skills/` exceptions with it. Two mechanisms, one
+writes the `!.claude/agents/` and `!.claude/skills/` exceptions with it — and writes the line
+as `.claude/*`, not `.claude/`, because git never re-includes a path whose parent directory
+is excluded, so under `.claude/` the exceptions do nothing. Two mechanisms, one
 directory — moving one and not the other buys nothing.
 
 **The trunk list is fixed: `main`, `master`, `develop`.** The hook blocks a push that names
