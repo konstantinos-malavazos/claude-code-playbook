@@ -129,8 +129,9 @@ before editing it. Never edit from the copy you loaded at session start.*
 
 **Only if the page template is installed at `~/.claude/dependency-graph.html`.** When the
 human asks for the picture: ask for the whole graph, fill that page's data slot, write the
-result to `.claude/dependency-graph.html` in the repo being worked on, ensure `.claude/` is
-in that repo's `.gitignore` **with `!.claude/agents/` and `!.claude/skills/` beside it**,
+result to `.claude/dependency-graph.html` in the repo being worked on, ensure `.claude/*`
+(not `.claude/`, under which the exceptions do nothing) is in that repo's `.gitignore`
+**with `!.claude/agents/` and `!.claude/skills/` beside it**,
 and open it. The page's own header comment carries the schema and the two rules that fail
 silently. It is for the human, not for you.
 

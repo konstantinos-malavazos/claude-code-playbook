@@ -289,8 +289,12 @@ Ask git whether the two directories you just wrote to are ignored:
 git check-ignore -v .claude/agents .claude/skills
 ```
 
-A blanket `.claude/` ignore line hides them. If it does, add the two exceptions beside the
-existing line — `!.claude/agents/` and `!.claude/skills/` — and change nothing else.
+Each must print its own `!` line (`!.claude/agents/`, `!.claude/skills/`), which means
+*visible*, or nothing at all. A blanket `.claude/` ignore line hides them. If it does, rewrite
+that line as `.claude/*` and add the two exceptions beside it — `!.claude/agents/` and
+`!.claude/skills/` — and change nothing else. The star is not optional: under a bare
+`.claude/` the exceptions do nothing, because git never re-includes a path whose parent
+directory is excluded. Run the check again after the edit.
 
 These files are meant to be committed, and an ignored file produces **no error at all**.
 That is why you ask git rather than assume.
@@ -319,7 +323,7 @@ Chain: **schema** ──► **api** ──► **web** (3 layers, shape A)
 | `.claude/skills/web-standards/SKILL.md` | web | **skipped** | **still a scaffold** — 12 `<…>` brackets |
 | `.claude/skills/web-write-core/SKILL.md` | web | **skipped** | **still a scaffold** — 2 `<…>` brackets |
 
-`.gitignore`: `.claude/` ignored, with `!.claude/agents/` and `!.claude/skills/` — added this run.
+`.gitignore`: `.claude/*` ignored, with `!.claude/agents/` and `!.claude/skills/` — added this run.
 
 **`.claude/agents/` and `.claude/skills/` did not exist before this run. Restart the
 session before anything dispatches to these files.**

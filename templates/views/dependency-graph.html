@@ -16,13 +16,18 @@
      this file changes, ever.
   3. Write the result to  .claude/dependency-graph.html  in the repo being worked
      on — fixed filename, so there is only ever one.
-  4. Ensure the repo's .gitignore ignores  .claude/  — WITH  !.claude/agents/  and
+  4. Ensure the repo's .gitignore ignores  .claude/*  — WITH  !.claude/agents/  and
      !.claude/skills/  beside it. The hook block-infra-staging.sh stops this file
      entering git; the ignore line stops it showing up as untracked noise.
      THE TWO EXCEPTIONS ARE NOT OPTIONAL, AND FORGETTING THEM IS SILENT: the hook
      lets those two directories through because a fresh clone needs them, and a
-     blanket  .claude/  line hides them from  git add  anyway. Two mechanisms on
+     blanket ignore line hides them from  git add  anyway. Two mechanisms on
      one directory; move one without the other and you have bought nothing.
+     THE STAR IS NOT OPTIONAL EITHER, AND IS JUST AS SILENT: under a bare  .claude/
+     line the two exceptions do nothing, because git never re-includes a path whose
+     parent directory is excluded. Prove it with
+       git check-ignore -v .claude/agents .claude/skills
+     — each must print its  !  line, not  .claude/ .
      Nothing else adds that line DURING CHARTING, and this page can run a whole
      stage before the repo is scaffolded.
   5. Open it when asked for the picture. ALSO regenerate it after EVERY ticket close

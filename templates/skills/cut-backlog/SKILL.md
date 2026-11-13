@@ -241,7 +241,7 @@ Then draw it:
 
 > **Ask for the whole graph over the units you just created, fill the data slot in
 > `~/.claude/dependency-graph.html`, write it to `.claude/dependency-graph.html`, ensure
-> `.claude/` is in the repo's `.gitignore` **with `!.claude/agents/` and
+> `.claude/*` (not `.claude/`) is in the repo's `.gitignore` **with `!.claude/agents/` and
 > `!.claude/skills/` beside it**, and open it — one command. Set the slot's `startCommand`
 > to `/start-ticket {n}`, with your tracker's key prefix where ids carry one
 > (`/start-ticket ABC-{n}`).**
